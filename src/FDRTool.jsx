@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
-import { RotateCcw, TrendingUp, Info, X } from 'lucide-react';
+import React, { useState, useMemo, useRef } from 'react';
+import { RotateCcw, TrendingUp, Info, X, Link2, Download, Check } from 'lucide-react';
+import html2canvas from 'html2canvas';
 
 const TEAMS = [
   { code: 'AND', name: 'Anderlecht' },
@@ -74,16 +75,44 @@ function loadStoredRatings() {
   }
 }
 
+function encodeRatingsToParam(ratings) {
+  return TEAMS.map(t => `${t.code}${ratings[t.code]}`).join('-');
+}
+
+function loadRatingsFromURL() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const raw = params.get('r');
+    if (!raw) return null;
+    const parts = raw.split('-');
+    const result = {};
+    for (const part of parts) {
+      const code = part.slice(0, 3);
+      const value = Number(part.slice(3));
+      if (TEAMS.some(t => t.code === code) && value >= 1 && value <= 5) {
+        result[code] = value;
+      }
+    }
+    // only accept if all 18 teams were present and valid
+    if (TEAMS.every(t => result[t.code])) return result;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export default function FDRTool() {
-  const [ratings, setRatings] = useState(() => loadStoredRatings() || DEFAULT_RATINGS);
+  const [ratings, setRatings] = useState(() => loadRatingsFromURL() || loadStoredRatings() || DEFAULT_RATINGS);
   const [rangeStart, setRangeStart] = useState(1);
   const [rangeEnd, setRangeEnd] = useState(5);
   const [saved, setSaved] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [isCustom, setIsCustom] = useState(() => {
-    const stored = loadStoredRatings();
-    return !!stored;
+    return !!(loadRatingsFromURL() || loadStoredRatings());
   });
+  const tableRef = useRef(null);
 
   const updateRating = (code, value) => {
     setRatings(prev => ({ ...prev, [code]: value }));
@@ -108,6 +137,45 @@ export default function FDRTool() {
       window.localStorage?.removeItem(STORAGE_KEY);
     } catch {
       // ignore
+    }
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('r');
+      window.history.replaceState({}, '', url.toString());
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleCopyLink = async () => {
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('r', encodeRatingsToParam(ratings));
+      window.history.replaceState({}, '', url.toString());
+      await navigator.clipboard.writeText(url.toString());
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch {
+      // clipboard unavailable — silently ignore
+    }
+  };
+
+  const handleDownloadImage = async () => {
+    if (!tableRef.current) return;
+    setDownloading(true);
+    try {
+      const canvas = await html2canvas(tableRef.current, {
+        backgroundColor: '#2A1440',
+        scale: 2,
+      });
+      const link = document.createElement('a');
+      link.download = 'fdr-tabel-fpl-proleague.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch {
+      // rendering failed — silently ignore, user can screenshot manually
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -184,6 +252,23 @@ export default function FDRTool() {
             {isCustom ? 'JOUW AANGEPASTE VERSIE' : 'STANDAARD — RATING VAN @FPL_PROLEAGUE'}
           </span>
           <div style={{ flex: 1 }} />
+          <button onClick={handleCopyLink} style={{
+            display: 'flex', alignItems: 'center', gap: '6px', background: 'transparent', color: '#C9B8E0',
+            border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', padding: '8px 14px',
+            fontWeight: 600, fontSize: '13px', cursor: 'pointer'
+          }}>
+            {linkCopied ? <Check size={14} /> : <Link2 size={14} />}
+            {linkCopied ? 'Link gekopieerd!' : 'Kopieer link'}
+          </button>
+          <button onClick={handleDownloadImage} disabled={downloading} style={{
+            display: 'flex', alignItems: 'center', gap: '6px', background: 'transparent', color: '#C9B8E0',
+            border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', padding: '8px 14px',
+            fontWeight: 600, fontSize: '13px', cursor: downloading ? 'default' : 'pointer',
+            opacity: downloading ? 0.6 : 1
+          }}>
+            <Download size={14} />
+            {downloading ? 'Bezig...' : 'Download als afbeelding'}
+          </button>
           <button onClick={handleSave} style={{
             display: 'flex', alignItems: 'center', gap: '6px', background: '#4ECDC4', color: '#0B2E1B',
             border: 'none', borderRadius: '8px', padding: '8px 14px', fontWeight: 700, fontSize: '13px',
@@ -246,7 +331,7 @@ export default function FDRTool() {
           </section>
 
           {/* FDR TABLE */}
-          <section style={{ overflowX: 'auto' }}>
+          <section ref={tableRef} style={{ overflowX: 'auto', background: '#2A1440', padding: '4px' }}>
             <h2 className="fdr-title" style={{ color: '#FFFFFF', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '12px' }}>
               Fixture Difficulty Rating
             </h2>
