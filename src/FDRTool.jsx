@@ -1,0 +1,388 @@
+import React, { useState, useMemo } from 'react';
+import { RotateCcw, TrendingUp, Info, X } from 'lucide-react';
+
+const TEAMS = [
+  { code: 'AND', name: 'Anderlecht' },
+  { code: 'ANT', name: 'Antwerp' },
+  { code: 'BEV', name: 'SK Beveren' },
+  { code: 'CER', name: 'Cercle Brugge' },
+  { code: 'CHA', name: 'Charleroi' },
+  { code: 'CLU', name: 'Club Brugge' },
+  { code: 'GNK', name: 'Genk' },
+  { code: 'GNT', name: 'Gent' },
+  { code: 'KOR', name: 'KV Kortrijk' },
+  { code: 'KVM', name: 'KV Mechelen' },
+  { code: 'LLV', name: 'RAAL La Louvière' },
+  { code: 'LOM', name: 'Lommel SK' },
+  { code: 'OHL', name: 'OH Leuven' },
+  { code: 'STA', name: 'Standard' },
+  { code: 'STV', name: 'Sint-Truiden' },
+  { code: 'USG', name: 'Union SG' },
+  { code: 'WES', name: 'Westerlo' },
+  { code: 'ZWA', name: 'Zulte Waregem' },
+];
+
+const FIXTURES = {
+  AND: ['LLV-H','BEV-A','KOR-H','USG-A','GNK-H','KVM-A','ZWA-H','CER-A'],
+  ANT: ['BEV-H','KOR-A','GNK-H','STV-H','STA-A','CLU-A','USG-H','WES-A'],
+  CER: ['STA-A','STV-H','CLU-A','LOM-H','GNT-H','OHL-A','CHA-A','AND-H'],
+  CHA: ['OHL-H','LOM-A','KVM-H','KOR-A','USG-H','ZWA-A','CER-H','STA-A'],
+  CLU: ['KOR-H','OHL-A','CER-H','GNT-A','LOM-A','ANT-H','GNK-H','LLV-A'],
+  GNK: ['ZWA-A','WES-H','ANT-A','BEV-H','AND-A','GNT-H','CLU-A','KOR-H'],
+  GNT: ['KVM-H','LLV-A','OHL-H','CLU-H','CER-A','GNK-A','STA-H','ZWA-A'],
+  KOR: ['CLU-A','ANT-H','AND-A','CHA-H','ZWA-H','LLV-A','BEV-H','GNK-A'],
+  KVM: ['GNT-A','STA-H','CHA-A','LLV-A','WES-H','AND-H','LOM-A','STV-H'],
+  LOM: ['STV-A','CHA-H','WES-H','CER-A','CLU-H','USG-A','KVM-H','BEV-A'],
+  OHL: ['CHA-A','CLU-H','GNT-A','STA-H','BEV-A','CER-H','LLV-H','USG-A'],
+  LLV: ['AND-A','GNT-H','STA-A','KVM-H','STV-A','KOR-H','OHL-A','CLU-H'],
+  BEV: ['ANT-A','AND-H','ZWA-A','GNK-A','OHL-H','STV-H','KOR-A','LOM-H'],
+  STV: ['LOM-H','CER-A','USG-H','ANT-A','LLV-H','BEV-A','WES-H','KVM-A'],
+  STA: ['CER-H','KVM-A','LLV-H','OHL-A','ANT-H','WES-A','GNT-A','CHA-H'],
+  USG: ['WES-A','ZWA-H','STV-A','AND-H','CHA-A','LOM-H','ANT-A','OHL-H'],
+  WES: ['USG-H','GNK-A','LOM-A','ZWA-H','KVM-A','STA-H','STV-A','ANT-H'],
+  ZWA: ['GNK-H','USG-A','BEV-H','WES-A','KOR-A','CHA-H','AND-A','GNT-H'],
+};
+
+const DEFAULT_RATINGS = {
+  LOM: 1, KOR: 1, BEV: 1, LLV: 1,
+  ZWA: 2, OHL: 2, CER: 2,
+  STA: 3, KVM: 3, WES: 3, CHA: 3, ANT: 3, STV: 3,
+  GNK: 4, AND: 4, GNT: 4,
+  USG: 5, CLU: 5,
+};
+
+const RATING_STYLE = {
+  1: { bg: '#1F7A4D', text: '#EAFBF1', label: 'Makkelijkst' },
+  2: { bg: '#5BAE7A', text: '#0B2E1B', label: 'Makkelijk' },
+  3: { bg: '#E8C547', text: '#3D2E00', label: 'Gemiddeld' },
+  4: { bg: '#E08A3E', text: '#2E1500', label: 'Moeilijk' },
+  5: { bg: '#C2402C', text: '#FBEAE7', label: 'Moeilijkst' },
+};
+
+const GW_COUNT = 8;
+const STORAGE_KEY = 'fpl_proleague_fdr_ratings_v1';
+
+function loadStoredRatings() {
+  try {
+    const raw = window.localStorage?.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object') return parsed;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export default function FDRTool() {
+  const [ratings, setRatings] = useState(() => loadStoredRatings() || DEFAULT_RATINGS);
+  const [rangeStart, setRangeStart] = useState(1);
+  const [rangeEnd, setRangeEnd] = useState(5);
+  const [saved, setSaved] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
+  const [isCustom, setIsCustom] = useState(() => {
+    const stored = loadStoredRatings();
+    return !!stored;
+  });
+
+  const updateRating = (code, value) => {
+    setRatings(prev => ({ ...prev, [code]: value }));
+    setIsCustom(true);
+    setSaved(false);
+  };
+
+  const handleSave = () => {
+    try {
+      window.localStorage?.setItem(STORAGE_KEY, JSON.stringify(ratings));
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch {
+      // storage unavailable — silently ignore, ratings still work this session
+    }
+  };
+
+  const handleReset = () => {
+    setRatings(DEFAULT_RATINGS);
+    setIsCustom(false);
+    try {
+      window.localStorage?.removeItem(STORAGE_KEY);
+    } catch {
+      // ignore
+    }
+  };
+
+  const bestRuns = useMemo(() => {
+    const start = Math.min(rangeStart, rangeEnd);
+    const end = Math.max(rangeStart, rangeEnd);
+    const results = TEAMS.map(team => {
+      const slice = FIXTURES[team.code].slice(start - 1, end);
+      const scores = slice.map(f => {
+        const oppCode = f.split('-')[0];
+        return ratings[oppCode] ?? 3;
+      });
+      const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+      return { ...team, avg, fixtures: slice, scores };
+    });
+    return results.sort((a, b) => a.avg - b.avg).slice(0, 5);
+  }, [ratings, rangeStart, rangeEnd]);
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#2A1440', fontFamily: "'Archivo', 'Arial Black', sans-serif" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Inter:wght@400;500;600&display=swap');
+        * { box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; }
+        .fdr-title { font-family: 'Archivo', sans-serif; }
+        .fdr-cell { transition: transform 0.12s ease; }
+        .fdr-cell:hover { transform: scale(1.06); z-index: 5; }
+        input[type=range] { accent-color: #4ECDC4; }
+        ::-webkit-scrollbar { height: 8px; width: 8px; }
+        ::-webkit-scrollbar-thumb { background: #4ECDC4; border-radius: 4px; }
+        ::-webkit-scrollbar-track { background: #3D1E5C; }
+      `}</style>
+
+      {/* dots pattern top-left, torn edge feel via radial gradient backdrop */}
+      <div style={{
+        position: 'absolute', top: 0, left: 0, width: '220px', height: '220px',
+        backgroundImage: 'radial-gradient(#4ECDC4 1.5px, transparent 1.5px)',
+        backgroundSize: '18px 18px', opacity: 0.25, pointerEvents: 'none'
+      }} />
+
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 20px 80px', position: 'relative' }}>
+
+        {/* HEADER */}
+        <header style={{ marginBottom: '28px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+            <span style={{ color: '#4ECDC4', fontWeight: 700, letterSpacing: '0.08em', fontSize: '13px', textTransform: 'uppercase' }}>
+              @fpl_proleague
+            </span>
+            <span style={{ color: '#7A5A9E', fontSize: '13px' }}>·</span>
+            <span style={{ color: '#B79ED4', fontSize: '13px' }}>Fantasy Pro League 26/27</span>
+          </div>
+          <h1 className="fdr-title" style={{
+            color: '#FFFFFF', fontSize: 'clamp(28px, 5vw, 44px)', fontWeight: 900,
+            textTransform: 'uppercase', lineHeight: 1.05, margin: 0, letterSpacing: '-0.01em'
+          }}>
+            FDR Tool <span style={{ color: '#4ECDC4' }}>GW1–8</span>
+          </h1>
+          <p style={{ color: '#C9B8E0', fontSize: '15px', marginTop: '10px', maxWidth: '640px' }}>
+            Mijn eigen fixture difficulty ratings — pas ze aan naar jouw mening en ontdek meteen welke teams de beste run hebben.
+          </p>
+        </header>
+
+        {/* STATUS BAR */}
+        <div style={{
+          display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center',
+          marginBottom: '20px', padding: '12px 16px', background: 'rgba(255,255,255,0.04)',
+          border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px'
+        }}>
+          <span style={{
+            fontSize: '12px', fontWeight: 700, padding: '4px 10px', borderRadius: '999px',
+            background: isCustom ? '#4ECDC4' : 'rgba(255,255,255,0.1)',
+            color: isCustom ? '#0B2E1B' : '#C9B8E0'
+          }}>
+            {isCustom ? 'JOUW AANGEPASTE VERSIE' : 'STANDAARD — RATING VAN @FPL_PROLEAGUE'}
+          </span>
+          <div style={{ flex: 1 }} />
+          <button onClick={handleSave} style={{
+            display: 'flex', alignItems: 'center', gap: '6px', background: '#4ECDC4', color: '#0B2E1B',
+            border: 'none', borderRadius: '8px', padding: '8px 14px', fontWeight: 700, fontSize: '13px',
+            cursor: 'pointer'
+          }}>
+            {saved ? 'Opgeslagen ✓' : 'Bewaar in browser'}
+          </button>
+          <button onClick={handleReset} style={{
+            display: 'flex', alignItems: 'center', gap: '6px', background: 'transparent', color: '#C9B8E0',
+            border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', padding: '8px 14px',
+            fontWeight: 600, fontSize: '13px', cursor: 'pointer'
+          }}>
+            <RotateCcw size={14} /> Reset FDR
+          </button>
+          <button onClick={() => setShowInfo(true)} aria-label="Uitleg" style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', width: '34px', height: '34px',
+            background: 'transparent', color: '#C9B8E0', border: '1px solid rgba(255,255,255,0.2)',
+            borderRadius: '8px', cursor: 'pointer'
+          }}>
+            <Info size={16} />
+          </button>
+        </div>
+
+        {/* MAIN LAYOUT: ratings sidebar + table */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '24px' }}>
+
+          {/* TEAM STRENGTH SLIDERS */}
+          <section>
+            <h2 className="fdr-title" style={{ color: '#FFFFFF', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '12px' }}>
+              Team-sterkte instellen
+            </h2>
+            <div style={{
+              display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '8px', marginBottom: '8px'
+            }}>
+              {TEAMS.slice().sort((a,b) => a.code.localeCompare(b.code)).map(team => {
+                const r = ratings[team.code];
+                const style = RATING_STYLE[r];
+                return (
+                  <div key={team.code} style={{
+                    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: '8px', padding: '8px 10px'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <span style={{ color: '#FFF', fontSize: '12px', fontWeight: 600 }}>{team.code}</span>
+                      <span style={{
+                        fontSize: '10px', fontWeight: 700, padding: '1px 6px', borderRadius: '999px',
+                        background: style.bg, color: style.text
+                      }}>{r}</span>
+                    </div>
+                    <input
+                      type="range" min={1} max={5} step={1} value={r}
+                      onChange={e => updateRating(team.code, Number(e.target.value))}
+                      style={{ width: '100%' }}
+                      aria-label={`Sterkte ${team.name}`}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* FDR TABLE */}
+          <section style={{ overflowX: 'auto' }}>
+            <h2 className="fdr-title" style={{ color: '#FFFFFF', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '12px' }}>
+              Fixture Difficulty Rating
+            </h2>
+            <table style={{ borderCollapse: 'separate', borderSpacing: '4px', minWidth: '760px', width: '100%' }}>
+              <thead>
+                <tr>
+                  <th style={{
+                    textAlign: 'left', color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase',
+                    letterSpacing: '0.05em', padding: '6px 8px', position: 'sticky', left: 0, background: '#2A1440'
+                  }}>Team</th>
+                  {Array.from({ length: GW_COUNT }, (_, i) => (
+                    <th key={i} style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', padding: '6px 4px', minWidth: '58px' }}>
+                      GW{i + 1}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {TEAMS.map(team => (
+                  <tr key={team.code}>
+                    <td style={{
+                      color: '#FFF', fontWeight: 700, fontSize: '13px', padding: '6px 8px',
+                      position: 'sticky', left: 0, background: '#2A1440', whiteSpace: 'nowrap'
+                    }}>
+                      {team.code}
+                    </td>
+                    {FIXTURES[team.code].map((f, i) => {
+                      const [opp, venue] = f.split('-');
+                      const r = ratings[opp] ?? 3;
+                      const style = RATING_STYLE[r];
+                      return (
+                        <td key={i} className="fdr-cell" style={{
+                          background: style.bg, color: style.text, textAlign: 'center',
+                          fontSize: '12px', fontWeight: 700, borderRadius: '6px', padding: '8px 2px'
+                        }}>
+                          {opp} <span style={{ opacity: 0.75, fontWeight: 500 }}>({venue})</span>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '12px', flexWrap: 'wrap' }}>
+              {[1,2,3,4,5].map(r => (
+                <div key={r} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: RATING_STYLE[r].bg, display: 'inline-block' }} />
+                  <span style={{ color: '#C9B8E0', fontSize: '11px' }}>{RATING_STYLE[r].label}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* BEST RUNS */}
+          <section>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', flexWrap: 'wrap' }}>
+              <h2 className="fdr-title" style={{ color: '#FFFFFF', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <TrendingUp size={18} color="#4ECDC4" /> Beste fixture runs
+              </h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
+                <label style={{ color: '#C9B8E0', fontSize: '12px' }}>GW</label>
+                <select value={rangeStart} onChange={e => setRangeStart(Number(e.target.value))} style={selectStyle}>
+                  {Array.from({ length: GW_COUNT }, (_, i) => <option key={i} value={i+1}>{i+1}</option>)}
+                </select>
+                <span style={{ color: '#C9B8E0', fontSize: '12px' }}>t/m</span>
+                <select value={rangeEnd} onChange={e => setRangeEnd(Number(e.target.value))} style={selectStyle}>
+                  {Array.from({ length: GW_COUNT }, (_, i) => <option key={i} value={i+1}>{i+1}</option>)}
+                </select>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gap: '8px' }}>
+              {bestRuns.map((team, idx) => (
+                <div key={team.code} style={{
+                  display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '10px 14px'
+                }}>
+                  <span className="fdr-title" style={{
+                    color: idx === 0 ? '#4ECDC4' : '#C9B8E0', fontWeight: 900, fontSize: '18px', width: '24px'
+                  }}>{idx + 1}</span>
+                  <div style={{ minWidth: '130px' }}>
+                    <div style={{ color: '#FFF', fontWeight: 700, fontSize: '14px' }}>{team.name}</div>
+                    <div style={{ color: '#8F79AD', fontSize: '11px' }}>Gem. moeilijkheid: {team.avg.toFixed(1)}</div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                    {team.fixtures.map((f, i) => {
+                      const [opp, venue] = f.split('-');
+                      const r = ratings[opp] ?? 3;
+                      const style = RATING_STYLE[r];
+                      return (
+                        <span key={i} style={{
+                          background: style.bg, color: style.text, fontSize: '10px', fontWeight: 700,
+                          padding: '3px 6px', borderRadius: '5px'
+                        }}>{opp} ({venue})</span>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+
+        <footer style={{ marginTop: '40px', textAlign: 'center', color: '#6B5289', fontSize: '12px' }}>
+          Gemaakt door @fpl_proleague · Fantasy Pro League 26/27 · Data eigen analyse
+        </footer>
+      </div>
+
+      {showInfo && (
+        <div onClick={() => setShowInfo(false)} style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex',
+          alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 50
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: '#3D1E5C', borderRadius: '14px', padding: '24px', maxWidth: '440px',
+            border: '1px solid rgba(255,255,255,0.1)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+              <h3 className="fdr-title" style={{ color: '#FFF', fontSize: '16px', margin: 0, textTransform: 'uppercase' }}>Hoe werkt dit?</h3>
+              <button onClick={() => setShowInfo(false)} style={{ background: 'none', border: 'none', color: '#C9B8E0', cursor: 'pointer' }}>
+                <X size={18} />
+              </button>
+            </div>
+            <p style={{ color: '#C9B8E0', fontSize: '13px', lineHeight: 1.6 }}>
+              De kleur van elke fixture komt van de <strong>sterkte-rating van de tegenstander</strong> (1 = makkelijkst, 5 = moeilijkst). Sleep de sliders om een team sterker of zwakker in te schatten — alle fixtures tegen dat team passen automatisch aan, voor alle 18 teams.
+            </p>
+            <p style={{ color: '#C9B8E0', fontSize: '13px', lineHeight: 1.6, marginTop: '8px' }}>
+              "Bewaar in browser" onthoudt jouw versie op dit toestel voor de volgende keer. "Beste fixture runs" toont de 5 teams met de laagste gemiddelde moeilijkheid over de gekozen periode.
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const selectStyle = {
+  background: '#3D1E5C', color: '#FFF', border: '1px solid rgba(255,255,255,0.15)',
+  borderRadius: '6px', padding: '4px 8px', fontSize: '12px'
+};
