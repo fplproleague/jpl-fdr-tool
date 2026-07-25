@@ -1,3 +1,3 @@
-# FPL Pro League — FDR Tool
+# Fantasy Pro League — FDR Tool
 
-Interactieve Fixture Difficulty Rating tool voor @fpl_proleague.
+Interactieve Fixture Difficulty Rating tool voor Fantasy Pro League.
