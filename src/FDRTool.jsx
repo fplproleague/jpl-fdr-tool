@@ -93,7 +93,6 @@ function loadRatingsFromURL() {
         result[code] = value;
       }
     }
-    // only accept if all 18 teams were present and valid
     if (TEAMS.every(t => result[t.code])) return result;
     return null;
   } catch {
@@ -163,18 +162,50 @@ export default function FDRTool() {
   const handleDownloadImage = async () => {
     if (!tableRef.current) return;
     setDownloading(true);
+    const el = tableRef.current;
+
+    // Force full, unscrolled width during capture so mobile/narrow
+    // viewports don't clip the table to whatever was scrolled into view.
+    const prevWidth = el.style.width;
+    const prevMaxWidth = el.style.maxWidth;
+    const prevOverflow = el.style.overflow;
+    el.style.width = `${el.scrollWidth}px`;
+    el.style.maxWidth = 'none';
+    el.style.overflow = 'visible';
+    el.scrollLeft = 0;
+
     try {
-      const canvas = await html2canvas(tableRef.current, {
+      const canvas = await html2canvas(el, {
         backgroundColor: '#2A1440',
         scale: 2,
+        windowWidth: el.scrollWidth,
+        width: el.scrollWidth,
       });
+
+      const watermarkHeight = 44 * 2;
+      const finalCanvas = document.createElement('canvas');
+      finalCanvas.width = canvas.width;
+      finalCanvas.height = canvas.height + watermarkHeight;
+      const ctx = finalCanvas.getContext('2d');
+      ctx.fillStyle = '#2A1440';
+      ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+      ctx.drawImage(canvas, 0, 0);
+      ctx.fillStyle = '#4ECDC4';
+      ctx.font = 'bold 26px Archivo, Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('@fpl_proleague', finalCanvas.width / 2, canvas.height + watermarkHeight / 2);
+
       const link = document.createElement('a');
       link.download = 'fdr-tabel-fpl-proleague.png';
-      link.href = canvas.toDataURL('image/png');
+      link.href = finalCanvas.toDataURL('image/png');
       link.click();
     } catch {
       // rendering failed — silently ignore, user can screenshot manually
     } finally {
+      el.style.width = prevWidth;
+      el.style.maxWidth = prevMaxWidth;
+      el.style.overflow = prevOverflow;
       setDownloading(false);
     }
   };
@@ -209,7 +240,6 @@ export default function FDRTool() {
         ::-webkit-scrollbar-track { background: #3D1E5C; }
       `}</style>
 
-      {/* dots pattern top-left, torn edge feel via radial gradient backdrop */}
       <div style={{
         position: 'absolute', top: 0, left: 0, width: '220px', height: '220px',
         backgroundImage: 'radial-gradient(#4ECDC4 1.5px, transparent 1.5px)',
@@ -218,7 +248,6 @@ export default function FDRTool() {
 
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 20px 80px', position: 'relative' }}>
 
-        {/* HEADER */}
         <header style={{ marginBottom: '28px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
             <span style={{ color: '#4ECDC4', fontWeight: 700, letterSpacing: '0.08em', fontSize: '13px', textTransform: 'uppercase' }}>
@@ -238,7 +267,6 @@ export default function FDRTool() {
           </p>
         </header>
 
-        {/* STATUS BAR */}
         <div style={{
           display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center',
           marginBottom: '20px', padding: '12px 16px', background: 'rgba(255,255,255,0.04)',
@@ -292,10 +320,8 @@ export default function FDRTool() {
           </button>
         </div>
 
-        {/* MAIN LAYOUT: ratings sidebar + table */}
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '24px' }}>
 
-          {/* TEAM STRENGTH SLIDERS */}
           <section>
             <h2 className="fdr-title" style={{ color: '#FFFFFF', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '12px' }}>
               Team-sterkte instellen
@@ -330,7 +356,6 @@ export default function FDRTool() {
             </div>
           </section>
 
-          {/* FDR TABLE */}
           <section ref={tableRef} style={{ overflowX: 'auto', background: '#2A1440', padding: '4px' }}>
             <h2 className="fdr-title" style={{ color: '#FFFFFF', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '12px' }}>
               Fixture Difficulty Rating
@@ -385,7 +410,6 @@ export default function FDRTool() {
             </div>
           </section>
 
-          {/* BEST RUNS */}
           <section>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', flexWrap: 'wrap' }}>
               <h2 className="fdr-title" style={{ color: '#FFFFFF', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
