@@ -61,6 +61,7 @@ const RATING_STYLE = {
 };
 
 const GW_COUNT = 8;
+const LAST_UPDATED = '26 juli 2026';
 const STORAGE_KEY = 'fpl_proleague_fdr_ratings_v1';
 
 function loadStoredRatings() {
@@ -515,7 +516,8 @@ export default function FDRTool() {
         </div>
 
         <footer style={{ marginTop: '40px', textAlign: 'center', color: '#6B5289', fontSize: '12px' }}>
-          Gemaakt door @fpl_proleague · Fantasy Pro League 26/27 · Data eigen analyse
+          Gemaakt door @fpl_proleague · Fantasy Pro League 26/27 · Data eigen analyse<br />
+          Laatst bijgewerkt: {LAST_UPDATED}
         </footer>
       </div>
 
