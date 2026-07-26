@@ -250,6 +250,27 @@ export default function FDRTool() {
     });
     return results.sort((a, b) => a.avg - b.avg).slice(0, 5);
   }, [ratings, rangeStart, rangeEnd]);
+  const teamAvgDifficulty = useMemo(() => {
+    const map = {};
+    TEAMS.forEach(team => {
+      const scores = FIXTURES[team.code].map(f => ratings[f.split('-')[0]] ?? 3);
+      map[team.code] = scores.reduce((a, b) => a + b, 0) / scores.length;
+    });
+    return map;
+  }, [ratings]);
+
+  const displayedTeams = useMemo(() => {
+    if (!sortByDifficulty) return TEAMS;
+    return TEAMS.slice().sort((a, b) => teamAvgDifficulty[a.code] - teamAvgDifficulty[b.code]);
+  }, [sortByDifficulty, teamAvgDifficulty]);
+
+  const toggleCompareTeam = (code) => {
+    setCompareTeams(prev => {
+      if (prev.includes(code)) return prev.filter(c => c !== code);
+      if (prev.length >= 3) return prev;
+      return [...prev, code];
+    });
+  };
 
   return (
     <div style={{ minHeight: '100vh', background: '#2A1440', fontFamily: "'Archivo', 'Arial Black', sans-serif" }}>
