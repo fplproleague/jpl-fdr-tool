@@ -283,7 +283,7 @@ export default function FDRTool() {
             color: '#FFFFFF', fontSize: 'clamp(28px, 5vw, 44px)', fontWeight: 900,
             textTransform: 'uppercase', lineHeight: 1.05, margin: 0, letterSpacing: '-0.01em'
           }}>
-            FDR Tool <span style={{ color: '#4ECDC4' }}>GW1–8</span>
+            FDR Tool <span style={{ color: '#4ECDC4' }}>GW1–{GW_COUNT}</span>
           </h1>
           <p style={{ color: '#C9B8E0', fontSize: '15px', marginTop: '10px', maxWidth: '640px' }}>
             Mijn eigen fixture difficulty ratings — pas ze aan naar jouw mening en ontdek meteen welke teams de beste run hebben.
