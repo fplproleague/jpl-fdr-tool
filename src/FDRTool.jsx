@@ -548,6 +548,91 @@ export default function FDRTool() {
             </>
             )}
           </section>
+
+          {/* COMPARE TEAMS */}
+          <section>
+            <button onClick={() => toggleSection('compare')} style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
+              background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: '12px'
+            }}>
+              <h2 className="fdr-title" style={{ color: '#FFFFFF', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                Vergelijk teams
+              </h2>
+              <ChevronDown size={20} color="#C9B8E0" style={{
+                transform: openSections.compare ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s ease'
+              }} />
+            </button>
+            {openSections.compare && (
+            <>
+            <p style={{ color: '#8F79AD', fontSize: '12px', marginBottom: '10px' }}>
+              Kies tot 3 teams om hun fixtures naast elkaar te zien.
+            </p>
+            <div style={{
+              display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(70px, 1fr))', gap: '6px', marginBottom: '16px'
+            }}>
+              {TEAMS.slice().sort((a,b) => a.code.localeCompare(b.code)).map(team => {
+                const selected = compareTeams.includes(team.code);
+                const disabled = !selected && compareTeams.length >= 3;
+                return (
+                  <button key={team.code} onClick={() => toggleCompareTeam(team.code)} disabled={disabled} style={{
+                    background: selected ? '#4ECDC4' : 'rgba(255,255,255,0.04)',
+                    color: selected ? '#0B2E1B' : disabled ? '#5A4A72' : '#FFF',
+                    border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px',
+                    padding: '6px 4px', fontSize: '12px', fontWeight: 700,
+                    cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.5 : 1
+                  }}>
+                    {team.code}
+                  </button>
+                );
+              })}
+            </div>
+            {compareTeams.length === 0 && (
+              <p style={{ color: '#6B5289', fontSize: '13px' }}>Nog geen teams geselecteerd.</p>
+            )}
+            {compareTeams.length > 0 && (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ borderCollapse: 'separate', borderSpacing: '4px', minWidth: '600px', width: '100%' }}>
+                  <thead>
+                    <tr>
+                      <th style={{ textAlign: 'left', color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', padding: '6px 8px' }}>Team</th>
+                      {Array.from({ length: GW_COUNT }, (_, i) => (
+                        <th key={i} style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', padding: '6px 4px', minWidth: '58px' }}>
+                          GW{i + 1}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {compareTeams.map(code => {
+                      const team = TEAMS.find(t => t.code === code);
+                      return (
+                        <tr key={code}>
+                          <td style={{ color: '#FFF', fontWeight: 700, fontSize: '13px', padding: '6px 8px', whiteSpace: 'nowrap' }}>
+                            {team.code}
+                          </td>
+                          {FIXTURES[code].map((f, i) => {
+                            const [opp, venue] = f.split('-');
+                            const r = ratings[opp] ?? 3;
+                            const style = RATING_STYLE[r];
+                            return (
+                              <td key={i} className="fdr-cell" style={{
+                                background: style.bg, color: style.text, textAlign: 'center',
+                                fontSize: '12px', fontWeight: 700, borderRadius: '6px', padding: '8px 2px'
+                              }}>
+                                {opp} <span style={{ opacity: 0.75, fontWeight: 500 }}>({venue})</span>
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            </>
+            )}
+          </section>
         </div>
 
         <footer style={{ marginTop: '40px', textAlign: 'center', color: '#6B5289', fontSize: '12px' }}>
