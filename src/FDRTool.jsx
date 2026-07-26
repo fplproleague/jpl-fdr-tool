@@ -296,6 +296,10 @@ export default function FDRTool() {
         ::-webkit-scrollbar { height: 8px; width: 8px; }
         ::-webkit-scrollbar-thumb { background: #4ECDC4; border-radius: 4px; }
         ::-webkit-scrollbar-track { background: #3D1E5C; }
+        @media (max-width: 640px) {
+          .club-logo { display: none !important; }
+        }
+
       `}</style>
 
       <div style={{
@@ -467,13 +471,22 @@ export default function FDRTool() {
               </thead>
               <tbody>
                 {displayedTeams.map(team => (
-                  <tr key={team.code}>
-                    <td style={{
+                  <tr key={team.code}>                    <td style={{
                       color: '#FFF', fontWeight: 700, fontSize: '13px', padding: '6px 8px',
                       position: 'sticky', left: 0, background: '#2A1440', whiteSpace: 'nowrap'
                     }}>
-                      {team.code}
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <img
+                          src={`/club-logos/${team.code}.png`}
+                          alt=""
+                          className="club-logo"
+                          style={{ width: '20px', height: '20px', objectFit: 'contain', flexShrink: 0 }}
+                          onError={(e) => { e.target.style.display = 'none'; }}
+                        />
+                        {team.code}
+                      </span>
                     </td>
+        }
                     {FIXTURES[team.code].map((f, i) => {
                       const [opp, venue] = f.split('-');
                       const isPostponed = POSTPONED.has(`${team.code}-${i + 1}`);
