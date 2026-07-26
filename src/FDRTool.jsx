@@ -426,6 +426,17 @@ export default function FDRTool() {
                 transform: openSections.table ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s ease'
               }} />
             </button>
+            {openSections.table && (
+            <button onClick={(e) => { e.stopPropagation(); setSortByDifficulty(s => !s); }} style={{
+              display: 'flex', alignItems: 'center', gap: '6px', background: sortByDifficulty ? '#4ECDC4' : 'transparent',
+              color: sortByDifficulty ? '#0B2E1B' : '#C9B8E0', border: '1px solid rgba(255,255,255,0.2)',
+              borderRadius: '8px', padding: '6px 12px', fontWeight: 600, fontSize: '12px', cursor: 'pointer',
+              marginBottom: '10px'
+            }}>
+              <TrendingUp size={13} />
+              {sortByDifficulty ? 'Gesorteerd: makkelijkste eerst' : 'Sorteer op makkelijkste run'}
+            </button>
+            )}
             <div ref={tableRef} style={{
               overflowX: 'auto', background: '#2A1440', padding: '4px',
               display: openSections.table ? 'block' : 'none'
