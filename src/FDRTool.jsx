@@ -169,6 +169,12 @@ export default function FDRTool() {
     setDownloading(true);
     const el = tableRef.current;
 
+    const wasOpen = openSections.table;
+    if (!wasOpen) {
+      setOpenSections(prev => ({ ...prev, table: true }));
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+
     const prevWidth = el.style.width;
     const prevMaxWidth = el.style.maxWidth;
     const prevOverflow = el.style.overflow;
@@ -209,6 +215,9 @@ export default function FDRTool() {
       el.style.width = prevWidth;
       el.style.maxWidth = prevMaxWidth;
       el.style.overflow = prevOverflow;
+      if (!wasOpen) {
+        setOpenSections(prev => ({ ...prev, table: false }));
+      }
       setDownloading(false);
     }
   };
@@ -237,6 +246,7 @@ export default function FDRTool() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Inter:wght@400;500;600&display=swap');
         * { box-sizing: border-box; }
+        html, body { background: #2A1440; margin: 0; padding: 0; }
         body { font-family: 'Inter', sans-serif; }
         .fdr-title { font-family: 'Archivo', sans-serif; }
         .fdr-cell { transition: transform 0.12s ease; }
