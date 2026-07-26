@@ -172,7 +172,13 @@ export default function FDRTool() {
     const wasOpen = openSections.table;
     if (!wasOpen) {
       setOpenSections(prev => ({ ...prev, table: true }));
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise(resolve => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            setTimeout(resolve, 120);
+          });
+        });
+      });
     }
 
     const prevWidth = el.style.width;
