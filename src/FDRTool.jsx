@@ -297,7 +297,10 @@ export default function FDRTool() {
         ::-webkit-scrollbar-thumb { background: #4ECDC4; border-radius: 4px; }
         ::-webkit-scrollbar-track { background: #3D1E5C; }
         @media (max-width: 640px) {
-          .club-logo { display: none !important; }
+          .club-logo { 
+            display: none !important; 
+          }
+        }
 
       `}</style>
 
