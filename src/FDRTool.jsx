@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { RotateCcw, TrendingUp, Info, X, Link2, Download, Check } from 'lucide-react';
+import { RotateCcw, TrendingUp, Info, X, Link2, Download, Check, ChevronDown } from 'lucide-react';
 import html2canvas from 'html2canvas';
 
 const TEAMS = [
@@ -108,6 +108,11 @@ export default function FDRTool() {
   const [linkCopied, setLinkCopied] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
+  const [openSections, setOpenSections] = useState({
+    sliders: false,
+    table: true,
+    runs: false,
+  });
   const [isCustom, setIsCustom] = useState(() => {
     return !!(loadRatingsFromURL() || loadStoredRatings());
   });
@@ -164,8 +169,6 @@ export default function FDRTool() {
     setDownloading(true);
     const el = tableRef.current;
 
-    // Force full, unscrolled width during capture so mobile/narrow
-    // viewports don't clip the table to whatever was scrolled into view.
     const prevWidth = el.style.width;
     const prevMaxWidth = el.style.maxWidth;
     const prevOverflow = el.style.overflow;
@@ -208,6 +211,10 @@ export default function FDRTool() {
       el.style.overflow = prevOverflow;
       setDownloading(false);
     }
+  };
+
+  const toggleSection = (key) => {
+    setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
   const bestRuns = useMemo(() => {
@@ -323,9 +330,18 @@ export default function FDRTool() {
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '24px' }}>
 
           <section>
-            <h2 className="fdr-title" style={{ color: '#FFFFFF', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '12px' }}>
-              Team-sterkte instellen
-            </h2>
+            <button onClick={() => toggleSection('sliders')} style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
+              background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: '12px'
+            }}>
+              <h2 className="fdr-title" style={{ color: '#FFFFFF', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0 }}>
+                Team-sterkte instellen
+              </h2>
+              <ChevronDown size={20} color="#C9B8E0" style={{
+                transform: openSections.sliders ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s ease'
+              }} />
+            </button>
+            {openSections.sliders && (
             <div style={{
               display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '8px', marginBottom: '8px'
             }}>
@@ -354,12 +370,25 @@ export default function FDRTool() {
                 );
               })}
             </div>
+            )}
           </section>
 
-          <section ref={tableRef} style={{ overflowX: 'auto', background: '#2A1440', padding: '4px' }}>
-            <h2 className="fdr-title" style={{ color: '#FFFFFF', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '12px' }}>
-              Fixture Difficulty Rating
-            </h2>
+          <section>
+            <button onClick={() => toggleSection('table')} style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
+              background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: '12px'
+            }}>
+              <h2 className="fdr-title" style={{ color: '#FFFFFF', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0 }}>
+                Fixture Difficulty Rating
+              </h2>
+              <ChevronDown size={20} color="#C9B8E0" style={{
+                transform: openSections.table ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s ease'
+              }} />
+            </button>
+            <div ref={tableRef} style={{
+              overflowX: 'auto', background: '#2A1440', padding: '4px',
+              display: openSections.table ? 'block' : 'none'
+            }}>
             <table style={{ borderCollapse: 'separate', borderSpacing: '4px', minWidth: '760px', width: '100%' }}>
               <thead>
                 <tr>
@@ -408,23 +437,32 @@ export default function FDRTool() {
                 </div>
               ))}
             </div>
+            </div>
           </section>
 
           <section>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', flexWrap: 'wrap' }}>
+            <button onClick={() => toggleSection('runs')} style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
+              background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: '12px'
+            }}>
               <h2 className="fdr-title" style={{ color: '#FFFFFF', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <TrendingUp size={18} color="#4ECDC4" /> Beste fixture runs
               </h2>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
-                <label style={{ color: '#C9B8E0', fontSize: '12px' }}>GW</label>
-                <select value={rangeStart} onChange={e => setRangeStart(Number(e.target.value))} style={selectStyle}>
-                  {Array.from({ length: GW_COUNT }, (_, i) => <option key={i} value={i+1}>{i+1}</option>)}
-                </select>
-                <span style={{ color: '#C9B8E0', fontSize: '12px' }}>t/m</span>
-                <select value={rangeEnd} onChange={e => setRangeEnd(Number(e.target.value))} style={selectStyle}>
-                  {Array.from({ length: GW_COUNT }, (_, i) => <option key={i} value={i+1}>{i+1}</option>)}
-                </select>
-              </div>
+              <ChevronDown size={20} color="#C9B8E0" style={{
+                transform: openSections.runs ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s ease'
+              }} />
+            </button>
+            {openSections.runs && (
+            <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
+              <label style={{ color: '#C9B8E0', fontSize: '12px' }}>GW</label>
+              <select value={rangeStart} onChange={e => setRangeStart(Number(e.target.value))} style={selectStyle}>
+                {Array.from({ length: GW_COUNT }, (_, i) => <option key={i} value={i+1}>{i+1}</option>)}
+              </select>
+              <span style={{ color: '#C9B8E0', fontSize: '12px' }}>t/m</span>
+              <select value={rangeEnd} onChange={e => setRangeEnd(Number(e.target.value))} style={selectStyle}>
+                {Array.from({ length: GW_COUNT }, (_, i) => <option key={i} value={i+1}>{i+1}</option>)}
+              </select>
             </div>
             <div style={{ display: 'grid', gap: '8px' }}>
               {bestRuns.map((team, idx) => (
@@ -455,6 +493,8 @@ export default function FDRTool() {
                 </div>
               ))}
             </div>
+            </>
+            )}
           </section>
         </div>
 
