@@ -113,7 +113,10 @@ export default function FDRTool() {
     sliders: false,
     table: true,
     runs: false,
+    compare: false,
   });
+  const [sortByDifficulty, setSortByDifficulty] = useState(false);
+  const [compareTeams, setCompareTeams] = useState([]);
   const [isCustom, setIsCustom] = useState(() => {
     return !!(loadRatingsFromURL() || loadStoredRatings());
   });
