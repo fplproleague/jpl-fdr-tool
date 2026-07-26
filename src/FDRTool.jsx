@@ -488,7 +488,7 @@ export default function FDRTool() {
                         {team.code}
                       </span>
                     </td>
-        }
+        
                     {FIXTURES[team.code].map((f, i) => {
                       const [opp, venue] = f.split('-');
                       const isPostponed = POSTPONED.has(`${team.code}-${i + 1}`);
