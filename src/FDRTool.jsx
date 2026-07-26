@@ -44,6 +44,11 @@ const FIXTURES = {
   ZWA: ['GNK-H','USG-A','BEV-H','WES-A','KOR-A','CHA-H','AND-A','GNT-H'],
 };
 
+const POSTPONED = new Set([
+  'STV-3', // Sint-Truiden vs Union SG, GW3 — uitgesteld naar 2 september
+  'USG-3', // Union SG vs Sint-Truiden, GW3 — uitgesteld naar 2 september
+]);
+
 const DEFAULT_RATINGS = {
   LOM: 1, KOR: 1, BEV: 1, LLV: 1,
   ZWA: 2, OHL: 2, CER: 2,
@@ -240,20 +245,25 @@ export default function FDRTool() {
     const start = Math.min(rangeStart, rangeEnd);
     const end = Math.max(rangeStart, rangeEnd);
     const results = TEAMS.map(team => {
-      const slice = FIXTURES[team.code].slice(start - 1, end);
-      const scores = slice.map(f => {
-        const oppCode = f.split('-')[0];
-        return ratings[oppCode] ?? 3;
+            const slice = FIXTURES[team.code].slice(start - 1, end);
+      const scores = slice.map((f, idx) => {
+        const gwNumber = start + idx;
+        if (POSTPONED.has(`${team.code}-${gwNumber}`)) return 5; // gemiste speeldag = nadeel, telt als moeilijkst
+        return ratings[f.split('-')[0]] ?? 3;
       });
       const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
-      return { ...team, avg, fixtures: slice, scores };
+      return { ...team, avg, fixtures: slice, scores, startGW: start };
     });
     return results.sort((a, b) => a.avg - b.avg).slice(0, 5);
   }, [ratings, rangeStart, rangeEnd]);
-  const teamAvgDifficulty = useMemo(() => {
+    const teamAvgDifficulty = useMemo(() => {
     const map = {};
     TEAMS.forEach(team => {
-      const scores = FIXTURES[team.code].map(f => ratings[f.split('-')[0]] ?? 3);
+      const scores = FIXTURES[team.code].map((f, idx) => {
+        const gwNumber = idx + 1;
+        if (POSTPONED.has(`${team.code}-${gwNumber}`)) return 5; // gemiste speeldag = nadeel, telt als moeilijkst
+        return ratings[f.split('-')[0]] ?? 3;
+      });
       map[team.code] = scores.reduce((a, b) => a + b, 0) / scores.length;
     });
     return map;
@@ -466,6 +476,17 @@ export default function FDRTool() {
                     </td>
                     {FIXTURES[team.code].map((f, i) => {
                       const [opp, venue] = f.split('-');
+                      const isPostponed = POSTPONED.has(`${team.code}-${i + 1}`);
+                      if (isPostponed) {
+                        return (
+                          <td key={i} className="fdr-cell" style={{
+                            background: '#4A4560', color: '#9B93AD', textAlign: 'center',
+                            fontSize: '14px', fontWeight: 700, borderRadius: '6px', padding: '8px 2px'
+                          }} title={`${opp} (${venue}) — uitgesteld`}>
+                            /
+                          </td>
+                        );
+                      }
                       const r = ratings[opp] ?? 3;
                       const style = RATING_STYLE[r];
                       return (
@@ -530,8 +551,18 @@ export default function FDRTool() {
                     <div style={{ color: '#8F79AD', fontSize: '11px' }}>Gem. moeilijkheid: {team.avg.toFixed(1)}</div>
                   </div>
                   <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                    {team.fixtures.map((f, i) => {
+                                        {team.fixtures.map((f, i) => {
                       const [opp, venue] = f.split('-');
+                      const gwNumber = team.startGW + i;
+                      const isPostponed = POSTPONED.has(`${team.code}-${gwNumber}`);
+                      if (isPostponed) {
+                        return (
+                          <span key={i} style={{
+                            background: '#4A4560', color: '#9B93AD', fontSize: '10px', fontWeight: 700,
+                            padding: '3px 6px', borderRadius: '5px'
+                          }} title={`${opp} (${venue}) — uitgesteld`}>/</span>
+                        );
+                      }
                       const r = ratings[opp] ?? 3;
                       const style = RATING_STYLE[r];
                       return (
@@ -612,6 +643,17 @@ export default function FDRTool() {
                           </td>
                           {FIXTURES[code].map((f, i) => {
                             const [opp, venue] = f.split('-');
+                            const isPostponed = POSTPONED.has(`${code}-${i + 1}`);
+                            if (isPostponed) {
+                              return (
+                                <td key={i} className="fdr-cell" style={{
+                                  background: '#4A4560', color: '#9B93AD', textAlign: 'center',
+                                  fontSize: '14px', fontWeight: 700, borderRadius: '6px', padding: '8px 2px'
+                                }} title={`${opp} (${venue}) — uitgesteld`}>
+                                  /
+                                </td>
+                              );
+                            }
                             const r = ratings[opp] ?? 3;
                             const style = RATING_STYLE[r];
                             return (
