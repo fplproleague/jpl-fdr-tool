@@ -456,7 +456,7 @@ export default function FDRTool() {
                 </tr>
               </thead>
               <tbody>
-                {TEAMS.map(team => (
+                {displayedTeams.map(team => (
                   <tr key={team.code}>
                     <td style={{
                       color: '#FFF', fontWeight: 700, fontSize: '13px', padding: '6px 8px',
