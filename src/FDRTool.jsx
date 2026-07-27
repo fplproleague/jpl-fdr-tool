@@ -291,7 +291,6 @@ export default function FDRTool() {
         body { font-family: 'Inter', sans-serif; }
         .fdr-title { font-family: 'Archivo', sans-serif; }
         .fdr-cell { transition: transform 0.12s ease; }
-        .fdr-cell:hover { transform: scale(1.06); z-index: 5; }
         input[type=range] { accent-color: #4ECDC4; }
         ::-webkit-scrollbar { height: 8px; width: 8px; }
         ::-webkit-scrollbar-thumb { background: #4ECDC4; border-radius: 4px; }
