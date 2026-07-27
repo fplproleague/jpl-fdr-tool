@@ -309,7 +309,7 @@ export default function FDRTool() {
         backgroundSize: '18px 18px', opacity: 0.25, pointerEvents: 'none'
       }} />
 
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 20px 80px', position: 'relative' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 20px 32px', position: 'relative' }}>
 
         <header style={{ marginBottom: '24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
@@ -696,7 +696,7 @@ export default function FDRTool() {
           </section>
         </div>
 
-        <footer style={{ marginTop: '40px', textAlign: 'center', color: '#6B5289', fontSize: '12px' }}>
+        <footer style={{ marginTop: '28px', textAlign: 'center', color: '#6B5289', fontSize: '12px' }}>
           Gemaakt door @fpl_proleague · Fantasy Pro League 26/27 · Data eigen analyse<br />
           Laatst bijgewerkt: {LAST_UPDATED}
         </footer>
