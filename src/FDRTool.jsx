@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { RotateCcw, TrendingUp, Info, X, Link2, Download, Check, ChevronDown, ArrowUpDown } from 'lucide-react';
+import { RotateCcw, TrendingUp, Info, X, Link2, Download, Check, ChevronDown, ArrowUpDown, Settings2, Grid2x2, Scale } from 'lucide-react';
 import html2canvas from 'html2canvas';
 
 const TEAMS = [
@@ -395,8 +395,8 @@ export default function FDRTool() {
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
               background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: '12px'
             }}>
-              <h2 className="fdr-title" style={{ color: '#FFFFFF', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0 }}>
-                Team-sterkte instellen
+              <h2 className="fdr-title" style={{ color: '#FFFFFF', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Settings2 size={18} color="#4ECDC4" /> Team-sterkte instellen
               </h2>
               <ChevronDown size={20} color="#C9B8E0" style={{
                 transform: openSections.sliders ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s ease'
@@ -439,8 +439,8 @@ export default function FDRTool() {
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
               background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: '12px'
             }}>
-              <h2 className="fdr-title" style={{ color: '#FFFFFF', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0 }}>
-                Fixture Difficulty Rating
+              <h2 className="fdr-title" style={{ color: '#FFFFFF', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Grid2x2 size={18} color="#4ECDC4" /> Fixture Difficulty Rating
               </h2>
               <ChevronDown size={20} color="#C9B8E0" style={{
                 transform: openSections.table ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s ease'
@@ -615,7 +615,7 @@ export default function FDRTool() {
               background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: '12px'
             }}>
               <h2 className="fdr-title" style={{ color: '#FFFFFF', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                Vergelijk teams
+                <Scale size={18} color="#4ECDC4" /> Vergelijk teams
               </h2>
               <ChevronDown size={20} color="#C9B8E0" style={{
                 transform: openSections.compare ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s ease'
