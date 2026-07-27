@@ -462,7 +462,8 @@ export default function FDRTool() {
                 <tr>
                   <th style={{
                     textAlign: 'left', color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase',
-                    letterSpacing: '0.05em', padding: '6px 8px', position: 'sticky', left: 0, background: '#2A1440'
+                    letterSpacing: '0.05em', padding: '6px 8px', position: 'sticky', left: 0,
+                    background: '#2A1440', zIndex: 3, boxShadow: '-4px 0 0 0 #2A1440, 4px 0 0 0 #2A1440'
                   }}>Team</th>
                   {Array.from({ length: GW_COUNT }, (_, i) => (
                     <th key={i} style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', padding: '6px 4px', minWidth: '58px' }}>
@@ -473,9 +474,11 @@ export default function FDRTool() {
               </thead>
               <tbody>
                 {displayedTeams.map(team => (
-                  <tr key={team.code}>                    <td style={{
+                  <tr key={team.code}>
+                    <td style={{
                       color: '#FFF', fontWeight: 700, fontSize: '13px', padding: '6px 8px',
-                      position: 'sticky', left: 0, background: '#2A1440', whiteSpace: 'nowrap'
+                      position: 'sticky', left: 0, background: '#2A1440', whiteSpace: 'nowrap',
+                      zIndex: 3, boxShadow: '-4px 0 0 0 #2A1440, 4px 0 0 0 #2A1440'
                     }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <img
@@ -496,7 +499,8 @@ export default function FDRTool() {
                         return (
                           <td key={i} className="fdr-cell" style={{
                             background: '#4A4560', color: '#9B93AD', textAlign: 'center',
-                            fontSize: '14px', fontWeight: 700, borderRadius: '6px', padding: '8px 2px'
+                            fontSize: '14px', fontWeight: 700, borderRadius: '6px', padding: '8px 2px',
+                            position: 'relative', zIndex: 1
                           }} title={`${opp} (${venue}) — uitgesteld`}>
                             /
                           </td>
@@ -507,7 +511,8 @@ export default function FDRTool() {
                       return (
                         <td key={i} className="fdr-cell" style={{
                           background: style.bg, color: style.text, textAlign: 'center',
-                          fontSize: '12px', fontWeight: 700, borderRadius: '6px', padding: '8px 2px'
+                          fontSize: '12px', fontWeight: 700, borderRadius: '6px', padding: '8px 2px',
+                          position: 'relative', zIndex: 1
                         }}>
                           {opp} <span style={{ opacity: 0.75, fontWeight: 500 }}>({venue})</span>
                         </td>
