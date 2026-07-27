@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { RotateCcw, TrendingUp, Info, X, Link2, Download, Check, ChevronDown } from 'lucide-react';
+import { RotateCcw, TrendingUp, Info, X, Link2, Download, Check, ChevronDown, ArrowUpDown } from 'lucide-react';
 import html2canvas from 'html2canvas';
 
 const TEAMS = [
@@ -448,7 +448,7 @@ export default function FDRTool() {
               borderRadius: '8px', padding: '6px 12px', fontWeight: 600, fontSize: '12px', cursor: 'pointer',
               marginBottom: '10px'
             }}>
-              <TrendingUp size={13} />
+              <ArrowUpDown size={13} />
               {sortByDifficulty ? 'Gesorteerd: makkelijkste eerst' : 'Sorteer op makkelijkste run'}
             </button>
             )}
