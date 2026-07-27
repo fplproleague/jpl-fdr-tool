@@ -611,7 +611,7 @@ export default function FDRTool() {
             {openSections.compare && (
             <>
             <p style={{ color: '#8F79AD', fontSize: '12px', marginBottom: '10px' }}>
-              Kies tot 3 teams om hun fixtures naast elkaar te zien.
+              Kies tot 3 teams om hun fixtures onder elkaar te zien.
             </p>
             <div style={{
               display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(70px, 1fr))', gap: '6px', marginBottom: '16px'
