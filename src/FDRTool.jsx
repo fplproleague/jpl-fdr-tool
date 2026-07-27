@@ -304,6 +304,11 @@ export default function FDRTool() {
           .club-logo { 
             display: none !important; 
           }
+          .fdr-section-title {
+            font-size: 14px !important;
+            gap: 6px !important;
+          }
+        }
         }
 
       `}</style>
@@ -395,7 +400,7 @@ export default function FDRTool() {
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
               background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: '12px'
             }}>
-              <h2 className="fdr-title" style={{ color: '#FFFFFF', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h2 className="fdr-title fdr-section-title" style={{ color: '#FFFFFF', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0, display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap' }}>
                 <Settings2 size={18} color="#4ECDC4" /> Team-sterkte instellen
               </h2>
               <ChevronDown size={20} color="#C9B8E0" style={{
@@ -439,7 +444,7 @@ export default function FDRTool() {
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
               background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: '12px'
             }}>
-              <h2 className="fdr-title" style={{ color: '#FFFFFF', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h2 className="fdr-title fdr-section-title" style={{ color: '#FFFFFF', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0, display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap' }}>
                 <Grid2x2 size={18} color="#4ECDC4" /> Fixture Difficulty Rating
               </h2>
               <ChevronDown size={20} color="#C9B8E0" style={{
@@ -546,7 +551,7 @@ export default function FDRTool() {
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
               background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: '12px'
             }}>
-              <h2 className="fdr-title" style={{ color: '#FFFFFF', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h2 className="fdr-title fdr-section-title" style={{ color: '#FFFFFF', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0, display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap' }}>
                 <TrendingUp size={18} color="#4ECDC4" /> Beste fixture runs
               </h2>
               <ChevronDown size={20} color="#C9B8E0" style={{
@@ -614,7 +619,7 @@ export default function FDRTool() {
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
               background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: '12px'
             }}>
-              <h2 className="fdr-title" style={{ color: '#FFFFFF', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h2 className="fdr-title fdr-section-title" style={{ color: '#FFFFFF', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0, display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap' }}>
                 <Scale size={18} color="#4ECDC4" /> Vergelijk teams
               </h2>
               <ChevronDown size={20} color="#C9B8E0" style={{
