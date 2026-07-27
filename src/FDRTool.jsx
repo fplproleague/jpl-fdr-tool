@@ -696,7 +696,7 @@ export default function FDRTool() {
           </section>
         </div>
 
-        <footer style={{ marginTop: '28px', textAlign: 'center', color: '#6B5289', fontSize: '12px' }}>
+        <footer style={{ marginTop: '28px', textAlign: 'center', color: '#6B5289', fontSize: '12px', lineHeight: 1.5 }}>
           Gemaakt door @fpl_proleague · Fantasy Pro League 26/27 · Data eigen analyse<br />
           Laatst bijgewerkt: {LAST_UPDATED}
         </footer>
