@@ -308,6 +308,26 @@ export default function FDRTool() {
             font-size: 14px !important;
             gap: 6px !important;
           }
+          .fdr-toolbar-spacer {
+            display: none !important;
+          }
+          .fdr-toolbar-buttons {
+            display: flex !important;
+            flex-direction: column !important;
+            width: 100% !important;
+            gap: 8px !important;
+          }
+          .fdr-toolbar-btn {
+            width: 100% !important;
+          }
+          .fdr-toolbar-row {
+            display: flex !important;
+            width: 100% !important;
+            gap: 8px !important;
+          }
+          .fdr-toolbar-row .fdr-toolbar-btn {
+            flex: 1 !important;
+          }
         }
         }
 
@@ -340,29 +360,30 @@ export default function FDRTool() {
           </p>
         </header>
 
-        <div style={{
+        <div className="fdr-toolbar" style={{
           display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center',
           marginBottom: '24px', padding: '12px 16px', background: 'rgba(255,255,255,0.04)',
           border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px'
         }}>
-          <span style={{
+          <span className="fdr-status-badge" style={{
             fontSize: '12px', fontWeight: 700, padding: '4px 10px', borderRadius: '999px',
             background: isCustom ? '#4ECDC4' : 'rgba(255,255,255,0.1)',
             color: isCustom ? '#0B2E1B' : '#C9B8E0'
           }}>
             {isCustom ? 'JOUW AANGEPASTE VERSIE' : 'STANDAARD — RATING VAN @FPL_PROLEAGUE'}
           </span>
-          <div style={{ flex: 1 }} />
-          <button onClick={handleCopyLink} style={{
-            display: 'flex', alignItems: 'center', gap: '6px', background: 'transparent', color: '#C9B8E0',
+          <div className="fdr-toolbar-spacer" style={{ flex: 1 }} />
+          <div className="fdr-toolbar-buttons">
+          <button onClick={handleCopyLink} className="fdr-toolbar-btn" style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: 'transparent', color: '#C9B8E0',
             border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', padding: '8px 14px',
             fontWeight: 600, fontSize: '13px', cursor: 'pointer'
           }}>
             {linkCopied ? <Check size={14} /> : <Link2 size={14} />}
             {linkCopied ? 'Link gekopieerd!' : 'Kopieer link'}
           </button>
-          <button onClick={handleDownloadImage} disabled={downloading} style={{
-            display: 'flex', alignItems: 'center', gap: '6px', background: 'transparent', color: '#C9B8E0',
+          <button onClick={handleDownloadImage} disabled={downloading} className="fdr-toolbar-btn" style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: 'transparent', color: '#C9B8E0',
             border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', padding: '8px 14px',
             fontWeight: 600, fontSize: '13px', cursor: downloading ? 'default' : 'pointer',
             opacity: downloading ? 0.6 : 1
@@ -370,15 +391,16 @@ export default function FDRTool() {
             <Download size={14} />
             {downloading ? 'Bezig...' : 'Download als afbeelding'}
           </button>
-          <button onClick={handleSave} style={{
-            display: 'flex', alignItems: 'center', gap: '6px', background: '#4ECDC4', color: '#0B2E1B',
+          <button onClick={handleSave} className="fdr-toolbar-btn" style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: '#4ECDC4', color: '#0B2E1B',
             border: 'none', borderRadius: '8px', padding: '8px 14px', fontWeight: 700, fontSize: '13px',
             cursor: 'pointer'
           }}>
             {saved ? 'Opgeslagen ✓' : 'Bewaar in browser'}
           </button>
-          <button onClick={handleReset} style={{
-            display: 'flex', alignItems: 'center', gap: '6px', background: 'transparent', color: '#C9B8E0',
+          <div className="fdr-toolbar-row">
+          <button onClick={handleReset} className="fdr-toolbar-btn" style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: 'transparent', color: '#C9B8E0',
             border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', padding: '8px 14px',
             fontWeight: 600, fontSize: '13px', cursor: 'pointer'
           }}>
@@ -387,10 +409,12 @@ export default function FDRTool() {
           <button onClick={() => setShowInfo(true)} aria-label="Uitleg" style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center', width: '34px', height: '34px',
             background: 'transparent', color: '#C9B8E0', border: '1px solid rgba(255,255,255,0.2)',
-            borderRadius: '8px', cursor: 'pointer'
+            borderRadius: '8px', cursor: 'pointer', flexShrink: 0
           }}>
             <Info size={16} />
           </button>
+          </div>
+          </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '24px' }}>
