@@ -66,7 +66,7 @@ const RATING_STYLE = {
 };
 
 const GW_COUNT = 8;
-const LAST_UPDATED = '26 juli 2026';
+const LAST_UPDATED = '27 juli 2026';
 const STORAGE_KEY = 'fpl_proleague_fdr_ratings_v1';
 
 function loadStoredRatings() {
@@ -311,7 +311,7 @@ export default function FDRTool() {
 
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 20px 80px', position: 'relative' }}>
 
-        <header style={{ marginBottom: '28px' }}>
+        <header style={{ marginBottom: '24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
             <span style={{ color: '#4ECDC4', fontWeight: 700, letterSpacing: '0.08em', fontSize: '13px', textTransform: 'uppercase' }}>
               @fpl_proleague
@@ -332,7 +332,7 @@ export default function FDRTool() {
 
         <div style={{
           display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center',
-          marginBottom: '20px', padding: '12px 16px', background: 'rgba(255,255,255,0.04)',
+          marginBottom: '24px', padding: '12px 16px', background: 'rgba(255,255,255,0.04)',
           border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px'
         }}>
           <span style={{
