@@ -66,7 +66,7 @@ const RATING_STYLE = {
 };
 
 const GW_COUNT = 8;
-const LAST_UPDATED = '27 juli 2026';
+const LAST_UPDATED = '28 juli 2026';
 const STORAGE_KEY = 'fpl_proleague_fdr_ratings_v1';
 
 function loadStoredRatings() {
