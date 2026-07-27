@@ -177,6 +177,7 @@ export default function FDRTool() {
     if (!tableRef.current) return;
     setDownloading(true);
     const el = tableRef.current;
+    const scrollEl = el.querySelector('.fdr-table-scroll');
 
     const wasOpen = openSections.table;
     if (!wasOpen) {
@@ -190,13 +191,15 @@ export default function FDRTool() {
       });
     }
 
-    const prevWidth = el.style.width;
-    const prevMaxWidth = el.style.maxWidth;
-    const prevOverflow = el.style.overflow;
-    el.style.width = `${el.scrollWidth}px`;
-    el.style.maxWidth = 'none';
-    el.style.overflow = 'visible';
-    el.scrollLeft = 0;
+    const prevWidth = scrollEl?.style.width;
+    const prevMaxWidth = scrollEl?.style.maxWidth;
+    const prevOverflow = scrollEl?.style.overflow;
+    if (scrollEl) {
+      scrollEl.style.width = `${scrollEl.scrollWidth}px`;
+      scrollEl.style.maxWidth = 'none';
+      scrollEl.style.overflow = 'visible';
+      scrollEl.scrollLeft = 0;
+    }
 
     try {
       const canvas = await html2canvas(el, {
@@ -227,9 +230,11 @@ export default function FDRTool() {
     } catch {
       // rendering failed — silently ignore, user can screenshot manually
     } finally {
-      el.style.width = prevWidth;
-      el.style.maxWidth = prevMaxWidth;
-      el.style.overflow = prevOverflow;
+      if (scrollEl) {
+        scrollEl.style.width = prevWidth;
+        scrollEl.style.maxWidth = prevMaxWidth;
+        scrollEl.style.overflow = prevOverflow;
+      }
       if (!wasOpen) {
         setOpenSections(prev => ({ ...prev, table: false }));
       }
@@ -452,7 +457,8 @@ export default function FDRTool() {
               {sortByDifficulty ? 'Gesorteerd: makkelijkste eerst' : 'Sorteer op makkelijkste run'}
             </button>
             )}
-            <div ref={tableRef} style={{
+            <div ref={tableRef} id="fdr-capture-wrapper">
+            <div className="fdr-table-scroll" style={{
               overflowX: 'auto', background: '#2A1440', padding: '4px',
               display: openSections.table ? 'block' : 'none'
             }}>
@@ -521,6 +527,8 @@ export default function FDRTool() {
                 ))}
               </tbody>
             </table>
+            </div>
+            {openSections.table && (
             <div style={{ display: 'flex', gap: '10px', marginTop: '12px', flexWrap: 'wrap' }}>
               {[1,2,3,4,5].map(r => (
                 <div key={r} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -529,6 +537,7 @@ export default function FDRTool() {
                 </div>
               ))}
             </div>
+            )}
             </div>
           </section>
 
