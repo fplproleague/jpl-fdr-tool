@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useCallback, useEffect, useId, memo } from 'react';
+import { createPortal } from 'react-dom';
 import { RotateCcw, TrendingUp, Info, X, Link2, Download, Check, ChevronDown, ArrowUpDown, Settings2, Grid2x2, Scale } from 'lucide-react';
 import html2canvas from 'html2canvas';
 
@@ -69,6 +70,20 @@ const GW_COUNT = 8;
 const LAST_UPDATED = '28 juli 2026';
 const STORAGE_KEY = 'fpl_proleague_fdr_ratings_v1';
 
+// TEAMS is al alfabetisch op code — eenmalig gesorteerde kopie voor UI-lijsten die dat expliciet willen.
+const TEAMS_ALPHA = [...TEAMS].sort((a, b) => a.code.localeCompare(b.code));
+const GW_INDEXES = Array.from({ length: GW_COUNT }, (_, i) => i);
+
+// Statische GW-headers/opties: eenmalig opgebouwd, hergebruikt door meerdere tabellen/selects.
+const gwHeaderCells = GW_INDEXES.map(i => (
+  <th key={i} style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', padding: '6px 4px', minWidth: '58px' }}>
+    GW{i + 1}
+  </th>
+));
+const gwOptionElements = GW_INDEXES.map(i => (
+  <option key={i} value={i + 1}>{i + 1}</option>
+));
+
 function loadStoredRatings() {
   try {
     const raw = window.localStorage?.getItem(STORAGE_KEY);
@@ -106,6 +121,178 @@ function loadRatingsFromURL() {
   }
 }
 
+function average(numbers) {
+  return numbers.reduce((a, b) => a + b, 0) / numbers.length;
+}
+
+function getFixtureScores(teamCode, fixtures, ratings, startGW) {
+  return fixtures.map((f, idx) => {
+    const gwNumber = startGW + idx;
+    if (POSTPONED.has(`${teamCode}-${gwNumber}`)) return 5; // gemiste speeldag = nadeel, telt als moeilijkst
+    return ratings[f.split('-')[0]] ?? 3;
+  });
+}
+
+function buildPostponedTooltipText(teamCode, opp, venue) {
+  const team = TEAMS.find(t => t.code === teamCode)?.name ?? teamCode;
+  const oppTeam = TEAMS.find(t => t.code === opp)?.name ?? opp;
+  const [home, away] = venue === 'H' ? [team, oppTeam] : [oppTeam, team];
+  return `${home} - ${away} is uitgesteld wegens de Europese voorrondes.`;
+}
+
+function getFixtureInfo(teamCode, fixture, gwNumber, ratings) {
+  const [opp, venue] = fixture.split('-');
+  const isPostponed = POSTPONED.has(`${teamCode}-${gwNumber}`);
+  const style = isPostponed ? null : RATING_STYLE[ratings[opp] ?? 3];
+  const postponedText = isPostponed ? buildPostponedTooltipText(teamCode, opp, venue) : null;
+  return { opp, venue, isPostponed, style, postponedText };
+}
+
+const selectStyle = {
+  background: '#3D1E5C', color: '#FFF', border: '1px solid rgba(255,255,255,0.15)',
+  borderRadius: '6px', padding: '4px 8px', fontSize: '12px'
+};
+
+const sectionToggleButtonStyle = {
+  display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
+  background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: '12px'
+};
+
+const sectionTitleStyle = {
+  color: '#FFFFFF', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0,
+  display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap'
+};
+
+const secondaryToolbarBtnStyle = {
+  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: 'transparent', color: '#C9B8E0',
+  border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', padding: '8px 14px',
+  fontWeight: 600, fontSize: '13px', cursor: 'pointer'
+};
+
+function chevronStyle(isOpen) {
+  return { transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s ease' };
+}
+
+const SectionHeader = memo(function SectionHeader({ icon: Icon, title, sectionKey, isOpen, onToggle }) {
+  return (
+    <button onClick={() => onToggle(sectionKey)} style={sectionToggleButtonStyle}>
+      <h2 className="fdr-title fdr-section-title" style={sectionTitleStyle}>
+        <Icon size={18} color="#4ECDC4" /> {title}
+      </h2>
+      <ChevronDown size={20} color="#C9B8E0" style={chevronStyle(isOpen)} />
+    </button>
+  );
+});
+
+// Tooltip trigger voor uitgestelde wedstrijden: hover op desktop, tap-toggle + tap-buiten-sluit op mobiel.
+// Rendert de bubble via een portal zodat ze nooit wordt afgesneden door de horizontaal scrollende tabellen.
+const PostponedIndicator = memo(function PostponedIndicator({ as: Tag, text, style, className }) {
+  const [hoverOpen, setHoverOpen] = useState(false);
+  const [clickOpen, setClickOpen] = useState(false);
+  const [coords, setCoords] = useState(null);
+  const triggerRef = useRef(null);
+  const bubbleRef = useRef(null);
+  const tooltipId = useId();
+  const visible = hoverOpen || clickOpen;
+
+  const updatePosition = useCallback(() => {
+    const el = triggerRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const placeBelow = rect.top < 70;
+    const left = Math.min(Math.max(rect.left + rect.width / 2, 100), window.innerWidth - 100);
+    setCoords({
+      left,
+      y: placeBelow ? rect.bottom + 8 : rect.top - 8,
+      placement: placeBelow ? 'bottom' : 'top',
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!visible) return;
+    updatePosition();
+    const handleReposition = () => updatePosition();
+    const handlePointerDown = (e) => {
+      if (triggerRef.current?.contains(e.target) || bubbleRef.current?.contains(e.target)) return;
+      setClickOpen(false);
+    };
+    window.addEventListener('scroll', handleReposition, true);
+    window.addEventListener('resize', handleReposition);
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => {
+      window.removeEventListener('scroll', handleReposition, true);
+      window.removeEventListener('resize', handleReposition);
+      document.removeEventListener('pointerdown', handlePointerDown);
+    };
+  }, [visible, updatePosition]);
+
+  return (
+    <>
+      <Tag
+        ref={triggerRef}
+        className={className}
+        style={style}
+        tabIndex={0}
+        aria-label={text}
+        aria-describedby={visible ? tooltipId : undefined}
+        onPointerEnter={(e) => { if (e.pointerType === 'mouse') { updatePosition(); setHoverOpen(true); } }}
+        onPointerLeave={(e) => { if (e.pointerType === 'mouse') setHoverOpen(false); }}
+        onFocus={(e) => { if (e.target.matches(':focus-visible')) { updatePosition(); setHoverOpen(true); } }}
+        onBlur={() => setHoverOpen(false)}
+        onClick={(e) => { e.stopPropagation(); updatePosition(); setClickOpen(o => !o); }}
+      >
+        /
+      </Tag>
+      {visible && coords && createPortal(
+        <div
+          id={tooltipId}
+          ref={bubbleRef}
+          role="tooltip"
+          className={`fdr-postponed-tooltip fdr-postponed-tooltip--${coords.placement}`}
+          style={{
+            top: coords.y,
+            left: coords.left,
+            transform: `translate(-50%, ${coords.placement === 'top' ? '-100%' : '0'})`,
+          }}
+        >
+          {text}
+        </div>,
+        document.body
+      )}
+    </>
+  );
+});
+
+const FixtureCell = memo(function FixtureCell({ opp, venue, isPostponed, bg, textColor, stacked, postponedText }) {
+  const stackingStyle = stacked ? { position: 'relative', zIndex: 1 } : null;
+
+  if (isPostponed) {
+    return (
+      <PostponedIndicator
+        as="td"
+        className="fdr-cell"
+        text={postponedText}
+        style={{
+          background: '#4A4560', color: '#9B93AD', textAlign: 'center',
+          fontSize: '14px', fontWeight: 700, borderRadius: '6px', padding: '8px 2px',
+          cursor: 'pointer',
+          ...stackingStyle
+        }}
+      />
+    );
+  }
+
+  return (
+    <td className="fdr-cell" style={{
+      background: bg, color: textColor, textAlign: 'center',
+      fontSize: '12px', fontWeight: 700, borderRadius: '6px', padding: '8px 2px',
+      ...stackingStyle
+    }}>
+      {opp} <span style={{ opacity: 0.75, fontWeight: 500 }}>({venue})</span>
+    </td>
+  );
+});
+
 export default function FDRTool() {
   const [ratings, setRatings] = useState(() => loadRatingsFromURL() || loadStoredRatings() || DEFAULT_RATINGS);
   const [rangeStart, setRangeStart] = useState(1);
@@ -122,14 +309,13 @@ export default function FDRTool() {
   });
   const [sortByDifficulty, setSortByDifficulty] = useState(false);
   const [compareTeams, setCompareTeams] = useState([]);
-  const [isCustom, setIsCustom] = useState(() => {
-    return !!(loadRatingsFromURL() || loadStoredRatings());
-  });
   const tableRef = useRef(null);
+
+  // isCustom volgt exact of ratings de gedeelde DEFAULT_RATINGS-referentie is (zie updateRating/handleReset).
+  const isCustom = ratings !== DEFAULT_RATINGS;
 
   const updateRating = (code, value) => {
     setRatings(prev => ({ ...prev, [code]: value }));
-    setIsCustom(true);
     setSaved(false);
   };
 
@@ -145,7 +331,6 @@ export default function FDRTool() {
 
   const handleReset = () => {
     setRatings(DEFAULT_RATINGS);
-    setIsCustom(false);
     try {
       window.localStorage?.removeItem(STORAGE_KEY);
     } catch {
@@ -242,34 +427,25 @@ export default function FDRTool() {
     }
   };
 
-  const toggleSection = (key) => {
+  const toggleSection = useCallback((key) => {
     setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
-  };
+  }, []);
 
   const bestRuns = useMemo(() => {
     const start = Math.min(rangeStart, rangeEnd);
     const end = Math.max(rangeStart, rangeEnd);
     const results = TEAMS.map(team => {
-            const slice = FIXTURES[team.code].slice(start - 1, end);
-      const scores = slice.map((f, idx) => {
-        const gwNumber = start + idx;
-        if (POSTPONED.has(`${team.code}-${gwNumber}`)) return 5; // gemiste speeldag = nadeel, telt als moeilijkst
-        return ratings[f.split('-')[0]] ?? 3;
-      });
-      const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
-      return { ...team, avg, fixtures: slice, scores, startGW: start };
+      const fixtures = FIXTURES[team.code].slice(start - 1, end);
+      const scores = getFixtureScores(team.code, fixtures, ratings, start);
+      return { ...team, avg: average(scores), fixtures, startGW: start };
     });
     return results.sort((a, b) => a.avg - b.avg).slice(0, 5);
   }, [ratings, rangeStart, rangeEnd]);
-    const teamAvgDifficulty = useMemo(() => {
+
+  const teamAvgDifficulty = useMemo(() => {
     const map = {};
     TEAMS.forEach(team => {
-      const scores = FIXTURES[team.code].map((f, idx) => {
-        const gwNumber = idx + 1;
-        if (POSTPONED.has(`${team.code}-${gwNumber}`)) return 5; // gemiste speeldag = nadeel, telt als moeilijkst
-        return ratings[f.split('-')[0]] ?? 3;
-      });
-      map[team.code] = scores.reduce((a, b) => a + b, 0) / scores.length;
+      map[team.code] = average(getFixtureScores(team.code, FIXTURES[team.code], ratings, 1));
     });
     return map;
   }, [ratings]);
@@ -297,12 +473,39 @@ export default function FDRTool() {
         .fdr-title { font-family: 'Archivo', sans-serif; }
         .fdr-cell { transition: transform 0.12s ease; }
         input[type=range] { accent-color: #4ECDC4; }
+        .fdr-postponed-tooltip {
+          position: fixed;
+          z-index: 45;
+          background: #3D1E5C;
+          color: #EDE4F5;
+          border: 1px solid rgba(255,255,255,0.15);
+          border-radius: 8px;
+          padding: 8px 10px;
+          font-family: 'Inter', sans-serif;
+          font-size: 11px;
+          font-weight: 500;
+          line-height: 1.4;
+          width: max-content;
+          max-width: 200px;
+          text-align: left;
+          box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+          pointer-events: none;
+        }
+        .fdr-postponed-tooltip::after {
+          content: '';
+          position: absolute;
+          left: 50%;
+          transform: translateX(-50%);
+          border: 5px solid transparent;
+        }
+        .fdr-postponed-tooltip--top::after { top: 100%; border-top-color: #3D1E5C; }
+        .fdr-postponed-tooltip--bottom::after { bottom: 100%; border-bottom-color: #3D1E5C; }
         ::-webkit-scrollbar { height: 8px; width: 8px; }
         ::-webkit-scrollbar-thumb { background: #4ECDC4; border-radius: 4px; }
         ::-webkit-scrollbar-track { background: #3D1E5C; }
         @media (max-width: 640px) {
-          .club-logo { 
-            display: none !important; 
+          .club-logo {
+            display: none !important;
           }
           .fdr-section-title {
             font-size: 14px !important;
@@ -328,7 +531,6 @@ export default function FDRTool() {
           .fdr-toolbar-row .fdr-toolbar-btn {
             flex: 1 !important;
           }
-        }
         }
 
       `}</style>
@@ -374,18 +576,13 @@ export default function FDRTool() {
           </span>
           <div className="fdr-toolbar-spacer" style={{ flex: 1 }} />
           <div className="fdr-toolbar-buttons">
-          <button onClick={handleCopyLink} className="fdr-toolbar-btn" style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: 'transparent', color: '#C9B8E0',
-            border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', padding: '8px 14px',
-            fontWeight: 600, fontSize: '13px', cursor: 'pointer'
-          }}>
+          <button onClick={handleCopyLink} className="fdr-toolbar-btn" style={secondaryToolbarBtnStyle}>
             {linkCopied ? <Check size={14} /> : <Link2 size={14} />}
             {linkCopied ? 'Link gekopieerd!' : 'Kopieer link'}
           </button>
           <button onClick={handleDownloadImage} disabled={downloading} className="fdr-toolbar-btn" style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: 'transparent', color: '#C9B8E0',
-            border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', padding: '8px 14px',
-            fontWeight: 600, fontSize: '13px', cursor: downloading ? 'default' : 'pointer',
+            ...secondaryToolbarBtnStyle,
+            cursor: downloading ? 'default' : 'pointer',
             opacity: downloading ? 0.6 : 1
           }}>
             <Download size={14} />
@@ -399,11 +596,7 @@ export default function FDRTool() {
             {saved ? 'Opgeslagen ✓' : 'Bewaar in browser'}
           </button>
           <div className="fdr-toolbar-row">
-          <button onClick={handleReset} className="fdr-toolbar-btn" style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: 'transparent', color: '#C9B8E0',
-            border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', padding: '8px 14px',
-            fontWeight: 600, fontSize: '13px', cursor: 'pointer'
-          }}>
+          <button onClick={handleReset} className="fdr-toolbar-btn" style={secondaryToolbarBtnStyle}>
             <RotateCcw size={14} /> Reset FDR
           </button>
           <button onClick={() => setShowInfo(true)} aria-label="Uitleg" style={{
@@ -420,22 +613,12 @@ export default function FDRTool() {
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '24px' }}>
 
           <section>
-            <button onClick={() => toggleSection('sliders')} style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
-              background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: '12px'
-            }}>
-              <h2 className="fdr-title fdr-section-title" style={{ color: '#FFFFFF', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0, display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap' }}>
-                <Settings2 size={18} color="#4ECDC4" /> Team-sterkte instellen
-              </h2>
-              <ChevronDown size={20} color="#C9B8E0" style={{
-                transform: openSections.sliders ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s ease'
-              }} />
-            </button>
+            <SectionHeader icon={Settings2} title="Team-sterkte instellen" sectionKey="sliders" isOpen={openSections.sliders} onToggle={toggleSection} />
             {openSections.sliders && (
             <div style={{
               display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '8px', marginBottom: '8px'
             }}>
-              {TEAMS.slice().sort((a,b) => a.code.localeCompare(b.code)).map(team => {
+              {TEAMS_ALPHA.map(team => {
                 const r = ratings[team.code];
                 const style = RATING_STYLE[r];
                 return (
@@ -464,17 +647,7 @@ export default function FDRTool() {
           </section>
 
           <section>
-            <button onClick={() => toggleSection('table')} style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
-              background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: '12px'
-            }}>
-              <h2 className="fdr-title fdr-section-title" style={{ color: '#FFFFFF', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0, display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap' }}>
-                <Grid2x2 size={18} color="#4ECDC4" /> Fixture Difficulty Rating
-              </h2>
-              <ChevronDown size={20} color="#C9B8E0" style={{
-                transform: openSections.table ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s ease'
-              }} />
-            </button>
+            <SectionHeader icon={Grid2x2} title="Fixture Difficulty Rating" sectionKey="table" isOpen={openSections.table} onToggle={toggleSection} />
             {openSections.table && (
             <button onClick={(e) => { e.stopPropagation(); setSortByDifficulty(s => !s); }} style={{
               display: 'flex', alignItems: 'center', gap: '6px', background: sortByDifficulty ? '#4ECDC4' : 'transparent',
@@ -499,11 +672,7 @@ export default function FDRTool() {
                     letterSpacing: '0.05em', padding: '6px 8px', position: 'sticky', left: 0,
                     background: '#2A1440', zIndex: 3, boxShadow: '-4px 0 0 0 #2A1440, 4px 0 0 0 #2A1440'
                   }}>Team</th>
-                  {Array.from({ length: GW_COUNT }, (_, i) => (
-                    <th key={i} style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', padding: '6px 4px', minWidth: '58px' }}>
-                      GW{i + 1}
-                    </th>
-                  ))}
+                  {gwHeaderCells}
                 </tr>
               </thead>
               <tbody>
@@ -525,31 +694,20 @@ export default function FDRTool() {
                         {team.code}
                       </span>
                     </td>
-        
+
                     {FIXTURES[team.code].map((f, i) => {
-                      const [opp, venue] = f.split('-');
-                      const isPostponed = POSTPONED.has(`${team.code}-${i + 1}`);
-                      if (isPostponed) {
-                        return (
-                          <td key={i} className="fdr-cell" style={{
-                            background: '#4A4560', color: '#9B93AD', textAlign: 'center',
-                            fontSize: '14px', fontWeight: 700, borderRadius: '6px', padding: '8px 2px',
-                            position: 'relative', zIndex: 1
-                          }} title={`${opp} (${venue}) — uitgesteld`}>
-                            /
-                          </td>
-                        );
-                      }
-                      const r = ratings[opp] ?? 3;
-                      const style = RATING_STYLE[r];
+                      const { opp, venue, isPostponed, style, postponedText } = getFixtureInfo(team.code, f, i + 1, ratings);
                       return (
-                        <td key={i} className="fdr-cell" style={{
-                          background: style.bg, color: style.text, textAlign: 'center',
-                          fontSize: '12px', fontWeight: 700, borderRadius: '6px', padding: '8px 2px',
-                          position: 'relative', zIndex: 1
-                        }}>
-                          {opp} <span style={{ opacity: 0.75, fontWeight: 500 }}>({venue})</span>
-                        </td>
+                        <FixtureCell
+                          key={i}
+                          opp={opp}
+                          venue={venue}
+                          isPostponed={isPostponed}
+                          bg={style?.bg}
+                          textColor={style?.text}
+                          postponedText={postponedText}
+                          stacked
+                        />
                       );
                     })}
                   </tr>
@@ -571,27 +729,17 @@ export default function FDRTool() {
           </section>
 
           <section>
-            <button onClick={() => toggleSection('runs')} style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
-              background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: '12px'
-            }}>
-              <h2 className="fdr-title fdr-section-title" style={{ color: '#FFFFFF', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0, display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap' }}>
-                <TrendingUp size={18} color="#4ECDC4" /> Beste fixture runs
-              </h2>
-              <ChevronDown size={20} color="#C9B8E0" style={{
-                transform: openSections.runs ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s ease'
-              }} />
-            </button>
+            <SectionHeader icon={TrendingUp} title="Beste fixture runs" sectionKey="runs" isOpen={openSections.runs} onToggle={toggleSection} />
             {openSections.runs && (
             <>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
               <label style={{ color: '#C9B8E0', fontSize: '12px' }}>GW</label>
               <select value={rangeStart} onChange={e => setRangeStart(Number(e.target.value))} style={selectStyle}>
-                {Array.from({ length: GW_COUNT }, (_, i) => <option key={i} value={i+1}>{i+1}</option>)}
+                {gwOptionElements}
               </select>
               <span style={{ color: '#C9B8E0', fontSize: '12px' }}>t/m</span>
               <select value={rangeEnd} onChange={e => setRangeEnd(Number(e.target.value))} style={selectStyle}>
-                {Array.from({ length: GW_COUNT }, (_, i) => <option key={i} value={i+1}>{i+1}</option>)}
+                {gwOptionElements}
               </select>
             </div>
             <div style={{ display: 'grid', gap: '8px' }}>
@@ -608,20 +756,22 @@ export default function FDRTool() {
                     <div style={{ color: '#8F79AD', fontSize: '11px' }}>Gem. moeilijkheid: {team.avg.toFixed(1)}</div>
                   </div>
                   <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                                        {team.fixtures.map((f, i) => {
-                      const [opp, venue] = f.split('-');
+                    {team.fixtures.map((f, i) => {
                       const gwNumber = team.startGW + i;
-                      const isPostponed = POSTPONED.has(`${team.code}-${gwNumber}`);
+                      const { opp, venue, isPostponed, style, postponedText } = getFixtureInfo(team.code, f, gwNumber, ratings);
                       if (isPostponed) {
                         return (
-                          <span key={i} style={{
-                            background: '#4A4560', color: '#9B93AD', fontSize: '10px', fontWeight: 700,
-                            padding: '3px 6px', borderRadius: '5px'
-                          }} title={`${opp} (${venue}) — uitgesteld`}>/</span>
+                          <PostponedIndicator
+                            key={i}
+                            as="span"
+                            text={postponedText}
+                            style={{
+                              background: '#4A4560', color: '#9B93AD', fontSize: '10px', fontWeight: 700,
+                              padding: '3px 6px', borderRadius: '5px', cursor: 'pointer'
+                            }}
+                          />
                         );
                       }
-                      const r = ratings[opp] ?? 3;
-                      const style = RATING_STYLE[r];
                       return (
                         <span key={i} style={{
                           background: style.bg, color: style.text, fontSize: '10px', fontWeight: 700,
@@ -639,17 +789,7 @@ export default function FDRTool() {
 
           {/* COMPARE TEAMS */}
           <section>
-            <button onClick={() => toggleSection('compare')} style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
-              background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: '12px'
-            }}>
-              <h2 className="fdr-title fdr-section-title" style={{ color: '#FFFFFF', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0, display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap' }}>
-                <Scale size={18} color="#4ECDC4" /> Vergelijk teams
-              </h2>
-              <ChevronDown size={20} color="#C9B8E0" style={{
-                transform: openSections.compare ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s ease'
-              }} />
-            </button>
+            <SectionHeader icon={Scale} title="Vergelijk teams" sectionKey="compare" isOpen={openSections.compare} onToggle={toggleSection} />
             {openSections.compare && (
             <>
             <p style={{ color: '#8F79AD', fontSize: '12px', marginBottom: '10px' }}>
@@ -658,7 +798,7 @@ export default function FDRTool() {
             <div style={{
               display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(70px, 1fr))', gap: '6px', marginBottom: '16px'
             }}>
-              {TEAMS.slice().sort((a,b) => a.code.localeCompare(b.code)).map(team => {
+              {TEAMS_ALPHA.map(team => {
                 const selected = compareTeams.includes(team.code);
                 const disabled = !selected && compareTeams.length >= 3;
                 return (
@@ -683,11 +823,7 @@ export default function FDRTool() {
                   <thead>
                     <tr>
                       <th style={{ textAlign: 'left', color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', padding: '6px 8px' }}>Team</th>
-                      {Array.from({ length: GW_COUNT }, (_, i) => (
-                        <th key={i} style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', padding: '6px 4px', minWidth: '58px' }}>
-                          GW{i + 1}
-                        </th>
-                      ))}
+                      {gwHeaderCells}
                     </tr>
                   </thead>
                   <tbody>
@@ -699,27 +835,17 @@ export default function FDRTool() {
                             {team.code}
                           </td>
                           {FIXTURES[code].map((f, i) => {
-                            const [opp, venue] = f.split('-');
-                            const isPostponed = POSTPONED.has(`${code}-${i + 1}`);
-                            if (isPostponed) {
-                              return (
-                                <td key={i} className="fdr-cell" style={{
-                                  background: '#4A4560', color: '#9B93AD', textAlign: 'center',
-                                  fontSize: '14px', fontWeight: 700, borderRadius: '6px', padding: '8px 2px'
-                                }} title={`${opp} (${venue}) — uitgesteld`}>
-                                  /
-                                </td>
-                              );
-                            }
-                            const r = ratings[opp] ?? 3;
-                            const style = RATING_STYLE[r];
+                            const { opp, venue, isPostponed, style, postponedText } = getFixtureInfo(code, f, i + 1, ratings);
                             return (
-                              <td key={i} className="fdr-cell" style={{
-                                background: style.bg, color: style.text, textAlign: 'center',
-                                fontSize: '12px', fontWeight: 700, borderRadius: '6px', padding: '8px 2px'
-                              }}>
-                                {opp} <span style={{ opacity: 0.75, fontWeight: 500 }}>({venue})</span>
-                              </td>
+                              <FixtureCell
+                                key={i}
+                                opp={opp}
+                                venue={venue}
+                                isPostponed={isPostponed}
+                                bg={style?.bg}
+                                textColor={style?.text}
+                                postponedText={postponedText}
+                              />
                             );
                           })}
                         </tr>
@@ -767,8 +893,3 @@ export default function FDRTool() {
     </div>
   );
 }
-
-const selectStyle = {
-  background: '#3D1E5C', color: '#FFF', border: '1px solid rgba(255,255,255,0.15)',
-  borderRadius: '6px', padding: '4px 8px', fontSize: '12px'
-};
