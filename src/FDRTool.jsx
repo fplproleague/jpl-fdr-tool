@@ -851,18 +851,11 @@ export default function FDRTool() {
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 20px 32px', position: 'relative' }}>
 
         <header style={{ marginBottom: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-            <span style={{ color: '#4ECDC4', fontWeight: 700, letterSpacing: '0.08em', fontSize: '13px', textTransform: 'uppercase' }}>
-              @fpl_proleague
-            </span>
-            <span style={{ color: '#7A5A9E', fontSize: '13px' }}>·</span>
-            <span style={{ color: '#B79ED4', fontSize: '13px' }}>Fantasy Pro League 26/27</span>
-          </div>
           <h1 className="fdr-title" style={{
             color: '#FFFFFF', fontSize: 'clamp(28px, 5vw, 44px)', fontWeight: 900,
             textTransform: 'uppercase', lineHeight: 1.05, margin: 0, letterSpacing: '-0.01em'
           }}>
-            FPL Proleague <span style={{ color: '#4ECDC4' }}>Tools</span>
+            FPL Pro League <span style={{ color: '#4ECDC4' }}>Tools</span>
           </h1>
           <p style={{ color: '#C9B8E0', fontSize: '15px', marginTop: '10px', maxWidth: '640px' }}>
             Interactieve tools voor Fantasy Pro League — gemaakt door @fpl_proleague.
