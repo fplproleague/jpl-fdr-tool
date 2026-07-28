@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useCallback, useEffect, useId, memo } from 'react';
 import { createPortal } from 'react-dom';
-import { RotateCcw, TrendingUp, Info, X, Link2, Download, Check, ChevronDown, ArrowUpDown, Settings2, Grid2x2, Scale } from 'lucide-react';
+import { RotateCcw, TrendingUp, Info, X, Link2, Download, Check, ChevronDown, ArrowUpDown, Settings2, Grid2x2, Scale, Plus, Eye, UserPlus } from 'lucide-react';
 import html2canvas from 'html2canvas';
 
 const TEAMS = [
@@ -98,6 +98,8 @@ const GW_COUNT = 8;
 const LAST_UPDATED = '28 juli 2026';
 const STORAGE_KEY = 'fpl_proleague_fdr_ratings_v1';
 const HOME_ADVANTAGE_STORAGE_KEY = 'fpl_proleague_fdr_home_advantage_v1';
+// Eigen storage key voor de watch list — los van de FDR-ratings hierboven, zodat ze elkaar niet raken.
+const WATCHLIST_STORAGE_KEY = 'fpl_proleague_watchlist_v1';
 
 // TEAMS is al alfabetisch op code — eenmalig gesorteerde kopie voor UI-lijsten die dat expliciet willen.
 const TEAMS_ALPHA = [...TEAMS].sort((a, b) => a.code.localeCompare(b.code));
@@ -180,6 +182,25 @@ function loadHomeAdvantageFromURL() {
   }
 }
 
+// Watch list: los array-gebaseerd datamodel (i.p.v. een per-team map zoals ratings), want spelers
+// hebben geen vaste, vooraf gekende set van keys.
+function loadStoredWatchlist() {
+  try {
+    const raw = window.localStorage?.getItem(WATCHLIST_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+// Unieke id per watch-list entry, met een eenvoudige fallback voor browsers zonder crypto.randomUUID.
+function createWatchlistId() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 function average(numbers) {
   return numbers.reduce((a, b) => a + b, 0) / numbers.length;
 }
@@ -238,6 +259,11 @@ function getFixtureInfo(teamCode, fixture, gwNumber, ratings, homeAdvantage) {
 const selectStyle = {
   background: '#3D1E5C', color: '#FFF', border: '1px solid rgba(255,255,255,0.15)',
   borderRadius: '6px', padding: '4px 8px', fontSize: '12px'
+};
+
+const watchlistInputStyle = {
+  background: '#3D1E5C', color: '#FFF', border: '1px solid rgba(255,255,255,0.15)',
+  borderRadius: '6px', padding: '8px 10px', fontSize: '13px', width: '100%'
 };
 
 const sectionToggleButtonStyle = {
@@ -451,6 +477,12 @@ export default function FDRTool() {
   const [compareTeams, setCompareTeams] = useState([]);
   const tableRef = useRef(null);
 
+  // --- Watch list (Watch List-tab), los van de FDR-state hierboven ---
+  const [watchlist, setWatchlist] = useState(() => loadStoredWatchlist());
+  const [newPlayerName, setNewPlayerName] = useState('');
+  const [newPlayerTeam, setNewPlayerTeam] = useState('');
+  const [newPlayerPrice, setNewPlayerPrice] = useState('');
+
   // isCustom volgt exact of ratings/homeAdvantage hun gedeelde DEFAULT-referentie zijn
   // (zie updateRating/toggleHomeAdvantage/handleReset).
   const isCustom = ratings !== DEFAULT_RATINGS || homeAdvantage !== DEFAULT_HOME_ADVANTAGE;
@@ -613,6 +645,34 @@ export default function FDRTool() {
       if (prev.length >= 3) return prev;
       return [...prev, code];
     });
+  };
+
+  // Watch list slaat zichzelf automatisch op bij elke wijziging — geen aparte bewaar-knop nodig,
+  // in tegenstelling tot de FDR-ratings hierboven die pas bewaard worden via "Bewaar in browser".
+  useEffect(() => {
+    try {
+      window.localStorage?.setItem(WATCHLIST_STORAGE_KEY, JSON.stringify(watchlist));
+    } catch {
+      // storage unavailable — silently ignore, watch list still works this session
+    }
+  }, [watchlist]);
+
+  const handleAddWatchlistPlayer = (e) => {
+    e.preventDefault();
+    const name = newPlayerName.trim();
+    if (!name || !newPlayerTeam) return; // extra guard naast de native 'required' velden
+    const parsedPrice = newPlayerPrice.trim() === '' ? null : Number(newPlayerPrice);
+    setWatchlist(prev => [
+      ...prev,
+      { id: createWatchlistId(), name, teamCode: newPlayerTeam, price: Number.isFinite(parsedPrice) ? parsedPrice : null },
+    ]);
+    setNewPlayerName('');
+    setNewPlayerTeam('');
+    setNewPlayerPrice('');
+  };
+
+  const handleRemoveWatchlistPlayer = (id) => {
+    setWatchlist(prev => prev.filter(p => p.id !== id));
   };
 
   return (
@@ -1123,11 +1183,103 @@ export default function FDRTool() {
         )}
 
         {activeTab === 'watchlist' && (
-          <div style={{
-            background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: '10px', padding: '48px 20px', textAlign: 'center'
-          }}>
-            <p style={{ color: '#C9B8E0', fontSize: '15px', margin: 0 }}>Binnenkort beschikbaar.</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '24px' }}>
+            <section>
+              <h2 className="fdr-title fdr-section-title" style={{ ...sectionTitleStyle, marginBottom: '12px' }}>
+                <UserPlus size={18} color="#4ECDC4" /> Speler toevoegen
+              </h2>
+              <form onSubmit={handleAddWatchlistPlayer} style={{
+                background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: '10px', padding: '16px',
+                display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px', alignItems: 'end'
+              }}>
+                <label style={{ display: 'grid', gap: '4px' }}>
+                  <span style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase' }}>Spelersnaam</span>
+                  <input
+                    type="text" required value={newPlayerName}
+                    onChange={e => setNewPlayerName(e.target.value)}
+                    placeholder="Bv. Kevin De Bruyne"
+                    style={watchlistInputStyle}
+                  />
+                </label>
+                <label style={{ display: 'grid', gap: '4px' }}>
+                  <span style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase' }}>Team</span>
+                  <select required value={newPlayerTeam} onChange={e => setNewPlayerTeam(e.target.value)} style={watchlistInputStyle}>
+                    <option value="" disabled>Kies team</option>
+                    {TEAMS_ALPHA.map(team => (
+                      <option key={team.code} value={team.code}>{team.name}</option>
+                    ))}
+                  </select>
+                </label>
+                <label style={{ display: 'grid', gap: '4px' }}>
+                  <span style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase' }}>Prijs (optioneel)</span>
+                  <input
+                    type="number" inputMode="decimal" step="0.1" min="0" placeholder="5.5"
+                    value={newPlayerPrice} onChange={e => setNewPlayerPrice(e.target.value)}
+                    style={watchlistInputStyle}
+                  />
+                </label>
+                <button type="submit" style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                  background: '#4ECDC4', color: '#0B2E1B', border: 'none', borderRadius: '8px',
+                  padding: '9px 14px', fontWeight: 700, fontSize: '13px', cursor: 'pointer'
+                }}>
+                  <Plus size={14} /> Toevoegen
+                </button>
+              </form>
+            </section>
+
+            <section>
+              <h2 className="fdr-title fdr-section-title" style={{ ...sectionTitleStyle, marginBottom: '12px' }}>
+                <Eye size={18} color="#4ECDC4" /> Mijn watch list
+              </h2>
+              {watchlist.length === 0 ? (
+                <p style={{ color: '#6B5289', fontSize: '13px' }}>
+                  Je watch list is nog leeg. Voeg spelers toe die je in de gaten wil houden.
+                </p>
+              ) : (
+                <div style={{ display: 'grid', gap: '8px' }}>
+                  {watchlist.map(player => {
+                    const team = TEAMS.find(t => t.code === player.teamCode);
+                    return (
+                      <div key={player.id} style={{
+                        display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255,255,255,0.04)',
+                        border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '10px 14px'
+                      }}>
+                        <img
+                          src={`/club-logos/${player.teamCode}.png`}
+                          alt=""
+                          className="club-logo"
+                          style={{ width: '24px', height: '24px', objectFit: 'contain', flexShrink: 0 }}
+                          onError={(e) => { e.target.style.display = 'none'; }}
+                        />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ color: '#FFF', fontWeight: 700, fontSize: '14px' }}>{player.name}</div>
+                          <div style={{ color: '#8F79AD', fontSize: '11px' }}>{team?.name ?? player.teamCode}</div>
+                        </div>
+                        {player.price != null && (
+                          <span style={{
+                            fontSize: '12px', fontWeight: 700, padding: '3px 8px', borderRadius: '999px',
+                            background: 'rgba(255,255,255,0.1)', color: '#4ECDC4', flexShrink: 0
+                          }}>{player.price}M</span>
+                        )}
+                        <button
+                          onClick={() => handleRemoveWatchlistPlayer(player.id)}
+                          aria-label={`Verwijder ${player.name}`}
+                          style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px',
+                            background: 'transparent', color: '#C9B8E0', border: '1px solid rgba(255,255,255,0.2)',
+                            borderRadius: '6px', cursor: 'pointer', flexShrink: 0
+                          }}
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
           </div>
         )}
 
