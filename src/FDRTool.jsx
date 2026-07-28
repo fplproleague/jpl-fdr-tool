@@ -114,19 +114,6 @@ const gwHeaderCells = GW_INDEXES.map(i => (
     GW{i + 1}
   </th>
 ));
-// Aparte versie enkel voor de hoofdtabel: markeert de CURRENT_GW-kolom met een dunne turquoise rand.
-// "Vergelijk teams" blijft de gewone gwHeaderCells hierboven gebruiken.
-const mainGwHeaderCells = GW_INDEXES.map(i => {
-  const isCurrent = i + 1 === CURRENT_GW;
-  return (
-    <th key={i} style={{
-      color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', padding: '6px 4px', minWidth: '58px',
-      ...(isCurrent ? { boxShadow: 'inset 0 0 0 1.5px #4ECDC4', borderRadius: '4px' } : null)
-    }}>
-      GW{i + 1}
-    </th>
-  );
-});
 const gwOptionElements = GW_INDEXES.map(i => (
   <option key={i} value={i + 1}>{i + 1}</option>
 ));
@@ -414,11 +401,9 @@ const PostponedIndicator = memo(function PostponedIndicator({ as: Tag, text, sty
 });
 
 const FixtureCell = memo(function FixtureCell({
-  opp, venue, isPostponed, isPossiblyPostponed, bg, textColor, stacked, postponedText, possiblyPostponedText, isCurrentGw
+  opp, venue, isPostponed, isPossiblyPostponed, bg, textColor, stacked, postponedText, possiblyPostponedText
 }) {
   const stackingStyle = stacked ? { position: 'relative', zIndex: 1 } : null;
-  // Subtiele turquoise ring om de CURRENT_GW-kolom, ongeacht de status (postponed/normaal) van de cel.
-  const currentGwStyle = isCurrentGw ? { boxShadow: 'inset 0 0 0 1.5px #4ECDC4' } : null;
 
   if (isPostponed) {
     return (
@@ -430,8 +415,7 @@ const FixtureCell = memo(function FixtureCell({
           background: '#4A4560', color: '#9B93AD', textAlign: 'center',
           fontSize: '14px', fontWeight: 700, borderRadius: '6px', padding: '8px 2px',
           cursor: 'pointer',
-          ...stackingStyle,
-          ...currentGwStyle
+          ...stackingStyle
         }}
       />
     );
@@ -457,8 +441,7 @@ const FixtureCell = memo(function FixtureCell({
           background: bg, color: textColor, textAlign: 'center',
           fontSize: '12px', fontWeight: 700, borderRadius: '6px', padding: '8px 2px',
           cursor: 'pointer',
-          ...stackingStyle,
-          ...currentGwStyle
+          ...stackingStyle
         }}
       >
         {content}
@@ -470,8 +453,7 @@ const FixtureCell = memo(function FixtureCell({
     <td className="fdr-cell" style={{
       background: bg, color: textColor, textAlign: 'center',
       fontSize: '12px', fontWeight: 700, borderRadius: '6px', padding: '8px 2px',
-      ...stackingStyle,
-      ...currentGwStyle
+      ...stackingStyle
     }}>
       {content}
     </td>
@@ -1034,7 +1016,7 @@ export default function FDRTool() {
                     letterSpacing: '0.05em', padding: '6px 8px', position: 'sticky', left: 0,
                     background: '#2A1440', zIndex: 3, boxShadow: '-4px 0 0 0 #2A1440, 4px 0 0 0 #2A1440'
                   }}>Team</th>
-                  {mainGwHeaderCells}
+                  {gwHeaderCells}
                 </tr>
               </thead>
               <tbody>
@@ -1071,7 +1053,6 @@ export default function FDRTool() {
                           textColor={style?.text}
                           postponedText={postponedText}
                           possiblyPostponedText={possiblyPostponedText}
-                          isCurrentGw={i + 1 === CURRENT_GW}
                           stacked
                         />
                       );
@@ -1336,17 +1317,22 @@ export default function FDRTool() {
                           <div style={{ color: '#FFF', fontWeight: 700, fontSize: '14px' }}>{player.name}</div>
                           <div style={{ color: '#8F79AD', fontSize: '11px' }}>{team?.name ?? player.teamCode}</div>
                         </div>
-                        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', flex: 1, minWidth: '160px' }}>
-                          {upcomingFixtures.map((fixture, idx) => (
-                            <MiniFixtureBadge
-                              key={idx}
-                              teamCode={player.teamCode}
-                              fixture={fixture}
-                              gwNumber={CURRENT_GW + idx}
-                              ratings={ratings}
-                              homeAdvantage={homeAdvantage}
-                            />
-                          ))}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '160px' }}>
+                          <span style={{ color: '#8F79AD', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                            Komende fixtures
+                          </span>
+                          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                            {upcomingFixtures.map((fixture, idx) => (
+                              <MiniFixtureBadge
+                                key={idx}
+                                teamCode={player.teamCode}
+                                fixture={fixture}
+                                gwNumber={CURRENT_GW + idx}
+                                ratings={ratings}
+                                homeAdvantage={homeAdvantage}
+                              />
+                            ))}
+                          </div>
                         </div>
                         {player.price != null && (
                           <span style={{
