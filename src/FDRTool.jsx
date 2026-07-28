@@ -76,6 +76,9 @@ const DEFAULT_RATINGS = {
   USG: 5, CLU: 5,
 };
 
+// Thuisvoordeel staat standaard overal uit — per team aan/uit-schakelbaar, los van de sterkte-rating zelf.
+const DEFAULT_HOME_ADVANTAGE = Object.fromEntries(TEAMS.map(t => [t.code, false]));
+
 const RATING_STYLE = {
   1: { bg: '#1F7A4D', text: '#EAFBF1', label: 'Makkelijkst' },
   2: { bg: '#5BAE7A', text: '#0B2E1B', label: 'Makkelijk' },
@@ -87,6 +90,7 @@ const RATING_STYLE = {
 const GW_COUNT = 8;
 const LAST_UPDATED = '28 juli 2026';
 const STORAGE_KEY = 'fpl_proleague_fdr_ratings_v1';
+const HOME_ADVANTAGE_STORAGE_KEY = 'fpl_proleague_fdr_home_advantage_v1';
 
 // TEAMS is al alfabetisch op code — eenmalig gesorteerde kopie voor UI-lijsten die dat expliciet willen.
 const TEAMS_ALPHA = [...TEAMS].sort((a, b) => a.code.localeCompare(b.code));
@@ -139,15 +143,59 @@ function loadRatingsFromURL() {
   }
 }
 
+function loadStoredHomeAdvantage() {
+  try {
+    const raw = window.localStorage?.getItem(HOME_ADVANTAGE_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object') return parsed;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// Compacte encoding: één '0'/'1' per team, in TEAMS-volgorde (geen teamcodes nodig, vaste lengte/positie).
+function encodeHomeAdvantageToParam(homeAdvantage) {
+  return TEAMS.map(t => (homeAdvantage[t.code] ? '1' : '0')).join('');
+}
+
+function loadHomeAdvantageFromURL() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const raw = params.get('ha');
+    if (!raw || raw.length !== TEAMS.length || !/^[01]+$/.test(raw)) return null;
+    const result = {};
+    TEAMS.forEach((t, i) => { result[t.code] = raw[i] === '1'; });
+    return result;
+  } catch {
+    return null;
+  }
+}
+
 function average(numbers) {
   return numbers.reduce((a, b) => a + b, 0) / numbers.length;
 }
 
-function getFixtureScores(teamCode, fixtures, ratings, startGW) {
+// Effectieve rating van een tegenstander voor één fixture: de basis-sterkte, eventueel verhoogd
+// door Thuisvoordeel. Dit vervangt de vroegere simpele "ratings[opp] ?? 3"-lookup overal waar de
+// moeilijkheidsgraad van een fixture bepaald wordt (celkleur, tooltip, gemiddelde-berekeningen).
+function getEffectiveRating(opp, venue, ratings, homeAdvantage) {
+  const base = ratings[opp] ?? 3;
+  // Thuisvoordeel telt alléén mee wanneer de tegenstander (opp) thuis speelt tegen de rij-team
+  // (venue 'A'), én enkel als de tegenstander zélf de toggle heeft aangezet. Venue 'H' verandert nooit.
+  if (venue === 'A' && homeAdvantage[opp]) {
+    return Math.min(base + 1, 5);
+  }
+  return base;
+}
+
+function getFixtureScores(teamCode, fixtures, ratings, homeAdvantage, startGW) {
   return fixtures.map((f, idx) => {
     const gwNumber = startGW + idx;
     if (POSTPONED.has(`${teamCode}-${gwNumber}`)) return 5; // gemiste speeldag = nadeel, telt als moeilijkst
-    return ratings[f.split('-')[0]] ?? 3;
+    const [opp, venue] = f.split('-');
+    return getEffectiveRating(opp, venue, ratings, homeAdvantage);
   });
 }
 
@@ -169,12 +217,12 @@ function buildPossiblyPostponedTooltipText(teamCode, opp, venue) {
   return `${home} - ${away} is ${reason}.`;
 }
 
-function getFixtureInfo(teamCode, fixture, gwNumber, ratings) {
+function getFixtureInfo(teamCode, fixture, gwNumber, ratings, homeAdvantage) {
   const [opp, venue] = fixture.split('-');
   const key = `${teamCode}-${gwNumber}`;
   const isPostponed = POSTPONED.has(key);
   const isPossiblyPostponed = !isPostponed && POSSIBLY_POSTPONED.has(key);
-  const style = isPostponed ? null : RATING_STYLE[ratings[opp] ?? 3];
+  const style = isPostponed ? null : RATING_STYLE[getEffectiveRating(opp, venue, ratings, homeAdvantage)];
   const postponedText = isPostponed ? buildPostponedTooltipText(teamCode, opp, venue) : null;
   const possiblyPostponedText = isPossiblyPostponed ? buildPossiblyPostponedTooltipText(teamCode, opp, venue) : null;
   return { opp, venue, isPostponed, isPossiblyPostponed, style, postponedText, possiblyPostponedText };
@@ -378,6 +426,7 @@ const FixtureCell = memo(function FixtureCell({
 
 export default function FDRTool() {
   const [ratings, setRatings] = useState(() => loadRatingsFromURL() || loadStoredRatings() || DEFAULT_RATINGS);
+  const [homeAdvantage, setHomeAdvantage] = useState(() => loadHomeAdvantageFromURL() || loadStoredHomeAdvantage() || DEFAULT_HOME_ADVANTAGE);
   const [rangeStart, setRangeStart] = useState(1);
   const [rangeEnd, setRangeEnd] = useState(5);
   const [saved, setSaved] = useState(false);
@@ -394,17 +443,25 @@ export default function FDRTool() {
   const [compareTeams, setCompareTeams] = useState([]);
   const tableRef = useRef(null);
 
-  // isCustom volgt exact of ratings de gedeelde DEFAULT_RATINGS-referentie is (zie updateRating/handleReset).
-  const isCustom = ratings !== DEFAULT_RATINGS;
+  // isCustom volgt exact of ratings/homeAdvantage hun gedeelde DEFAULT-referentie zijn
+  // (zie updateRating/toggleHomeAdvantage/handleReset).
+  const isCustom = ratings !== DEFAULT_RATINGS || homeAdvantage !== DEFAULT_HOME_ADVANTAGE;
 
   const updateRating = (code, value) => {
     setRatings(prev => ({ ...prev, [code]: value }));
     setSaved(false);
   };
 
+  // Thuisvoordeel is losstaand van de sterkte-rating: een aparte aan/uit-toggle per team.
+  const toggleHomeAdvantage = (code) => {
+    setHomeAdvantage(prev => ({ ...prev, [code]: !prev[code] }));
+    setSaved(false);
+  };
+
   const handleSave = () => {
     try {
       window.localStorage?.setItem(STORAGE_KEY, JSON.stringify(ratings));
+      window.localStorage?.setItem(HOME_ADVANTAGE_STORAGE_KEY, JSON.stringify(homeAdvantage));
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch {
@@ -414,14 +471,17 @@ export default function FDRTool() {
 
   const handleReset = () => {
     setRatings(DEFAULT_RATINGS);
+    setHomeAdvantage(DEFAULT_HOME_ADVANTAGE);
     try {
       window.localStorage?.removeItem(STORAGE_KEY);
+      window.localStorage?.removeItem(HOME_ADVANTAGE_STORAGE_KEY);
     } catch {
       // ignore
     }
     try {
       const url = new URL(window.location.href);
       url.searchParams.delete('r');
+      url.searchParams.delete('ha');
       window.history.replaceState({}, '', url.toString());
     } catch {
       // ignore
@@ -432,6 +492,7 @@ export default function FDRTool() {
     try {
       const url = new URL(window.location.href);
       url.searchParams.set('r', encodeRatingsToParam(ratings));
+      url.searchParams.set('ha', encodeHomeAdvantageToParam(homeAdvantage));
       window.history.replaceState({}, '', url.toString());
       await navigator.clipboard.writeText(url.toString());
       setLinkCopied(true);
@@ -519,19 +580,19 @@ export default function FDRTool() {
     const end = Math.max(rangeStart, rangeEnd);
     const results = TEAMS.map(team => {
       const fixtures = FIXTURES[team.code].slice(start - 1, end);
-      const scores = getFixtureScores(team.code, fixtures, ratings, start);
+      const scores = getFixtureScores(team.code, fixtures, ratings, homeAdvantage, start);
       return { ...team, avg: average(scores), fixtures, startGW: start };
     });
     return results.sort((a, b) => a.avg - b.avg).slice(0, 5);
-  }, [ratings, rangeStart, rangeEnd]);
+  }, [ratings, homeAdvantage, rangeStart, rangeEnd]);
 
   const teamAvgDifficulty = useMemo(() => {
     const map = {};
     TEAMS.forEach(team => {
-      map[team.code] = average(getFixtureScores(team.code, FIXTURES[team.code], ratings, 1));
+      map[team.code] = average(getFixtureScores(team.code, FIXTURES[team.code], ratings, homeAdvantage, 1));
     });
     return map;
-  }, [ratings]);
+  }, [ratings, homeAdvantage]);
 
   const displayedTeams = useMemo(() => {
     if (!sortByDifficulty) return TEAMS;
@@ -725,6 +786,7 @@ export default function FDRTool() {
               {TEAMS_ALPHA.map(team => {
                 const r = ratings[team.code];
                 const style = RATING_STYLE[r];
+                const homeAdvantageOn = !!homeAdvantage[team.code];
                 return (
                   <div key={team.code} style={{
                     background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
@@ -743,6 +805,25 @@ export default function FDRTool() {
                       style={{ width: '100%' }}
                       aria-label={`Sterkte ${team.name}`}
                     />
+                    {/* Thuisvoordeel: losstaand van de sterkte-slider hierboven, zie getEffectiveRating. */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
+                      <span style={{ color: '#C9B8E0', fontSize: '10px' }}>Thuisvoordeel</span>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={homeAdvantageOn}
+                        aria-label={`Thuisvoordeel ${team.name}`}
+                        onClick={() => toggleHomeAdvantage(team.code)}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', width: '30px', height: '16px',
+                          borderRadius: '999px', border: 'none', padding: '2px', cursor: 'pointer',
+                          background: homeAdvantageOn ? '#4ECDC4' : 'rgba(255,255,255,0.15)',
+                          justifyContent: homeAdvantageOn ? 'flex-end' : 'flex-start', transition: 'background 0.15s ease'
+                        }}
+                      >
+                        <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#FFFFFF', display: 'block' }} />
+                      </button>
+                    </div>
                   </div>
                 );
               })}
@@ -801,7 +882,7 @@ export default function FDRTool() {
 
                     {FIXTURES[team.code].map((f, i) => {
                       const { opp, venue, isPostponed, isPossiblyPostponed, style, postponedText, possiblyPostponedText } =
-                        getFixtureInfo(team.code, f, i + 1, ratings);
+                        getFixtureInfo(team.code, f, i + 1, ratings, homeAdvantage);
                       return (
                         <FixtureCell
                           key={i}
@@ -866,7 +947,7 @@ export default function FDRTool() {
                     {team.fixtures.map((f, i) => {
                       const gwNumber = team.startGW + i;
                       const { opp, venue, isPostponed, isPossiblyPostponed, style, postponedText, possiblyPostponedText } =
-                        getFixtureInfo(team.code, f, gwNumber, ratings);
+                        getFixtureInfo(team.code, f, gwNumber, ratings, homeAdvantage);
                       if (isPostponed) {
                         return (
                           <PostponedIndicator
@@ -970,7 +1051,7 @@ export default function FDRTool() {
                           </td>
                           {FIXTURES[code].map((f, i) => {
                             const { opp, venue, isPostponed, isPossiblyPostponed, style, postponedText, possiblyPostponedText } =
-                              getFixtureInfo(code, f, i + 1, ratings);
+                              getFixtureInfo(code, f, i + 1, ratings, homeAdvantage);
                             return (
                               <FixtureCell
                                 key={i}
@@ -1023,6 +1104,9 @@ export default function FDRTool() {
             </p>
             <p style={{ color: '#C9B8E0', fontSize: '13px', lineHeight: 1.6, marginTop: '8px' }}>
               "Bewaar in browser" onthoudt jouw versie op dit toestel voor de volgende keer. "Beste fixture runs" toont de 5 teams met de laagste gemiddelde moeilijkheid over de gekozen periode.
+            </p>
+            <p style={{ color: '#C9B8E0', fontSize: '13px', lineHeight: 1.6, marginTop: '8px' }}>
+              <strong>Thuisvoordeel</strong> is een aparte toggle per team: zet je hem aan voor een team, dan wordt de moeilijkheidsgraad met 1 verhoogd (tot maximum 5) voor elk team dat bij hen op verplaatsing speelt. Handig omdat sommige teams nu eenmaal moeilijker te verslaan zijn op hun eigen veld.
             </p>
           </div>
         </div>
