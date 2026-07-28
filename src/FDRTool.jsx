@@ -773,7 +773,7 @@ export default function FDRTool() {
           position: absolute;
           /* em-relatief i.p.v. vaste px: schaalt automatisch mee met de font-size van de omliggende
              cel/badge (12px hoofdtabel vs 10px in "Beste fixture runs"/watch list mini-fixtures). */
-          top: -0.5em;
+          top: -0.2em;
           right: -0.5em;
           font-size: 0.9em;
           font-weight: 900;
