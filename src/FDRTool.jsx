@@ -586,7 +586,7 @@ export default function FDRTool() {
         .fdr-maybe-postponed-marker {
           position: absolute;
           top: -4px;
-          right: -4px;
+          right: -8px;
           font-size: 13px;
           font-weight: 900;
           line-height: 1;
