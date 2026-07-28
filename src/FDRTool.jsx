@@ -831,6 +831,9 @@ export default function FDRTool() {
           .fdr-toolbar-row .fdr-toolbar-btn {
             flex: 1 !important;
           }
+          .fdr-watchlist-fixtures {
+            flex-basis: 100% !important;
+          }
         }
 
       `}</style>
@@ -1317,7 +1320,7 @@ export default function FDRTool() {
                           <div style={{ color: '#FFF', fontWeight: 700, fontSize: '14px' }}>{player.name}</div>
                           <div style={{ color: '#8F79AD', fontSize: '11px' }}>{team?.name ?? player.teamCode}</div>
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '160px' }}>
+                        <div className="fdr-watchlist-fixtures" style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '160px' }}>
                           <span style={{ color: '#8F79AD', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
                             Komende fixtures
                           </span>
