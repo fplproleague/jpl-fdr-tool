@@ -585,8 +585,8 @@ export default function FDRTool() {
         .fdr-postponed-tooltip--bottom::after { bottom: 100%; border-bottom-color: #3D1E5C; }
         .fdr-maybe-postponed-marker {
           position: absolute;
-          top: -3px;
-          right: 2px;
+          top: -4px;
+          right: -4px;
           font-size: 13px;
           font-weight: 900;
           line-height: 1;
