@@ -503,6 +503,17 @@ export default function FDRTool() {
         ::-webkit-scrollbar { height: 8px; width: 8px; }
         ::-webkit-scrollbar-thumb { background: #4ECDC4; border-radius: 4px; }
         ::-webkit-scrollbar-track { background: #3D1E5C; }
+        .fdr-toolbar-buttons {
+          display: flex;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+        .fdr-toolbar-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
         @media (max-width: 640px) {
           .club-logo {
             display: none !important;
