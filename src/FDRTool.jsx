@@ -1198,7 +1198,7 @@ export default function FDRTool() {
                   <input
                     type="text" required value={newPlayerName}
                     onChange={e => setNewPlayerName(e.target.value)}
-                    placeholder="Bv. Kevin De Bruyne"
+                    placeholder="Bv Zorgane"
                     style={watchlistInputStyle}
                   />
                 </label>
