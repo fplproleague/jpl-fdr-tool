@@ -96,6 +96,9 @@ const TABS = [
 
 const GW_COUNT = 8;
 const LAST_UPDATED = '28 juli 2026';
+// Handmatig wekelijks bij te werken, net als LAST_UPDATED — markeert de "huidige" gameweek in de
+// hoofdtabel en bepaalt vanaf waar de mini-fixture-strip in de watch list start.
+const CURRENT_GW = 1;
 const STORAGE_KEY = 'fpl_proleague_fdr_ratings_v1';
 const HOME_ADVANTAGE_STORAGE_KEY = 'fpl_proleague_fdr_home_advantage_v1';
 // Eigen storage key voor de watch list — los van de FDR-ratings hierboven, zodat ze elkaar niet raken.
@@ -111,6 +114,19 @@ const gwHeaderCells = GW_INDEXES.map(i => (
     GW{i + 1}
   </th>
 ));
+// Aparte versie enkel voor de hoofdtabel: markeert de CURRENT_GW-kolom met een dunne turquoise rand.
+// "Vergelijk teams" blijft de gewone gwHeaderCells hierboven gebruiken.
+const mainGwHeaderCells = GW_INDEXES.map(i => {
+  const isCurrent = i + 1 === CURRENT_GW;
+  return (
+    <th key={i} style={{
+      color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', padding: '6px 4px', minWidth: '58px',
+      ...(isCurrent ? { boxShadow: 'inset 0 0 0 1.5px #4ECDC4', borderRadius: '4px' } : null)
+    }}>
+      GW{i + 1}
+    </th>
+  );
+});
 const gwOptionElements = GW_INDEXES.map(i => (
   <option key={i} value={i + 1}>{i + 1}</option>
 ));
@@ -398,9 +414,11 @@ const PostponedIndicator = memo(function PostponedIndicator({ as: Tag, text, sty
 });
 
 const FixtureCell = memo(function FixtureCell({
-  opp, venue, isPostponed, isPossiblyPostponed, bg, textColor, stacked, postponedText, possiblyPostponedText
+  opp, venue, isPostponed, isPossiblyPostponed, bg, textColor, stacked, postponedText, possiblyPostponedText, isCurrentGw
 }) {
   const stackingStyle = stacked ? { position: 'relative', zIndex: 1 } : null;
+  // Subtiele turquoise ring om de CURRENT_GW-kolom, ongeacht de status (postponed/normaal) van de cel.
+  const currentGwStyle = isCurrentGw ? { boxShadow: 'inset 0 0 0 1.5px #4ECDC4' } : null;
 
   if (isPostponed) {
     return (
@@ -412,7 +430,8 @@ const FixtureCell = memo(function FixtureCell({
           background: '#4A4560', color: '#9B93AD', textAlign: 'center',
           fontSize: '14px', fontWeight: 700, borderRadius: '6px', padding: '8px 2px',
           cursor: 'pointer',
-          ...stackingStyle
+          ...stackingStyle,
+          ...currentGwStyle
         }}
       />
     );
@@ -438,7 +457,8 @@ const FixtureCell = memo(function FixtureCell({
           background: bg, color: textColor, textAlign: 'center',
           fontSize: '12px', fontWeight: 700, borderRadius: '6px', padding: '8px 2px',
           cursor: 'pointer',
-          ...stackingStyle
+          ...stackingStyle,
+          ...currentGwStyle
         }}
       >
         {content}
@@ -450,10 +470,65 @@ const FixtureCell = memo(function FixtureCell({
     <td className="fdr-cell" style={{
       background: bg, color: textColor, textAlign: 'center',
       fontSize: '12px', fontWeight: 700, borderRadius: '6px', padding: '8px 2px',
-      ...stackingStyle
+      ...stackingStyle,
+      ...currentGwStyle
     }}>
       {content}
     </td>
+  );
+});
+
+// Compacte fixture-badge (tegenstander + venue) inclusief POSTPONED/POSSIBLY_POSTPONED-afhandeling,
+// in mini-formaat — gebruikt voor de fixture-strip per speler in de watch list.
+const MiniFixtureBadge = memo(function MiniFixtureBadge({ teamCode, fixture, gwNumber, ratings, homeAdvantage }) {
+  const { opp, venue, isPostponed, isPossiblyPostponed, style, postponedText, possiblyPostponedText } =
+    getFixtureInfo(teamCode, fixture, gwNumber, ratings, homeAdvantage);
+
+  if (isPostponed) {
+    return (
+      <PostponedIndicator
+        as="span"
+        text={postponedText}
+        style={{
+          background: '#4A4560', color: '#9B93AD', fontSize: '10px', fontWeight: 700,
+          padding: '3px 6px', borderRadius: '5px', cursor: 'pointer'
+        }}
+      />
+    );
+  }
+
+  const badgeContent = (
+    <>
+      {opp}{' '}
+      <span style={{ position: isPossiblyPostponed ? 'relative' : undefined }}>
+        ({venue})
+        {isPossiblyPostponed && <span className="fdr-maybe-postponed-marker" aria-hidden="true">*</span>}
+      </span>
+    </>
+  );
+
+  if (isPossiblyPostponed) {
+    return (
+      <TooltipTrigger
+        as="span"
+        text={possiblyPostponedText}
+        style={{
+          background: style.bg, color: style.text, fontSize: '10px', fontWeight: 700,
+          padding: '3px 6px', borderRadius: '5px', cursor: 'pointer'
+        }}
+      >
+        {badgeContent}
+      </TooltipTrigger>
+    );
+  }
+
+  return (
+    <span style={{
+      background: style.bg, color: style.text, fontSize: '10px', fontWeight: 700,
+      padding: '3px 6px', borderRadius: '5px'
+    }}>
+      {badgeContent}
+    </span>
   );
 });
 
@@ -959,7 +1034,7 @@ export default function FDRTool() {
                     letterSpacing: '0.05em', padding: '6px 8px', position: 'sticky', left: 0,
                     background: '#2A1440', zIndex: 3, boxShadow: '-4px 0 0 0 #2A1440, 4px 0 0 0 #2A1440'
                   }}>Team</th>
-                  {gwHeaderCells}
+                  {mainGwHeaderCells}
                 </tr>
               </thead>
               <tbody>
@@ -996,6 +1071,7 @@ export default function FDRTool() {
                           textColor={style?.text}
                           postponedText={postponedText}
                           possiblyPostponedText={possiblyPostponedText}
+                          isCurrentGw={i + 1 === CURRENT_GW}
                           stacked
                         />
                       );
@@ -1241,9 +1317,12 @@ export default function FDRTool() {
                 <div style={{ display: 'grid', gap: '8px' }}>
                   {watchlist.map(player => {
                     const team = TEAMS.find(t => t.code === player.teamCode);
+                    // Eerstvolgende (max. 5) fixtures vanaf CURRENT_GW — .slice() geeft vanzelf minder
+                    // terug als het seizoen bijna afloopt, dus geen aparte "resterende fixtures"-logica nodig.
+                    const upcomingFixtures = (FIXTURES[player.teamCode] ?? []).slice(CURRENT_GW - 1, CURRENT_GW - 1 + 5);
                     return (
                       <div key={player.id} style={{
-                        display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255,255,255,0.04)',
+                        display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', background: 'rgba(255,255,255,0.04)',
                         border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '10px 14px'
                       }}>
                         <img
@@ -1253,9 +1332,21 @@ export default function FDRTool() {
                           style={{ width: '24px', height: '24px', objectFit: 'contain', flexShrink: 0 }}
                           onError={(e) => { e.target.style.display = 'none'; }}
                         />
-                        <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ minWidth: '110px' }}>
                           <div style={{ color: '#FFF', fontWeight: 700, fontSize: '14px' }}>{player.name}</div>
                           <div style={{ color: '#8F79AD', fontSize: '11px' }}>{team?.name ?? player.teamCode}</div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', flex: 1, minWidth: '160px' }}>
+                          {upcomingFixtures.map((fixture, idx) => (
+                            <MiniFixtureBadge
+                              key={idx}
+                              teamCode={player.teamCode}
+                              fixture={fixture}
+                              gwNumber={CURRENT_GW + idx}
+                              ratings={ratings}
+                              homeAdvantage={homeAdvantage}
+                            />
+                          ))}
                         </div>
                         {player.price != null && (
                           <span style={{
