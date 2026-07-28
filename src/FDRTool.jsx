@@ -96,6 +96,9 @@ const TABS = [
 
 const GW_COUNT = 8;
 const LAST_UPDATED = '28 juli 2026';
+// Handmatig wekelijks bij te werken, net als LAST_UPDATED — markeert de "huidige" gameweek in de
+// hoofdtabel en bepaalt vanaf waar de mini-fixture-strip in de watch list start.
+const CURRENT_GW = 1;
 const STORAGE_KEY = 'fpl_proleague_fdr_ratings_v1';
 const HOME_ADVANTAGE_STORAGE_KEY = 'fpl_proleague_fdr_home_advantage_v1';
 // Eigen storage key voor de watch list — los van de FDR-ratings hierboven, zodat ze elkaar niet raken.
@@ -457,6 +460,60 @@ const FixtureCell = memo(function FixtureCell({
   );
 });
 
+// Compacte fixture-badge (tegenstander + venue) inclusief POSTPONED/POSSIBLY_POSTPONED-afhandeling,
+// in mini-formaat — gebruikt voor de fixture-strip per speler in de watch list.
+const MiniFixtureBadge = memo(function MiniFixtureBadge({ teamCode, fixture, gwNumber, ratings, homeAdvantage }) {
+  const { opp, venue, isPostponed, isPossiblyPostponed, style, postponedText, possiblyPostponedText } =
+    getFixtureInfo(teamCode, fixture, gwNumber, ratings, homeAdvantage);
+
+  if (isPostponed) {
+    return (
+      <PostponedIndicator
+        as="span"
+        text={postponedText}
+        style={{
+          background: '#4A4560', color: '#9B93AD', fontSize: '10px', fontWeight: 700,
+          padding: '3px 6px', borderRadius: '5px', cursor: 'pointer'
+        }}
+      />
+    );
+  }
+
+  const badgeContent = (
+    <>
+      {opp}{' '}
+      <span style={{ position: isPossiblyPostponed ? 'relative' : undefined }}>
+        ({venue})
+        {isPossiblyPostponed && <span className="fdr-maybe-postponed-marker" aria-hidden="true">*</span>}
+      </span>
+    </>
+  );
+
+  if (isPossiblyPostponed) {
+    return (
+      <TooltipTrigger
+        as="span"
+        text={possiblyPostponedText}
+        style={{
+          background: style.bg, color: style.text, fontSize: '10px', fontWeight: 700,
+          padding: '3px 6px', borderRadius: '5px', cursor: 'pointer'
+        }}
+      >
+        {badgeContent}
+      </TooltipTrigger>
+    );
+  }
+
+  return (
+    <span style={{
+      background: style.bg, color: style.text, fontSize: '10px', fontWeight: 700,
+      padding: '3px 6px', borderRadius: '5px'
+    }}>
+      {badgeContent}
+    </span>
+  );
+});
+
 export default function FDRTool() {
   const [activeTab, setActiveTab] = useState('fdr');
   const [ratings, setRatings] = useState(() => loadRatingsFromURL() || loadStoredRatings() || DEFAULT_RATINGS);
@@ -773,6 +830,9 @@ export default function FDRTool() {
           }
           .fdr-toolbar-row .fdr-toolbar-btn {
             flex: 1 !important;
+          }
+          .fdr-watchlist-fixtures {
+            flex-basis: 100% !important;
           }
         }
 
@@ -1241,9 +1301,12 @@ export default function FDRTool() {
                 <div style={{ display: 'grid', gap: '8px' }}>
                   {watchlist.map(player => {
                     const team = TEAMS.find(t => t.code === player.teamCode);
+                    // Eerstvolgende (max. 5) fixtures vanaf CURRENT_GW — .slice() geeft vanzelf minder
+                    // terug als het seizoen bijna afloopt, dus geen aparte "resterende fixtures"-logica nodig.
+                    const upcomingFixtures = (FIXTURES[player.teamCode] ?? []).slice(CURRENT_GW - 1, CURRENT_GW - 1 + 5);
                     return (
                       <div key={player.id} style={{
-                        display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255,255,255,0.04)',
+                        display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', background: 'rgba(255,255,255,0.04)',
                         border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '10px 14px'
                       }}>
                         <img
@@ -1253,9 +1316,26 @@ export default function FDRTool() {
                           style={{ width: '24px', height: '24px', objectFit: 'contain', flexShrink: 0 }}
                           onError={(e) => { e.target.style.display = 'none'; }}
                         />
-                        <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ minWidth: '110px' }}>
                           <div style={{ color: '#FFF', fontWeight: 700, fontSize: '14px' }}>{player.name}</div>
                           <div style={{ color: '#8F79AD', fontSize: '11px' }}>{team?.name ?? player.teamCode}</div>
+                        </div>
+                        <div className="fdr-watchlist-fixtures" style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '160px' }}>
+                          <span style={{ color: '#8F79AD', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                            Komende fixtures
+                          </span>
+                          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                            {upcomingFixtures.map((fixture, idx) => (
+                              <MiniFixtureBadge
+                                key={idx}
+                                teamCode={player.teamCode}
+                                fixture={fixture}
+                                gwNumber={CURRENT_GW + idx}
+                                ratings={ratings}
+                                homeAdvantage={homeAdvantage}
+                              />
+                            ))}
+                          </div>
                         </div>
                         {player.price != null && (
                           <span style={{
