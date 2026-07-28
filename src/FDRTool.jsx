@@ -87,6 +87,13 @@ const RATING_STYLE = {
   5: { bg: '#C2402C', text: '#FBEAE7', label: 'Moeilijkst' },
 };
 
+// Tab-navigatie bovenaan de pagina — array-gedreven zodat toekomstige onderdelen naast de FDR-tool
+// gewoon een extra entry kunnen worden.
+const TABS = [
+  { key: 'fdr', label: 'FDR' },
+  { key: 'watchlist', label: 'Watch List' },
+];
+
 const GW_COUNT = 8;
 const LAST_UPDATED = '28 juli 2026';
 const STORAGE_KEY = 'fpl_proleague_fdr_ratings_v1';
@@ -425,6 +432,7 @@ const FixtureCell = memo(function FixtureCell({
 });
 
 export default function FDRTool() {
+  const [activeTab, setActiveTab] = useState('fdr');
   const [ratings, setRatings] = useState(() => loadRatingsFromURL() || loadStoredRatings() || DEFAULT_RATINGS);
   const [homeAdvantage, setHomeAdvantage] = useState(() => loadHomeAdvantageFromURL() || loadStoredHomeAdvantage() || DEFAULT_HOME_ADVANTAGE);
   const [rangeStart, setRangeStart] = useState(1);
@@ -668,7 +676,17 @@ export default function FDRTool() {
           align-items: center;
           gap: 8px;
         }
+        .fdr-tab-btn {
+          background: none; border: none; cursor: pointer;
+          padding: 10px 18px; font-size: 14px; font-weight: 800;
+          text-transform: uppercase; letter-spacing: 0.03em;
+          margin-bottom: -1px; transition: color 0.15s ease, border-color 0.15s ease;
+        }
         @media (max-width: 640px) {
+          .fdr-tab-btn {
+            font-size: 12px !important;
+            padding: 8px 12px !important;
+          }
           .club-logo {
             display: none !important;
           }
@@ -727,6 +745,30 @@ export default function FDRTool() {
           </p>
         </header>
 
+        <div className="fdr-tabs" style={{
+          display: 'flex', gap: '4px', marginBottom: '20px', borderBottom: '1px solid rgba(255,255,255,0.08)'
+        }}>
+          {TABS.map(tab => {
+            const isActive = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className="fdr-title fdr-tab-btn"
+                aria-current={isActive ? 'page' : undefined}
+                style={{
+                  color: isActive ? '#4ECDC4' : '#C9B8E0',
+                  borderBottom: isActive ? '2px solid #4ECDC4' : '2px solid transparent'
+                }}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {activeTab === 'fdr' && (
+        <>
         <div className="fdr-toolbar" style={{
           display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center',
           marginBottom: '24px', padding: '12px 16px', background: 'rgba(255,255,255,0.04)',
@@ -1077,6 +1119,17 @@ export default function FDRTool() {
             )}
           </section>
         </div>
+        </>
+        )}
+
+        {activeTab === 'watchlist' && (
+          <div style={{
+            background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: '10px', padding: '48px 20px', textAlign: 'center'
+          }}>
+            <p style={{ color: '#C9B8E0', fontSize: '15px', margin: 0 }}>Binnenkort beschikbaar.</p>
+          </div>
+        )}
 
         <footer style={{ marginTop: '28px', textAlign: 'center', color: '#6B5289', fontSize: '12px', lineHeight: 1.5 }}>
           Gemaakt door @fpl_proleague · Fantasy Pro League 26/27 · Data eigen analyse<br />
