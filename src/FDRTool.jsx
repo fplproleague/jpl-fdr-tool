@@ -292,27 +292,27 @@ function TooltipBubble({ id, bubbleRef, coords, text }) {
   );
 }
 
-// Grijs "/"-vakje voor zeker uitgestelde wedstrijden (POSTPONED).
-const PostponedIndicator = memo(function PostponedIndicator({ as: Tag, text, style, className }) {
+// Maakt van "as" (td/span) een klikbare/hoverbare tooltip-trigger over zijn volledige oppervlak,
+// zowel voor het grijze "/"-vakje (POSTPONED) als voor mogelijk uitgestelde cellen die hun eigen
+// FDR-kleur behouden (POSSIBLY_POSTPONED) — de popup verschijnt bij een klik/tap/hover eender waar op de cel.
+const TooltipTrigger = memo(function TooltipTrigger({ as: Tag, text, style, className, children }) {
   const { triggerProps, bubbleRef, tooltipId, visible, coords } = useTooltipTrigger();
   return (
     <>
       <Tag {...triggerProps} className={className} style={style} aria-label={text}>
-        /
+        {children}
       </Tag>
       {visible && coords && <TooltipBubble id={tooltipId} bubbleRef={bubbleRef} coords={coords} text={text} />}
     </>
   );
 });
 
-// Klein asterisk-icoontje in de hoek van een normaal gekleurde cel, voor mogelijk (nog niet zeker) uitgestelde wedstrijden.
-const MaybePostponedMarker = memo(function MaybePostponedMarker({ text }) {
-  const { triggerProps, bubbleRef, tooltipId, visible, coords } = useTooltipTrigger();
+// Grijs "/"-vakje voor zeker uitgestelde wedstrijden (POSTPONED).
+const PostponedIndicator = memo(function PostponedIndicator({ as: Tag, text, style, className }) {
   return (
-    <>
-      <span {...triggerProps} className="fdr-maybe-postponed-marker" aria-label={text}>*</span>
-      {visible && coords && <TooltipBubble id={tooltipId} bubbleRef={bubbleRef} coords={coords} text={text} />}
-    </>
+    <TooltipTrigger as={Tag} text={text} style={style} className={className}>
+      /
+    </TooltipTrigger>
   );
 });
 
@@ -337,17 +337,41 @@ const FixtureCell = memo(function FixtureCell({
     );
   }
 
+  const content = (
+    <>
+      {opp}{' '}
+      <span style={{ position: isPossiblyPostponed ? 'relative' : undefined }}>
+        <span style={{ opacity: 0.75, fontWeight: 500 }}>({venue})</span>
+        {isPossiblyPostponed && <span className="fdr-maybe-postponed-marker" aria-hidden="true">*</span>}
+      </span>
+    </>
+  );
+
+  if (isPossiblyPostponed) {
+    return (
+      <TooltipTrigger
+        as="td"
+        className="fdr-cell"
+        text={possiblyPostponedText}
+        style={{
+          background: bg, color: textColor, textAlign: 'center',
+          fontSize: '12px', fontWeight: 700, borderRadius: '6px', padding: '8px 2px',
+          cursor: 'pointer',
+          ...stackingStyle
+        }}
+      >
+        {content}
+      </TooltipTrigger>
+    );
+  }
+
   return (
     <td className="fdr-cell" style={{
       background: bg, color: textColor, textAlign: 'center',
       fontSize: '12px', fontWeight: 700, borderRadius: '6px', padding: '8px 2px',
       ...stackingStyle
     }}>
-      {opp}{' '}
-      <span style={{ position: isPossiblyPostponed ? 'relative' : undefined }}>
-        <span style={{ opacity: 0.75, fontWeight: 500 }}>({venue})</span>
-        {isPossiblyPostponed && <MaybePostponedMarker text={possiblyPostponedText} />}
-      </span>
+      {content}
     </td>
   );
 });
@@ -567,7 +591,7 @@ export default function FDRTool() {
           font-weight: 900;
           line-height: 1;
           color: inherit;
-          cursor: pointer;
+          pointer-events: none;
         }
         ::-webkit-scrollbar { height: 8px; width: 8px; }
         ::-webkit-scrollbar-thumb { background: #4ECDC4; border-radius: 4px; }
@@ -856,16 +880,36 @@ export default function FDRTool() {
                           />
                         );
                       }
+                      const badgeContent = (
+                        <>
+                          {opp}{' '}
+                          <span style={{ position: isPossiblyPostponed ? 'relative' : undefined }}>
+                            ({venue})
+                            {isPossiblyPostponed && <span className="fdr-maybe-postponed-marker" aria-hidden="true">*</span>}
+                          </span>
+                        </>
+                      );
+                      if (isPossiblyPostponed) {
+                        return (
+                          <TooltipTrigger
+                            key={i}
+                            as="span"
+                            text={possiblyPostponedText}
+                            style={{
+                              background: style.bg, color: style.text, fontSize: '10px', fontWeight: 700,
+                              padding: '3px 6px', borderRadius: '5px', cursor: 'pointer'
+                            }}
+                          >
+                            {badgeContent}
+                          </TooltipTrigger>
+                        );
+                      }
                       return (
                         <span key={i} style={{
                           background: style.bg, color: style.text, fontSize: '10px', fontWeight: 700,
                           padding: '3px 6px', borderRadius: '5px'
                         }}>
-                          {opp}{' '}
-                          <span style={{ position: isPossiblyPostponed ? 'relative' : undefined }}>
-                            ({venue})
-                            {isPossiblyPostponed && <MaybePostponedMarker text={possiblyPostponedText} />}
-                          </span>
+                          {badgeContent}
                         </span>
                       );
                     })}
