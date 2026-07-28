@@ -862,10 +862,10 @@ export default function FDRTool() {
             color: '#FFFFFF', fontSize: 'clamp(28px, 5vw, 44px)', fontWeight: 900,
             textTransform: 'uppercase', lineHeight: 1.05, margin: 0, letterSpacing: '-0.01em'
           }}>
-            FDR Tool <span style={{ color: '#4ECDC4' }}>GW1–{GW_COUNT}</span>
+            FPL Proleague <span style={{ color: '#4ECDC4' }}>Tools</span>
           </h1>
           <p style={{ color: '#C9B8E0', fontSize: '15px', marginTop: '10px', maxWidth: '640px' }}>
-            Mijn eigen fixture difficulty ratings — pas ze aan naar jouw mening en ontdek meteen welke teams de beste run hebben.
+            Interactieve tools voor Fantasy Pro League — gemaakt door @fpl_proleague.
           </p>
         </header>
 
@@ -893,6 +893,9 @@ export default function FDRTool() {
 
         {activeTab === 'fdr' && (
         <>
+        <p style={{ color: '#8F79AD', fontSize: '13px', marginBottom: '16px' }}>
+          Mijn eigen fixture difficulty ratings — pas ze aan naar jouw mening en ontdek meteen welke teams de beste run hebben.
+        </p>
         <div className="fdr-toolbar" style={{
           display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center',
           marginBottom: '24px', padding: '12px 16px', background: 'rgba(255,255,255,0.04)',
@@ -1247,6 +1250,10 @@ export default function FDRTool() {
         )}
 
         {activeTab === 'watchlist' && (
+          <>
+          <p style={{ color: '#8F79AD', fontSize: '13px', marginBottom: '16px' }}>
+            Hou je favoriete spelers in de gaten — voeg ze toe aan je persoonlijke watch list, samen met hun eerstvolgende fixtures.
+          </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '24px' }}>
             <section>
               <h2 className="fdr-title fdr-section-title" style={{ ...sectionTitleStyle, marginBottom: '12px' }}>
@@ -1365,6 +1372,7 @@ export default function FDRTool() {
               )}
             </section>
           </div>
+          </>
         )}
 
         <footer style={{ marginTop: '28px', textAlign: 'center', color: '#6B5289', fontSize: '12px', lineHeight: 1.5 }}>
