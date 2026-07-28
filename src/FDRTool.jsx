@@ -49,6 +49,24 @@ const POSTPONED = new Set([
   'STV-3', // Sint-Truiden vs Union SG, GW3 — uitgesteld naar 2 september
   'USG-3', // Union SG vs Sint-Truiden, GW3 — uitgesteld naar 2 september
 ]);
+const POSTPONED_DATE = '2 september';
+
+// Nog niet zeker uitgesteld — kan verschuiven afhankelijk van Europese kwalificatie. Zelfde key-structuur als POSTPONED.
+const POSSIBLY_POSTPONED = new Set([
+  'AND-3', // Anderlecht vs Kortrijk, GW3 — bij Europese kwalificatie van Anderlecht
+  'KOR-3', // Kortrijk vs Anderlecht, GW3 — bij Europese kwalificatie van Anderlecht
+  'GNT-3', // Gent vs OH Leuven, GW3 — bij Europese kwalificatie van Gent
+  'OHL-3', // OH Leuven vs Gent, GW3 — bij Europese kwalificatie van Gent
+  'USG-6', // Union SG vs Lommel, GW6 — afhankelijk van Europees programma Union SG
+  'LOM-6', // Lommel vs Union SG, GW6 — afhankelijk van Europees programma Union SG
+]);
+
+// Eén reden per wedstrijd, opgezocht via een teamcode-onafhankelijke (gesorteerde) paar-key.
+const POSSIBLY_POSTPONED_REASONS = {
+  'AND-KOR': 'mogelijk uitgesteld als Anderlecht zich plaatst voor de laatste Europese kwalificatieronde',
+  'GNT-OHL': 'mogelijk uitgesteld als Gent zich plaatst voor de laatste Europese kwalificatieronde',
+  'LOM-USG': "mogelijk uitgesteld afhankelijk van Union SG's Europees programma",
+};
 
 const DEFAULT_RATINGS = {
   LOM: 1, KOR: 1, BEV: 1, LLV: 1,
@@ -133,19 +151,33 @@ function getFixtureScores(teamCode, fixtures, ratings, startGW) {
   });
 }
 
-function buildPostponedTooltipText(teamCode, opp, venue) {
+function splitHomeAway(teamCode, opp, venue) {
   const team = TEAMS.find(t => t.code === teamCode)?.name ?? teamCode;
   const oppTeam = TEAMS.find(t => t.code === opp)?.name ?? opp;
-  const [home, away] = venue === 'H' ? [team, oppTeam] : [oppTeam, team];
-  return `${home} - ${away} is uitgesteld wegens de Europese voorrondes.`;
+  return venue === 'H' ? [team, oppTeam] : [oppTeam, team];
+}
+
+function buildPostponedTooltipText(teamCode, opp, venue) {
+  const [home, away] = splitHomeAway(teamCode, opp, venue);
+  return `${home} - ${away} is uitgesteld naar ${POSTPONED_DATE} wegens de Europese voorrondes.`;
+}
+
+function buildPossiblyPostponedTooltipText(teamCode, opp, venue) {
+  const [home, away] = splitHomeAway(teamCode, opp, venue);
+  const pairKey = [teamCode, opp].sort().join('-');
+  const reason = POSSIBLY_POSTPONED_REASONS[pairKey] ?? 'mogelijk uitgesteld door het Europese programma';
+  return `${home} - ${away} is ${reason}.`;
 }
 
 function getFixtureInfo(teamCode, fixture, gwNumber, ratings) {
   const [opp, venue] = fixture.split('-');
-  const isPostponed = POSTPONED.has(`${teamCode}-${gwNumber}`);
+  const key = `${teamCode}-${gwNumber}`;
+  const isPostponed = POSTPONED.has(key);
+  const isPossiblyPostponed = !isPostponed && POSSIBLY_POSTPONED.has(key);
   const style = isPostponed ? null : RATING_STYLE[ratings[opp] ?? 3];
   const postponedText = isPostponed ? buildPostponedTooltipText(teamCode, opp, venue) : null;
-  return { opp, venue, isPostponed, style, postponedText };
+  const possiblyPostponedText = isPossiblyPostponed ? buildPossiblyPostponedTooltipText(teamCode, opp, venue) : null;
+  return { opp, venue, isPostponed, isPossiblyPostponed, style, postponedText, possiblyPostponedText };
 }
 
 const selectStyle = {
@@ -184,9 +216,10 @@ const SectionHeader = memo(function SectionHeader({ icon: Icon, title, sectionKe
   );
 });
 
-// Tooltip trigger voor uitgestelde wedstrijden: hover op desktop, tap-toggle + tap-buiten-sluit op mobiel.
-// Rendert de bubble via een portal zodat ze nooit wordt afgesneden door de horizontaal scrollende tabellen.
-const PostponedIndicator = memo(function PostponedIndicator({ as: Tag, text, style, className }) {
+// Gedeelde interactielogica voor fixture-tooltips: hover op desktop, tap-toggle + tap-buiten-sluit op mobiel.
+// Positie wordt in viewport-coördinaten bijgehouden zodat de bubble (via een portal) nooit wordt
+// afgesneden door de horizontaal scrollende tabellen.
+function useTooltipTrigger() {
   const [hoverOpen, setHoverOpen] = useState(false);
   const [clickOpen, setClickOpen] = useState(false);
   const [coords, setCoords] = useState(null);
@@ -226,44 +259,66 @@ const PostponedIndicator = memo(function PostponedIndicator({ as: Tag, text, sty
     };
   }, [visible, updatePosition]);
 
+  const triggerProps = {
+    ref: triggerRef,
+    tabIndex: 0,
+    'aria-describedby': visible ? tooltipId : undefined,
+    onPointerEnter: (e) => { if (e.pointerType === 'mouse') { updatePosition(); setHoverOpen(true); } },
+    onPointerLeave: (e) => { if (e.pointerType === 'mouse') setHoverOpen(false); },
+    onFocus: (e) => { if (e.target.matches(':focus-visible')) { updatePosition(); setHoverOpen(true); } },
+    onBlur: () => setHoverOpen(false),
+    onClick: (e) => { e.stopPropagation(); updatePosition(); setClickOpen(o => !o); },
+  };
+
+  return { triggerProps, bubbleRef, tooltipId, visible, coords };
+}
+
+function TooltipBubble({ id, bubbleRef, coords, text }) {
+  return createPortal(
+    <div
+      id={id}
+      ref={bubbleRef}
+      role="tooltip"
+      className={`fdr-postponed-tooltip fdr-postponed-tooltip--${coords.placement}`}
+      style={{
+        top: coords.y,
+        left: coords.left,
+        transform: `translate(-50%, ${coords.placement === 'top' ? '-100%' : '0'})`,
+      }}
+    >
+      {text}
+    </div>,
+    document.body
+  );
+}
+
+// Grijs "/"-vakje voor zeker uitgestelde wedstrijden (POSTPONED).
+const PostponedIndicator = memo(function PostponedIndicator({ as: Tag, text, style, className }) {
+  const { triggerProps, bubbleRef, tooltipId, visible, coords } = useTooltipTrigger();
   return (
     <>
-      <Tag
-        ref={triggerRef}
-        className={className}
-        style={style}
-        tabIndex={0}
-        aria-label={text}
-        aria-describedby={visible ? tooltipId : undefined}
-        onPointerEnter={(e) => { if (e.pointerType === 'mouse') { updatePosition(); setHoverOpen(true); } }}
-        onPointerLeave={(e) => { if (e.pointerType === 'mouse') setHoverOpen(false); }}
-        onFocus={(e) => { if (e.target.matches(':focus-visible')) { updatePosition(); setHoverOpen(true); } }}
-        onBlur={() => setHoverOpen(false)}
-        onClick={(e) => { e.stopPropagation(); updatePosition(); setClickOpen(o => !o); }}
-      >
+      <Tag {...triggerProps} className={className} style={style} aria-label={text}>
         /
       </Tag>
-      {visible && coords && createPortal(
-        <div
-          id={tooltipId}
-          ref={bubbleRef}
-          role="tooltip"
-          className={`fdr-postponed-tooltip fdr-postponed-tooltip--${coords.placement}`}
-          style={{
-            top: coords.y,
-            left: coords.left,
-            transform: `translate(-50%, ${coords.placement === 'top' ? '-100%' : '0'})`,
-          }}
-        >
-          {text}
-        </div>,
-        document.body
-      )}
+      {visible && coords && <TooltipBubble id={tooltipId} bubbleRef={bubbleRef} coords={coords} text={text} />}
     </>
   );
 });
 
-const FixtureCell = memo(function FixtureCell({ opp, venue, isPostponed, bg, textColor, stacked, postponedText }) {
+// Klein asterisk-icoontje in de hoek van een normaal gekleurde cel, voor mogelijk (nog niet zeker) uitgestelde wedstrijden.
+const MaybePostponedMarker = memo(function MaybePostponedMarker({ text }) {
+  const { triggerProps, bubbleRef, tooltipId, visible, coords } = useTooltipTrigger();
+  return (
+    <>
+      <span {...triggerProps} className="fdr-maybe-postponed-marker" aria-label={text}>*</span>
+      {visible && coords && <TooltipBubble id={tooltipId} bubbleRef={bubbleRef} coords={coords} text={text} />}
+    </>
+  );
+});
+
+const FixtureCell = memo(function FixtureCell({
+  opp, venue, isPostponed, isPossiblyPostponed, bg, textColor, stacked, postponedText, possiblyPostponedText
+}) {
   const stackingStyle = stacked ? { position: 'relative', zIndex: 1 } : null;
 
   if (isPostponed) {
@@ -288,7 +343,11 @@ const FixtureCell = memo(function FixtureCell({ opp, venue, isPostponed, bg, tex
       fontSize: '12px', fontWeight: 700, borderRadius: '6px', padding: '8px 2px',
       ...stackingStyle
     }}>
-      {opp} <span style={{ opacity: 0.75, fontWeight: 500 }}>({venue})</span>
+      {opp}{' '}
+      <span style={{ position: isPossiblyPostponed ? 'relative' : undefined }}>
+        <span style={{ opacity: 0.75, fontWeight: 500 }}>({venue})</span>
+        {isPossiblyPostponed && <MaybePostponedMarker text={possiblyPostponedText} />}
+      </span>
     </td>
   );
 });
@@ -500,6 +559,16 @@ export default function FDRTool() {
         }
         .fdr-postponed-tooltip--top::after { top: 100%; border-top-color: #3D1E5C; }
         .fdr-postponed-tooltip--bottom::after { bottom: 100%; border-bottom-color: #3D1E5C; }
+        .fdr-maybe-postponed-marker {
+          position: absolute;
+          top: -8px;
+          right: -4px;
+          font-size: 11px;
+          font-weight: 900;
+          line-height: 1;
+          color: inherit;
+          cursor: pointer;
+        }
         ::-webkit-scrollbar { height: 8px; width: 8px; }
         ::-webkit-scrollbar-thumb { background: #4ECDC4; border-radius: 4px; }
         ::-webkit-scrollbar-track { background: #3D1E5C; }
@@ -707,16 +776,19 @@ export default function FDRTool() {
                     </td>
 
                     {FIXTURES[team.code].map((f, i) => {
-                      const { opp, venue, isPostponed, style, postponedText } = getFixtureInfo(team.code, f, i + 1, ratings);
+                      const { opp, venue, isPostponed, isPossiblyPostponed, style, postponedText, possiblyPostponedText } =
+                        getFixtureInfo(team.code, f, i + 1, ratings);
                       return (
                         <FixtureCell
                           key={i}
                           opp={opp}
                           venue={venue}
                           isPostponed={isPostponed}
+                          isPossiblyPostponed={isPossiblyPostponed}
                           bg={style?.bg}
                           textColor={style?.text}
                           postponedText={postponedText}
+                          possiblyPostponedText={possiblyPostponedText}
                           stacked
                         />
                       );
@@ -769,7 +841,8 @@ export default function FDRTool() {
                   <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
                     {team.fixtures.map((f, i) => {
                       const gwNumber = team.startGW + i;
-                      const { opp, venue, isPostponed, style, postponedText } = getFixtureInfo(team.code, f, gwNumber, ratings);
+                      const { opp, venue, isPostponed, isPossiblyPostponed, style, postponedText, possiblyPostponedText } =
+                        getFixtureInfo(team.code, f, gwNumber, ratings);
                       if (isPostponed) {
                         return (
                           <PostponedIndicator
@@ -787,7 +860,13 @@ export default function FDRTool() {
                         <span key={i} style={{
                           background: style.bg, color: style.text, fontSize: '10px', fontWeight: 700,
                           padding: '3px 6px', borderRadius: '5px'
-                        }}>{opp} ({venue})</span>
+                        }}>
+                          {opp}{' '}
+                          <span style={{ position: isPossiblyPostponed ? 'relative' : undefined }}>
+                            ({venue})
+                            {isPossiblyPostponed && <MaybePostponedMarker text={possiblyPostponedText} />}
+                          </span>
+                        </span>
                       );
                     })}
                   </div>
@@ -846,16 +925,19 @@ export default function FDRTool() {
                             {team.code}
                           </td>
                           {FIXTURES[code].map((f, i) => {
-                            const { opp, venue, isPostponed, style, postponedText } = getFixtureInfo(code, f, i + 1, ratings);
+                            const { opp, venue, isPostponed, isPossiblyPostponed, style, postponedText, possiblyPostponedText } =
+                              getFixtureInfo(code, f, i + 1, ratings);
                             return (
                               <FixtureCell
                                 key={i}
                                 opp={opp}
                                 venue={venue}
                                 isPostponed={isPostponed}
+                                isPossiblyPostponed={isPossiblyPostponed}
                                 bg={style?.bg}
                                 textColor={style?.text}
                                 postponedText={postponedText}
+                                possiblyPostponedText={possiblyPostponedText}
                               />
                             );
                           })}
