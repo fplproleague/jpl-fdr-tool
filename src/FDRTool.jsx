@@ -1,4 +1,5 @@
-import { useState, useMemo, useRef, useCallback, memo } from 'react';
+import { useState, useMemo, useRef, useCallback, useEffect, useId, memo } from 'react';
+import { createPortal } from 'react-dom';
 import { RotateCcw, TrendingUp, Info, X, Link2, Download, Check, ChevronDown, ArrowUpDown, Settings2, Grid2x2, Scale } from 'lucide-react';
 import html2canvas from 'html2canvas';
 
@@ -132,11 +133,19 @@ function getFixtureScores(teamCode, fixtures, ratings, startGW) {
   });
 }
 
+function buildPostponedTooltipText(teamCode, opp, venue) {
+  const team = TEAMS.find(t => t.code === teamCode)?.name ?? teamCode;
+  const oppTeam = TEAMS.find(t => t.code === opp)?.name ?? opp;
+  const [home, away] = venue === 'H' ? [team, oppTeam] : [oppTeam, team];
+  return `${home} - ${away} is uitgesteld wegens de Europese voorrondes.`;
+}
+
 function getFixtureInfo(teamCode, fixture, gwNumber, ratings) {
   const [opp, venue] = fixture.split('-');
   const isPostponed = POSTPONED.has(`${teamCode}-${gwNumber}`);
   const style = isPostponed ? null : RATING_STYLE[ratings[opp] ?? 3];
-  return { opp, venue, isPostponed, style };
+  const postponedText = isPostponed ? buildPostponedTooltipText(teamCode, opp, venue) : null;
+  return { opp, venue, isPostponed, style, postponedText };
 }
 
 const selectStyle = {
@@ -175,24 +184,107 @@ const SectionHeader = memo(function SectionHeader({ icon: Icon, title, sectionKe
   );
 });
 
-const FixtureCell = memo(function FixtureCell({ opp, venue, isPostponed, bg, text, stacked }) {
+// Tooltip trigger voor uitgestelde wedstrijden: hover op desktop, tap-toggle + tap-buiten-sluit op mobiel.
+// Rendert de bubble via een portal zodat ze nooit wordt afgesneden door de horizontaal scrollende tabellen.
+const PostponedIndicator = memo(function PostponedIndicator({ as: Tag, text, style, className }) {
+  const [hoverOpen, setHoverOpen] = useState(false);
+  const [clickOpen, setClickOpen] = useState(false);
+  const [coords, setCoords] = useState(null);
+  const triggerRef = useRef(null);
+  const bubbleRef = useRef(null);
+  const tooltipId = useId();
+  const visible = hoverOpen || clickOpen;
+
+  const updatePosition = useCallback(() => {
+    const el = triggerRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const placeBelow = rect.top < 70;
+    const left = Math.min(Math.max(rect.left + rect.width / 2, 100), window.innerWidth - 100);
+    setCoords({
+      left,
+      y: placeBelow ? rect.bottom + 8 : rect.top - 8,
+      placement: placeBelow ? 'bottom' : 'top',
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!visible) return;
+    updatePosition();
+    const handleReposition = () => updatePosition();
+    const handlePointerDown = (e) => {
+      if (triggerRef.current?.contains(e.target) || bubbleRef.current?.contains(e.target)) return;
+      setClickOpen(false);
+    };
+    window.addEventListener('scroll', handleReposition, true);
+    window.addEventListener('resize', handleReposition);
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => {
+      window.removeEventListener('scroll', handleReposition, true);
+      window.removeEventListener('resize', handleReposition);
+      document.removeEventListener('pointerdown', handlePointerDown);
+    };
+  }, [visible, updatePosition]);
+
+  return (
+    <>
+      <Tag
+        ref={triggerRef}
+        className={className}
+        style={style}
+        tabIndex={0}
+        aria-label={text}
+        aria-describedby={visible ? tooltipId : undefined}
+        onPointerEnter={(e) => { if (e.pointerType === 'mouse') { updatePosition(); setHoverOpen(true); } }}
+        onPointerLeave={(e) => { if (e.pointerType === 'mouse') setHoverOpen(false); }}
+        onFocus={(e) => { if (e.target.matches(':focus-visible')) { updatePosition(); setHoverOpen(true); } }}
+        onBlur={() => setHoverOpen(false)}
+        onClick={(e) => { e.stopPropagation(); updatePosition(); setClickOpen(o => !o); }}
+      >
+        /
+      </Tag>
+      {visible && coords && createPortal(
+        <div
+          id={tooltipId}
+          ref={bubbleRef}
+          role="tooltip"
+          className={`fdr-postponed-tooltip fdr-postponed-tooltip--${coords.placement}`}
+          style={{
+            top: coords.y,
+            left: coords.left,
+            transform: `translate(-50%, ${coords.placement === 'top' ? '-100%' : '0'})`,
+          }}
+        >
+          {text}
+        </div>,
+        document.body
+      )}
+    </>
+  );
+});
+
+const FixtureCell = memo(function FixtureCell({ opp, venue, isPostponed, bg, textColor, stacked, postponedText }) {
   const stackingStyle = stacked ? { position: 'relative', zIndex: 1 } : null;
 
   if (isPostponed) {
     return (
-      <td className="fdr-cell" style={{
-        background: '#4A4560', color: '#9B93AD', textAlign: 'center',
-        fontSize: '14px', fontWeight: 700, borderRadius: '6px', padding: '8px 2px',
-        ...stackingStyle
-      }} title={`${opp} (${venue}) — uitgesteld`}>
-        /
-      </td>
+      <PostponedIndicator
+        as="td"
+        className="fdr-cell"
+        text={postponedText}
+        style={{
+          background: '#4A4560', color: '#9B93AD', textAlign: 'center',
+          fontSize: '14px', fontWeight: 700, borderRadius: '6px', padding: '8px 2px',
+          cursor: 'pointer',
+          ...stackingStyle
+        }}
+      />
     );
   }
 
   return (
     <td className="fdr-cell" style={{
-      background: bg, color: text, textAlign: 'center',
+      background: bg, color: textColor, textAlign: 'center',
       fontSize: '12px', fontWeight: 700, borderRadius: '6px', padding: '8px 2px',
       ...stackingStyle
     }}>
@@ -381,6 +473,33 @@ export default function FDRTool() {
         .fdr-title { font-family: 'Archivo', sans-serif; }
         .fdr-cell { transition: transform 0.12s ease; }
         input[type=range] { accent-color: #4ECDC4; }
+        .fdr-postponed-tooltip {
+          position: fixed;
+          z-index: 45;
+          background: #3D1E5C;
+          color: #EDE4F5;
+          border: 1px solid rgba(255,255,255,0.15);
+          border-radius: 8px;
+          padding: 8px 10px;
+          font-family: 'Inter', sans-serif;
+          font-size: 11px;
+          font-weight: 500;
+          line-height: 1.4;
+          width: max-content;
+          max-width: 200px;
+          text-align: left;
+          box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+          pointer-events: none;
+        }
+        .fdr-postponed-tooltip::after {
+          content: '';
+          position: absolute;
+          left: 50%;
+          transform: translateX(-50%);
+          border: 5px solid transparent;
+        }
+        .fdr-postponed-tooltip--top::after { top: 100%; border-top-color: #3D1E5C; }
+        .fdr-postponed-tooltip--bottom::after { bottom: 100%; border-bottom-color: #3D1E5C; }
         ::-webkit-scrollbar { height: 8px; width: 8px; }
         ::-webkit-scrollbar-thumb { background: #4ECDC4; border-radius: 4px; }
         ::-webkit-scrollbar-track { background: #3D1E5C; }
@@ -577,7 +696,7 @@ export default function FDRTool() {
                     </td>
 
                     {FIXTURES[team.code].map((f, i) => {
-                      const { opp, venue, isPostponed, style } = getFixtureInfo(team.code, f, i + 1, ratings);
+                      const { opp, venue, isPostponed, style, postponedText } = getFixtureInfo(team.code, f, i + 1, ratings);
                       return (
                         <FixtureCell
                           key={i}
@@ -585,7 +704,8 @@ export default function FDRTool() {
                           venue={venue}
                           isPostponed={isPostponed}
                           bg={style?.bg}
-                          text={style?.text}
+                          textColor={style?.text}
+                          postponedText={postponedText}
                           stacked
                         />
                       );
@@ -638,13 +758,18 @@ export default function FDRTool() {
                   <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
                     {team.fixtures.map((f, i) => {
                       const gwNumber = team.startGW + i;
-                      const { opp, venue, isPostponed, style } = getFixtureInfo(team.code, f, gwNumber, ratings);
+                      const { opp, venue, isPostponed, style, postponedText } = getFixtureInfo(team.code, f, gwNumber, ratings);
                       if (isPostponed) {
                         return (
-                          <span key={i} style={{
-                            background: '#4A4560', color: '#9B93AD', fontSize: '10px', fontWeight: 700,
-                            padding: '3px 6px', borderRadius: '5px'
-                          }} title={`${opp} (${venue}) — uitgesteld`}>/</span>
+                          <PostponedIndicator
+                            key={i}
+                            as="span"
+                            text={postponedText}
+                            style={{
+                              background: '#4A4560', color: '#9B93AD', fontSize: '10px', fontWeight: 700,
+                              padding: '3px 6px', borderRadius: '5px', cursor: 'pointer'
+                            }}
+                          />
                         );
                       }
                       return (
@@ -710,7 +835,7 @@ export default function FDRTool() {
                             {team.code}
                           </td>
                           {FIXTURES[code].map((f, i) => {
-                            const { opp, venue, isPostponed, style } = getFixtureInfo(code, f, i + 1, ratings);
+                            const { opp, venue, isPostponed, style, postponedText } = getFixtureInfo(code, f, i + 1, ratings);
                             return (
                               <FixtureCell
                                 key={i}
@@ -718,7 +843,8 @@ export default function FDRTool() {
                                 venue={venue}
                                 isPostponed={isPostponed}
                                 bg={style?.bg}
-                                text={style?.text}
+                                textColor={style?.text}
+                                postponedText={postponedText}
                               />
                             );
                           })}
