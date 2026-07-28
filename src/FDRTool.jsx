@@ -771,9 +771,11 @@ export default function FDRTool() {
         .fdr-postponed-tooltip--bottom::after { bottom: 100%; border-bottom-color: #3D1E5C; }
         .fdr-maybe-postponed-marker {
           position: absolute;
-          top: -4px;
-          right: -8px;
-          font-size: 13px;
+          /* em-relatief i.p.v. vaste px: schaalt automatisch mee met de font-size van de omliggende
+             cel/badge (12px hoofdtabel vs 10px in "Beste fixture runs"/watch list mini-fixtures). */
+          top: -0.5em;
+          right: -0.5em;
+          font-size: 0.9em;
           font-weight: 900;
           line-height: 1;
           color: inherit;
