@@ -337,17 +337,17 @@ const FixtureCell = memo(function FixtureCell({
     );
   }
 
-  // De marker heeft een positioned ancestor nodig, ook als de cel verder niet "stacked" is.
-  const positionStyle = stackingStyle ?? (isPossiblyPostponed ? { position: 'relative' } : null);
-
   return (
     <td className="fdr-cell" style={{
       background: bg, color: textColor, textAlign: 'center',
       fontSize: '12px', fontWeight: 700, borderRadius: '6px', padding: '8px 2px',
-      ...positionStyle
+      ...stackingStyle
     }}>
-      {opp} <span style={{ opacity: 0.75, fontWeight: 500 }}>({venue})</span>
-      {isPossiblyPostponed && <MaybePostponedMarker text={possiblyPostponedText} />}
+      {opp}{' '}
+      <span style={{ position: isPossiblyPostponed ? 'relative' : undefined }}>
+        <span style={{ opacity: 0.75, fontWeight: 500 }}>({venue})</span>
+        {isPossiblyPostponed && <MaybePostponedMarker text={possiblyPostponedText} />}
+      </span>
     </td>
   );
 });
@@ -561,8 +561,8 @@ export default function FDRTool() {
         .fdr-postponed-tooltip--bottom::after { bottom: 100%; border-bottom-color: #3D1E5C; }
         .fdr-maybe-postponed-marker {
           position: absolute;
-          top: 1px;
-          right: 2px;
+          top: -8px;
+          right: -4px;
           font-size: 11px;
           font-weight: 900;
           line-height: 1;
@@ -859,11 +859,13 @@ export default function FDRTool() {
                       return (
                         <span key={i} style={{
                           background: style.bg, color: style.text, fontSize: '10px', fontWeight: 700,
-                          padding: '3px 6px', borderRadius: '5px',
-                          ...(isPossiblyPostponed ? { position: 'relative' } : null)
+                          padding: '3px 6px', borderRadius: '5px'
                         }}>
-                          {opp} ({venue})
-                          {isPossiblyPostponed && <MaybePostponedMarker text={possiblyPostponedText} />}
+                          {opp}{' '}
+                          <span style={{ position: isPossiblyPostponed ? 'relative' : undefined }}>
+                            ({venue})
+                            {isPossiblyPostponed && <MaybePostponedMarker text={possiblyPostponedText} />}
+                          </span>
                         </span>
                       );
                     })}
