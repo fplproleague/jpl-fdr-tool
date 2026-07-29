@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useCallback, useEffect, useId, memo } from 'react';
 import { createPortal } from 'react-dom';
-import { RotateCcw, TrendingUp, Info, X, Link2, Download, Check, ChevronDown, ArrowUpDown, Settings2, Grid2x2, Scale, Plus, Eye, UserPlus } from 'lucide-react';
+import { RotateCcw, TrendingUp, Info, X, Link2, Download, Check, ChevronDown, ArrowUpDown, Settings2, Grid2x2, Scale, Plus, Eye, UserPlus, Copy } from 'lucide-react';
 import html2canvas from 'html2canvas';
 
 const TEAMS = [
@@ -92,9 +92,13 @@ const RATING_STYLE = {
 const TABS = [
   { key: 'fdr', label: 'FDR' },
   { key: 'watchlist', label: 'Watchlist' },
+  { key: 'playerstatus', label: 'Spelerstatus' },
+  { key: 'teamplanner', label: 'Team Planner' },
+  { key: 'pricechanges', label: 'Price Changes' },
 ];
 
 const GW_COUNT = 8;
+const MINILEAGUE_CODE = '19WN75';
 const LAST_UPDATED = '29 juli 2026';
 // Handmatig wekelijks bij te werken, net als LAST_UPDATED — markeert de "huidige" gameweek in de
 // hoofdtabel en bepaalt vanaf waar de mini-fixture-strip in de watch list start.
@@ -524,6 +528,7 @@ export default function FDRTool() {
   const [rangeEnd, setRangeEnd] = useState(5);
   const [saved, setSaved] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [minileagueCodeCopied, setMinileagueCodeCopied] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [openSections, setOpenSections] = useState({
@@ -596,6 +601,16 @@ export default function FDRTool() {
       await navigator.clipboard.writeText(url.toString());
       setLinkCopied(true);
       setTimeout(() => setLinkCopied(false), 2000);
+    } catch {
+      // clipboard unavailable — silently ignore
+    }
+  };
+
+  const handleCopyMinileagueCode = async () => {
+    try {
+      await navigator.clipboard.writeText(MINILEAGUE_CODE);
+      setMinileagueCodeCopied(true);
+      setTimeout(() => setMinileagueCodeCopied(false), 2000);
     } catch {
       // clipboard unavailable — silently ignore
     }
@@ -786,6 +801,8 @@ export default function FDRTool() {
         ::-webkit-scrollbar { height: 8px; width: 8px; }
         ::-webkit-scrollbar-thumb { background: #4ECDC4; border-radius: 4px; }
         ::-webkit-scrollbar-track { background: #3D1E5C; }
+        .fdr-tabs { scrollbar-width: none; -ms-overflow-style: none; }
+        .fdr-tabs::-webkit-scrollbar { display: none; }
         .fpl-toolbar-actions {
           display: flex;
           align-items: center;
@@ -804,6 +821,7 @@ export default function FDRTool() {
           padding: 10px 18px; font-size: 14px; font-weight: 800;
           text-transform: uppercase; letter-spacing: 0.03em;
           margin-bottom: -1px; transition: color 0.15s ease, border-color 0.15s ease;
+          flex-shrink: 0; white-space: nowrap;
         }
         @media (max-width: 640px) {
           .fdr-tab-btn {
@@ -872,8 +890,27 @@ export default function FDRTool() {
           </div>
         </header>
 
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
+          marginBottom: '20px', padding: '8px 8px 8px 14px', width: 'fit-content',
+          background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px'
+        }}>
+          <span style={{ color: '#8F79AD', fontSize: '12px' }}>
+            Mijn Minileague Code: <strong style={{ color: '#4ECDC4', fontWeight: 700, letterSpacing: '0.05em' }}>{MINILEAGUE_CODE}</strong>
+          </span>
+          <button onClick={handleCopyMinileagueCode} style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+            background: 'transparent', color: '#C9B8E0', border: '1px solid rgba(255,255,255,0.2)',
+            borderRadius: '6px', padding: '5px 10px', fontWeight: 700, fontSize: '12px', cursor: 'pointer'
+          }}>
+            {minileagueCodeCopied ? <Check size={13} /> : <Copy size={13} />}
+            {minileagueCodeCopied ? 'Gekopieerd!' : 'Kopieer'}
+          </button>
+        </div>
+
         <div className="fdr-tabs" style={{
-          display: 'flex', gap: '4px', marginBottom: '20px', borderBottom: '1px solid rgba(255,255,255,0.08)'
+          display: 'flex', gap: '4px', marginBottom: '20px', borderBottom: '1px solid rgba(255,255,255,0.08)',
+          overflowX: 'auto', flexWrap: 'nowrap'
         }}>
           {TABS.map(tab => {
             const isActive = activeTab === tab.key;
@@ -1379,6 +1416,45 @@ export default function FDRTool() {
             </section>
           </div>
           </>
+        )}
+
+        {activeTab === 'playerstatus' && (
+          <div style={{ marginTop: '20px' }}>
+            <div style={{
+              background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '10px', padding: '16px'
+            }}>
+              <p style={{ color: '#C9B8E0', fontSize: '13px', margin: 0 }}>
+                Hier komen binnenkort alle updates over spelers die niet beschikbaar zijn.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'teamplanner' && (
+          <div style={{ marginTop: '20px' }}>
+            <div style={{
+              background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '10px', padding: '16px'
+            }}>
+              <p style={{ color: '#C9B8E0', fontSize: '13px', margin: 0 }}>
+                Hier kan je binnenkort je teamopstelling en transfers vooruit plannen.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'pricechanges' && (
+          <div style={{ marginTop: '20px' }}>
+            <div style={{
+              background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '10px', padding: '16px'
+            }}>
+              <p style={{ color: '#C9B8E0', fontSize: '13px', margin: 0 }}>
+                Hier worden binnenkort alle prijswijzigingen gedocumenteerd.
+              </p>
+            </div>
+          </div>
         )}
 
         <footer style={{ marginTop: '28px', textAlign: 'center', color: '#6B5289', fontSize: '12px', lineHeight: 1.5 }}>
