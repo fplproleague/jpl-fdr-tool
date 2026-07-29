@@ -91,10 +91,10 @@ const RATING_STYLE = {
 // gewoon een extra entry kunnen worden.
 const TABS = [
   { key: 'fdr', label: 'FDR' },
-  { key: 'watchlist', label: 'Watch List' },
+  { key: 'watchlist', label: 'Watchlist' },
 ];
 
-const GW_COUNT = 10;
+const GW_COUNT = 8;
 const LAST_UPDATED = '29 juli 2026';
 // Handmatig wekelijks bij te werken, net als LAST_UPDATED — markeert de "huidige" gameweek in de
 // hoofdtabel en bepaalt vanaf waar de mini-fixture-strip in de watch list start.
