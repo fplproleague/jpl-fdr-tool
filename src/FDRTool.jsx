@@ -867,6 +867,14 @@ export default function FDRTool() {
           .fdr-watchlist-fixtures {
             flex-basis: 100% !important;
           }
+          .fdr-watchlist-fixture-row {
+            flex-wrap: nowrap !important;
+            justify-content: center !important;
+          }
+          .fdr-watchlist-fixture-row > span {
+            font-size: 9px !important;
+            padding: 2px 4px !important;
+          }
         }
 
       `}</style>
@@ -1387,7 +1395,7 @@ export default function FDRTool() {
                           <div style={{ color: '#8F79AD', fontSize: '11px' }}>{team?.name ?? player.teamCode}</div>
                         </div>
                         <div className="fdr-watchlist-fixtures" style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '160px' }}>
-                          <div style={{ display: 'flex', gap: '2px', flexWrap: 'wrap' }}>
+                          <div className="fdr-watchlist-fixture-row" style={{ display: 'flex', gap: '2px', flexWrap: 'wrap' }}>
                             {upcomingFixtures.map((fixture, idx) => (
                               <MiniFixtureBadge
                                 key={idx}
