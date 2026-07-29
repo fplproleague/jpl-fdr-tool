@@ -855,6 +855,15 @@ export default function FDRTool() {
           .fdr-toolbar-btn {
             width: 100% !important;
           }
+          .fpl-toolbar-secondary .fdr-toolbar-btn {
+            padding: 6px 4px !important;
+            font-size: 11px !important;
+            gap: 4px !important;
+          }
+          .fpl-toolbar-secondary .fdr-toolbar-btn svg {
+            width: 12px !important;
+            height: 12px !important;
+          }
           .fdr-watchlist-fixtures {
             flex-basis: 100% !important;
           }
