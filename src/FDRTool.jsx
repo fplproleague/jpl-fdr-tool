@@ -99,7 +99,7 @@ const TABS = [
 
 const GW_COUNT = 8;
 const MINILEAGUE_CODE = '19WN75';
-const LAST_UPDATED = '29 juli 2026';
+const LAST_UPDATED = '30 juli 2026';
 // Handmatig wekelijks bij te werken, net als LAST_UPDATED — markeert de "huidige" gameweek in de
 // hoofdtabel en bepaalt vanaf waar de mini-fixture-strip in de watch list start.
 const CURRENT_GW = 1;
@@ -924,11 +924,11 @@ export default function FDRTool() {
 
         <div style={{
           display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
-          marginBottom: '20px', padding: '8px 8px 8px 14px', width: 'fit-content',
+          marginBottom: '10px', padding: '8px 8px 8px 14px', width: 'fit-content',
           background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px'
         }}>
           <span style={{ color: '#8F79AD', fontSize: '12px' }}>
-            Mijn Minileague Code: <strong style={{ color: '#4ECDC4', fontWeight: 700, letterSpacing: '0.05em' }}>{MINILEAGUE_CODE}</strong>
+            Minileague Code: <strong style={{ color: '#4ECDC4', fontWeight: 700, letterSpacing: '0.05em' }}>{MINILEAGUE_CODE}</strong>
           </span>
           <button onClick={handleCopyMinileagueCode} style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
@@ -941,7 +941,7 @@ export default function FDRTool() {
         </div>
 
         <div className="fdr-tabs" style={{
-          display: 'flex', gap: '4px', marginBottom: '20px', borderBottom: '1px solid rgba(255,255,255,0.08)',
+          display: 'flex', gap: '4px', marginBottom: '18px', borderBottom: '1px solid rgba(255,255,255,0.08)',
           overflowX: 'auto', flexWrap: 'nowrap'
         }}>
           {TABS.map(tab => {
@@ -965,7 +965,7 @@ export default function FDRTool() {
 
         {activeTab === 'fdr' && (
         <>
-        <p style={{ color: '#8F79AD', fontSize: '13px', marginBottom: '16px' }}>
+        <p style={{ color: '#8F79AD', fontSize: '13px', marginBottom: '18px' }}>
           Mijn eigen fixture difficulty ratings — pas ze aan naar jouw mening en ontdek meteen welke teams de beste runs hebben.
         </p>
         <div className="fpl-toolbar" style={{
