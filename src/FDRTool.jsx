@@ -249,7 +249,7 @@ function buildPossiblyPostponedTooltipText(teamCode, opp, venue) {
   const [home, away] = splitHomeAway(teamCode, opp, venue);
   const pairKey = [teamCode, opp].sort().join('-');
   const reason = POSSIBLY_POSTPONED_REASONS[pairKey] ?? 'mogelijk uitgesteld door het Europese programma';
-  return `${home} - ${away} is ${reason}.`;
+  return `${home} - ${away} wordt ${reason}.`;
 }
 
 function getFixtureInfo(teamCode, fixture, gwNumber, ratings, homeAdvantage) {
