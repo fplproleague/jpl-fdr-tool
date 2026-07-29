@@ -69,8 +69,8 @@ const POSSIBLY_POSTPONED_REASONS = {
 };
 
 const DEFAULT_RATINGS = {
-  LOM: 1, KOR: 1, BEV: 1, LLV: 1,
-  ZWA: 2, OHL: 2, CER: 2,
+  LOM: 1, KOR: 1, BEV: 1, 
+  ZWA: 2, OHL: 2, CER: 2, LLV: 2,
   STA: 3, KVM: 3, WES: 3, CHA: 3, ANT: 3, STV: 3,
   GNK: 4, AND: 4, GNT: 4,
   USG: 5, CLU: 5,
@@ -94,11 +94,11 @@ const TABS = [
   { key: 'watchlist', label: 'Watch List' },
 ];
 
-const GW_COUNT = 8;
-const LAST_UPDATED = '28 juli 2026';
+const GW_COUNT = 10;
+const LAST_UPDATED = '29 juli 2026';
 // Handmatig wekelijks bij te werken, net als LAST_UPDATED — markeert de "huidige" gameweek in de
 // hoofdtabel en bepaalt vanaf waar de mini-fixture-strip in de watch list start.
-const CURRENT_GW = 1;
+const CURRENT_GW = 3;
 const STORAGE_KEY = 'fpl_proleague_fdr_ratings_v1';
 const HOME_ADVANTAGE_STORAGE_KEY = 'fpl_proleague_fdr_home_advantage_v1';
 // Eigen storage key voor de watch list — los van de FDR-ratings hierboven, zodat ze elkaar niet raken.
@@ -1257,7 +1257,7 @@ export default function FDRTool() {
         {activeTab === 'watchlist' && (
           <>
           <p style={{ color: '#8F79AD', fontSize: '13px', marginBottom: '16px' }}>
-            Hou je favoriete spelers in de gaten — voeg ze toe aan je persoonlijke watch list, samen met hun eerstvolgende fixtures.
+            Hou je favoriete spelers in de gaten — voeg ze toe aan je persoonlijke watchlist, samen met hun eerstvolgende fixtures. Deze lijst slaat automatisch op in je browser.
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '24px' }}>
             <section>
@@ -1272,7 +1272,7 @@ export default function FDRTool() {
                 display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px', alignItems: 'end'
               }}>
                 <label style={{ display: 'grid', gap: '4px' }}>
-                  <span style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase' }}>Spelersnaam</span>
+                  <span style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase' }}>Naam</span>
                   <input
                     type="text" required value={newPlayerName}
                     onChange={e => setNewPlayerName(e.target.value)}
@@ -1295,6 +1295,7 @@ export default function FDRTool() {
                     type="number" inputMode="decimal" step="0.1" min="0" placeholder="5.5"
                     value={newPlayerPrice} onChange={e => setNewPlayerPrice(e.target.value)}
                     style={watchlistInputStyle}
+                    placeholder="Bv 8.5"
                   />
                 </label>
                 <button type="submit" style={{
@@ -1302,7 +1303,7 @@ export default function FDRTool() {
                   background: '#4ECDC4', color: '#0B2E1B', border: 'none', borderRadius: '8px',
                   padding: '9px 14px', fontWeight: 700, fontSize: '13px', cursor: 'pointer'
                 }}>
-                  <Plus size={14} /> Toevoegen
+                  <Plus size={18} /> Toevoegen
                 </button>
               </form>
               </div>
@@ -1310,11 +1311,11 @@ export default function FDRTool() {
 
             <section>
               <h2 className="fdr-title fdr-section-title" style={{ ...sectionTitleStyle, marginBottom: '12px' }}>
-                <Eye size={18} color="#4ECDC4" /> Mijn watch list
+                <Eye size={18} color="#4ECDC4" /> Mijn watchlist
               </h2>
               {watchlist.length === 0 ? (
                 <p style={{ color: '#6B5289', fontSize: '13px' }}>
-                  Je watch list is nog leeg. Voeg spelers toe die je in de gaten wil houden.
+                  Je watchlist is nog leeg. Voeg spelers toe die je in de gaten wil houden.
                 </p>
               ) : (
                 <div style={{ display: 'grid', gap: '8px' }}>
@@ -1340,10 +1341,7 @@ export default function FDRTool() {
                           <div style={{ color: '#8F79AD', fontSize: '11px' }}>{team?.name ?? player.teamCode}</div>
                         </div>
                         <div className="fdr-watchlist-fixtures" style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '160px' }}>
-                          <span style={{ color: '#8F79AD', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-                            Komende fixtures
-                          </span>
-                          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                          <div style={{ display: 'flex', gap: '2px', flexWrap: 'wrap' }}>
                             {upcomingFixtures.map((fixture, idx) => (
                               <MiniFixtureBadge
                                 key={idx}
