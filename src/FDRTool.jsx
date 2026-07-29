@@ -856,7 +856,7 @@ export default function FDRTool() {
           <img
             src="/app-icon-mark.png"
             alt=""
-            style={{ width: '44px', height: '44px', borderRadius: '8px', flexShrink: 0 }}
+            style={{ width: '44px', height: '44px', borderRadius: '2px', flexShrink: 0 }}
             onError={(e) => { e.target.style.display = 'none'; }}
           />
           <div>
@@ -897,7 +897,7 @@ export default function FDRTool() {
         {activeTab === 'fdr' && (
         <>
         <p style={{ color: '#8F79AD', fontSize: '13px', marginBottom: '16px' }}>
-          Mijn eigen fixture difficulty ratings — pas ze aan naar jouw mening en ontdek meteen welke teams de beste run hebben.
+          Mijn eigen fixture difficulty ratings — pas ze aan naar jouw mening en ontdek meteen welke teams de beste runs hebben.
         </p>
         <div className="fpl-toolbar" style={{
           display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center',
@@ -909,7 +909,7 @@ export default function FDRTool() {
             background: isCustom ? '#4ECDC4' : 'rgba(255,255,255,0.1)',
             color: isCustom ? '#0B2E1B' : '#C9B8E0'
           }}>
-            {isCustom ? 'JOUW AANGEPASTE VERSIE' : 'STANDAARD — RATING VAN @FPL_PROLEAGUE'}
+            {isCustom ? 'JOUW AANGEPASTE VERSIE' : 'RATING VAN @FPL_PROLEAGUE'}
           </span>
           <div className="fpl-toolbar-actions">
           <span className="fpl-toolbar-secondary">
