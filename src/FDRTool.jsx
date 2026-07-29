@@ -816,6 +816,7 @@ export default function FDRTool() {
           gap: 8px;
           flex-wrap: wrap;
         }
+        .fdr-btn-label-short { display: none; }
         .fdr-tab-btn {
           background: none; border: none; cursor: pointer;
           padding: 10px 18px; font-size: 14px; font-weight: 800;
@@ -843,26 +844,43 @@ export default function FDRTool() {
           .fpl-toolbar-actions {
             margin-left: 0 !important;
             width: 100% !important;
-            flex-direction: column !important;
+            flex-direction: row !important;
+            align-items: center !important;
             gap: 8px !important;
           }
           .fpl-toolbar-secondary {
-            width: 100% !important;
+            flex: 1 !important;
+            min-width: 0 !important;
             display: grid !important;
-            grid-template-columns: repeat(3, 1fr) !important;
+            grid-template-columns: repeat(2, 1fr) !important;
             gap: 8px !important;
           }
           .fdr-toolbar-btn {
             width: 100% !important;
           }
           .fpl-toolbar-secondary .fdr-toolbar-btn {
-            padding: 6px 4px !important;
-            font-size: 11px !important;
+            padding: 8px 6px !important;
+            font-size: 12px !important;
             gap: 4px !important;
+            white-space: nowrap !important;
           }
           .fpl-toolbar-secondary .fdr-toolbar-btn svg {
-            width: 12px !important;
-            height: 12px !important;
+            width: 13px !important;
+            height: 13px !important;
+          }
+          .fpl-toolbar-secondary .fdr-btn-label-full {
+            display: none !important;
+          }
+          .fpl-toolbar-secondary .fdr-btn-label-short {
+            display: inline !important;
+          }
+          .fdr-header {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 10px !important;
+          }
+          .fdr-header img {
+            margin-top: 0 !important;
           }
           .fdr-watchlist-fixture-row {
             flex-wrap: nowrap !important;
@@ -884,7 +902,7 @@ export default function FDRTool() {
 
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 20px 32px', position: 'relative' }}>
 
-        <header style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+        <header className="fdr-header" style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '14px' }}>
           <img
             src="/app-icon-mark.png"
             alt=""
@@ -966,7 +984,8 @@ export default function FDRTool() {
           <span className="fpl-toolbar-secondary">
           <button onClick={handleCopyLink} className="fdr-toolbar-btn" style={secondaryToolbarBtnStyle}>
             {linkCopied ? <Check size={14} /> : <Link2 size={14} />}
-            {linkCopied ? 'Link gekopieerd!' : 'Kopieer link'}
+            <span className="fdr-btn-label-full">{linkCopied ? 'Link gekopieerd!' : 'Kopieer link'}</span>
+            <span className="fdr-btn-label-short">{linkCopied ? 'Gekopieerd!' : 'Kopieer'}</span>
           </button>
           <button onClick={handleDownloadImage} disabled={downloading} className="fdr-toolbar-btn" style={{
             ...secondaryToolbarBtnStyle,
@@ -974,21 +993,24 @@ export default function FDRTool() {
             opacity: downloading ? 0.6 : 1
           }}>
             <Download size={14} />
-            {downloading ? 'Bezig...' : 'Download als afbeelding'}
+            <span className="fdr-btn-label-full">{downloading ? 'Bezig...' : 'Download als afbeelding'}</span>
+            <span className="fdr-btn-label-short">{downloading ? 'Bezig...' : 'Download'}</span>
           </button>
           <button onClick={handleReset} className="fdr-toolbar-btn" style={secondaryToolbarBtnStyle}>
-            <RotateCcw size={14} /> Reset FDR
+            <RotateCcw size={14} />
+            <span className="fdr-btn-label-full">Reset FDR</span>
+            <span className="fdr-btn-label-short">Reset</span>
           </button>
-          </span>
-          <span className="fpl-toolbar-primary" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <button onClick={handleSave} className="fdr-toolbar-btn" style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: '#4ECDC4', color: '#0B2E1B',
             border: 'none', borderRadius: '8px', padding: '8px 14px', fontWeight: 700, fontSize: '13px',
             cursor: 'pointer'
           }}>
             <Check size={14} />
-            {saved ? 'Opgeslagen ✓' : 'Bewaar in browser'}
+            <span className="fdr-btn-label-full">{saved ? 'Opgeslagen ✓' : 'Bewaar in browser'}</span>
+            <span className="fdr-btn-label-short">{saved ? 'Bewaard ✓' : 'Bewaar'}</span>
           </button>
+          </span>
           <button onClick={() => setShowInfo(true)} aria-label="Uitleg" style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center', width: '34px', height: '34px',
             background: 'transparent', color: '#C9B8E0', border: '1px solid rgba(255,255,255,0.2)',
@@ -996,7 +1018,6 @@ export default function FDRTool() {
           }}>
             <Info size={16} />
           </button>
-          </span>
           </div>
         </div>
 
