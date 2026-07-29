@@ -97,7 +97,7 @@ const TABS = [
   { key: 'pricechanges', label: 'Price Changes' },
 ];
 
-const GW_COUNT = 8;
+const GW_COUNT = 15;
 const MINILEAGUE_CODE = '19WN75';
 const LAST_UPDATED = '29 juli 2026';
 // Handmatig wekelijks bij te werken, net als LAST_UPDATED — markeert de "huidige" gameweek in de
