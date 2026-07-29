@@ -275,14 +275,14 @@ const sectionToggleButtonStyle = {
 };
 
 const sectionTitleStyle = {
-  color: '#FFFFFF', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0,
+  color: '#FFFFFF', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.03em', margin: 0,
   display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap'
 };
 
 const secondaryToolbarBtnStyle = {
   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: 'transparent', color: '#C9B8E0',
   border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', padding: '8px 14px',
-  fontWeight: 600, fontSize: '13px', cursor: 'pointer'
+  fontWeight: 700, fontSize: '13px', cursor: 'pointer'
 };
 
 function chevronStyle(isOpen) {
@@ -296,7 +296,7 @@ const SectionHeader = memo(function SectionHeader({ icon: Icon, title, sectionKe
         <Icon size={18} color="#4ECDC4" /> {title}
       </h2>
       {/* Vult de ruimte tussen titel en chevron; flex: 1 laat 'm meekrimpen/groeien met de knopbreedte. */}
-      <span aria-hidden="true" style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.15)', margin: '0 8px' }} />
+      <span aria-hidden="true" style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)', margin: '0 8px' }} />
       <ChevronDown size={20} color="#C9B8E0" style={chevronStyle(isOpen)} />
     </button>
   );
@@ -786,16 +786,18 @@ export default function FDRTool() {
         ::-webkit-scrollbar { height: 8px; width: 8px; }
         ::-webkit-scrollbar-thumb { background: #4ECDC4; border-radius: 4px; }
         ::-webkit-scrollbar-track { background: #3D1E5C; }
-        .fdr-toolbar-buttons {
+        .fpl-toolbar-actions {
           display: flex;
           align-items: center;
+          gap: 8px;
           flex-wrap: wrap;
-          gap: 8px;
+          margin-left: auto;
         }
-        .fdr-toolbar-row {
+        .fpl-toolbar-secondary {
           display: flex;
           align-items: center;
           gap: 8px;
+          flex-wrap: wrap;
         }
         .fdr-tab-btn {
           background: none; border: none; cursor: pointer;
@@ -815,25 +817,25 @@ export default function FDRTool() {
             font-size: 14px !important;
             gap: 6px !important;
           }
-          .fdr-toolbar-spacer {
-            display: none !important;
-          }
-          .fdr-toolbar-buttons {
-            display: flex !important;
+          .fpl-toolbar {
             flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 10px !important;
+          }
+          .fpl-toolbar-actions {
+            margin-left: 0 !important;
             width: 100% !important;
+            flex-direction: column !important;
+            gap: 8px !important;
+          }
+          .fpl-toolbar-secondary {
+            width: 100% !important;
+            display: grid !important;
+            grid-template-columns: repeat(3, 1fr) !important;
             gap: 8px !important;
           }
           .fdr-toolbar-btn {
             width: 100% !important;
-          }
-          .fdr-toolbar-row {
-            display: flex !important;
-            width: 100% !important;
-            gap: 8px !important;
-          }
-          .fdr-toolbar-row .fdr-toolbar-btn {
-            flex: 1 !important;
           }
           .fdr-watchlist-fixtures {
             flex-basis: 100% !important;
@@ -850,16 +852,24 @@ export default function FDRTool() {
 
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 20px 32px', position: 'relative' }}>
 
-        <header style={{ marginBottom: '24px' }}>
-          <h1 className="fdr-title" style={{
-            color: '#FFFFFF', fontSize: 'clamp(28px, 5vw, 44px)', fontWeight: 900,
-            textTransform: 'uppercase', lineHeight: 1.05, margin: 0, letterSpacing: '-0.01em'
-          }}>
-            FPL Pro League <span style={{ color: '#4ECDC4' }}>Tools</span>
-          </h1>
-          <p style={{ color: '#C9B8E0', fontSize: '15px', marginTop: '10px', maxWidth: '640px' }}>
-            Interactieve tools voor Fantasy Pro League — gemaakt door @fpl_proleague.
-          </p>
+        <header style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <img
+            src="/app-icon-mark.png"
+            alt=""
+            style={{ width: '44px', height: '44px', borderRadius: '8px', flexShrink: 0 }}
+            onError={(e) => { e.target.style.display = 'none'; }}
+          />
+          <div>
+            <h1 className="fdr-title" style={{
+              color: '#FFFFFF', fontSize: 'clamp(28px, 5vw, 44px)', fontWeight: 900,
+              textTransform: 'uppercase', lineHeight: 1.05, margin: 0, letterSpacing: '-0.01em'
+            }}>
+              FPL Pro League <span style={{ color: '#4ECDC4' }}>Tools</span>
+            </h1>
+            <p style={{ color: '#C9B8E0', fontSize: '15px', marginTop: '6px', maxWidth: '640px' }}>
+              Interactieve tools voor Fantasy Pro League — gemaakt door @fpl_proleague.
+            </p>
+          </div>
         </header>
 
         <div className="fdr-tabs" style={{
@@ -889,9 +899,9 @@ export default function FDRTool() {
         <p style={{ color: '#8F79AD', fontSize: '13px', marginBottom: '16px' }}>
           Mijn eigen fixture difficulty ratings — pas ze aan naar jouw mening en ontdek meteen welke teams de beste run hebben.
         </p>
-        <div className="fdr-toolbar" style={{
-          display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center',
-          marginBottom: '24px', padding: '12px 16px', background: 'rgba(255,255,255,0.04)',
+        <div className="fpl-toolbar" style={{
+          display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center',
+          marginBottom: '24px', padding: '14px 16px', background: 'rgba(255,255,255,0.04)',
           border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px'
         }}>
           <span className="fdr-status-badge" style={{
@@ -901,8 +911,8 @@ export default function FDRTool() {
           }}>
             {isCustom ? 'JOUW AANGEPASTE VERSIE' : 'STANDAARD — RATING VAN @FPL_PROLEAGUE'}
           </span>
-          <div className="fdr-toolbar-spacer" style={{ flex: 1 }} />
-          <div className="fdr-toolbar-buttons">
+          <div className="fpl-toolbar-actions">
+          <span className="fpl-toolbar-secondary">
           <button onClick={handleCopyLink} className="fdr-toolbar-btn" style={secondaryToolbarBtnStyle}>
             {linkCopied ? <Check size={14} /> : <Link2 size={14} />}
             {linkCopied ? 'Link gekopieerd!' : 'Kopieer link'}
@@ -915,16 +925,18 @@ export default function FDRTool() {
             <Download size={14} />
             {downloading ? 'Bezig...' : 'Download als afbeelding'}
           </button>
+          <button onClick={handleReset} className="fdr-toolbar-btn" style={secondaryToolbarBtnStyle}>
+            <RotateCcw size={14} /> Reset FDR
+          </button>
+          </span>
+          <span className="fpl-toolbar-primary" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <button onClick={handleSave} className="fdr-toolbar-btn" style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: '#4ECDC4', color: '#0B2E1B',
             border: 'none', borderRadius: '8px', padding: '8px 14px', fontWeight: 700, fontSize: '13px',
             cursor: 'pointer'
           }}>
+            <Check size={14} />
             {saved ? 'Opgeslagen ✓' : 'Bewaar in browser'}
-          </button>
-          <div className="fdr-toolbar-row">
-          <button onClick={handleReset} className="fdr-toolbar-btn" style={secondaryToolbarBtnStyle}>
-            <RotateCcw size={14} /> Reset FDR
           </button>
           <button onClick={() => setShowInfo(true)} aria-label="Uitleg" style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center', width: '34px', height: '34px',
@@ -933,7 +945,7 @@ export default function FDRTool() {
           }}>
             <Info size={16} />
           </button>
-          </div>
+          </span>
           </div>
         </div>
 
@@ -952,7 +964,7 @@ export default function FDRTool() {
                 return (
                   <div key={team.code} style={{
                     background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-                    borderRadius: '8px', padding: '8px 10px'
+                    borderRadius: '10px', padding: '8px 10px'
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                       <span style={{ color: '#FFF', fontSize: '12px', fontWeight: 600 }}>{team.code}</span>
@@ -997,12 +1009,12 @@ export default function FDRTool() {
             <SectionHeader icon={Grid2x2} title="Fixture Difficulty Rating" sectionKey="table" isOpen={openSections.table} onToggle={toggleSection} />
             {openSections.table && (
             <button onClick={(e) => { e.stopPropagation(); setSortByDifficulty(s => !s); }} style={{
-              display: 'flex', alignItems: 'center', gap: '6px', background: sortByDifficulty ? '#4ECDC4' : 'transparent',
-              color: sortByDifficulty ? '#0B2E1B' : '#C9B8E0', border: '1px solid rgba(255,255,255,0.2)',
-              borderRadius: '8px', padding: '6px 12px', fontWeight: 600, fontSize: '12px', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: '6px', background: 'transparent',
+              color: '#C9B8E0', border: '1px solid rgba(255,255,255,0.2)',
+              borderRadius: '8px', padding: '8px 14px', fontWeight: 700, fontSize: '13px', cursor: 'pointer',
               marginBottom: '10px'
             }}>
-              <ArrowUpDown size={13} />
+              <ArrowUpDown size={14} />
               {sortByDifficulty ? 'Gesorteerd: makkelijkste eerst' : 'Sorteer op makkelijkste run'}
             </button>
             )}
@@ -1249,12 +1261,14 @@ export default function FDRTool() {
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '24px' }}>
             <section>
+              <div style={{
+                background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: '10px', padding: '16px', marginBottom: '20px'
+              }}>
               <h2 className="fdr-title fdr-section-title" style={{ ...sectionTitleStyle, marginBottom: '12px' }}>
                 <UserPlus size={18} color="#4ECDC4" /> Speler toevoegen
               </h2>
               <form onSubmit={handleAddWatchlistPlayer} style={{
-                background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-                borderRadius: '10px', padding: '16px',
                 display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px', alignItems: 'end'
               }}>
                 <label style={{ display: 'grid', gap: '4px' }}>
@@ -1291,6 +1305,7 @@ export default function FDRTool() {
                   <Plus size={14} /> Toevoegen
                 </button>
               </form>
+              </div>
             </section>
 
             <section>
