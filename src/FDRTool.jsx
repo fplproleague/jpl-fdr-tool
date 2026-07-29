@@ -92,6 +92,9 @@ const RATING_STYLE = {
 const TABS = [
   { key: 'fdr', label: 'FDR' },
   { key: 'watchlist', label: 'Watchlist' },
+  { key: 'playerstatus', label: 'Spelerstatus' },
+  { key: 'teamplanner', label: 'Team Planner' },
+  { key: 'pricechanges', label: 'Price Changes' },
 ];
 
 const GW_COUNT = 8;
@@ -804,6 +807,7 @@ export default function FDRTool() {
           padding: 10px 18px; font-size: 14px; font-weight: 800;
           text-transform: uppercase; letter-spacing: 0.03em;
           margin-bottom: -1px; transition: color 0.15s ease, border-color 0.15s ease;
+          flex-shrink: 0; white-space: nowrap;
         }
         @media (max-width: 640px) {
           .fdr-tab-btn {
@@ -873,7 +877,8 @@ export default function FDRTool() {
         </header>
 
         <div className="fdr-tabs" style={{
-          display: 'flex', gap: '4px', marginBottom: '20px', borderBottom: '1px solid rgba(255,255,255,0.08)'
+          display: 'flex', gap: '4px', marginBottom: '20px', borderBottom: '1px solid rgba(255,255,255,0.08)',
+          overflowX: 'auto', flexWrap: 'nowrap'
         }}>
           {TABS.map(tab => {
             const isActive = activeTab === tab.key;
@@ -1379,6 +1384,45 @@ export default function FDRTool() {
             </section>
           </div>
           </>
+        )}
+
+        {activeTab === 'playerstatus' && (
+          <div style={{ marginTop: '20px' }}>
+            <div style={{
+              background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '10px', padding: '16px'
+            }}>
+              <p style={{ color: '#C9B8E0', fontSize: '13px', margin: 0 }}>
+                Hier komen binnenkort alle updates over spelers die niet beschikbaar zijn.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'teamplanner' && (
+          <div style={{ marginTop: '20px' }}>
+            <div style={{
+              background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '10px', padding: '16px'
+            }}>
+              <p style={{ color: '#C9B8E0', fontSize: '13px', margin: 0 }}>
+                Hier kan je binnenkort je teamopstelling en transfers vooruit plannen.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'pricechanges' && (
+          <div style={{ marginTop: '20px' }}>
+            <div style={{
+              background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '10px', padding: '16px'
+            }}>
+              <p style={{ color: '#C9B8E0', fontSize: '13px', margin: 0 }}>
+                Hier worden binnenkort alle prijswijzigingen gedocumenteerd.
+              </p>
+            </div>
+          </div>
         )}
 
         <footer style={{ marginTop: '28px', textAlign: 'center', color: '#6B5289', fontSize: '12px', lineHeight: 1.5 }}>
