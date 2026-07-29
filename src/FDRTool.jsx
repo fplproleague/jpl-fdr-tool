@@ -856,7 +856,7 @@ export default function FDRTool() {
           <img
             src="/app-icon-mark.png"
             alt=""
-            style={{ width: '44px', height: '44px', borderRadius: '2px', flexShrink: 0 }}
+            style={{ width: '44px', height: '44px', borderRadius: '2px', flexShrink: 0, MarginTop: '-4px'}}
             onError={(e) => { e.target.style.display = 'none'; }}
           />
           <div>
