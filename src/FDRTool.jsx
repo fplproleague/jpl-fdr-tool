@@ -864,9 +864,6 @@ export default function FDRTool() {
             width: 12px !important;
             height: 12px !important;
           }
-          .fdr-watchlist-fixtures {
-            flex-basis: 100% !important;
-          }
           .fdr-watchlist-fixture-row {
             flex-wrap: nowrap !important;
             justify-content: center !important;
@@ -1380,51 +1377,51 @@ export default function FDRTool() {
                     const upcomingFixtures = (FIXTURES[player.teamCode] ?? []).slice(CURRENT_GW - 1, CURRENT_GW - 1 + 5);
                     return (
                       <div key={player.id} style={{
-                        display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', background: 'rgba(255,255,255,0.04)',
-                        border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '10px 14px'
+                        position: 'relative', background: 'rgba(255,255,255,0.04)',
+                        border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '10px 12px'
                       }}>
-                        <img
-                          src={`/club-logos/${player.teamCode}.png`}
-                          alt=""
-                          className="club-logo"
-                          style={{ width: '24px', height: '24px', objectFit: 'contain', flexShrink: 0 }}
-                          onError={(e) => { e.target.style.display = 'none'; }}
-                        />
-                        <div style={{ minWidth: '110px' }}>
-                          <div style={{ color: '#FFF', fontWeight: 700, fontSize: '14px' }}>{player.name}</div>
-                          <div style={{ color: '#8F79AD', fontSize: '11px' }}>{team?.name ?? player.teamCode}</div>
-                        </div>
-                        <div className="fdr-watchlist-fixtures" style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '160px' }}>
-                          <div className="fdr-watchlist-fixture-row" style={{ display: 'flex', gap: '2px', flexWrap: 'wrap' }}>
-                            {upcomingFixtures.map((fixture, idx) => (
-                              <MiniFixtureBadge
-                                key={idx}
-                                teamCode={player.teamCode}
-                                fixture={fixture}
-                                gwNumber={CURRENT_GW + idx}
-                                ratings={ratings}
-                                homeAdvantage={homeAdvantage}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                        {player.price != null && (
-                          <span style={{
-                            fontSize: '12px', fontWeight: 700, padding: '3px 8px', borderRadius: '999px',
-                            background: 'rgba(255,255,255,0.1)', color: '#4ECDC4', flexShrink: 0
-                          }}>{player.price}M</span>
-                        )}
                         <button
                           onClick={() => handleRemoveWatchlistPlayer(player.id)}
                           aria-label={`Verwijder ${player.name}`}
                           style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px',
-                            background: 'transparent', color: '#C9B8E0', border: '1px solid rgba(255,255,255,0.2)',
-                            borderRadius: '6px', cursor: 'pointer', flexShrink: 0
+                            position: 'absolute', top: '6px', right: '6px',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', width: '22px', height: '22px',
+                            background: 'transparent', color: '#8F79AD', border: 'none', borderRadius: '6px', cursor: 'pointer'
                           }}
                         >
                           <X size={14} />
                         </button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingRight: '24px' }}>
+                          <img
+                            src={`/club-logos/${player.teamCode}.png`}
+                            alt=""
+                            className="club-logo"
+                            style={{ width: '24px', height: '24px', objectFit: 'contain', flexShrink: 0 }}
+                            onError={(e) => { e.target.style.display = 'none'; }}
+                          />
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ color: '#FFF', fontWeight: 700, fontSize: '14px', lineHeight: 1.25 }}>{player.name}</div>
+                            <div style={{ color: '#8F79AD', fontSize: '11px', marginTop: '1px' }}>{team?.name ?? player.teamCode}</div>
+                          </div>
+                          {player.price != null && (
+                            <span style={{
+                              fontSize: '12px', fontWeight: 700, padding: '3px 8px', borderRadius: '999px',
+                              background: 'rgba(255,255,255,0.1)', color: '#4ECDC4', flexShrink: 0
+                            }}>{player.price}M</span>
+                          )}
+                        </div>
+                        <div className="fdr-watchlist-fixture-row" style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '8px' }}>
+                          {upcomingFixtures.map((fixture, idx) => (
+                            <MiniFixtureBadge
+                              key={idx}
+                              teamCode={player.teamCode}
+                              fixture={fixture}
+                              gwNumber={CURRENT_GW + idx}
+                              ratings={ratings}
+                              homeAdvantage={homeAdvantage}
+                            />
+                          ))}
+                        </div>
                       </div>
                     );
                   })}
