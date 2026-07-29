@@ -102,7 +102,7 @@ const MINILEAGUE_CODE = '19WN75';
 const LAST_UPDATED = '29 juli 2026';
 // Handmatig wekelijks bij te werken, net als LAST_UPDATED — markeert de "huidige" gameweek in de
 // hoofdtabel en bepaalt vanaf waar de mini-fixture-strip in de watch list start.
-const CURRENT_GW = 3;
+const CURRENT_GW = 1;
 const STORAGE_KEY = 'fpl_proleague_fdr_ratings_v1';
 const HOME_ADVANTAGE_STORAGE_KEY = 'fpl_proleague_fdr_home_advantage_v1';
 // Eigen storage key voor de watch list — los van de FDR-ratings hierboven, zodat ze elkaar niet raken.
