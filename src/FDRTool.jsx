@@ -923,7 +923,7 @@ export default function FDRTool() {
         </header>
 
         <div style={{
-          display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
+          display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginTop: "-5px",
           marginBottom: '10px', padding: '8px 8px 8px 14px', width: 'fit-content',
           background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px'
         }}>
