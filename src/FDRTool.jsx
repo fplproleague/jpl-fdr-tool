@@ -1407,7 +1407,7 @@ export default function FDRTool() {
                 display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px', alignItems: 'end'
               }}>
                 <label style={{ display: 'grid', gap: '4px' }}>
-                  <span style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase' }}>Naam</span>
+                  <span style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', marginLeft: '4px'}}>Naam</span>
                   <input
                     type="text" required value={newPlayerName}
                     onChange={e => setNewPlayerName(e.target.value)}
@@ -1416,7 +1416,7 @@ export default function FDRTool() {
                   />
                 </label>
                 <label style={{ display: 'grid', gap: '4px' }}>
-                  <span style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase' }}>Team</span>
+                  <span style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', marginLeft: '4px' }}>Team</span>
                   <select required value={newPlayerTeam} onChange={e => setNewPlayerTeam(e.target.value)} style={watchlistInputStyle}>
                     <option value="" disabled>Kies team</option>
                     {TEAMS_ALPHA.map(team => (
@@ -1425,12 +1425,12 @@ export default function FDRTool() {
                   </select>
                 </label>
                 <label style={{ display: 'grid', gap: '4px' }}>
-                  <span style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase' }}>Prijs (optioneel)</span>
+                  <span style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', marginLeft: '4px' }}>Prijs (optioneel)</span>
                   <input
-                    type="number" inputMode="decimal" step="0.1" min="0" placeholder="5.5"
+                    type="number" inputMode="decimal" step="0.1" min="0" max="12" placeholder="Bv. 8.5"
                     value={newPlayerPrice} onChange={e => setNewPlayerPrice(e.target.value)}
                     style={watchlistInputStyle}
-                    placeholder="Bv 8.5"
+                    placeholder="Bv. 8.5"
                   />
                 </label>
                 <button type="submit" style={{
@@ -1523,7 +1523,7 @@ export default function FDRTool() {
               borderRadius: '10px', padding: '16px'
             }}>
               <p style={{ color: '#C9B8E0', fontSize: '13px', margin: 0 }}>
-                Hier komen binnenkort alle updates over spelers die niet beschikbaar zijn.
+                Hier komen binnenkort alle relevante updates over spelers die niet beschikbaar zijn.
               </p>
             </div>
           </div>
@@ -1571,7 +1571,7 @@ export default function FDRTool() {
             border: '1px solid rgba(255,255,255,0.1)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-              <h3 className="fdr-title" style={{ color: '#FFF', fontSize: '16px', margin: 0, textTransform: 'uppercase' }}>Hoe werkt dit?</h3>
+              <h3 className="fdr-title" style={{ color: '#4ECDC4', fontSize: '16px', margin: 0, textTransform: 'uppercase' }}>Hoe werkt dit?</h3>
               <button onClick={() => setShowInfo(false)} style={{ background: 'none', border: 'none', color: '#C9B8E0', cursor: 'pointer' }}>
                 <X size={18} />
               </button>
