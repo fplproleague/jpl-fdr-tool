@@ -1014,6 +1014,11 @@ export default function FDRTool() {
           .fdr-content {
             padding-top: 16px !important;
           }
+          /* auto-fill met een minmax van 150px valt op smalle telefoons (<360px) terug op 1 kolom.
+             Forceer hier altijd exact 2 kolommen zodat de 18 sliders per 2 naast elkaar staan. */
+          .fdr-sliders-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
           .fdr-watchlist-fixture-row {
             flex-wrap: nowrap !important;
             justify-content: center !important;
@@ -1171,7 +1176,7 @@ export default function FDRTool() {
           <section>
             <SectionHeader icon={Settings2} title="Team-sterkte instellen" sectionKey="sliders" isOpen={openSections.sliders} onToggle={toggleSection} />
             {openSections.sliders && (
-            <div style={{
+            <div className="fdr-sliders-grid" style={{
               display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '8px', marginBottom: '8px'
             }}>
               {TEAMS_ALPHA.map(team => {
