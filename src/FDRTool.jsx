@@ -1022,39 +1022,67 @@ export default function FDRTool() {
           .fdr-sliders-grid {
             grid-template-columns: repeat(2, 1fr) !important;
           }
-          /* De GW-range voor "Beste fixture runs" is instelbaar (tot 8 wedstrijden), dus deze rij moet
-             altijd op 1 regel passen ongeacht het aantal badges — vandaar de kleine vaste maat + nowrap
-             i.p.v. iets dat enkel voor het vaste aantal van 5 (watch list) getuned is. */
+          /* De rij moet altijd op 1 regel blijven passen, ongeacht het aantal badges — vandaar nowrap +
+             white-space:nowrap i.p.v. laten wrappen. De watch list heeft altijd 5 fixtures en gebruikt
+             hiervoor de standaard (grotere, beter leesbare) maat hieronder. "Beste fixture runs" heeft
+             een instelbare GW-range (tot 8 wedstrijden) en krijgt de --compact-modifier zodra er meer
+             dan 6 in de rij staan, want dan past de standaardmaat niet meer op 1 regel. */
           .fdr-mini-fixture-row {
             flex-wrap: nowrap !important;
             justify-content: center !important;
-            gap: 2px !important;
-            min-height: 22px;
           }
           .fdr-mini-fixture-row > span {
-            font-size: 8px !important;
-            padding: 1px 3px !important;
             white-space: nowrap !important;
+          }
+          .fdr-mini-fixture-row > .fdr-dgw-badge > span {
+            white-space: nowrap !important;
+          }
+
+          /* Standaardmaat (t/m 6 fixtures in de rij). */
+          .fdr-mini-fixture-row {
+            gap: 4px !important;
+            min-height: 25px;
+          }
+          .fdr-mini-fixture-row > span {
+            font-size: 9px !important;
+            padding: 2px 4px !important;
           }
           /* De "/"-postponed-badge heeft van zichzelf maar 1 karakter, dus zonder ingrijpen is hij veel
              smaller dan een normale "XXX (Y)"-badge. Minimum-breedte zodat alle badges in de rij even
              groot ogen. */
           .fdr-mini-fixture-row > .fdr-postponed-mini {
-            min-width: 22px;
+            min-width: 26px;
           }
           /* DGW-badge is een layout-wrapper zonder eigen achtergrond — de padding zit op de losse
-             leg-spans erbinnen, dus reset de wrapper zelf terug naar 0 (meer-specifieke selector dan
-             de generieke regel hierboven wint). De legs zelf krijgen een extra krappe regelhoogte, zodat
-             de DGW-badge zo min mogelijk hoger is dan een normale (enkele-regel) badge in deze rij —
-             anders wordt de kaart van dat team hoger dan die van de andere teams. */
+             leg-spans erbinnen, dus reset de wrapper zelf terug naar 0. De legs zelf krijgen een extra
+             krappe regelhoogte, zodat de DGW-badge zo min mogelijk hoger is dan een normale (enkele-
+             regel) badge in deze rij — anders wordt de kaart van dat team hoger dan die van de andere. */
           .fdr-mini-fixture-row > .fdr-dgw-badge {
             padding: 0 !important;
           }
           .fdr-mini-fixture-row > .fdr-dgw-badge > span {
+            font-size: 9px !important;
+            padding: 1px 4px !important;
+            line-height: 1.15 !important;
+          }
+
+          /* Compacte maat (>6 fixtures) — moet nog altijd op 1 regel passen, dus kleiner dan hierboven.
+             Gecombineerde selector (2 klassen) i.p.v. op brondvolgorde vertrouwen voor de override. */
+          .fdr-mini-fixture-row.fdr-mini-fixture-row--compact {
+            gap: 2px !important;
+            min-height: 22px;
+          }
+          .fdr-mini-fixture-row.fdr-mini-fixture-row--compact > span {
+            font-size: 8px !important;
+            padding: 1px 3px !important;
+          }
+          .fdr-mini-fixture-row.fdr-mini-fixture-row--compact > .fdr-postponed-mini {
+            min-width: 22px;
+          }
+          .fdr-mini-fixture-row.fdr-mini-fixture-row--compact > .fdr-dgw-badge > span {
             font-size: 8px !important;
             padding: 1px 3px !important;
             line-height: 1.05 !important;
-            white-space: nowrap !important;
           }
         }
 
@@ -1390,7 +1418,10 @@ export default function FDRTool() {
                       <div style={{ color: '#8F79AD', fontSize: '11px' }}>Gem. moeilijkheid: {team.avg.toFixed(1)}</div>
                     </div>
                   </div>
-                  <div className="fdr-mini-fixture-row" style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'flex-start', marginTop: '8px' }}>
+                  <div
+                    className={`fdr-mini-fixture-row${team.fixtures.length > 6 ? ' fdr-mini-fixture-row--compact' : ''}`}
+                    style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'flex-start', marginTop: '12px' }}
+                  >
                     {team.fixtures.map((f, i) => (
                       <MiniFixtureBadge
                         key={i}
