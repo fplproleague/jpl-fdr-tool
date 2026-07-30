@@ -1540,7 +1540,7 @@ export default function FDRTool() {
         {activeTab === 'watchlist' && (
           <>
           <p style={{ color: '#8F79AD', fontSize: '13px', marginBottom: '16px' }}>
-            Hou je favoriete spelers in de gaten — voeg ze toe aan je persoonlijke watchlist, samen met hun eerstvolgende fixtures. Deze lijst slaat automatisch op in je browser.
+            Houd je favoriete spelers in de gaten — voeg ze toe aan je persoonlijke watchlist, samen met hun eerstvolgende fixtures. Deze lijst slaat automatisch op in je browser.
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '24px' }}>
             <section>
@@ -1706,7 +1706,7 @@ export default function FDRTool() {
         <footer style={{ marginTop: '28px', textAlign: 'center', color: '#6B5289', fontSize: '12px', lineHeight: 1.5 }}>
           Gemaakt door{' '}
           <a href="https://x.com/fpl_proleague" target="_blank" rel="noopener noreferrer" className="fdr-footer-link">
-            <img src="/x-logo.png" alt="" style={{ width: '12px', height: '12px' }} />
+            <img src="/x-logo.png" alt="" style={{ width: '12px', height: '12px', verticalAlign:'-2px' }} />
             @fpl_proleague
           </a>
           {' '}· Fantasy Pro League 26/27 · Data eigen analyse<br />
