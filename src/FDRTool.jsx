@@ -750,7 +750,7 @@ export default function FDRTool() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#2A1440', fontFamily: "'Archivo', 'Arial Black', sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: '#2A1440', fontFamily: "'Archivo', 'Arial Black', sans-serif", position: 'relative' }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Inter:wght@400;500;600&display=swap');
         * { box-sizing: border-box; }
@@ -882,6 +882,9 @@ export default function FDRTool() {
           .fdr-header img {
             margin-top: 0 !important;
           }
+          .fdr-content {
+            padding-top: 16px !important;
+          }
           .fdr-watchlist-fixture-row {
             flex-wrap: nowrap !important;
             justify-content: center !important;
@@ -895,12 +898,15 @@ export default function FDRTool() {
       `}</style>
 
       <div style={{
-        position: 'absolute', top: 0, left: 0, width: '220px', height: '220px',
+        position: 'absolute', top: 0, left: 0, width: '100%', height: '480px',
         backgroundImage: 'radial-gradient(#4ECDC4 1.5px, transparent 1.5px)',
-        backgroundSize: '18px 18px', opacity: 0.25, pointerEvents: 'none'
+        backgroundSize: '18px 18px', opacity: 0.25,
+        maskImage: 'linear-gradient(to bottom, black 0%, black 45%, transparent 100%)',
+        WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 45%, transparent 100%)',
+        pointerEvents: 'none'
       }} />
 
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 20px 32px', position: 'relative' }}>
+      <div className="fdr-content" style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 20px 32px', position: 'relative' }}>
 
         <header className="fdr-header" style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '14px' }}>
           <img
