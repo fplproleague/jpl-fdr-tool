@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useCallback, useEffect, useId, memo } from 'react';
 import { createPortal } from 'react-dom';
-import { RotateCcw, TrendingUp, Info, X, Link2, Download, Check, ChevronDown, ArrowUpDown, Settings2, Grid2x2, Scale, Plus, Eye, UserPlus, Copy } from 'lucide-react';
+import { RotateCcw, TrendingUp, Info, X, Link2, Download, Check, ChevronDown, ArrowUpDown, Settings2, Grid2x2, Scale, Plus, Eye, UserPlus, Copy, Search, Clock, Loader2, AlertCircle } from 'lucide-react';
 import html2canvas from 'html2canvas';
 
 const TEAMS = [
@@ -104,6 +104,18 @@ const RATING_STYLE = {
   5: { bg: '#C2402C', text: '#FBEAE7', label: 'Moeilijkst' },
 };
 
+// Kleuren/iconen per spelersstatus in de Spelerstatus-tab — bewust losse, hardcoded kopie van de
+// RATING_STYLE-kleuren (i.p.v. RATING_STYLE[n] rechtstreeks te hergebruiken), zodat het aanpassen
+// van de FDR-moeilijkheidsschaal deze onafhankelijke betekenis nooit per ongeluk meeverandert.
+const PLAYER_STATUS_STYLE = {
+  'Out':               { emoji: '🔴', bg: '#C2402C', text: '#FBEAE7' }, // = RATING_STYLE[5]
+  'Twijfel':           { emoji: '🟡', bg: '#E8C547', text: '#3D2E00' }, // = RATING_STYLE[3]
+  'Terug Beschikbaar': { emoji: '🟢', bg: '#1F7A4D', text: '#EAFBF1' }, // = RATING_STYLE[1]
+};
+// Vaste weergave-/sorteervolgorde van de hoofdlijst. 'Beschikbaar' zit er bewust niet in: die status
+// wordt nooit als rij getoond, enkel gebruikt om een speler terug normaal te markeren in de sheet.
+const PLAYER_STATUS_ORDER = ['Out', 'Twijfel', 'Terug Beschikbaar'];
+
 // Tab-navigatie bovenaan de pagina — array-gedreven zodat toekomstige onderdelen naast de FDR-tool
 // gewoon een extra entry kunnen worden.
 const TABS = [
@@ -124,6 +136,9 @@ const STORAGE_KEY = 'fpl_proleague_fdr_ratings_v1';
 const HOME_ADVANTAGE_STORAGE_KEY = 'fpl_proleague_fdr_home_advantage_v1';
 // Eigen storage key voor de watch list — los van de FDR-ratings hierboven, zodat ze elkaar niet raken.
 const WATCHLIST_STORAGE_KEY = 'fpl_proleague_watchlist_v1';
+// Publiek gepubliceerde Google Sheet (CSV-export) met de actuele spelersstatus (out/twijfel/terug
+// beschikbaar) — bron voor de Spelerstatus-tab.
+const PLAYER_STATUS_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT6USo4139zAf6zndDf428orxRT2q20l8arNVo8LWqNoVGz2-FZIx3PJedAhCzoQOGGxfPz0qbx4m2h/pub?output=csv';
 // Onthoudt of de first-time-uitleg over Thuisvoordeel al getoond is, zodat die maar één keer ooit verschijnt.
 const HOME_ADVANTAGE_INTRO_SEEN_KEY = 'fpl_proleague_ha_intro_seen_v1';
 
@@ -233,6 +248,108 @@ function loadStoredWatchlist() {
 function createWatchlistId() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+// --- Spelerstatus: CSV-parsing en datumhulp-functies ---
+
+// Eenvoudige RFC4180-achtige CSV-tokenizer (i.p.v. text.split(',')): de vrije-tekstkolommen
+// (Reden/Notities/Bron) kunnen komma's en zelfs regeleindes bevatten zolang het veld tussen
+// aanhalingstekens staat, en "" binnen zo'n veld is een ontsnapt aanhalingsteken.
+function parseCsvRows(text) {
+  const rows = [];
+  let row = [];
+  let field = '';
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    if (inQuotes) {
+      if (char === '"') {
+        if (text[i + 1] === '"') { field += '"'; i++; }
+        else inQuotes = false;
+      } else {
+        field += char;
+      }
+    } else if (char === '"') {
+      inQuotes = true;
+    } else if (char === ',') {
+      row.push(field); field = '';
+    } else if (char === '\n') {
+      row.push(field); rows.push(row); row = []; field = '';
+    } else if (char === '\r') {
+      // negeren — \r\n regeleindes worden door de \n-tak hierboven afgehandeld
+    } else {
+      field += char;
+    }
+  }
+  if (field.length > 0 || row.length > 0) { row.push(field); rows.push(row); }
+  return rows;
+}
+
+// Probeert een datumwaarde uit de sheet te herkennen zonder aannames te maken over het exacte
+// exportformaat (kan ISO, DD/MM/YYYY of DD-MM-YYYY zijn, of iets dat native Date wel herkent).
+function parseFlexibleDate(value) {
+  const trimmed = (value ?? '').trim();
+  if (!trimmed) return null;
+  const isoMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) {
+    const [, y, m, d] = isoMatch;
+    const date = new Date(Number(y), Number(m) - 1, Number(d));
+    return isNaN(date) ? null : date;
+  }
+  const euMatch = trimmed.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+  if (euMatch) {
+    const [, d, m, y] = euMatch;
+    const date = new Date(Number(y), Number(m) - 1, Number(d));
+    return isNaN(date) ? null : date;
+  }
+  const fallback = new Date(trimmed);
+  return isNaN(fallback) ? null : fallback;
+}
+
+// Vaste weergave-indeling voor datums in de Spelerstatus-tab.
+function formatDateDDMMYYYY(date) {
+  const dd = String(date.getDate()).padStart(2, '0');
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const yyyy = date.getFullYear();
+  return `${dd}-${mm}-${yyyy}`;
+}
+
+// Zet een ruwe CSV-rij om naar een genormaliseerd speler-object. Kolomvolgorde is vast (0-8:
+// Speler, Team, Positie, Status, Reden, Verwachte terugkeer, Bron, Notities, Laatste update) —
+// we mappen op index, niet op headertekst, zoals expliciet in de spec beschreven. Destructuren
+// met defaults zodat een rij met minder kolommen dan verwacht niet crasht.
+function mapRowToPlayerStatus(row, index) {
+  const [
+    name = '', teamCode = '', position = '', status = '', reason = '',
+    expectedReturn = '', source = '', notes = '', lastUpdate = '',
+  ] = row.map(cell => (cell ?? '').trim());
+  const upperTeamCode = teamCode.toUpperCase();
+  const team = TEAMS.find(t => t.code === upperTeamCode);
+  return {
+    id: index,
+    name,
+    teamCode: upperTeamCode,
+    teamName: team?.name ?? teamCode,
+    position,
+    status,
+    reason,
+    expectedReturn,
+    source,
+    notes,
+    lastUpdate,
+    lastUpdateDate: parseFlexibleDate(lastUpdate),
+  };
+}
+
+// Bepaalt de meest recente "Laatste update" over alle rijen (ook 'Beschikbaar'-rijen), zodat de
+// badge bovenaan altijd de update-status van de volledige sheet weerspiegelt, niet enkel de
+// zichtbare lijst.
+function findMostRecentUpdate(players) {
+  return players.reduce((mostRecent, player) => {
+    if (!player.lastUpdateDate) return mostRecent;
+    if (!mostRecent || player.lastUpdateDate > mostRecent.lastUpdateDate) return player;
+    return mostRecent;
+  }, null);
 }
 
 function average(numbers) {
@@ -620,6 +737,76 @@ const MiniFixtureBadge = memo(function MiniFixtureBadge({ teamCode, fixture, gwN
   );
 });
 
+// Eén rij in de Spelerstatus-lijst: samengevouwen header (statusbadge, naam, clublogo, positie,
+// korte reden) die bij een klik een accordion-detailpaneel opent — zelfde interactie-primitieven
+// (chevronStyle, ChevronDown, transition) als de bestaande SectionHeader, maar los ervan omdat dit
+// een dynamische, per-rij lijst is i.p.v. een vaste set secties.
+const PlayerStatusRow = memo(function PlayerStatusRow({ player, isExpanded, onToggle }) {
+  const style = PLAYER_STATUS_STYLE[player.status];
+  const detailFields = [
+    { label: 'Status', value: player.status },
+    { label: 'Reden', value: player.reason },
+    { label: 'Verwachte terugkeer', value: player.expectedReturn },
+    { label: 'Laatste update', value: player.lastUpdateDate ? formatDateDDMMYYYY(player.lastUpdateDate) : player.lastUpdate },
+    { label: 'Bron', value: player.source },
+    { label: 'Notities', value: player.notes },
+  ].filter(f => f.value);
+
+  return (
+    <div style={{
+      background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+      borderRadius: '10px', overflow: 'hidden'
+    }}>
+      <button
+        onClick={() => onToggle(player.id)}
+        className="fdr-playerstatus-row"
+        style={{
+          display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
+          background: 'none', border: 'none', cursor: 'pointer', padding: '10px 12px', textAlign: 'left'
+        }}
+      >
+        <span style={{
+          flexShrink: 0, fontSize: '11px', fontWeight: 700, padding: '3px 8px', borderRadius: '999px',
+          background: style.bg, color: style.text, whiteSpace: 'nowrap'
+        }}>
+          {style.emoji} {player.status}
+        </span>
+        <img
+          src={`/club-logos/${player.teamCode}.png`}
+          alt=""
+          className="club-logo"
+          style={{ width: '20px', height: '20px', objectFit: 'contain', flexShrink: 0 }}
+          onError={(e) => { e.target.style.display = 'none'; }}
+        />
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ color: '#FFFFFF', fontSize: '14px', fontWeight: 700 }}>{player.name}</div>
+          <div style={{
+            color: '#8F79AD', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+          }}>
+            {[player.position, player.reason].filter(Boolean).join(' · ')}
+          </div>
+        </div>
+        <ChevronDown size={18} color="#C9B8E0" style={{ ...chevronStyle(isExpanded), flexShrink: 0 }} />
+      </button>
+      {isExpanded && (
+        <div style={{
+          padding: '4px 12px 14px 12px', display: 'grid', gap: '8px',
+          borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '12px'
+        }}>
+          {detailFields.map(f => (
+            <div key={f.label}>
+              <div style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                {f.label}
+              </div>
+              <div style={{ color: '#FFFFFF', fontSize: '13px', whiteSpace: 'normal' }}>{f.value}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+});
+
 export default function FDRTool() {
   const [activeTab, setActiveTab] = useState('fdr');
   const [ratings, setRatings] = useState(() => loadRatingsFromURL() || loadStoredRatings() || DEFAULT_RATINGS);
@@ -647,6 +834,14 @@ export default function FDRTool() {
   const [newPlayerName, setNewPlayerName] = useState('');
   const [newPlayerTeam, setNewPlayerTeam] = useState('');
   const [newPlayerPrice, setNewPlayerPrice] = useState('');
+
+  // --- Spelerstatus-tab, los van FDR/Watch List hierboven ---
+  const [playerStatuses, setPlayerStatuses] = useState([]);
+  const [playerStatusLoading, setPlayerStatusLoading] = useState(true);
+  const [playerStatusError, setPlayerStatusError] = useState(null);
+  const [playerSearch, setPlayerSearch] = useState('');
+  const [playerStatusFilter, setPlayerStatusFilter] = useState('all'); // 'all' | een waarde uit PLAYER_STATUS_ORDER
+  const [expandedPlayers, setExpandedPlayers] = useState(() => new Set());
 
   // isCustom volgt exact of ratings/homeAdvantage hun gedeelde DEFAULT-referentie zijn
   // (zie updateRating/toggleHomeAdvantage/handleReset).
@@ -848,6 +1043,65 @@ export default function FDRTool() {
     }
   }, [watchlist]);
 
+  // Haalt de spelersstatus-CSV op en parset ze naar playerStatuses. Losse useCallback (i.p.v. rechtstreeks
+  // in de useEffect hieronder) zodat zowel de automatische fetch bij het laden als de "probeer opnieuw"-
+  // en "vernieuwen"-knoppen in de UI exact dezelfde logica hergebruiken.
+  const fetchPlayerStatuses = useCallback(async () => {
+    setPlayerStatusLoading(true);
+    setPlayerStatusError(null);
+    try {
+      const response = await fetch(PLAYER_STATUS_CSV_URL, { cache: 'no-store' });
+      if (!response.ok) throw new Error('Netwerkfout');
+      const text = await response.text();
+      // Een gepubliceerde Google Sheet kan bij verkeerde/ingetrokken publish-rechten een HTML-
+      // foutpagina teruggeven i.p.v. CSV — die herkennen we hier zodat de UI een duidelijke
+      // foutmelding toont i.p.v. stilzwijgend brokkenrijen te parsen.
+      if (/^\s*<(!doctype|html)/i.test(text)) throw new Error('Onverwacht antwoord');
+      const rows = parseCsvRows(text).slice(1); // eerste rij is de header, die slaan we over
+      setPlayerStatuses(rows.map(mapRowToPlayerStatus).filter(p => p.name));
+    } catch {
+      setPlayerStatusError('Kon spelersstatus niet laden, probeer later opnieuw.');
+    } finally {
+      setPlayerStatusLoading(false);
+    }
+  }, []);
+
+  // Haalt de spelersstatus eenmalig op bij het laden van de app, los van de actieve tab — net als de
+  // watch list hierboven al eager geladen wordt.
+  useEffect(() => {
+    let ignore = false;
+    (async () => {
+      await fetchPlayerStatuses();
+      if (ignore) return;
+    })();
+    return () => { ignore = true; };
+  }, [fetchPlayerStatuses]);
+
+  const playerStatusCounts = useMemo(() => ({
+    out: playerStatuses.filter(p => p.status === 'Out').length,
+    twijfel: playerStatuses.filter(p => p.status === 'Twijfel').length,
+    terugBeschikbaar: playerStatuses.filter(p => p.status === 'Terug Beschikbaar').length,
+  }), [playerStatuses]);
+
+  const visiblePlayerStatuses = useMemo(() => {
+    const search = playerSearch.trim().toLowerCase();
+    return playerStatuses
+      .filter(p => PLAYER_STATUS_ORDER.includes(p.status))
+      .filter(p => playerStatusFilter === 'all' || p.status === playerStatusFilter)
+      .filter(p => !search || p.name.toLowerCase().includes(search))
+      .sort((a, b) => PLAYER_STATUS_ORDER.indexOf(a.status) - PLAYER_STATUS_ORDER.indexOf(b.status));
+  }, [playerStatuses, playerStatusFilter, playerSearch]);
+
+  const mostRecentUpdate = useMemo(() => findMostRecentUpdate(playerStatuses), [playerStatuses]);
+
+  const togglePlayerExpanded = useCallback((id) => {
+    setExpandedPlayers(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
   const handleAddWatchlistPlayer = (e) => {
     e.preventDefault();
     const name = newPlayerName.trim();
@@ -952,6 +1206,8 @@ export default function FDRTool() {
           flex-wrap: wrap;
         }
         .fdr-btn-label-short { display: none; }
+        .fdr-spin { animation: fdr-spin 0.8s linear infinite; }
+        @keyframes fdr-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .fdr-tab-btn {
           background: none; border: none; cursor: pointer;
           padding: 10px 18px; font-size: 14px; font-weight: 800;
@@ -1083,6 +1339,25 @@ export default function FDRTool() {
             font-size: 8px !important;
             padding: 1px 3px !important;
             line-height: 1.05 !important;
+          }
+
+          /* Spelerstatus-tab: rijhoofding en filters/samenvatting mogen op smalle schermen
+             wat compacter/anders wrappen dan op desktop. */
+          .fdr-playerstatus-row {
+            padding: 8px 10px !important;
+            gap: 8px !important;
+          }
+          .fdr-playerstatus-summary > span {
+            font-size: 11px !important;
+            padding: 5px 10px !important;
+          }
+          .fdr-playerstatus-filters {
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+          .fdr-playerstatus-search {
+            flex: none !important;
+            width: 100% !important;
           }
         }
 
@@ -1666,14 +1941,135 @@ export default function FDRTool() {
 
         {activeTab === 'playerstatus' && (
           <div style={{ marginTop: '20px' }}>
-            <div style={{
-              background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: '10px', padding: '16px'
-            }}>
-              <p style={{ color: '#C9B8E0', fontSize: '13px', margin: 0 }}>
-                Hier komen binnenkort alle relevante updates over spelers die niet beschikbaar zijn.
-              </p>
-            </div>
+            <p style={{ color: '#8F79AD', fontSize: '13px', marginBottom: '16px' }}>
+              Overzicht van spelers die geblesseerd, geschorst of twijfelachtig zijn — automatisch bijgewerkt vanuit onze spelerstatus-tracker.
+            </p>
+
+            {playerStatusLoading && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#C9B8E0', fontSize: '13px' }}>
+                <Loader2 size={16} className="fdr-spin" /> Spelersstatus laden...
+              </div>
+            )}
+
+            {!playerStatusLoading && playerStatusError && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
+                background: 'rgba(194,64,44,0.12)', border: '1px solid rgba(194,64,44,0.4)',
+                borderRadius: '10px', padding: '12px 14px'
+              }}>
+                <AlertCircle size={16} color="#C2402C" style={{ flexShrink: 0 }} />
+                <span style={{ color: '#FBEAE7', fontSize: '13px', flex: 1 }}>{playerStatusError}</span>
+                <button onClick={fetchPlayerStatuses} style={secondaryToolbarBtnStyle}>
+                  <RotateCcw size={14} /> Probeer opnieuw
+                </button>
+              </div>
+            )}
+
+            {!playerStatusLoading && !playerStatusError && (
+              <>
+                <div style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap',
+                  gap: '8px', marginBottom: '16px'
+                }}>
+                  {mostRecentUpdate ? (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#C9B8E0', fontSize: '12px' }}>
+                      <Clock size={14} />
+                      Laatst bijgewerkt: {mostRecentUpdate.lastUpdateDate ? formatDateDDMMYYYY(mostRecentUpdate.lastUpdateDate) : mostRecentUpdate.lastUpdate}
+                    </span>
+                  ) : <span />}
+                  <button
+                    onClick={fetchPlayerStatuses}
+                    aria-label="Vernieuwen"
+                    title="Vernieuwen"
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', width: '26px', height: '26px',
+                      background: 'transparent', color: '#8F79AD', border: '1px solid rgba(255,255,255,0.2)',
+                      borderRadius: '6px', cursor: 'pointer'
+                    }}
+                  >
+                    <RotateCcw size={13} />
+                  </button>
+                </div>
+
+                <div className="fdr-playerstatus-summary" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '16px' }}>
+                  <span style={{
+                    fontSize: '12px', fontWeight: 700, padding: '6px 12px', borderRadius: '999px',
+                    background: 'rgba(255,255,255,0.06)', color: '#FFFFFF'
+                  }}>
+                    🔴 {playerStatusCounts.out} spelers out
+                  </span>
+                  <span style={{
+                    fontSize: '12px', fontWeight: 700, padding: '6px 12px', borderRadius: '999px',
+                    background: 'rgba(255,255,255,0.06)', color: '#FFFFFF'
+                  }}>
+                    🟡 {playerStatusCounts.twijfel} twijfelgevallen
+                  </span>
+                  <span style={{
+                    fontSize: '12px', fontWeight: 700, padding: '6px 12px', borderRadius: '999px',
+                    background: 'rgba(255,255,255,0.06)', color: '#FFFFFF'
+                  }}>
+                    🟢 {playerStatusCounts.terugBeschikbaar} terug beschikbaar
+                  </span>
+                </div>
+
+                <div className="fdr-playerstatus-filters" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '20px' }}>
+                  <label className="fdr-playerstatus-search" style={{ position: 'relative', flex: '1 1 200px', minWidth: '160px' }}>
+                    <Search size={14} color="#8F79AD" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                    <input
+                      type="text"
+                      value={playerSearch}
+                      onChange={e => setPlayerSearch(e.target.value)}
+                      placeholder="Zoek op spelersnaam"
+                      style={{
+                        width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.04)',
+                        border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px',
+                        padding: '8px 10px 8px 32px', color: '#FFFFFF', fontSize: '13px'
+                      }}
+                    />
+                  </label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {[
+                      { key: 'all', label: 'Alles' },
+                      { key: 'Out', label: '🔴 Out' },
+                      { key: 'Twijfel', label: '🟡 Twijfel' },
+                      { key: 'Terug Beschikbaar', label: '🟢 Terug Beschikbaar' },
+                    ].map(opt => (
+                      <button
+                        key={opt.key}
+                        onClick={() => setPlayerStatusFilter(opt.key)}
+                        style={{
+                          background: playerStatusFilter === opt.key ? '#4ECDC4' : 'transparent',
+                          color: playerStatusFilter === opt.key ? '#0B2E1B' : '#C9B8E0',
+                          border: '1px solid rgba(255,255,255,0.2)', borderRadius: '999px',
+                          padding: '6px 12px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap'
+                        }}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {visiblePlayerStatuses.length === 0 ? (
+                  <p style={{ color: '#6B5289', fontSize: '13px' }}>
+                    {playerStatuses.filter(p => PLAYER_STATUS_ORDER.includes(p.status)).length === 0
+                      ? 'Geen spelers momenteel out, geschorst of twijfelachtig.'
+                      : 'Geen spelers gevonden voor deze zoekopdracht/filter.'}
+                  </p>
+                ) : (
+                  <div style={{ display: 'grid', gap: '8px' }}>
+                    {visiblePlayerStatuses.map(player => (
+                      <PlayerStatusRow
+                        key={player.id}
+                        player={player}
+                        isExpanded={expandedPlayers.has(player.id)}
+                        onToggle={togglePlayerExpanded}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
           </div>
         )}
 
