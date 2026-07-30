@@ -1392,7 +1392,7 @@ export default function FDRTool() {
         {activeTab === 'watchlist' && (
           <>
           <p style={{ color: '#8F79AD', fontSize: '13px', marginBottom: '16px' }}>
-            Hou je favoriete spelers in de gaten — voeg ze toe aan je persoonlijke watchlist, samen met hun eerstvolgende fixtures. Deze lijst slaat automatisch op in je browser.
+            Houd je favoriete spelers in de gaten — voeg ze toe aan je persoonlijke watchlist, samen met hun eerstvolgende fixtures. Deze lijst slaat automatisch op in je browser.
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '24px' }}>
             <section>
@@ -1407,7 +1407,7 @@ export default function FDRTool() {
                 display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px', alignItems: 'end'
               }}>
                 <label style={{ display: 'grid', gap: '4px' }}>
-                  <span style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase' }}>Naam</span>
+                  <span style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', marginLeft: '4px' }}>Naam</span>
                   <input
                     type="text" required value={newPlayerName}
                     onChange={e => setNewPlayerName(e.target.value)}
@@ -1415,7 +1415,7 @@ export default function FDRTool() {
                     style={watchlistInputStyle}
                   />
                 </label>
-                <label style={{ display: 'grid', gap: '4px' }}>
+                <label style={{ display: 'grid', gap: '4px', marginLeft: '4px' }}>
                   <span style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase' }}>Team</span>
                   <select required value={newPlayerTeam} onChange={e => setNewPlayerTeam(e.target.value)} style={watchlistInputStyle}>
                     <option value="" disabled>Kies team</option>
@@ -1424,7 +1424,7 @@ export default function FDRTool() {
                     ))}
                   </select>
                 </label>
-                <label style={{ display: 'grid', gap: '4px' }}>
+                <label style={{ display: 'grid', gap: '4px', marginLeft: '4px' }}>
                   <span style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase' }}>Prijs (optioneel)</span>
                   <input
                     type="number" inputMode="decimal" step="0.1" min="0" placeholder="5.5"
