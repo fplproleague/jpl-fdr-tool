@@ -554,10 +554,11 @@ const MiniFixtureBadge = memo(function MiniFixtureBadge({ teamCode, fixture, gwN
     return (
       <PostponedIndicator
         as="span"
+        className="fdr-postponed-mini"
         text={postponedText}
         style={{
           background: '#4A4560', color: '#9B93AD', fontSize: '10px', fontWeight: 700,
-          padding: '3px 6px', borderRadius: '5px', cursor: 'pointer'
+          padding: '3px 6px', borderRadius: '5px', cursor: 'pointer', textAlign: 'center'
         }}
       />
     );
@@ -572,7 +573,7 @@ const MiniFixtureBadge = memo(function MiniFixtureBadge({ teamCode, fixture, gwN
         {legs.map((leg, i) => (
           <span key={i} style={{
             display: 'block', background: leg.style.bg, color: leg.style.text,
-            fontSize: '8px', fontWeight: 700, padding: '2px 5px', lineHeight: 1.3,
+            fontSize: '8px', fontWeight: 700, padding: '2px 5px', lineHeight: 1.3, whiteSpace: 'nowrap',
             // Zie FixtureCell hierboven: border-bottom op de bovenste helft (i===0) i.p.v. border-top
             // op de onderste, in dezelfde paarse achtergrondkleur voor een consistente scheiding.
             borderBottom: i === 0 ? '2px solid #2A1440' : undefined
@@ -601,7 +602,7 @@ const MiniFixtureBadge = memo(function MiniFixtureBadge({ teamCode, fixture, gwN
         text={possiblyPostponedText}
         style={{
           background: style.bg, color: style.text, fontSize: '10px', fontWeight: 700,
-          padding: '3px 6px', borderRadius: '5px', cursor: 'pointer'
+          padding: '3px 6px', borderRadius: '5px', cursor: 'pointer', whiteSpace: 'nowrap'
         }}
       >
         {badgeContent}
@@ -612,7 +613,7 @@ const MiniFixtureBadge = memo(function MiniFixtureBadge({ teamCode, fixture, gwN
   return (
     <span style={{
       background: style.bg, color: style.text, fontSize: '10px', fontWeight: 700,
-      padding: '3px 6px', borderRadius: '5px'
+      padding: '3px 6px', borderRadius: '5px', whiteSpace: 'nowrap'
     }}>
       {badgeContent}
     </span>
@@ -1021,19 +1022,39 @@ export default function FDRTool() {
           .fdr-sliders-grid {
             grid-template-columns: repeat(2, 1fr) !important;
           }
-          .fdr-watchlist-fixture-row {
+          /* De GW-range voor "Beste fixture runs" is instelbaar (tot 8 wedstrijden), dus deze rij moet
+             altijd op 1 regel passen ongeacht het aantal badges — vandaar de kleine vaste maat + nowrap
+             i.p.v. iets dat enkel voor het vaste aantal van 5 (watch list) getuned is. */
+          .fdr-mini-fixture-row {
             flex-wrap: nowrap !important;
             justify-content: center !important;
+            gap: 2px !important;
+            min-height: 22px;
           }
-          .fdr-watchlist-fixture-row > span {
-            font-size: 9px !important;
-            padding: 2px 4px !important;
+          .fdr-mini-fixture-row > span {
+            font-size: 8px !important;
+            padding: 1px 3px !important;
+            white-space: nowrap !important;
+          }
+          /* De "/"-postponed-badge heeft van zichzelf maar 1 karakter, dus zonder ingrijpen is hij veel
+             smaller dan een normale "XXX (Y)"-badge. Minimum-breedte zodat alle badges in de rij even
+             groot ogen. */
+          .fdr-mini-fixture-row > .fdr-postponed-mini {
+            min-width: 22px;
           }
           /* DGW-badge is een layout-wrapper zonder eigen achtergrond — de padding zit op de losse
              leg-spans erbinnen, dus reset de wrapper zelf terug naar 0 (meer-specifieke selector dan
-             de generieke regel hierboven wint). */
-          .fdr-watchlist-fixture-row > .fdr-dgw-badge {
+             de generieke regel hierboven wint). De legs zelf krijgen een extra krappe regelhoogte, zodat
+             de DGW-badge zo min mogelijk hoger is dan een normale (enkele-regel) badge in deze rij —
+             anders wordt de kaart van dat team hoger dan die van de andere teams. */
+          .fdr-mini-fixture-row > .fdr-dgw-badge {
             padding: 0 !important;
+          }
+          .fdr-mini-fixture-row > .fdr-dgw-badge > span {
+            font-size: 8px !important;
+            padding: 1px 3px !important;
+            line-height: 1.05 !important;
+            white-space: nowrap !important;
           }
         }
 
@@ -1241,15 +1262,23 @@ export default function FDRTool() {
           <section>
             <SectionHeader icon={Grid2x2} title="Fixture Difficulty Rating" sectionKey="table" isOpen={openSections.table} onToggle={toggleSection} />
             {openSections.table && (
-            <button onClick={(e) => { e.stopPropagation(); setSortByDifficulty(s => !s); }} style={{
-              display: 'flex', alignItems: 'center', gap: '6px', background: 'transparent',
-              color: '#C9B8E0', border: '1px solid rgba(255,255,255,0.2)',
-              borderRadius: '8px', padding: '8px 14px', fontWeight: 700, fontSize: '13px', cursor: 'pointer',
-              marginBottom: '10px'
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              flexWrap: 'wrap', gap: '8px', marginBottom: '10px'
             }}>
-              <ArrowUpDown size={14} />
-              {sortByDifficulty ? 'Gesorteerd: makkelijkste eerst' : 'Sorteer op makkelijkste run'}
-            </button>
+              <button onClick={(e) => { e.stopPropagation(); setSortByDifficulty(s => !s); }} style={{
+                display: 'flex', alignItems: 'center', gap: '6px', background: 'transparent',
+                color: '#C9B8E0', border: '1px solid rgba(255,255,255,0.2)',
+                borderRadius: '8px', padding: '8px 14px', fontWeight: 700, fontSize: '13px', cursor: 'pointer'
+              }}>
+                <ArrowUpDown size={14} />
+                {sortByDifficulty ? 'Gesorteerd: makkelijkste eerst' : 'Sorteer op makkelijkste run'}
+              </button>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#6B5289', fontSize: '11px' }}>
+                <Info size={12} />
+                Tik op cellen met een * voor meer info
+              </span>
+            </div>
             )}
             <div ref={tableRef} id="fdr-capture-wrapper">
             <div className="fdr-table-scroll" style={{
@@ -1342,24 +1371,26 @@ export default function FDRTool() {
             <div style={{ display: 'grid', gap: '8px' }}>
               {bestRuns.map((team, idx) => (
                 <div key={team.code} style={{
-                  display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255,255,255,0.04)',
+                  background: 'rgba(255,255,255,0.04)',
                   border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '10px 14px'
                 }}>
-                  <span className="fdr-title" style={{
-                    color: idx === 0 ? '#4ECDC4' : '#C9B8E0', fontWeight: 900, fontSize: '18px', width: '24px'
-                  }}>{idx + 1}</span>
-                  <img
-                    src={`/club-logos/${team.code}.png`}
-                    alt=""
-                    className="club-logo"
-                    style={{ width: '24px', height: '24px', objectFit: 'contain', flexShrink: 0 }}
-                    onError={(e) => { e.target.style.display = 'none'; }}
-                  />
-                  <div style={{ minWidth: '130px' }}>
-                    <div style={{ color: '#FFF', fontWeight: 700, fontSize: '14px' }}>{team.name}</div>
-                    <div style={{ color: '#8F79AD', fontSize: '11px' }}>Gem. moeilijkheid: {team.avg.toFixed(1)}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <span className="fdr-title" style={{
+                      color: idx === 0 ? '#4ECDC4' : '#C9B8E0', fontWeight: 900, fontSize: '18px', width: '24px', flexShrink: 0
+                    }}>{idx + 1}</span>
+                    <img
+                      src={`/club-logos/${team.code}.png`}
+                      alt=""
+                      className="club-logo"
+                      style={{ width: '24px', height: '24px', objectFit: 'contain', flexShrink: 0 }}
+                      onError={(e) => { e.target.style.display = 'none'; }}
+                    />
+                    <div style={{ minWidth: '130px' }}>
+                      <div style={{ color: '#FFF', fontWeight: 700, fontSize: '14px' }}>{team.name}</div>
+                      <div style={{ color: '#8F79AD', fontSize: '11px' }}>Gem. moeilijkheid: {team.avg.toFixed(1)}</div>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+                  <div className="fdr-mini-fixture-row" style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'flex-start', marginTop: '8px' }}>
                     {team.fixtures.map((f, i) => (
                       <MiniFixtureBadge
                         key={i}
@@ -1580,7 +1611,7 @@ export default function FDRTool() {
                             }}>{player.price}M</span>
                           )}
                         </div>
-                        <div className="fdr-watchlist-fixture-row" style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'flex-start', marginTop: '8px' }}>
+                        <div className="fdr-mini-fixture-row" style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'flex-start', marginTop: '8px' }}>
                           {upcomingFixtures.map((fixture, idx) => (
                             <MiniFixtureBadge
                               key={idx}
