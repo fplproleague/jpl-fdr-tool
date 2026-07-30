@@ -1730,7 +1730,7 @@ export default function FDRTool() {
               </button>
             </div>
             <p style={{ color: '#C9B8E0', fontSize: '13px', lineHeight: 1.6 }}>
-              De kleur van elke fixture komt van de <strong>sterkte-rating van de tegenstander</strong> (1 = makkelijkst, 5 = moeilijkst). Sleep de sliders om een team sterker of zwakker in te schatten — alle fixtures tegen dat team passen automatisch aan, voor alle 18 teams.
+              De kleur van elke fixture komt van de <strong>sterkte-rating van de tegenstander</strong> (1 = makkelijkst, 5 = moeilijkst). Sleep de sliders om een team sterker of zwakker in te schatten — alle fixtures tegen dat team passen automatisch aan, voor alle 18 teams. Bij de berekening van fixture runs tellen Blank Gameweeks als 5 (moeilijkst) en Double Gameweeks als 1 (makkelijkst).
             </p>
             <p style={{ color: '#C9B8E0', fontSize: '13px', lineHeight: 1.6, marginTop: '8px' }}>
               <strong>"Bewaar in browser"</strong> onthoudt jouw versie op dit toestel voor de volgende keer. <strong>"Beste fixture runs"</strong> toont de 5 teams met de laagste gemiddelde moeilijkheid over de gekozen periode.
