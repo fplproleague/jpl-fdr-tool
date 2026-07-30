@@ -492,7 +492,9 @@ const FixtureCell = memo(function FixtureCell({
             fontSize: '10px', fontWeight: 700, padding: '3px 2px', lineHeight: 1.3,
             // Duidelijke scheiding tussen de 2 helften: border-bottom op de bovenste (i===0), niet
             // border-top op de onderste, zodat de lijn zichtbaar bij de bovenste fixture "hoort".
-            borderBottom: i === 0 ? '2px solid rgba(0,0,0,0.25)' : undefined
+            // Zelfde paarse kleur als de achtergrond/gutter tussen de tabelcellen, zodat de lijn oogt
+            // als een echte scheiding tussen 2 cellen i.p.v. een schaduwrand.
+            borderBottom: i === 0 ? '2px solid #2A1440' : undefined
           }}>
             {leg.opp} <span style={{ opacity: 0.75, fontWeight: 500 }}>({leg.venue})</span>
           </div>
@@ -570,8 +572,8 @@ const MiniFixtureBadge = memo(function MiniFixtureBadge({ teamCode, fixture, gwN
             display: 'block', background: leg.style.bg, color: leg.style.text,
             fontSize: '8px', fontWeight: 700, padding: '2px 5px', lineHeight: 1.3,
             // Zie FixtureCell hierboven: border-bottom op de bovenste helft (i===0) i.p.v. border-top
-            // op de onderste, voor dezelfde duidelijke scheiding tussen de 2 fixtures.
-            borderBottom: i === 0 ? '2px solid rgba(0,0,0,0.25)' : undefined
+            // op de onderste, in dezelfde paarse achtergrondkleur voor een consistente scheiding.
+            borderBottom: i === 0 ? '2px solid #2A1440' : undefined
           }}>
             {leg.opp} ({leg.venue})
           </span>
