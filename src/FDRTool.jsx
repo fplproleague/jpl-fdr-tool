@@ -736,7 +736,7 @@ export default function FDRTool() {
   const toggleCompareTeam = (code) => {
     setCompareTeams(prev => {
       if (prev.includes(code)) return prev.filter(c => c !== code);
-      if (prev.length >= 3) return prev;
+      if (prev.length >= 5) return prev;
       return [...prev, code];
     });
   };
@@ -1300,14 +1300,14 @@ export default function FDRTool() {
             {openSections.compare && (
             <>
             <p style={{ color: '#8F79AD', fontSize: '12px', marginBottom: '10px' }}>
-              Kies tot 3 teams om hun fixtures onder elkaar te zien.
+              Kies tot 5 teams om hun fixtures onder elkaar te zien.
             </p>
             <div style={{
               display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(70px, 1fr))', gap: '6px', marginBottom: '16px'
             }}>
               {TEAMS_ALPHA.map(team => {
                 const selected = compareTeams.includes(team.code);
-                const disabled = !selected && compareTeams.length >= 3;
+                const disabled = !selected && compareTeams.length >= 5;
                 return (
                   <button key={team.code} onClick={() => toggleCompareTeam(team.code)} disabled={disabled} style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
