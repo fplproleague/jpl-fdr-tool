@@ -483,13 +483,15 @@ const FixtureCell = memo(function FixtureCell({
   // DGW: cel gesplitst in 2 gestapelde helften (elk hun eigen achtergrondkleur o.b.v. de rating van die
   // tegenstander), in een kleiner lettertype dan de normale enkele cel zodat beide passen. Een <td> is
   // van zichzelf al block-level voor z'n kinderen, dus de twee <div>'s stapelen vanzelf boven/onder.
+  // padding/fontSize zijn bewust krap: de 2 helften + border-bottom moeten samen binnen de hoogte van
+  // een normale enkele cel (~32px) blijven, anders wordt de hele rij (alle 8 kolommen) hoger dan de rest.
   if (isDoubleGameweek) {
     return (
       <td className="fdr-cell" style={{ padding: 0, borderRadius: '6px', overflow: 'hidden', ...stackingStyle }}>
         {legs.map((leg, i) => (
           <div key={i} style={{
             background: leg.style.bg, color: leg.style.text, textAlign: 'center',
-            fontSize: '10px', fontWeight: 700, padding: '3px 2px', lineHeight: 1.3,
+            fontSize: '9px', fontWeight: 700, padding: '2px 2px', lineHeight: 1.2,
             // Duidelijke scheiding tussen de 2 helften: border-bottom op de bovenste (i===0), niet
             // border-top op de onderste, zodat de lijn zichtbaar bij de bovenste fixture "hoort".
             // Zelfde paarse kleur als de achtergrond/gutter tussen de tabelcellen, zodat de lijn oogt
