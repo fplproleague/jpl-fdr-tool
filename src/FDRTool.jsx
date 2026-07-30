@@ -1008,12 +1008,16 @@ export default function FDRTool() {
 
       `}</style>
 
+      {/* Stippenpatroon dat radiaal uitdooft vanuit de linkerbovenhoek: de mask is een cirkel met vaste
+          straal rond die hoek (i.p.v. een percentage, zodat de vorm van de fade niet verandert met de
+          breedte van het scherm) — hoe verder een stip van de hoek af staat, hoe transparanter hij wordt,
+          tot volledig onzichtbaar op de rand van de cirkel. */}
       <div style={{
-        position: 'absolute', top: 0, left: 0, width: '100%', height: '480px',
+        position: 'absolute', top: 0, left: 0, width: '100%', height: '600px',
         backgroundImage: 'radial-gradient(#4ECDC4 1.5px, transparent 1.5px)',
         backgroundSize: '18px 18px', opacity: 0.25,
-        maskImage: 'linear-gradient(to bottom, black 0%, black 45%, transparent 100%)',
-        WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 45%, transparent 100%)',
+        maskImage: 'radial-gradient(circle 550px at top left, black 0%, black 15%, transparent 100%)',
+        WebkitMaskImage: 'radial-gradient(circle 550px at top left, black 0%, black 15%, transparent 100%)',
         pointerEvents: 'none'
       }} />
 
