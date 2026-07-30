@@ -38,12 +38,29 @@ const FIXTURES = {
   OHL: ['CHA-A','CLU-H','GNT-A','STA-H','BEV-A','CER-H','LLV-H','USG-A'],
   LLV: ['AND-A','GNT-H','STA-A','KVM-H','STV-A','KOR-H','OHL-A','CLU-H'],
   BEV: ['ANT-A','AND-H','ZWA-A','GNK-A','OHL-H','STV-H','KOR-A','LOM-H'],
-  STV: ['LOM-H','CER-A','USG-H','ANT-A','LLV-H','BEV-A','WES-H','KVM-A'],
+  // GW4 (index 3) is voor STV en USG een dubbele speeldag (DGW): zie isDoubleGameweek() hieronder.
+  STV: ['LOM-H','CER-A','USG-H', ['ANT-A','USG-H'], 'LLV-H','BEV-A','WES-H','KVM-A'],
   STA: ['CER-H','KVM-A','LLV-H','OHL-A','ANT-H','WES-A','GNT-A','CHA-H'],
-  USG: ['WES-A','ZWA-H','STV-A','AND-H','CHA-A','LOM-H','ANT-A','OHL-H'],
+  USG: ['WES-A','ZWA-H','STV-A', ['AND-H','STV-A'], 'CHA-A','LOM-H','ANT-A','OHL-H'],
   WES: ['USG-H','GNK-A','LOM-A','ZWA-H','KVM-A','STA-H','STV-A','ANT-H'],
   ZWA: ['GNK-H','USG-A','BEV-H','WES-A','KOR-A','CHA-H','AND-A','GNT-H'],
 };
+
+// Een fixture-entry in FIXTURES is normaal een string ("OPP-VENUE" — één wedstrijd). Voor een dubbele
+// speeldag (DGW) is diezelfde positie in plaats daarvan een ARRAY van zulke strings, bv. ['ANT-A','USG-H'].
+// Dit zijn de enige twee plekken die dat onderscheid maken — alle andere code roept isDoubleGameweek()/
+// getFixtureLegs() aan i.p.v. zelf te controleren of iets een array is. Om een nieuwe DGW toe te voegen:
+// vervang de betreffende FIXTURES-positie door een array van 2+ "OPP-VENUE"-strings, verder niets.
+function isDoubleGameweek(fixtureEntry) {
+  return Array.isArray(fixtureEntry);
+}
+
+// Normaliseert een fixture-entry naar een array van "OPP-VENUE"-strings: [fixture] voor een enkele
+// speeldag, of de array zelf voor een DGW. Zo kan alle downstream-code (getFixtureInfo, getFixtureScores)
+// hetzelfde .map()-patroon gebruiken ongeacht of het om 1 of meerdere wedstrijden gaat.
+function getFixtureLegs(fixtureEntry) {
+  return isDoubleGameweek(fixtureEntry) ? fixtureEntry : [fixtureEntry];
+}
 
 const POSTPONED = new Set([
   'STV-3', // Sint-Truiden vs Union SG, GW3 — uitgesteld naar 2 september
@@ -239,6 +256,10 @@ function getFixtureScores(teamCode, fixtures, ratings, homeAdvantage, startGW) {
   return fixtures.map((f, idx) => {
     const gwNumber = startGW + idx;
     if (POSTPONED.has(`${teamCode}-${gwNumber}`)) return 5; // gemiste speeldag = nadeel, telt als moeilijkst
+    // DGW = altijd de gunstigste rating in gemiddelde-berekeningen: een extra speeldag levert altijd
+    // extra puntenkansen op, ongeacht wie de tegenstanders zijn. Geldt voor elke plek die het gemiddelde
+    // berekent (teamAvgDifficulty, bestRuns), want die lopen allebei via deze functie.
+    if (isDoubleGameweek(f)) return 1;
     const [opp, venue] = f.split('-');
     return getEffectiveRating(opp, venue, ratings, homeAdvantage);
   });
@@ -263,14 +284,35 @@ function buildPossiblyPostponedTooltipText(teamCode, opp, venue) {
 }
 
 function getFixtureInfo(teamCode, fixture, gwNumber, ratings, homeAdvantage) {
-  const [opp, venue] = fixture.split('-');
   const key = `${teamCode}-${gwNumber}`;
   const isPostponed = POSTPONED.has(key);
   const isPossiblyPostponed = !isPostponed && POSSIBLY_POSTPONED.has(key);
+
+  // DGW-tak: levert meerdere "legs" (elk hun eigen opp/venue/style) i.p.v. één opp/venue/style.
+  // POSTPONED/POSSIBLY_POSTPONED werken op het niveau van de hele speeldag (key = teamCode-gwNumber),
+  // niet per individuele wedstrijd binnen een DGW. Een POSTPONED DGW-speeldag valt daarom door naar het
+  // enkele-GW-pad hieronder en gedraagt zich als een normale uitgestelde cel (legs worden genegeerd).
+  // Tooltips voor mogelijk-uitgesteld tonen we bewust niet op DGW-cellen: 2 tegenstanders passen niet in
+  // 1 reden-tekst, en de cel toont z'n eigen twee kleurvakjes al als visueel signaal.
+  if (isDoubleGameweek(fixture) && !isPostponed) {
+    const legs = getFixtureLegs(fixture).map(f => {
+      const [opp, venue] = f.split('-');
+      return { opp, venue, style: RATING_STYLE[getEffectiveRating(opp, venue, ratings, homeAdvantage)] };
+    });
+    return {
+      isDoubleGameweek: true, legs,
+      isPostponed: false, isPossiblyPostponed,
+      postponedText: null, possiblyPostponedText: null,
+    };
+  }
+
+  // Enkele-GW-pad (bestaand gedrag). getFixtureLegs(...)[0] pakt bij een (toevallig) POSTPONED DGW de
+  // eerste wedstrijd, zodat de "was het tegen wie"-tooltiptekst nog altijd zinvol is.
+  const [opp, venue] = getFixtureLegs(fixture)[0].split('-');
   const style = isPostponed ? null : RATING_STYLE[getEffectiveRating(opp, venue, ratings, homeAdvantage)];
   const postponedText = isPostponed ? buildPostponedTooltipText(teamCode, opp, venue) : null;
   const possiblyPostponedText = isPossiblyPostponed ? buildPossiblyPostponedTooltipText(teamCode, opp, venue) : null;
-  return { opp, venue, isPostponed, isPossiblyPostponed, style, postponedText, possiblyPostponedText };
+  return { isDoubleGameweek: false, opp, venue, isPostponed, isPossiblyPostponed, style, postponedText, possiblyPostponedText };
 }
 
 const selectStyle = {
@@ -417,7 +459,8 @@ const PostponedIndicator = memo(function PostponedIndicator({ as: Tag, text, sty
 });
 
 const FixtureCell = memo(function FixtureCell({
-  opp, venue, isPostponed, isPossiblyPostponed, bg, textColor, stacked, postponedText, possiblyPostponedText
+  opp, venue, isPostponed, isPossiblyPostponed, bg, textColor, stacked, postponedText, possiblyPostponedText,
+  isDoubleGameweek, legs
 }) {
   const stackingStyle = stacked ? { position: 'relative', zIndex: 1 } : null;
 
@@ -434,6 +477,25 @@ const FixtureCell = memo(function FixtureCell({
           ...stackingStyle
         }}
       />
+    );
+  }
+
+  // DGW: cel gesplitst in 2 gestapelde helften (elk hun eigen achtergrondkleur o.b.v. de rating van die
+  // tegenstander), in een kleiner lettertype dan de normale enkele cel zodat beide passen. Een <td> is
+  // van zichzelf al block-level voor z'n kinderen, dus de twee <div>'s stapelen vanzelf boven/onder.
+  if (isDoubleGameweek) {
+    return (
+      <td className="fdr-cell" style={{ padding: 0, borderRadius: '6px', overflow: 'hidden', ...stackingStyle }}>
+        {legs.map((leg, i) => (
+          <div key={i} style={{
+            background: leg.style.bg, color: leg.style.text, textAlign: 'center',
+            fontSize: '10px', fontWeight: 700, padding: '3px 2px', lineHeight: 1.3,
+            borderTop: i > 0 ? '1px solid rgba(0,0,0,0.15)' : undefined
+          }}>
+            {leg.opp} <span style={{ opacity: 0.75, fontWeight: 500 }}>({leg.venue})</span>
+          </div>
+        ))}
+      </td>
     );
   }
 
@@ -479,7 +541,7 @@ const FixtureCell = memo(function FixtureCell({
 // Compacte fixture-badge (tegenstander + venue) inclusief POSTPONED/POSSIBLY_POSTPONED-afhandeling,
 // in mini-formaat — gebruikt voor de fixture-strip per speler in de watch list.
 const MiniFixtureBadge = memo(function MiniFixtureBadge({ teamCode, fixture, gwNumber, ratings, homeAdvantage }) {
-  const { opp, venue, isPostponed, isPossiblyPostponed, style, postponedText, possiblyPostponedText } =
+  const { opp, venue, isPostponed, isPossiblyPostponed, style, postponedText, possiblyPostponedText, isDoubleGameweek, legs } =
     getFixtureInfo(teamCode, fixture, gwNumber, ratings, homeAdvantage);
 
   if (isPostponed) {
@@ -492,6 +554,25 @@ const MiniFixtureBadge = memo(function MiniFixtureBadge({ teamCode, fixture, gwN
           padding: '3px 6px', borderRadius: '5px', cursor: 'pointer'
         }}
       />
+    );
+  }
+
+  // DGW: mini-badge gesplitst in 2 gestapelde regels i.p.v. 1 — zelfde idee als FixtureCell, maar
+  // dan als inline-flex span (blijft meelopen in de flex-wrap rij van badges). De "fdr-dgw-badge"-klasse
+  // laat mobiele CSS de padding van deze wrapper resetten, los van de padding van de losse badges.
+  if (isDoubleGameweek) {
+    return (
+      <span className="fdr-dgw-badge" style={{ display: 'inline-flex', flexDirection: 'column', borderRadius: '5px', overflow: 'hidden' }}>
+        {legs.map((leg, i) => (
+          <span key={i} style={{
+            display: 'block', background: leg.style.bg, color: leg.style.text,
+            fontSize: '8px', fontWeight: 700, padding: '2px 5px', lineHeight: 1.3,
+            borderTop: i > 0 ? '1px solid rgba(0,0,0,0.15)' : undefined
+          }}>
+            {leg.opp} ({leg.venue})
+          </span>
+        ))}
+      </span>
     );
   }
 
@@ -917,16 +998,26 @@ export default function FDRTool() {
             font-size: 9px !important;
             padding: 2px 4px !important;
           }
+          /* DGW-badge is een layout-wrapper zonder eigen achtergrond — de padding zit op de losse
+             leg-spans erbinnen, dus reset de wrapper zelf terug naar 0 (meer-specifieke selector dan
+             de generieke regel hierboven wint). */
+          .fdr-watchlist-fixture-row > .fdr-dgw-badge {
+            padding: 0 !important;
+          }
         }
 
       `}</style>
 
+      {/* Stippenpatroon dat radiaal uitdooft vanuit de linkerbovenhoek: de mask is een cirkel met vaste
+          straal rond die hoek (i.p.v. een percentage, zodat de vorm van de fade niet verandert met de
+          breedte van het scherm) — hoe verder een stip van de hoek af staat, hoe transparanter hij wordt,
+          tot volledig onzichtbaar op de rand van de cirkel. */}
       <div style={{
-        position: 'absolute', top: 0, left: 0, width: '100%', height: '480px',
+        position: 'absolute', top: 0, left: 0, width: '100%', height: '600px',
         backgroundImage: 'radial-gradient(#4ECDC4 1.5px, transparent 1.5px)',
         backgroundSize: '18px 18px', opacity: 0.25,
-        maskImage: 'linear-gradient(to bottom, black 0%, black 45%, transparent 100%)',
-        WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 45%, transparent 100%)',
+        maskImage: 'radial-gradient(circle 550px at top left, black 0%, black 15%, transparent 100%)',
+        WebkitMaskImage: 'radial-gradient(circle 550px at top left, black 0%, black 15%, transparent 100%)',
         pointerEvents: 'none'
       }} />
 
@@ -1166,7 +1257,7 @@ export default function FDRTool() {
                     </td>
 
                     {FIXTURES[team.code].map((f, i) => {
-                      const { opp, venue, isPostponed, isPossiblyPostponed, style, postponedText, possiblyPostponedText } =
+                      const { opp, venue, isPostponed, isPossiblyPostponed, style, postponedText, possiblyPostponedText, isDoubleGameweek, legs } =
                         getFixtureInfo(team.code, f, i + 1, ratings, homeAdvantage);
                       return (
                         <FixtureCell
@@ -1179,6 +1270,8 @@ export default function FDRTool() {
                           textColor={style?.text}
                           postponedText={postponedText}
                           possiblyPostponedText={possiblyPostponedText}
+                          isDoubleGameweek={isDoubleGameweek}
+                          legs={legs}
                           stacked
                         />
                       );
@@ -1235,57 +1328,17 @@ export default function FDRTool() {
                     <div style={{ color: '#FFF', fontWeight: 700, fontSize: '14px' }}>{team.name}</div>
                     <div style={{ color: '#8F79AD', fontSize: '11px' }}>Gem. moeilijkheid: {team.avg.toFixed(1)}</div>
                   </div>
-                  <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                    {team.fixtures.map((f, i) => {
-                      const gwNumber = team.startGW + i;
-                      const { opp, venue, isPostponed, isPossiblyPostponed, style, postponedText, possiblyPostponedText } =
-                        getFixtureInfo(team.code, f, gwNumber, ratings, homeAdvantage);
-                      if (isPostponed) {
-                        return (
-                          <PostponedIndicator
-                            key={i}
-                            as="span"
-                            text={postponedText}
-                            style={{
-                              background: '#4A4560', color: '#9B93AD', fontSize: '10px', fontWeight: 700,
-                              padding: '3px 6px', borderRadius: '5px', cursor: 'pointer'
-                            }}
-                          />
-                        );
-                      }
-                      const badgeContent = (
-                        <>
-                          {opp}{' '}
-                          <span style={{ position: isPossiblyPostponed ? 'relative' : undefined }}>
-                            ({venue})
-                            {isPossiblyPostponed && <span className="fdr-maybe-postponed-marker" aria-hidden="true">*</span>}
-                          </span>
-                        </>
-                      );
-                      if (isPossiblyPostponed) {
-                        return (
-                          <TooltipTrigger
-                            key={i}
-                            as="span"
-                            text={possiblyPostponedText}
-                            style={{
-                              background: style.bg, color: style.text, fontSize: '10px', fontWeight: 700,
-                              padding: '3px 6px', borderRadius: '5px', cursor: 'pointer'
-                            }}
-                          >
-                            {badgeContent}
-                          </TooltipTrigger>
-                        );
-                      }
-                      return (
-                        <span key={i} style={{
-                          background: style.bg, color: style.text, fontSize: '10px', fontWeight: 700,
-                          padding: '3px 6px', borderRadius: '5px'
-                        }}>
-                          {badgeContent}
-                        </span>
-                      );
-                    })}
+                  <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+                    {team.fixtures.map((f, i) => (
+                      <MiniFixtureBadge
+                        key={i}
+                        teamCode={team.code}
+                        fixture={f}
+                        gwNumber={team.startGW + i}
+                        ratings={ratings}
+                        homeAdvantage={homeAdvantage}
+                      />
+                    ))}
                   </div>
                 </div>
               ))}
@@ -1359,7 +1412,7 @@ export default function FDRTool() {
                             </span>
                           </td>
                           {FIXTURES[code].map((f, i) => {
-                            const { opp, venue, isPostponed, isPossiblyPostponed, style, postponedText, possiblyPostponedText } =
+                            const { opp, venue, isPostponed, isPossiblyPostponed, style, postponedText, possiblyPostponedText, isDoubleGameweek, legs } =
                               getFixtureInfo(code, f, i + 1, ratings, homeAdvantage);
                             return (
                               <FixtureCell
@@ -1372,6 +1425,8 @@ export default function FDRTool() {
                                 textColor={style?.text}
                                 postponedText={postponedText}
                                 possiblyPostponedText={possiblyPostponedText}
+                                isDoubleGameweek={isDoubleGameweek}
+                                legs={legs}
                               />
                             );
                           })}
@@ -1494,7 +1549,7 @@ export default function FDRTool() {
                             }}>{player.price}M</span>
                           )}
                         </div>
-                        <div className="fdr-watchlist-fixture-row" style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '8px' }}>
+                        <div className="fdr-watchlist-fixture-row" style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'flex-start', marginTop: '8px' }}>
                           {upcomingFixtures.map((fixture, idx) => (
                             <MiniFixtureBadge
                               key={idx}
