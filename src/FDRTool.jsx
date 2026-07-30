@@ -856,9 +856,6 @@ export default function FDRTool() {
             font-size: 12px !important;
             padding: 8px 12px !important;
           }
-          .club-logo {
-            display: none !important;
-          }
           .fdr-section-title {
             font-size: 14px !important;
             gap: 6px !important;
@@ -1072,7 +1069,16 @@ export default function FDRTool() {
                     borderRadius: '10px', padding: '8px 10px'
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                      <span style={{ color: '#FFF', fontSize: '12px', fontWeight: 600 }}>{team.code}</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <img
+                          src={`/club-logos/${team.code}.png`}
+                          alt=""
+                          className="club-logo"
+                          style={{ width: '16px', height: '16px', objectFit: 'contain', flexShrink: 0 }}
+                          onError={(e) => { e.target.style.display = 'none'; }}
+                        />
+                        <span style={{ color: '#FFF', fontSize: '12px', fontWeight: 600 }}>{team.code}</span>
+                      </span>
                       <span style={{
                         fontSize: '10px', fontWeight: 700, padding: '1px 6px', borderRadius: '999px',
                         background: style.bg, color: style.text
@@ -1218,6 +1224,13 @@ export default function FDRTool() {
                   <span className="fdr-title" style={{
                     color: idx === 0 ? '#4ECDC4' : '#C9B8E0', fontWeight: 900, fontSize: '18px', width: '24px'
                   }}>{idx + 1}</span>
+                  <img
+                    src={`/club-logos/${team.code}.png`}
+                    alt=""
+                    className="club-logo"
+                    style={{ width: '24px', height: '24px', objectFit: 'contain', flexShrink: 0 }}
+                    onError={(e) => { e.target.style.display = 'none'; }}
+                  />
                   <div style={{ minWidth: '130px' }}>
                     <div style={{ color: '#FFF', fontWeight: 700, fontSize: '14px' }}>{team.name}</div>
                     <div style={{ color: '#8F79AD', fontSize: '11px' }}>Gem. moeilijkheid: {team.avg.toFixed(1)}</div>
@@ -1297,12 +1310,20 @@ export default function FDRTool() {
                 const disabled = !selected && compareTeams.length >= 3;
                 return (
                   <button key={team.code} onClick={() => toggleCompareTeam(team.code)} disabled={disabled} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
                     background: selected ? '#4ECDC4' : 'rgba(255,255,255,0.04)',
                     color: selected ? '#0B2E1B' : disabled ? '#5A4A72' : '#FFF',
                     border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px',
                     padding: '6px 4px', fontSize: '12px', fontWeight: 700,
                     cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.5 : 1
                   }}>
+                    <img
+                      src={`/club-logos/${team.code}.png`}
+                      alt=""
+                      className="club-logo"
+                      style={{ width: '14px', height: '14px', objectFit: 'contain', flexShrink: 0 }}
+                      onError={(e) => { e.target.style.display = 'none'; }}
+                    />
                     {team.code}
                   </button>
                 );
@@ -1326,7 +1347,16 @@ export default function FDRTool() {
                       return (
                         <tr key={code}>
                           <td style={{ color: '#FFF', fontWeight: 700, fontSize: '13px', padding: '6px 8px', whiteSpace: 'nowrap' }}>
-                            {team.code}
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <img
+                                src={`/club-logos/${team.code}.png`}
+                                alt=""
+                                className="club-logo"
+                                style={{ width: '20px', height: '20px', objectFit: 'contain', flexShrink: 0 }}
+                                onError={(e) => { e.target.style.display = 'none'; }}
+                              />
+                              {team.code}
+                            </span>
                           </td>
                           {FIXTURES[code].map((f, i) => {
                             const { opp, venue, isPostponed, isPossiblyPostponed, style, postponedText, possiblyPostponedText } =
