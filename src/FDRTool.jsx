@@ -911,6 +911,24 @@ export default function FDRTool() {
         ::-webkit-scrollbar-track { background: #3D1E5C; }
         .fdr-tabs { scrollbar-width: none; -ms-overflow-style: none; }
         .fdr-tabs::-webkit-scrollbar { display: none; }
+        .fdr-footer-link {
+          color: inherit;
+          text-decoration: underline;
+          text-underline-offset: 2px;
+          transition: color 0.15s ease;
+        }
+        .fdr-footer-link:hover, .fdr-footer-link:focus-visible {
+          color: #C9B8E0;
+        }
+        .fdr-footer-link img {
+          vertical-align: -4px;
+          margin-right: 3px;
+          opacity: 0.8;
+          transition: opacity 0.15s ease;
+        }
+        .fdr-footer-link:hover img, .fdr-footer-link:focus-visible img {
+          opacity: 1;
+        }
         .fpl-toolbar-actions {
           display: flex;
           align-items: center;
@@ -1611,7 +1629,12 @@ export default function FDRTool() {
         )}
 
         <footer style={{ marginTop: '28px', textAlign: 'center', color: '#6B5289', fontSize: '12px', lineHeight: 1.5 }}>
-          Gemaakt door @fpl_proleague · Fantasy Pro League 26/27 · Data eigen analyse<br />
+          Gemaakt door{' '}
+          <a href="https://x.com/fpl_proleague" target="_blank" rel="noopener noreferrer" className="fdr-footer-link">
+            <img src="/x-logo.png" alt="" style={{ width: '12px', height: '12px' }} />
+            @fpl_proleague
+          </a>
+          {' '}· Fantasy Pro League 26/27 · Data eigen analyse<br />
           Laatst bijgewerkt: {LAST_UPDATED}
         </footer>
       </div>
