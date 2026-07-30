@@ -107,6 +107,8 @@ const STORAGE_KEY = 'fpl_proleague_fdr_ratings_v1';
 const HOME_ADVANTAGE_STORAGE_KEY = 'fpl_proleague_fdr_home_advantage_v1';
 // Eigen storage key voor de watch list — los van de FDR-ratings hierboven, zodat ze elkaar niet raken.
 const WATCHLIST_STORAGE_KEY = 'fpl_proleague_watchlist_v1';
+// Onthoudt of de first-time-uitleg over Thuisvoordeel al getoond is, zodat die maar één keer ooit verschijnt.
+const HOME_ADVANTAGE_INTRO_SEEN_KEY = 'fpl_proleague_ha_intro_seen_v1';
 
 // TEAMS is al alfabetisch op code — eenmalig gesorteerde kopie voor UI-lijsten die dat expliciet willen.
 const TEAMS_ALPHA = [...TEAMS].sort((a, b) => a.code.localeCompare(b.code));
@@ -168,6 +170,14 @@ function loadStoredHomeAdvantage() {
     return null;
   } catch {
     return null;
+  }
+}
+
+function hasSeenHomeAdvantageIntro() {
+  try {
+    return window.localStorage?.getItem(HOME_ADVANTAGE_INTRO_SEEN_KEY) === '1';
+  } catch {
+    return false;
   }
 }
 
@@ -531,6 +541,7 @@ export default function FDRTool() {
   const [minileagueCodeCopied, setMinileagueCodeCopied] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
+  const [showHomeAdvantageIntro, setShowHomeAdvantageIntro] = useState(false);
   const [openSections, setOpenSections] = useState({
     sliders: false,
     table: true,
@@ -560,6 +571,15 @@ export default function FDRTool() {
   const toggleHomeAdvantage = (code) => {
     setHomeAdvantage(prev => ({ ...prev, [code]: !prev[code] }));
     setSaved(false);
+    // First-time-uitleg: verschijnt enkel bij de allereerste toggle-klik ooit, daarna nooit meer.
+    if (!hasSeenHomeAdvantageIntro()) {
+      setShowHomeAdvantageIntro(true);
+      try {
+        window.localStorage?.setItem(HOME_ADVANTAGE_INTRO_SEEN_KEY, '1');
+      } catch {
+        // storage unavailable — de uitleg verschijnt dan gewoon opnieuw bij een volgende klik
+      }
+    }
   };
 
   const handleSave = () => {
@@ -720,6 +740,13 @@ export default function FDRTool() {
       return [...prev, code];
     });
   };
+
+  // De first-time-uitleg over Thuisvoordeel verdwijnt vanzelf na een paar seconden.
+  useEffect(() => {
+    if (!showHomeAdvantageIntro) return;
+    const timer = setTimeout(() => setShowHomeAdvantageIntro(false), 6000);
+    return () => clearTimeout(timer);
+  }, [showHomeAdvantageIntro]);
 
   // Watch list slaat zichzelf automatisch op bij elke wijziging — geen aparte bewaar-knop nodig,
   // in tegenstelling tot de FDR-ratings hierboven die pas bewaard worden via "Bewaar in browser".
@@ -1529,6 +1556,29 @@ export default function FDRTool() {
               <strong>Thuisvoordeel</strong> is een aparte toggle per team: zet je hem aan voor een team, dan wordt de moeilijkheidsgraad met 1 verhoogd (tot maximum 5) voor elk team dat bij hen op verplaatsing speelt. Handig omdat sommige teams nu eenmaal moeilijker te verslaan zijn op hun eigen veld.
             </p>
           </div>
+        </div>
+      )}
+
+      {showHomeAdvantageIntro && (
+        <div role="status" style={{
+          position: 'fixed', left: '50%', bottom: '20px', transform: 'translateX(-50%)',
+          zIndex: 60, width: 'calc(100% - 40px)', maxWidth: '320px',
+          display: 'flex', alignItems: 'flex-start', gap: '10px',
+          background: '#3D1E5C', color: '#EDE4F5', border: '1px solid rgba(255,255,255,0.15)',
+          borderRadius: '10px', padding: '12px 14px', boxShadow: '0 8px 20px rgba(0,0,0,0.4)',
+          fontFamily: "'Inter', sans-serif"
+        }}>
+          <Info size={16} color="#4ECDC4" style={{ flexShrink: 0, marginTop: '2px' }} />
+          <p style={{ margin: 0, fontSize: '12px', lineHeight: 1.5, flex: 1 }}>
+            <strong style={{ color: '#FFFFFF' }}>Thuisvoordeel</strong> verhoogt de moeilijkheidsgraad met 1 voor teams die hier op bezoek komen.
+          </p>
+          <button
+            onClick={() => setShowHomeAdvantageIntro(false)}
+            aria-label="Sluiten"
+            style={{ background: 'transparent', border: 'none', color: '#C9B8E0', cursor: 'pointer', flexShrink: 0, padding: 0 }}
+          >
+            <X size={14} />
+          </button>
         </div>
       )}
     </div>
