@@ -1307,7 +1307,7 @@ export default function FDRTool() {
             }}>
               {TEAMS_ALPHA.map(team => {
                 const selected = compareTeams.includes(team.code);
-                const disabled = !selected && compareTeams.length >= 3;
+                const disabled = !selected && compareTeams.length >= 5;
                 return (
                   <button key={team.code} onClick={() => toggleCompareTeam(team.code)} disabled={disabled} style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
