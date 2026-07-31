@@ -138,7 +138,7 @@ const HOME_ADVANTAGE_STORAGE_KEY = 'fpl_proleague_fdr_home_advantage_v1';
 const WATCHLIST_STORAGE_KEY = 'fpl_proleague_watchlist_v1';
 // Publiek gepubliceerde Google Sheet (CSV-export) met de actuele spelersstatus (out/twijfel/terug
 // beschikbaar) — bron voor de Spelerstatus-tab.
-const PLAYER_STATUS_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT6USo4139zAf6zndDf428orxRT2q20l8arNVo8LWqNoVGz2-FZIx3PJedAhCzoQOGGxfPz0qbx4m2h/pub?output=csv';
+const PLAYER_STATUS_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT6USo4139zAf6zndDf428orxRT2q20l8arNVo8LWqNoVGz2-FZIx3PJedAhCzoQOGGxfPz0qbx4m2h/pub?gid=0&single=true&output=csv';
 // Onthoudt of de first-time-uitleg over Thuisvoordeel al getoond is, zodat die maar één keer ooit verschijnt.
 const HOME_ADVANTAGE_INTRO_SEEN_KEY = 'fpl_proleague_ha_intro_seen_v1';
 
