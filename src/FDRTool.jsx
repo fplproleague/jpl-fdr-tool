@@ -25,17 +25,21 @@ const TEAMS = [
 ];
 
 const FIXTURES = {
-  AND: ['LLV-H','BEV-A','KOR-H','USG-A','GNK-H','KVM-A','ZWA-H','CER-A'],
+  // AND-KOR (GW3) is door de Europese voorrondes uitgesteld naar GW4, waar het een dubbele speeldag
+  // (DGW) wordt naast de oorspronkelijke GW4-tegenstander. De GW3-cel zelf blijft hieronder ongewijzigd
+  // staan (nog altijd 'KOR-H'/'AND-A') — die rendert als "/" doordat de key in POSTPONED zit, zie verderop.
+  AND: ['LLV-H','BEV-A','KOR-H', ['USG-A','KOR-H'], 'GNK-H','KVM-A','ZWA-H','CER-A'],
   ANT: ['BEV-H','KOR-A','GNK-H','STV-H','STA-A','CLU-A','USG-H','WES-A'],
   CER: ['STA-A','STV-H','CLU-A','LOM-H','GNT-H','OHL-A','CHA-A','AND-H'],
   CHA: ['OHL-H','LOM-A','KVM-H','KOR-A','USG-H','ZWA-A','CER-H','STA-A'],
   CLU: ['KOR-H','OHL-A','CER-H','GNT-A','LOM-A','ANT-H','GNK-H','LLV-A'],
   GNK: ['ZWA-A','WES-H','ANT-A','BEV-H','AND-A','GNT-H','CLU-A','KOR-H'],
-  GNT: ['KVM-H','LLV-A','OHL-H','CLU-H','CER-A','GNK-A','STA-H','ZWA-A'],
-  KOR: ['CLU-A','ANT-H','AND-A','CHA-H','ZWA-H','LLV-A','BEV-H','GNK-A'],
+  // GNT-OHL (GW3) is door de Europese voorrondes uitgesteld naar GW4 — zelfde patroon als AND/KOR hierboven.
+  GNT: ['KVM-H','LLV-A','OHL-H', ['CLU-H','OHL-H'], 'CER-A','GNK-A','STA-H','ZWA-A'],
+  KOR: ['CLU-A','ANT-H','AND-A', ['CHA-H','AND-A'], 'ZWA-H','LLV-A','BEV-H','GNK-A'],
   KVM: ['GNT-A','STA-H','CHA-A','LLV-A','WES-H','AND-H','LOM-A','STV-H'],
   LOM: ['STV-A','CHA-H','WES-H','CER-A','CLU-H','USG-A','KVM-H','BEV-A'],
-  OHL: ['CHA-A','CLU-H','GNT-A','STA-H','BEV-A','CER-H','LLV-H','USG-A'],
+  OHL: ['CHA-A','CLU-H','GNT-A', ['STA-H','GNT-A'], 'BEV-A','CER-H','LLV-H','USG-A'],
   LLV: ['AND-A','GNT-H','STA-A','KVM-H','STV-A','KOR-H','OHL-A','CLU-H'],
   BEV: ['ANT-A','AND-H','ZWA-A','GNK-A','OHL-H','STV-H','KOR-A','LOM-H'],
   // GW4 (index 3) is voor STV en USG een dubbele speeldag (DGW): zie isDoubleGameweek() hieronder.
@@ -65,23 +69,27 @@ function getFixtureLegs(fixtureEntry) {
 const POSTPONED = new Set([
   'STV-3', // Sint-Truiden vs Union SG, GW3 — uitgesteld naar 2 september
   'USG-3', // Union SG vs Sint-Truiden, GW3 — uitgesteld naar 2 september
+  'AND-3', // Anderlecht vs Kortrijk, GW3 — uitgesteld naar 3 september (Europese voorrondes)
+  'KOR-3', // Kortrijk vs Anderlecht, GW3 — uitgesteld naar 3 september (Europese voorrondes)
+  'GNT-3', // Gent vs OH Leuven, GW3 — uitgesteld naar 3 september (Europese voorrondes)
+  'OHL-3', // OH Leuven vs Gent, GW3 — uitgesteld naar 3 september (Europese voorrondes)
 ]);
-const POSTPONED_DATE = '2 september';
+// Datum waarnaar uitgestelde wedstrijden verplaatst zijn, per teamcode-onafhankelijke (gesorteerde)
+// paar-key — niet elke POSTPONED-wedstrijd valt op dezelfde datum.
+const POSTPONED_DATES = {
+  'STV-USG': '2 september',
+  'AND-KOR': '3 september',
+  'GNT-OHL': '3 september',
+};
 
 // Nog niet zeker uitgesteld — kan verschuiven afhankelijk van Europese kwalificatie. Zelfde key-structuur als POSTPONED.
 const POSSIBLY_POSTPONED = new Set([
-  'AND-3', // Anderlecht vs Kortrijk, GW3 — bij Europese kwalificatie van Anderlecht
-  'KOR-3', // Kortrijk vs Anderlecht, GW3 — bij Europese kwalificatie van Anderlecht
-  'GNT-3', // Gent vs OH Leuven, GW3 — bij Europese kwalificatie van Gent
-  'OHL-3', // OH Leuven vs Gent, GW3 — bij Europese kwalificatie van Gent
   'USG-6', // Union SG vs Lommel, GW6 — afhankelijk van Europees programma Union SG
   'LOM-6', // Lommel vs Union SG, GW6 — afhankelijk van Europees programma Union SG
 ]);
 
 // Eén reden per wedstrijd, opgezocht via een teamcode-onafhankelijke (gesorteerde) paar-key.
 const POSSIBLY_POSTPONED_REASONS = {
-  'AND-KOR': 'mogelijk uitgesteld als Anderlecht zich plaatst voor de laatste Europese kwalificatieronde',
-  'GNT-OHL': 'mogelijk uitgesteld als Gent zich plaatst voor de laatste Europese kwalificatieronde',
   'LOM-USG': "mogelijk uitgesteld afhankelijk van Union SG's Europees programma",
 };
 
@@ -273,7 +281,9 @@ function splitHomeAway(teamCode, opp, venue) {
 
 function buildPostponedTooltipText(teamCode, opp, venue) {
   const [home, away] = splitHomeAway(teamCode, opp, venue);
-  return `${home} - ${away} is uitgesteld naar ${POSTPONED_DATE} wegens de Europese voorrondes.`;
+  const pairKey = [teamCode, opp].sort().join('-');
+  const date = POSTPONED_DATES[pairKey];
+  return `${home} - ${away} is uitgesteld naar ${date} wegens de Europese voorrondes.`;
 }
 
 function buildPossiblyPostponedTooltipText(teamCode, opp, venue) {
