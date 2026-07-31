@@ -1351,7 +1351,7 @@ export default function FDRTool() {
             flex-direction: column !important;
             align-items: stretch !important;
           }
-          .fdr-playerstatus-search {
+          .fdr-playerstatus-search-row {
             flex: none !important;
             width: 100% !important;
           }
@@ -1963,45 +1963,44 @@ export default function FDRTool() {
 
             {!playerStatusLoading && !playerStatusError && (
               <>
-                <div style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap',
-                  gap: '8px', marginBottom: '16px'
-                }}>
-                  {mostRecentUpdate ? (
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#C9B8E0', fontSize: '12px' }}>
-                      <Clock size={14} />
-                      Laatst bijgewerkt: {mostRecentUpdate.lastUpdateDate ? formatDateDDMMYYYY(mostRecentUpdate.lastUpdateDate) : mostRecentUpdate.lastUpdate}
-                    </span>
-                  ) : <span />}
-                  <button
-                    onClick={fetchPlayerStatuses}
-                    aria-label="Vernieuwen"
-                    title="Vernieuwen"
-                    style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', width: '26px', height: '26px',
-                      background: 'transparent', color: '#8F79AD', border: '1px solid rgba(255,255,255,0.2)',
-                      borderRadius: '6px', cursor: 'pointer'
-                    }}
-                  >
-                    <RotateCcw size={13} />
-                  </button>
-                </div>
+                {mostRecentUpdate && (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#C9B8E0', fontSize: '12px', marginBottom: '10px' }}>
+                    <Clock size={14} />
+                    Laatst bijgewerkt: {mostRecentUpdate.lastUpdateDate ? formatDateDDMMYYYY(mostRecentUpdate.lastUpdateDate) : mostRecentUpdate.lastUpdate}
+                  </span>
+                )}
 
                 <div className="fdr-playerstatus-filters" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '20px' }}>
-                  <label className="fdr-playerstatus-search" style={{ position: 'relative', flex: '1 1 200px', minWidth: '160px' }}>
-                    <Search size={14} color="#8F79AD" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
-                    <input
-                      type="text"
-                      value={playerSearch}
-                      onChange={e => setPlayerSearch(e.target.value)}
-                      placeholder="Zoek op spelersnaam"
+                  <div className="fdr-playerstatus-search-row" style={{
+                    display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 200px', minWidth: '160px'
+                  }}>
+                    <label style={{ position: 'relative', flex: 1 }}>
+                      <Search size={14} color="#8F79AD" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                      <input
+                        type="text"
+                        value={playerSearch}
+                        onChange={e => setPlayerSearch(e.target.value)}
+                        placeholder="Zoek op spelersnaam"
+                        style={{
+                          width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.04)',
+                          border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px',
+                          padding: '8px 10px 8px 32px', color: '#FFFFFF', fontSize: '13px'
+                        }}
+                      />
+                    </label>
+                    <button
+                      onClick={fetchPlayerStatuses}
+                      aria-label="Vernieuwen"
+                      title="Vernieuwen"
                       style={{
-                        width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.04)',
-                        border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px',
-                        padding: '8px 10px 8px 32px', color: '#FFFFFF', fontSize: '13px'
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', width: '34px', height: '34px', flexShrink: 0,
+                        background: 'transparent', color: '#8F79AD', border: '1px solid rgba(255,255,255,0.15)',
+                        borderRadius: '8px', cursor: 'pointer'
                       }}
-                    />
-                  </label>
+                    >
+                      <RotateCcw size={14} />
+                    </button>
+                  </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {[
                       { key: 'all', label: `Alles (${playerStatusCounts.out + playerStatusCounts.twijfel + playerStatusCounts.terugBeschikbaar})` },
