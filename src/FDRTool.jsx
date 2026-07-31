@@ -769,7 +769,7 @@ const PlayerStatusRow = memo(function PlayerStatusRow({ player, isExpanded, onTo
           flexShrink: 0, fontSize: '11px', fontWeight: 700, padding: '3px 8px', borderRadius: '999px',
           background: style.bg, color: style.text, whiteSpace: 'nowrap'
         }}>
-          {style.emoji} {player.status}
+          {player.status}
         </span>
         <img
           src={`/club-logos/${player.teamCode}.png`}
@@ -1341,15 +1341,11 @@ export default function FDRTool() {
             line-height: 1.05 !important;
           }
 
-          /* Spelerstatus-tab: rijhoofding en filters/samenvatting mogen op smalle schermen
-             wat compacter/anders wrappen dan op desktop. */
+          /* Spelerstatus-tab: rijhoofding en filters mogen op smalle schermen wat compacter/anders
+             wrappen dan op desktop. */
           .fdr-playerstatus-row {
             padding: 8px 10px !important;
             gap: 8px !important;
-          }
-          .fdr-playerstatus-summary > span {
-            font-size: 11px !important;
-            padding: 5px 10px !important;
           }
           .fdr-playerstatus-filters {
             flex-direction: column !important;
@@ -1991,27 +1987,6 @@ export default function FDRTool() {
                   </button>
                 </div>
 
-                <div className="fdr-playerstatus-summary" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '16px' }}>
-                  <span style={{
-                    fontSize: '12px', fontWeight: 700, padding: '6px 12px', borderRadius: '999px',
-                    background: 'rgba(255,255,255,0.06)', color: '#FFFFFF'
-                  }}>
-                    🔴 {playerStatusCounts.out} spelers out
-                  </span>
-                  <span style={{
-                    fontSize: '12px', fontWeight: 700, padding: '6px 12px', borderRadius: '999px',
-                    background: 'rgba(255,255,255,0.06)', color: '#FFFFFF'
-                  }}>
-                    🟡 {playerStatusCounts.twijfel} twijfelgevallen
-                  </span>
-                  <span style={{
-                    fontSize: '12px', fontWeight: 700, padding: '6px 12px', borderRadius: '999px',
-                    background: 'rgba(255,255,255,0.06)', color: '#FFFFFF'
-                  }}>
-                    🟢 {playerStatusCounts.terugBeschikbaar} terug beschikbaar
-                  </span>
-                </div>
-
                 <div className="fdr-playerstatus-filters" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '20px' }}>
                   <label className="fdr-playerstatus-search" style={{ position: 'relative', flex: '1 1 200px', minWidth: '160px' }}>
                     <Search size={14} color="#8F79AD" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
@@ -2029,10 +2004,10 @@ export default function FDRTool() {
                   </label>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {[
-                      { key: 'all', label: 'Alles' },
-                      { key: 'Out', label: '🔴 Out' },
-                      { key: 'Twijfel', label: '🟡 Twijfel' },
-                      { key: 'Terug Beschikbaar', label: '🟢 Terug Beschikbaar' },
+                      { key: 'all', label: `Alles (${playerStatusCounts.out + playerStatusCounts.twijfel + playerStatusCounts.terugBeschikbaar})` },
+                      { key: 'Out', label: `🔴 Out (${playerStatusCounts.out})` },
+                      { key: 'Twijfel', label: `🟡 Twijfel (${playerStatusCounts.twijfel})` },
+                      { key: 'Terug Beschikbaar', label: `🟢 Terug Beschikbaar (${playerStatusCounts.terugBeschikbaar})` },
                     ].map(opt => (
                       <button
                         key={opt.key}
