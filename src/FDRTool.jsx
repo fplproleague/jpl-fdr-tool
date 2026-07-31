@@ -116,6 +116,17 @@ const PLAYER_STATUS_STYLE = {
 // wordt nooit als rij getoond, enkel gebruikt om een speler terug normaal te markeren in de sheet.
 const PLAYER_STATUS_ORDER = ['Out', 'Twijfel', 'Terug Beschikbaar'];
 
+// Weergavelabel per status, per taal — de CANONIEKE status-string uit de sheet (player.status,
+// PLAYER_STATUS_STYLE-key, filter-key, ...) blijft altijd de Nederlandse waarde; enkel de op het
+// scherm getoonde tekst verandert met de taalkeuze.
+const STATUS_LABELS = {
+  nl: { 'Out': 'Out', 'Twijfel': 'Twijfel', 'Terug Beschikbaar': 'Terug Beschikbaar' },
+  en: { 'Out': 'Out', 'Twijfel': 'Doubtful', 'Terug Beschikbaar': 'Back Available' },
+};
+function translateStatus(status, language) {
+  return STATUS_LABELS[language]?.[status] ?? status;
+}
+
 // Tab-navigatie bovenaan de pagina — array-gedreven zodat toekomstige onderdelen naast de FDR-tool
 // gewoon een extra entry kunnen worden.
 const TABS = [
@@ -125,6 +136,114 @@ const TABS = [
   { key: 'teamplanner', label: 'Team Planner' },
   { key: 'pricechanges', label: 'Price Changes' },
 ];
+
+// Lichte NL/EN-vertaallaag voor enkel de belangrijkste, meest zichtbare tekst — geen volledig
+// i18n-systeem. Alles wat hier NIET in staat (info-popup, foutmeldingen, tooltips, data uit de
+// sheet zelf, ...) blijft bewust altijd Nederlands, ongeacht de taalkeuze.
+const TRANSLATIONS = {
+  nl: {
+    subtitle: 'Interactieve tools voor Fantasy Pro League — gemaakt door @fpl_proleague.',
+    tabPlayerStatus: 'Spelerstatus',
+    fdrIntro: 'Mijn eigen fixture difficulty ratings — pas ze aan naar jouw mening en ontdek meteen welke teams de beste runs hebben.',
+    watchlistIntro: 'Houd je favoriete spelers in de gaten — voeg ze toe aan je persoonlijke watchlist, samen met hun eerstvolgende fixtures. Deze lijst slaat automatisch op in je browser.',
+    playerStatusIntro: 'Overzicht van spelers die geblesseerd, geschorst of twijfelachtig zijn — automatisch bijgewerkt vanuit onze spelerstatus-tracker.',
+    copyLinkFull: 'Kopieer link',
+    copyLinkShort: 'Kopieer',
+    linkCopiedFull: 'Link gekopieerd!',
+    linkCopiedShort: 'Gekopieerd!',
+    downloadFull: 'Download als afbeelding',
+    downloadShort: 'Download',
+    loadingEllipsis: 'Bezig...',
+    saveFull: 'Bewaar in browser',
+    saveShort: 'Bewaar',
+    savedFull: 'Opgeslagen ✓',
+    savedShort: 'Bewaard ✓',
+    sortByEasiest: 'Sorteer op makkelijkste run',
+    sortedEasiestFirst: 'Gesorteerd: makkelijkste eerst',
+    customVersionBadge: 'JOUW AANGEPASTE VERSIE',
+    defaultRatingBadge: 'RATING VAN @FPL_PROLEAGUE',
+    ratingLabels: { 1: 'Makkelijkst', 2: 'Makkelijk', 3: 'Gemiddeld', 4: 'Moeilijk', 5: 'Moeilijkst' },
+    sectionSliders: 'Team-sterkte instellen',
+    sectionRuns: 'Beste fixture runs',
+    sectionCompare: 'Vergelijk teams',
+    compareIntro: 'Kies tot 5 teams om hun fixtures onder elkaar te zien.',
+    noTeamsSelected: 'Nog geen teams geselecteerd.',
+    watchlistFormTitle: 'Speler toevoegen',
+    nameLabel: 'Naam',
+    namePlaceholder: 'Bv. Zorgane',
+    teamLabel: 'Team',
+    chooseTeam: 'Kies team',
+    priceLabel: 'Prijs (optioneel)',
+    pricePlaceholder: 'Bv. 8.5',
+    addButton: 'Toevoegen',
+    myWatchlistTitle: 'Mijn watchlist',
+    watchlistEmpty: 'Je watchlist is nog leeg. Voeg spelers toe die je in de gaten wil houden.',
+    footerMadeBy: 'Gemaakt door',
+    footerSuffix: '· Fantasy Pro League 26/27 · Data eigen analyse',
+    lastUpdatedLabel: 'Laatst bijgewerkt',
+    searchPlaceholder: 'Zoek op spelersnaam',
+    filterAll: 'Alles',
+    detailStatus: 'Status',
+    detailReason: 'Reden',
+    detailExpectedReturn: 'Verwachte terugkeer',
+    detailLastUpdate: 'Laatste update',
+    detailSource: 'Bron',
+    detailNotes: 'Notities',
+    playerStatusEmptyNone: 'Geen spelers momenteel out, geschorst of twijfelachtig.',
+    playerStatusEmptyFiltered: 'Geen spelers gevonden voor deze zoekopdracht/filter.',
+  },
+  en: {
+    subtitle: 'Interactive tools for Fantasy Pro League — built by @fpl_proleague.',
+    tabPlayerStatus: 'Player Status',
+    fdrIntro: 'My own fixture difficulty ratings — adjust them to your own view and instantly see which teams have the best runs.',
+    watchlistIntro: 'Keep an eye on your favourite players — add them to your personal watchlist, along with their upcoming fixtures. This list is saved automatically in your browser.',
+    playerStatusIntro: 'Overview of players who are injured, suspended, or doubtful — automatically updated from our player status tracker.',
+    copyLinkFull: 'Copy link',
+    copyLinkShort: 'Copy',
+    linkCopiedFull: 'Link copied!',
+    linkCopiedShort: 'Copied!',
+    downloadFull: 'Download as image',
+    downloadShort: 'Download',
+    loadingEllipsis: 'Loading...',
+    saveFull: 'Save in browser',
+    saveShort: 'Save',
+    savedFull: 'Saved ✓',
+    savedShort: 'Saved ✓',
+    sortByEasiest: 'Sort by easiest run',
+    sortedEasiestFirst: 'Sorted: easiest first',
+    customVersionBadge: 'YOUR CUSTOM VERSION',
+    defaultRatingBadge: 'RATING BY @FPL_PROLEAGUE',
+    ratingLabels: { 1: 'Easiest', 2: 'Easy', 3: 'Average', 4: 'Hard', 5: 'Hardest' },
+    sectionSliders: 'Set team strength',
+    sectionRuns: 'Best fixture runs',
+    sectionCompare: 'Compare teams',
+    compareIntro: 'Choose up to 5 teams to see their fixtures stacked below each other.',
+    noTeamsSelected: 'No teams selected yet.',
+    watchlistFormTitle: 'Add player',
+    nameLabel: 'Name',
+    namePlaceholder: 'E.g. Zorgane',
+    teamLabel: 'Team',
+    chooseTeam: 'Choose team',
+    priceLabel: 'Price (optional)',
+    pricePlaceholder: 'E.g. 8.5',
+    addButton: 'Add',
+    myWatchlistTitle: 'My watchlist',
+    watchlistEmpty: 'Your watchlist is empty. Add players you want to keep an eye on.',
+    footerMadeBy: 'Built by',
+    footerSuffix: '· Fantasy Pro League 26/27 · Own analysis',
+    lastUpdatedLabel: 'Last updated',
+    searchPlaceholder: 'Search by player name',
+    filterAll: 'All',
+    detailStatus: 'Status',
+    detailReason: 'Reason',
+    detailExpectedReturn: 'Expected return',
+    detailLastUpdate: 'Last updated',
+    detailSource: 'Source',
+    detailNotes: 'Notes',
+    playerStatusEmptyNone: 'No players currently out, suspended, or doubtful.',
+    playerStatusEmptyFiltered: 'No players found for this search/filter.',
+  },
+};
 
 const GW_COUNT = 8;
 const MINILEAGUE_CODE = '19WN75';
@@ -141,6 +260,8 @@ const WATCHLIST_STORAGE_KEY = 'fpl_proleague_watchlist_v1';
 const PLAYER_STATUS_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT6USo4139zAf6zndDf428orxRT2q20l8arNVo8LWqNoVGz2-FZIx3PJedAhCzoQOGGxfPz0qbx4m2h/pub?gid=0&single=true&output=csv';
 // Onthoudt of de first-time-uitleg over Thuisvoordeel al getoond is, zodat die maar één keer ooit verschijnt.
 const HOME_ADVANTAGE_INTRO_SEEN_KEY = 'fpl_proleague_ha_intro_seen_v1';
+// Onthoudt de NL/EN-taalkeuze van de NL/EN-toggle rechtsboven, zodat die bewaard blijft bij een volgend bezoek.
+const LANGUAGE_STORAGE_KEY = 'fpl_proleague_language_v1';
 
 // TEAMS is al alfabetisch op code — eenmalig gesorteerde kopie voor UI-lijsten die dat expliciet willen.
 const TEAMS_ALPHA = [...TEAMS].sort((a, b) => a.code.localeCompare(b.code));
@@ -228,6 +349,16 @@ function loadHomeAdvantageFromURL() {
     return result;
   } catch {
     return null;
+  }
+}
+
+// Taalkeuze van de NL/EN-toggle — alles behalve 'en' valt terug op 'nl' (ook bij ontbrekende/kapotte
+// localStorage-waarde), zodat Nederlands altijd de veilige default blijft.
+function loadStoredLanguage() {
+  try {
+    return window.localStorage?.getItem(LANGUAGE_STORAGE_KEY) === 'en' ? 'en' : 'nl';
+  } catch {
+    return 'nl';
   }
 }
 
@@ -741,15 +872,16 @@ const MiniFixtureBadge = memo(function MiniFixtureBadge({ teamCode, fixture, gwN
 // korte reden) die bij een klik een accordion-detailpaneel opent — zelfde interactie-primitieven
 // (chevronStyle, ChevronDown, transition) als de bestaande SectionHeader, maar los ervan omdat dit
 // een dynamische, per-rij lijst is i.p.v. een vaste set secties.
-const PlayerStatusRow = memo(function PlayerStatusRow({ player, isExpanded, onToggle }) {
+const PlayerStatusRow = memo(function PlayerStatusRow({ player, isExpanded, onToggle, language }) {
+  const t = TRANSLATIONS[language];
   const style = PLAYER_STATUS_STYLE[player.status];
   const detailFields = [
-    { label: 'Status', value: player.status },
-    { label: 'Reden', value: player.reason },
-    { label: 'Verwachte terugkeer', value: player.expectedReturn },
-    { label: 'Laatste update', value: player.lastUpdateDate ? formatDateDDMMYYYY(player.lastUpdateDate) : player.lastUpdate },
-    { label: 'Bron', value: player.source },
-    { label: 'Notities', value: player.notes },
+    { label: t.detailStatus, value: translateStatus(player.status, language) },
+    { label: t.detailReason, value: player.reason },
+    { label: t.detailExpectedReturn, value: player.expectedReturn },
+    { label: t.detailLastUpdate, value: player.lastUpdateDate ? formatDateDDMMYYYY(player.lastUpdateDate) : player.lastUpdate },
+    { label: t.detailSource, value: player.source },
+    { label: t.detailNotes, value: player.notes },
   ].filter(f => f.value);
 
   return (
@@ -769,7 +901,7 @@ const PlayerStatusRow = memo(function PlayerStatusRow({ player, isExpanded, onTo
           flexShrink: 0, fontSize: '11px', fontWeight: 700, padding: '3px 8px', borderRadius: '999px',
           background: style.bg, color: style.text, whiteSpace: 'nowrap'
         }}>
-          {player.status}
+          {translateStatus(player.status, language)}
         </span>
         <img
           src={`/club-logos/${player.teamCode}.png`}
@@ -809,6 +941,8 @@ const PlayerStatusRow = memo(function PlayerStatusRow({ player, isExpanded, onTo
 
 export default function FDRTool() {
   const [activeTab, setActiveTab] = useState('fdr');
+  const [language, setLanguage] = useState(() => loadStoredLanguage());
+  const t = TRANSLATIONS[language];
   const [ratings, setRatings] = useState(() => loadRatingsFromURL() || loadStoredRatings() || DEFAULT_RATINGS);
   const [homeAdvantage, setHomeAdvantage] = useState(() => loadHomeAdvantageFromURL() || loadStoredHomeAdvantage() || DEFAULT_HOME_ADVANTAGE);
   const [rangeStart, setRangeStart] = useState(1);
@@ -1042,6 +1176,15 @@ export default function FDRTool() {
       // storage unavailable — silently ignore, watch list still works this session
     }
   }, [watchlist]);
+
+  // NL/EN-taalkeuze slaat automatisch op, zelfde patroon als de watch list hierboven.
+  useEffect(() => {
+    try {
+      window.localStorage?.setItem(LANGUAGE_STORAGE_KEY, language);
+    } catch {
+      // storage unavailable — silently ignore, taalkeuze werkt nog wel deze sessie
+    }
+  }, [language]);
 
   // Haalt de spelersstatus-CSV op en parset ze naar playerStatuses. Losse useCallback (i.p.v. rechtstreeks
   // in de useEffect hieronder) zodat zowel de automatische fetch bij het laden als de "probeer opnieuw"-
@@ -1374,25 +1517,50 @@ export default function FDRTool() {
 
       <div className="fdr-content" style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 20px 32px', position: 'relative' }}>
 
-        <header className="fdr-header" style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <img
-            src="/app-icon-mark.png"
-            alt=""
-            style={{ width: '44px', height: '44px', borderRadius: '2px', flexShrink: 0, marginTop: '-36px'}}
-            onError={(e) => { e.target.style.display = 'none'; }}
-          />
-          <div>
-            <h1 className="fdr-title" style={{
-              color: '#FFFFFF', fontSize: 'clamp(28px, 5vw, 44px)', fontWeight: 900,
-              textTransform: 'uppercase', lineHeight: 1.05, margin: 0, letterSpacing: '-0.01em'
-            }}>
-              FPL Pro League <span style={{ color: '#4ECDC4' }}>Tools</span>
-            </h1>
-            <p style={{ color: '#C9B8E0', fontSize: '15px', marginTop: '6px', maxWidth: '640px' }}>
-              Interactieve tools voor Fantasy Pro League — gemaakt door @fpl_proleague.
-            </p>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
+          <header className="fdr-header" style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0 }}>
+            <img
+              src="/app-icon-mark.png"
+              alt=""
+              style={{ width: '44px', height: '44px', borderRadius: '2px', flexShrink: 0, marginTop: '-36px'}}
+              onError={(e) => { e.target.style.display = 'none'; }}
+            />
+            <div>
+              <h1 className="fdr-title" style={{
+                color: '#FFFFFF', fontSize: 'clamp(28px, 5vw, 44px)', fontWeight: 900,
+                textTransform: 'uppercase', lineHeight: 1.05, margin: 0, letterSpacing: '-0.01em'
+              }}>
+                FPL Pro League <span style={{ color: '#4ECDC4' }}>Tools</span>
+              </h1>
+              <p style={{ color: '#C9B8E0', fontSize: '15px', marginTop: '6px', maxWidth: '640px' }}>
+                {t.subtitle}
+              </p>
+            </div>
+          </header>
+          {/* NL/EN-taaltoggle — bewust een aparte flex-sibling van .fdr-header (niet erin genest),
+              zodat hij altijd rechtsboven blijft staan ook al klapt .fdr-header op mobiel om naar een
+              kolom (icoon boven titel). */}
+          <div className="fdr-lang-toggle" style={{
+            display: 'flex', flexShrink: 0, gap: '2px', background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.15)', borderRadius: '999px', padding: '3px'
+          }}>
+            {['nl', 'en'].map(lng => (
+              <button
+                key={lng}
+                onClick={() => setLanguage(lng)}
+                aria-pressed={language === lng}
+                style={{
+                  background: language === lng ? '#4ECDC4' : 'transparent',
+                  color: language === lng ? '#0B2E1B' : '#C9B8E0',
+                  border: 'none', borderRadius: '999px', padding: '4px 10px',
+                  fontSize: '12px', fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase'
+                }}
+              >
+                {lng}
+              </button>
+            ))}
           </div>
-        </header>
+        </div>
 
         <div style={{
           display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginTop: "-18px",
@@ -1429,7 +1597,7 @@ export default function FDRTool() {
                   borderBottom: isActive ? '2px solid #4ECDC4' : '2px solid transparent'
                 }}
               >
-                {tab.label}
+                {tab.key === 'playerstatus' ? t.tabPlayerStatus : tab.label}
               </button>
             );
           })}
@@ -1438,7 +1606,7 @@ export default function FDRTool() {
         {activeTab === 'fdr' && (
         <>
         <p style={{ color: '#8F79AD', fontSize: '13px', marginBottom: '18px' }}>
-          Mijn eigen fixture difficulty ratings — pas ze aan naar jouw mening en ontdek meteen welke teams de beste runs hebben.
+          {t.fdrIntro}
         </p>
         <div className="fpl-toolbar" style={{
           display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center',
@@ -1450,14 +1618,14 @@ export default function FDRTool() {
             background: isCustom ? '#4ECDC4' : 'rgba(255,255,255,0.1)',
             color: isCustom ? '#0B2E1B' : '#C9B8E0'
           }}>
-            {isCustom ? 'JOUW AANGEPASTE VERSIE' : 'RATING VAN @FPL_PROLEAGUE'}
+            {isCustom ? t.customVersionBadge : t.defaultRatingBadge}
           </span>
           <div className="fpl-toolbar-actions">
           <span className="fpl-toolbar-secondary">
           <button onClick={handleCopyLink} className="fdr-toolbar-btn" style={secondaryToolbarBtnStyle}>
             {linkCopied ? <Check size={14} /> : <Link2 size={14} />}
-            <span className="fdr-btn-label-full">{linkCopied ? 'Link gekopieerd!' : 'Kopieer link'}</span>
-            <span className="fdr-btn-label-short">{linkCopied ? 'Gekopieerd!' : 'Kopieer'}</span>
+            <span className="fdr-btn-label-full">{linkCopied ? t.linkCopiedFull : t.copyLinkFull}</span>
+            <span className="fdr-btn-label-short">{linkCopied ? t.linkCopiedShort : t.copyLinkShort}</span>
           </button>
           <button onClick={handleDownloadImage} disabled={downloading} className="fdr-toolbar-btn" style={{
             ...secondaryToolbarBtnStyle,
@@ -1465,8 +1633,8 @@ export default function FDRTool() {
             opacity: downloading ? 0.6 : 1
           }}>
             <Download size={14} />
-            <span className="fdr-btn-label-full">{downloading ? 'Bezig...' : 'Download als afbeelding'}</span>
-            <span className="fdr-btn-label-short">{downloading ? 'Bezig...' : 'Download'}</span>
+            <span className="fdr-btn-label-full">{downloading ? t.loadingEllipsis : t.downloadFull}</span>
+            <span className="fdr-btn-label-short">{downloading ? t.loadingEllipsis : t.downloadShort}</span>
           </button>
           <button onClick={handleReset} className="fdr-toolbar-btn" style={secondaryToolbarBtnStyle}>
             <RotateCcw size={14} />
@@ -1479,8 +1647,8 @@ export default function FDRTool() {
             cursor: 'pointer'
           }}>
             <Check size={14} />
-            <span className="fdr-btn-label-full">{saved ? 'Opgeslagen ✓' : 'Bewaar in browser'}</span>
-            <span className="fdr-btn-label-short">{saved ? 'Bewaard ✓' : 'Bewaar'}</span>
+            <span className="fdr-btn-label-full">{saved ? t.savedFull : t.saveFull}</span>
+            <span className="fdr-btn-label-short">{saved ? t.savedShort : t.saveShort}</span>
           </button>
           </span>
           <button onClick={() => setShowInfo(true)} aria-label="Uitleg" style={{
@@ -1496,7 +1664,7 @@ export default function FDRTool() {
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '24px' }}>
 
           <section>
-            <SectionHeader icon={Settings2} title="Team-sterkte instellen" sectionKey="sliders" isOpen={openSections.sliders} onToggle={toggleSection} />
+            <SectionHeader icon={Settings2} title={t.sectionSliders} sectionKey="sliders" isOpen={openSections.sliders} onToggle={toggleSection} />
             {openSections.sliders && (
             <div className="fdr-sliders-grid" style={{
               display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '8px', marginBottom: '8px'
@@ -1571,7 +1739,7 @@ export default function FDRTool() {
                 borderRadius: '8px', padding: '8px 14px', fontWeight: 700, fontSize: '13px', cursor: 'pointer'
               }}>
                 <ArrowUpDown size={14} />
-                {sortByDifficulty ? 'Gesorteerd: makkelijkste eerst' : 'Sorteer op makkelijkste run'}
+                {sortByDifficulty ? t.sortedEasiestFirst : t.sortByEasiest}
               </button>
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#6B5289', fontSize: '11px' }}>
                 <Info size={12} />
@@ -1645,7 +1813,7 @@ export default function FDRTool() {
               {[1,2,3,4,5].map(r => (
                 <div key={r} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: RATING_STYLE[r].bg, display: 'inline-block' }} />
-                  <span style={{ color: '#C9B8E0', fontSize: '11px' }}>{RATING_STYLE[r].label}</span>
+                  <span style={{ color: '#C9B8E0', fontSize: '11px' }}>{t.ratingLabels[r]}</span>
                 </div>
               ))}
             </div>
@@ -1654,7 +1822,7 @@ export default function FDRTool() {
           </section>
 
           <section>
-            <SectionHeader icon={TrendingUp} title="Beste fixture runs" sectionKey="runs" isOpen={openSections.runs} onToggle={toggleSection} />
+            <SectionHeader icon={TrendingUp} title={t.sectionRuns} sectionKey="runs" isOpen={openSections.runs} onToggle={toggleSection} />
             {openSections.runs && (
             <>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
@@ -1713,11 +1881,11 @@ export default function FDRTool() {
 
           {/* COMPARE TEAMS */}
           <section>
-            <SectionHeader icon={Scale} title="Vergelijk teams" sectionKey="compare" isOpen={openSections.compare} onToggle={toggleSection} />
+            <SectionHeader icon={Scale} title={t.sectionCompare} sectionKey="compare" isOpen={openSections.compare} onToggle={toggleSection} />
             {openSections.compare && (
             <>
             <p style={{ color: '#8F79AD', fontSize: '12px', marginBottom: '10px' }}>
-              Kies tot 5 teams om hun fixtures onder elkaar te zien.
+              {t.compareIntro}
             </p>
             <div style={{
               display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(70px, 1fr))', gap: '6px', marginBottom: '16px'
@@ -1747,7 +1915,7 @@ export default function FDRTool() {
               })}
             </div>
             {compareTeams.length === 0 && (
-              <p style={{ color: '#6B5289', fontSize: '13px' }}>Nog geen teams geselecteerd.</p>
+              <p style={{ color: '#6B5289', fontSize: '13px' }}>{t.noTeamsSelected}</p>
             )}
             {compareTeams.length > 0 && (
               <div style={{ overflowX: 'auto' }}>
@@ -1811,7 +1979,7 @@ export default function FDRTool() {
         {activeTab === 'watchlist' && (
           <>
           <p style={{ color: '#8F79AD', fontSize: '13px', marginBottom: '16px' }}>
-            Houd je favoriete spelers in de gaten — voeg ze toe aan je persoonlijke watchlist, samen met hun eerstvolgende fixtures. Deze lijst slaat automatisch op in je browser.
+            {t.watchlistIntro}
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '24px' }}>
             <section>
@@ -1820,36 +1988,35 @@ export default function FDRTool() {
                 borderRadius: '10px', padding: '16px', marginBottom: '20px'
               }}>
               <h2 className="fdr-title fdr-section-title" style={{ ...sectionTitleStyle, marginBottom: '12px' }}>
-                <UserPlus size={18} color="#4ECDC4" /> Speler toevoegen
+                <UserPlus size={18} color="#4ECDC4" /> {t.watchlistFormTitle}
               </h2>
               <form onSubmit={handleAddWatchlistPlayer} style={{
                 display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px', alignItems: 'end'
               }}>
                 <label style={{ display: 'grid', gap: '4px' }}>
-                  <span style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', marginLeft: '4px'}}>Naam</span>
+                  <span style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', marginLeft: '4px'}}>{t.nameLabel}</span>
                   <input
                     type="text" required value={newPlayerName}
                     onChange={e => setNewPlayerName(e.target.value)}
-                    placeholder="Bv. Zorgane"
+                    placeholder={t.namePlaceholder}
                     style={watchlistInputStyle}
                   />
                 </label>
                 <label style={{ display: 'grid', gap: '4px' }}>
-                  <span style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', marginLeft: '4px' }}>Team</span>
+                  <span style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', marginLeft: '4px' }}>{t.teamLabel}</span>
                   <select required value={newPlayerTeam} onChange={e => setNewPlayerTeam(e.target.value)} style={watchlistInputStyle}>
-                    <option value="" disabled>Kies team</option>
+                    <option value="" disabled>{t.chooseTeam}</option>
                     {TEAMS_ALPHA.map(team => (
                       <option key={team.code} value={team.code}>{team.name}</option>
                     ))}
                   </select>
                 </label>
                 <label style={{ display: 'grid', gap: '4px' }}>
-                  <span style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', marginLeft: '4px' }}>Prijs (optioneel)</span>
+                  <span style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', marginLeft: '4px' }}>{t.priceLabel}</span>
                   <input
-                    type="number" inputMode="decimal" step="0.1" min="0" max="12" placeholder="Bv. 8.5"
+                    type="number" inputMode="decimal" step="0.1" min="0" max="12" placeholder={t.pricePlaceholder}
                     value={newPlayerPrice} onChange={e => setNewPlayerPrice(e.target.value)}
                     style={watchlistInputStyle}
-                    placeholder="Bv. 8.5"
                   />
                 </label>
                 <button type="submit" style={{
@@ -1857,7 +2024,7 @@ export default function FDRTool() {
                   background: '#4ECDC4', color: '#0B2E1B', border: 'none', borderRadius: '8px',
                   padding: '9px 14px', fontWeight: 700, fontSize: '13px', cursor: 'pointer'
                 }}>
-                  <Plus size={18} /> Toevoegen
+                  <Plus size={18} /> {t.addButton}
                 </button>
               </form>
               </div>
@@ -1865,11 +2032,11 @@ export default function FDRTool() {
 
             <section>
               <h2 className="fdr-title fdr-section-title" style={{ ...sectionTitleStyle, marginBottom: '12px' }}>
-                <Eye size={18} color="#4ECDC4" /> Mijn watchlist
+                <Eye size={18} color="#4ECDC4" /> {t.myWatchlistTitle}
               </h2>
               {watchlist.length === 0 ? (
                 <p style={{ color: '#6B5289', fontSize: '13px' }}>
-                  Je watchlist is nog leeg. Voeg spelers toe die je in de gaten wil houden.
+                  {t.watchlistEmpty}
                 </p>
               ) : (
                 <div style={{ display: 'grid', gap: '8px' }}>
@@ -1938,7 +2105,7 @@ export default function FDRTool() {
         {activeTab === 'playerstatus' && (
           <div style={{ marginTop: '20px' }}>
             <p style={{ color: '#8F79AD', fontSize: '13px', marginBottom: '16px' }}>
-              Overzicht van spelers die geblesseerd, geschorst of twijfelachtig zijn — automatisch bijgewerkt vanuit onze spelerstatus-tracker.
+              {t.playerStatusIntro}
             </p>
 
             {playerStatusLoading && (
@@ -1966,7 +2133,7 @@ export default function FDRTool() {
                 {mostRecentUpdate && (
                   <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#C9B8E0', fontSize: '12px', marginBottom: '10px' }}>
                     <Clock size={14} />
-                    Laatst bijgewerkt: {mostRecentUpdate.lastUpdateDate ? formatDateDDMMYYYY(mostRecentUpdate.lastUpdateDate) : mostRecentUpdate.lastUpdate}
+                    {t.lastUpdatedLabel}: {mostRecentUpdate.lastUpdateDate ? formatDateDDMMYYYY(mostRecentUpdate.lastUpdateDate) : mostRecentUpdate.lastUpdate}
                   </span>
                 )}
 
@@ -1980,7 +2147,7 @@ export default function FDRTool() {
                         type="text"
                         value={playerSearch}
                         onChange={e => setPlayerSearch(e.target.value)}
-                        placeholder="Zoek op spelersnaam"
+                        placeholder={t.searchPlaceholder}
                         style={{
                           width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.04)',
                           border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px',
@@ -2003,10 +2170,10 @@ export default function FDRTool() {
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {[
-                      { key: 'all', label: `Alles (${playerStatusCounts.out + playerStatusCounts.twijfel + playerStatusCounts.terugBeschikbaar})` },
-                      { key: 'Out', label: `🔴 Out (${playerStatusCounts.out})` },
-                      { key: 'Twijfel', label: `🟡 Twijfel (${playerStatusCounts.twijfel})` },
-                      { key: 'Terug Beschikbaar', label: `🟢 Terug Beschikbaar (${playerStatusCounts.terugBeschikbaar})` },
+                      { key: 'all', label: `${t.filterAll} (${playerStatusCounts.out + playerStatusCounts.twijfel + playerStatusCounts.terugBeschikbaar})` },
+                      { key: 'Out', label: `🔴 ${translateStatus('Out', language)} (${playerStatusCounts.out})` },
+                      { key: 'Twijfel', label: `🟡 ${translateStatus('Twijfel', language)} (${playerStatusCounts.twijfel})` },
+                      { key: 'Terug Beschikbaar', label: `🟢 ${translateStatus('Terug Beschikbaar', language)} (${playerStatusCounts.terugBeschikbaar})` },
                     ].map(opt => (
                       <button
                         key={opt.key}
@@ -2027,8 +2194,8 @@ export default function FDRTool() {
                 {visiblePlayerStatuses.length === 0 ? (
                   <p style={{ color: '#6B5289', fontSize: '13px' }}>
                     {playerStatuses.filter(p => PLAYER_STATUS_ORDER.includes(p.status)).length === 0
-                      ? 'Geen spelers momenteel out, geschorst of twijfelachtig.'
-                      : 'Geen spelers gevonden voor deze zoekopdracht/filter.'}
+                      ? t.playerStatusEmptyNone
+                      : t.playerStatusEmptyFiltered}
                   </p>
                 ) : (
                   <div style={{ display: 'grid', gap: '8px' }}>
@@ -2038,6 +2205,7 @@ export default function FDRTool() {
                         player={player}
                         isExpanded={expandedPlayers.has(player.id)}
                         onToggle={togglePlayerExpanded}
+                        language={language}
                       />
                     ))}
                   </div>
@@ -2074,13 +2242,13 @@ export default function FDRTool() {
         )}
 
         <footer style={{ marginTop: '28px', textAlign: 'center', color: '#6B5289', fontSize: '12px', lineHeight: 1.5 }}>
-          Gemaakt door{' '}
+          {t.footerMadeBy}{' '}
           <a href="https://x.com/fpl_proleague" target="_blank" rel="noopener noreferrer" className="fdr-footer-link">
             <img src="/x-logo.png" alt="" style={{ width: '12px', height: '12px', verticalAlign:'-2px' }} />
             @fpl_proleague
           </a>
-          {' '}· Fantasy Pro League 26/27 · Data eigen analyse<br />
-          Laatst bijgewerkt: {LAST_UPDATED}
+          {' '}{t.footerSuffix}<br />
+          {t.lastUpdatedLabel}: {LAST_UPDATED}
         </footer>
       </div>
 
