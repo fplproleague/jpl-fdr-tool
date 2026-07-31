@@ -1314,7 +1314,7 @@ export default function FDRTool() {
               </button>
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#6B5289', fontSize: '11px' }}>
                 <Info size={12} />
-                Tik op cellen met een * voor meer info
+                Tik op grijze cellen of die met een * voor meer info
               </span>
             </div>
             )}
