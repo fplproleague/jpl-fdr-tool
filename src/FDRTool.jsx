@@ -10,11 +10,12 @@ import html2canvas from 'html2canvas';
 import {
   TEAMS, FIXTURES, GW_COUNT, DEFAULT_GW_HORIZON_END, MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS,
   MINILEAGUE_CODE, LAST_UPDATED, GW_INDEXES, DEFAULT_RATINGS, DEFAULT_HOME_ADVANTAGE,
-  getFixtureScores, average,
+  TEAM_PLANNER_SQUAD_SIZE, getFixtureScores, average,
 } from './constants';
 import FDRTab from './tabs/FDRTab';
 import WatchlistTab from './tabs/WatchlistTab';
 import PlayerStatusTab from './tabs/PlayerStatusTab';
+import TeamPlannerTab from './tabs/TeamPlannerTab';
 
 // Tab-navigatie bovenaan de pagina — array-gedreven zodat toekomstige onderdelen naast de FDR-tool
 // gewoon een extra entry kunnen worden.
@@ -32,6 +33,8 @@ const HOME_ADVANTAGE_STORAGE_KEY = 'fpl_proleague_fdr_home_advantage_v1';
 const WATCHLIST_STORAGE_KEY = 'fpl_proleague_watchlist_v1';
 // Onthoudt of de first-time-uitleg over Thuisvoordeel al getoond is, zodat die maar één keer ooit verschijnt.
 const HOME_ADVANTAGE_INTRO_SEEN_KEY = 'fpl_proleague_ha_intro_seen_v1';
+// Eigen storage key voor de Team Planner — los van de watch list hierboven.
+const TEAM_PLANNER_STORAGE_KEY = 'fpl_proleague_teamplanner_v1';
 
 // Statische GW-headers, eenmalig opgebouwd — nodig voor visibleGwHeaderCells (hoofdtabel-horizon,
 // zie hieronder) en doorgegeven aan FDRTab voor de vergelijk-tabel (die altijd alle GW's toont).
@@ -137,6 +140,36 @@ function createWatchlistId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
+// Team Planner: vast array van TEAM_PLANNER_SQUAD_SIZE (15) "slots" i.p.v. een open add/remove-lijst
+// zoals de watch list — elk slot is altijd aanwezig (leeg of ingevuld), want de positie-/budget-/
+// club-validaties en de veld-weergave veronderstellen een compleet, adresseerbaar array van vaste
+// lengte. Array.from-callback i.p.v. Array(15).fill({...}): anders zouden alle 15 slots dezelfde
+// objectreferentie delen en zou het wijzigen van slot 1 per ongeluk alle andere slots meewijzigen.
+function createEmptyTeamPlannerPlayers() {
+  return Array.from({ length: TEAM_PLANNER_SQUAD_SIZE }, () => ({
+    name: '', teamCode: '', position: '', price: '', isBench: false,
+  }));
+}
+
+function loadStoredTeamPlanner() {
+  try {
+    const raw = window.localStorage?.getItem(TEAM_PLANNER_STORAGE_KEY);
+    if (!raw) return createEmptyTeamPlannerPlayers();
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || parsed.length !== TEAM_PLANNER_SQUAD_SIZE) {
+      return createEmptyTeamPlannerPlayers();
+    }
+    // Defensief herbouwd i.p.v. de opgeslagen objecten rechtstreeks te gebruiken: elke pitch-/
+    // positie-/bank-berekening verderop veronderstelt dat alle 5 velden altijd aanwezig zijn.
+    return parsed.map(p => ({
+      name: p?.name ?? '', teamCode: p?.teamCode ?? '', position: p?.position ?? '',
+      price: p?.price ?? '', isBench: !!p?.isBench,
+    }));
+  } catch {
+    return createEmptyTeamPlannerPlayers();
+  }
+}
+
 export default function FDRTool() {
   const [activeTab, setActiveTab] = useState('fdr');
   const [ratings, setRatings] = useState(() => loadRatingsFromURL() || loadStoredRatings() || DEFAULT_RATINGS);
@@ -170,6 +203,12 @@ export default function FDRTool() {
   const [newPlayerName, setNewPlayerName] = useState('');
   const [newPlayerTeam, setNewPlayerTeam] = useState('');
   const [newPlayerPrice, setNewPlayerPrice] = useState('');
+
+  // --- Team Planner (Team Planner-tab), los van de FDR-/watch-list-state hierboven ---
+  const [teamPlannerPlayers, setTeamPlannerPlayers] = useState(() => loadStoredTeamPlanner());
+  // Geselecteerde gameweek voor de veld-weergave — bewust NIET opgeslagen (localStorage), start
+  // altijd op GW1 bij het (her)laden van de pagina, zelfde patroon als gwHorizonStart/End in de FDR-tab.
+  const [teamPlannerGw, setTeamPlannerGw] = useState(1);
 
   // isCustom volgt exact of ratings/homeAdvantage hun gedeelde DEFAULT-referentie zijn
   // (zie updateRating/toggleHomeAdvantage/handleReset).
@@ -385,6 +424,34 @@ export default function FDRTool() {
     });
   };
 
+  // Som van alle ingevulde prijzen — lege/ongeldige velden tellen niet mee, zodat je tijdens het
+  // invullen nooit een NaN of onverwacht sprongetje in het budget ziet.
+  const teamPlannerTotalPrice = useMemo(() => {
+    return teamPlannerPlayers.reduce((sum, p) => {
+      const price = parseFloat(p.price);
+      return Number.isFinite(price) ? sum + price : sum;
+    }, 0);
+  }, [teamPlannerPlayers]);
+
+  // Telt hoeveel slots per positie al gekozen zijn — een slot telt mee zodra de positie-dropdown
+  // een waarde heeft, ongeacht of naam/team/prijs ook al ingevuld zijn.
+  const teamPlannerPositionCounts = useMemo(() => {
+    const counts = { GK: 0, DEF: 0, MID: 0, FWD: 0 };
+    teamPlannerPlayers.forEach(p => {
+      if (p.position) counts[p.position] += 1;
+    });
+    return counts;
+  }, [teamPlannerPlayers]);
+
+  // Telt hoeveel spelers per club gekozen zijn, voor de "max 3 per club"-waarschuwing in de tab.
+  const teamPlannerClubCounts = useMemo(() => {
+    const counts = {};
+    teamPlannerPlayers.forEach(p => {
+      if (p.teamCode) counts[p.teamCode] = (counts[p.teamCode] ?? 0) + 1;
+    });
+    return counts;
+  }, [teamPlannerPlayers]);
+
   // De first-time-uitleg over Thuisvoordeel verdwijnt vanzelf na een paar seconden.
   useEffect(() => {
     if (!showHomeAdvantageIntro) return;
@@ -402,6 +469,15 @@ export default function FDRTool() {
     }
   }, [watchlist]);
 
+  // Team Planner slaat zichzelf ook automatisch op — zelfde patroon als de watch list hierboven.
+  useEffect(() => {
+    try {
+      window.localStorage?.setItem(TEAM_PLANNER_STORAGE_KEY, JSON.stringify(teamPlannerPlayers));
+    } catch {
+      // storage unavailable — silently ignore, team planner still works this session
+    }
+  }, [teamPlannerPlayers]);
+
   const handleAddWatchlistPlayer = (e) => {
     e.preventDefault();
     const name = newPlayerName.trim();
@@ -418,6 +494,23 @@ export default function FDRTool() {
 
   const handleRemoveWatchlistPlayer = (id) => {
     setWatchlist(prev => prev.filter(p => p.id !== id));
+  };
+
+  // --- Team Planner-handlers: updaten van één speler/veld, bank-toggle, en GW-navigatie ---
+  const updateTeamPlannerPlayer = (index, field, value) => {
+    setTeamPlannerPlayers(prev => prev.map((p, i) => i === index ? { ...p, [field]: value } : p));
+  };
+
+  const toggleTeamPlannerBench = (index) => {
+    setTeamPlannerPlayers(prev => prev.map((p, i) => i === index ? { ...p, isBench: !p.isBench } : p));
+  };
+
+  const handleTeamPlannerGwPrev = () => {
+    setTeamPlannerGw(gw => Math.max(1, gw - 1));
+  };
+
+  const handleTeamPlannerGwNext = () => {
+    setTeamPlannerGw(gw => Math.min(GW_COUNT, gw + 1));
   };
 
   return (
@@ -776,16 +869,19 @@ export default function FDRTool() {
         {activeTab === 'playerstatus' && <PlayerStatusTab />}
 
         {activeTab === 'teamplanner' && (
-          <div style={{ marginTop: '20px' }}>
-            <div style={{
-              background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: '10px', padding: '16px'
-            }}>
-              <p style={{ color: '#C9B8E0', fontSize: '13px', margin: 0 }}>
-                Hier kan je binnenkort je teamopstelling en transfers vooruit plannen.
-              </p>
-            </div>
-          </div>
+          <TeamPlannerTab
+            ratings={ratings}
+            homeAdvantage={homeAdvantage}
+            teamPlannerPlayers={teamPlannerPlayers}
+            updateTeamPlannerPlayer={updateTeamPlannerPlayer}
+            toggleTeamPlannerBench={toggleTeamPlannerBench}
+            teamPlannerGw={teamPlannerGw}
+            handleTeamPlannerGwPrev={handleTeamPlannerGwPrev}
+            handleTeamPlannerGwNext={handleTeamPlannerGwNext}
+            teamPlannerTotalPrice={teamPlannerTotalPrice}
+            teamPlannerPositionCounts={teamPlannerPositionCounts}
+            teamPlannerClubCounts={teamPlannerClubCounts}
+          />
         )}
 
         {activeTab === 'pricechanges' && (

@@ -218,3 +218,16 @@ export const sectionTitleStyle = {
   color: '#FFFFFF', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.03em', margin: 0,
   display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap'
 };
+
+// --- Team Planner: spelregels voor de 15-koppige selectie (Fase 1, handmatige invoer) ---
+
+// Positie-volgorde (canoniek — het formulier-dropdown en de positie-telling in TeamPlannerTab.jsx
+// gebruiken deze volgorde; de veld-lay-out zelf gebruikt lokaal een omgekeerde volgorde daar).
+export const POSITIONS = ['GK', 'DEF', 'MID', 'FWD'];
+
+// Vereist aantal spelers per positie voor een geldige 15-koppige selectie.
+export const POSITION_REQUIREMENTS = { GK: 2, DEF: 5, MID: 5, FWD: 3 };
+
+export const TEAM_PLANNER_SQUAD_SIZE = 15;
+export const TEAM_PLANNER_BUDGET = 100; // in miljoenen, zelfde eenheid als de watchlist-prijzen
+export const TEAM_PLANNER_MAX_PER_CLUB = 3;
