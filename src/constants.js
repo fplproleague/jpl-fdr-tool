@@ -1,0 +1,220 @@
+// Gedeelde referentiedata en helper-functies voor de FDR-tool: teams, fixtures, uitgestelde
+// wedstrijden, rating-kleuren, en de fixture-rekenlogica die zowel de hoofdtabel (FDRTab) als de
+// mini-fixture-badges (MiniFixtureBadge, gebruikt door FDRTab én WatchlistTab) nodig hebben.
+// Bevat bewust GEEN JSX (zie gwHeaderCells/gwOptionElements in FDRTool.jsx/FDRTab.jsx) — dit is een
+// plain .js-bestand en Vite/esbuild parsen JSX-syntax enkel in .jsx-bestanden.
+
+export const TEAMS = [
+  { code: 'AND', name: 'Anderlecht' },
+  { code: 'ANT', name: 'Antwerp' },
+  { code: 'BEV', name: 'SK Beveren' },
+  { code: 'CER', name: 'Cercle Brugge' },
+  { code: 'CHA', name: 'Charleroi' },
+  { code: 'CLU', name: 'Club Brugge' },
+  { code: 'GNK', name: 'Genk' },
+  { code: 'GNT', name: 'Gent' },
+  { code: 'KOR', name: 'KV Kortrijk' },
+  { code: 'KVM', name: 'KV Mechelen' },
+  { code: 'LLV', name: 'RAAL La Louvière' },
+  { code: 'LOM', name: 'Lommel SK' },
+  { code: 'OHL', name: 'OH Leuven' },
+  { code: 'STA', name: 'Standard' },
+  { code: 'STV', name: 'Sint-Truiden' },
+  { code: 'USG', name: 'Union SG' },
+  { code: 'WES', name: 'Westerlo' },
+  { code: 'ZWA', name: 'Zulte Waregem' },
+];
+
+export const FIXTURES = {
+  // AND-KOR (GW3) is door de Europese voorrondes uitgesteld naar GW4, waar het een dubbele speeldag
+  // (DGW) wordt naast de oorspronkelijke GW4-tegenstander. De GW3-cel zelf blijft hieronder ongewijzigd
+  // staan (nog altijd 'KOR-H'/'AND-A') — die rendert als "/" doordat de key in POSTPONED zit, zie verderop.
+  AND: ['LLV-H','BEV-A','KOR-H', ['USG-A','KOR-H'], 'GNK-H','KVM-A','ZWA-H','CER-A'],
+  ANT: ['BEV-H','KOR-A','GNK-H','STV-H','STA-A','CLU-A','USG-H','WES-A'],
+  CER: ['STA-A','STV-H','CLU-A','LOM-H','GNT-H','OHL-A','CHA-A','AND-H'],
+  CHA: ['OHL-H','LOM-A','KVM-H','KOR-A','USG-H','ZWA-A','CER-H','STA-A'],
+  CLU: ['KOR-H','OHL-A','CER-H','GNT-A','LOM-A','ANT-H','GNK-H','LLV-A'],
+  GNK: ['ZWA-A','WES-H','ANT-A','BEV-H','AND-A','GNT-H','CLU-A','KOR-H'],
+  GNT: ['KVM-H','LLV-A','OHL-H','CLU-H','CER-A','GNK-A','STA-H','ZWA-A'],
+  KOR: ['CLU-A','ANT-H','AND-A', ['CHA-H','AND-A'], 'ZWA-H','LLV-A','BEV-H','GNK-A'],
+  KVM: ['GNT-A','STA-H','CHA-A','LLV-A','WES-H','AND-H','LOM-A','STV-H'],
+  LOM: ['STV-A','CHA-H','WES-H','CER-A','CLU-H','USG-A','KVM-H','BEV-A'],
+  OHL: ['CHA-A','CLU-H','GNT-A','STA-H','BEV-A','CER-H','LLV-H','USG-A'],
+  LLV: ['AND-A','GNT-H','STA-A','KVM-H','STV-A','KOR-H','OHL-A','CLU-H'],
+  BEV: ['ANT-A','AND-H','ZWA-A','GNK-A','OHL-H','STV-H','KOR-A','LOM-H'],
+  // GW4 (index 3) is voor STV en USG een dubbele speeldag (DGW): zie isDoubleGameweek() hieronder.
+  STV: ['LOM-H','CER-A','USG-H', ['ANT-A','USG-H'], 'LLV-H','BEV-A','WES-H','KVM-A'],
+  STA: ['CER-H','KVM-A','LLV-H','OHL-A','ANT-H','WES-A','GNT-A','CHA-H'],
+  USG: ['WES-A','ZWA-H','STV-A', ['AND-H','STV-A'], 'CHA-A','LOM-H','ANT-A','OHL-H'],
+  WES: ['USG-H','GNK-A','LOM-A','ZWA-H','KVM-A','STA-H','STV-A','ANT-H'],
+  ZWA: ['GNK-H','USG-A','BEV-H','WES-A','KOR-A','CHA-H','AND-A','GNT-H'],
+};
+
+// Een fixture-entry in FIXTURES is normaal een string ("OPP-VENUE" — één wedstrijd). Voor een dubbele
+// speeldag (DGW) is diezelfde positie in plaats daarvan een ARRAY van zulke strings, bv. ['ANT-A','USG-H'].
+// Dit zijn de enige twee plekken die dat onderscheid maken — alle andere code roept isDoubleGameweek()/
+// getFixtureLegs() aan i.p.v. zelf te controleren of iets een array is. Om een nieuwe DGW toe te voegen:
+// vervang de betreffende FIXTURES-positie door een array van 2+ "OPP-VENUE"-strings, verder niets.
+export function isDoubleGameweek(fixtureEntry) {
+  return Array.isArray(fixtureEntry);
+}
+
+// Normaliseert een fixture-entry naar een array van "OPP-VENUE"-strings: [fixture] voor een enkele
+// speeldag, of de array zelf voor een DGW. Zo kan alle downstream-code (getFixtureInfo, getFixtureScores)
+// hetzelfde .map()-patroon gebruiken ongeacht of het om 1 of meerdere wedstrijden gaat.
+export function getFixtureLegs(fixtureEntry) {
+  return isDoubleGameweek(fixtureEntry) ? fixtureEntry : [fixtureEntry];
+}
+
+export const POSTPONED = new Set([
+  'STV-3', // Sint-Truiden vs Union SG, GW3 — uitgesteld naar 2 september
+  'USG-3', // Union SG vs Sint-Truiden, GW3 — uitgesteld naar 2 september
+  'AND-3', // Anderlecht vs Kortrijk, GW3 — uitgesteld naar 3 september (Europese voorrondes)
+  'KOR-3', // Kortrijk vs Anderlecht, GW3 — uitgesteld naar 3 september (Europese voorrondes)
+]);
+// Datum waarnaar uitgestelde wedstrijden verplaatst zijn, per teamcode-onafhankelijke (gesorteerde)
+// paar-key — niet elke POSTPONED-wedstrijd valt op dezelfde datum.
+export const POSTPONED_DATES = {
+  'STV-USG': '2 september',
+  'AND-KOR': '3 september',
+};
+
+// Nog niet zeker uitgesteld — kan verschuiven afhankelijk van Europese kwalificatie. Zelfde key-structuur als POSTPONED.
+export const POSSIBLY_POSTPONED = new Set([
+  'GNT-3', // Gent vs OH Leuven, GW3 — bij Europese kwalificatie van Gent
+  'OHL-3', // OH Leuven vs Gent, GW3 — bij Europese kwalificatie van Gent
+  'USG-6', // Union SG vs Lommel, GW6 — afhankelijk van Europees programma Union SG
+  'LOM-6', // Lommel vs Union SG, GW6 — afhankelijk van Europees programma Union SG
+]);
+
+// Eén reden per wedstrijd, opgezocht via een teamcode-onafhankelijke (gesorteerde) paar-key.
+export const POSSIBLY_POSTPONED_REASONS = {
+  'GNT-OHL': 'mogelijk uitgesteld als Gent zich plaatst voor de laatste Europese kwalificatieronde',
+  'LOM-USG': "mogelijk uitgesteld afhankelijk van Union SG's Europees programma",
+};
+
+export const DEFAULT_RATINGS = {
+  LOM: 1, KOR: 1, BEV: 1,
+  ZWA: 2, OHL: 2, CER: 2, LLV: 2,
+  STA: 3, KVM: 3, WES: 3, CHA: 3, ANT: 3, STV: 3,
+  GNK: 4, AND: 4, GNT: 4,
+  USG: 5, CLU: 5,
+};
+
+// Thuisvoordeel staat standaard overal uit — per team aan/uit-schakelbaar, los van de sterkte-rating zelf.
+export const DEFAULT_HOME_ADVANTAGE = Object.fromEntries(TEAMS.map(t => [t.code, false]));
+
+export const RATING_STYLE = {
+  1: { bg: '#1F7A4D', text: '#EAFBF1', label: 'Makkelijkst' },
+  2: { bg: '#5BAE7A', text: '#0B2E1B', label: 'Makkelijk' },
+  3: { bg: '#E8C547', text: '#3D2E00', label: 'Gemiddeld' },
+  4: { bg: '#E08A3E', text: '#2E1500', label: 'Moeilijk' },
+  5: { bg: '#C2402C', text: '#FBEAE7', label: 'Moeilijkst' },
+};
+
+export const GW_COUNT = 8;
+// Standaard-eindpunt van de GW-horizon in de hoofdtabel: alle spelers krijgen na deze speeldag
+// onbeperkte gratis transfers, waardoor latere GW's minder relevant zijn bij het opstellen van het
+// eerste team. Gebruikers kunnen dit zelf nog verruimen tot GW_COUNT via de selector.
+export const DEFAULT_GW_HORIZON_END = 7;
+// Min-width van de hoofdtabel bij de volledige GW1-GW_COUNT-breedte — referentiewaarde waar
+// mainTableMinWidth (zie FDRTool) evenredig van afschaalt bij een kleinere horizon.
+export const MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS = 760;
+export const MINILEAGUE_CODE = '19WN75';
+export const LAST_UPDATED = '30 juli 2026';
+// Handmatig wekelijks bij te werken, net als LAST_UPDATED — markeert de "huidige" gameweek in de
+// hoofdtabel en bepaalt vanaf waar de mini-fixture-strip in de watch list start.
+export const CURRENT_GW = 1;
+
+// TEAMS is al alfabetisch op code — eenmalig gesorteerde kopie voor UI-lijsten die dat expliciet willen.
+export const TEAMS_ALPHA = [...TEAMS].sort((a, b) => a.code.localeCompare(b.code));
+export const GW_INDEXES = Array.from({ length: GW_COUNT }, (_, i) => i);
+
+export function average(numbers) {
+  return numbers.reduce((a, b) => a + b, 0) / numbers.length;
+}
+
+// Effectieve rating van een tegenstander voor één fixture: de basis-sterkte, eventueel verhoogd
+// door Thuisvoordeel. Dit vervangt de vroegere simpele "ratings[opp] ?? 3"-lookup overal waar de
+// moeilijkheidsgraad van een fixture bepaald wordt (celkleur, tooltip, gemiddelde-berekeningen).
+export function getEffectiveRating(opp, venue, ratings, homeAdvantage) {
+  const base = ratings[opp] ?? 3;
+  // Thuisvoordeel telt alléén mee wanneer de tegenstander (opp) thuis speelt tegen de rij-team
+  // (venue 'A'), én enkel als de tegenstander zélf de toggle heeft aangezet. Venue 'H' verandert nooit.
+  if (venue === 'A' && homeAdvantage[opp]) {
+    return Math.min(base + 1, 5);
+  }
+  return base;
+}
+
+export function getFixtureScores(teamCode, fixtures, ratings, homeAdvantage, startGW) {
+  return fixtures.map((f, idx) => {
+    const gwNumber = startGW + idx;
+    if (POSTPONED.has(`${teamCode}-${gwNumber}`)) return 5; // gemiste speeldag = nadeel, telt als moeilijkst
+    // DGW = altijd de gunstigste rating in gemiddelde-berekeningen: een extra speeldag levert altijd
+    // extra puntenkansen op, ongeacht wie de tegenstanders zijn. Geldt voor elke plek die het gemiddelde
+    // berekent (teamAvgDifficulty, bestRuns), want die lopen allebei via deze functie.
+    if (isDoubleGameweek(f)) return 1;
+    const [opp, venue] = f.split('-');
+    return getEffectiveRating(opp, venue, ratings, homeAdvantage);
+  });
+}
+
+export function splitHomeAway(teamCode, opp, venue) {
+  const team = TEAMS.find(t => t.code === teamCode)?.name ?? teamCode;
+  const oppTeam = TEAMS.find(t => t.code === opp)?.name ?? opp;
+  return venue === 'H' ? [team, oppTeam] : [oppTeam, team];
+}
+
+export function buildPostponedTooltipText(teamCode, opp, venue) {
+  const [home, away] = splitHomeAway(teamCode, opp, venue);
+  const pairKey = [teamCode, opp].sort().join('-');
+  const date = POSTPONED_DATES[pairKey];
+  return `${home} - ${away} is uitgesteld naar ${date} wegens de Europese voorrondes.`;
+}
+
+export function buildPossiblyPostponedTooltipText(teamCode, opp, venue) {
+  const [home, away] = splitHomeAway(teamCode, opp, venue);
+  const pairKey = [teamCode, opp].sort().join('-');
+  const reason = POSSIBLY_POSTPONED_REASONS[pairKey] ?? 'mogelijk uitgesteld door het Europese programma';
+  return `${home} - ${away} wordt ${reason}.`;
+}
+
+export function getFixtureInfo(teamCode, fixture, gwNumber, ratings, homeAdvantage) {
+  const key = `${teamCode}-${gwNumber}`;
+  const isPostponed = POSTPONED.has(key);
+  const isPossiblyPostponed = !isPostponed && POSSIBLY_POSTPONED.has(key);
+
+  // DGW-tak: levert meerdere "legs" (elk hun eigen opp/venue/style) i.p.v. één opp/venue/style.
+  // POSTPONED/POSSIBLY_POSTPONED werken op het niveau van de hele speeldag (key = teamCode-gwNumber),
+  // niet per individuele wedstrijd binnen een DGW. Een POSTPONED DGW-speeldag valt daarom door naar het
+  // enkele-GW-pad hieronder en gedraagt zich als een normale uitgestelde cel (legs worden genegeerd).
+  // Tooltips voor mogelijk-uitgesteld tonen we bewust niet op DGW-cellen: 2 tegenstanders passen niet in
+  // 1 reden-tekst, en de cel toont z'n eigen twee kleurvakjes al als visueel signaal.
+  if (isDoubleGameweek(fixture) && !isPostponed) {
+    const legs = getFixtureLegs(fixture).map(f => {
+      const [opp, venue] = f.split('-');
+      return { opp, venue, style: RATING_STYLE[getEffectiveRating(opp, venue, ratings, homeAdvantage)] };
+    });
+    return {
+      isDoubleGameweek: true, legs,
+      isPostponed: false, isPossiblyPostponed,
+      postponedText: null, possiblyPostponedText: null,
+    };
+  }
+
+  // Enkele-GW-pad (bestaand gedrag). getFixtureLegs(...)[0] pakt bij een (toevallig) POSTPONED DGW de
+  // eerste wedstrijd, zodat de "was het tegen wie"-tooltiptekst nog altijd zinvol is.
+  const [opp, venue] = getFixtureLegs(fixture)[0].split('-');
+  const style = isPostponed ? null : RATING_STYLE[getEffectiveRating(opp, venue, ratings, homeAdvantage)];
+  const postponedText = isPostponed ? buildPostponedTooltipText(teamCode, opp, venue) : null;
+  const possiblyPostponedText = isPossiblyPostponed ? buildPossiblyPostponedTooltipText(teamCode, opp, venue) : null;
+  return { isDoubleGameweek: false, opp, venue, isPostponed, isPossiblyPostponed, style, postponedText, possiblyPostponedText };
+}
+
+// Gedeeld tussen components/SectionHeader.jsx en tabs/WatchlistTab.jsx (dat laatste spreadt het
+// rechtstreeks op zijn eigen h2's), vandaar hier i.p.v. lokaal bij SectionHeader.
+export const sectionTitleStyle = {
+  color: '#FFFFFF', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.03em', margin: 0,
+  display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap'
+};
