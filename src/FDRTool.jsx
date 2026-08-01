@@ -1327,21 +1327,9 @@ export default function FDRTool() {
           <section>
             <SectionHeader icon={Grid2x2} title="Fixture Difficulty Rating" sectionKey="table" isOpen={openSections.table} onToggle={toggleSection} />
             {openSections.table && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
-              <label style={{ color: '#C9B8E0', fontSize: '12px' }}>GW</label>
-              <select value={gwHorizonStart} onChange={e => setGwHorizonStart(Number(e.target.value))} style={selectStyle}>
-                {gwOptionElements}
-              </select>
-              <span style={{ color: '#C9B8E0', fontSize: '12px' }}>t/m</span>
-              <select value={gwHorizonEnd} onChange={e => setGwHorizonEnd(Number(e.target.value))} style={selectStyle}>
-                {gwOptionElements}
-              </select>
-            </div>
-            )}
-            {openSections.table && (
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              flexWrap: 'wrap', gap: '8px', marginBottom: '10px'
+              flexWrap: 'wrap', gap: '10px', marginBottom: '10px'
             }}>
               <button onClick={(e) => { e.stopPropagation(); setSortByDifficulty(s => !s); }} style={{
                 display: 'flex', alignItems: 'center', gap: '6px', background: 'transparent',
@@ -1351,10 +1339,22 @@ export default function FDRTool() {
                 <ArrowUpDown size={14} />
                 {sortByDifficulty ? 'Gesorteerd: makkelijkste eerst' : 'Sorteer op makkelijkste run'}
               </button>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#6B5289', fontSize: '11px' }}>
-                <Info size={12} />
-                Tik op grijze cellen of die met een * voor meer info
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <label style={{ color: '#C9B8E0', fontSize: '12px' }}>GW</label>
+                  <select value={gwHorizonStart} onChange={e => setGwHorizonStart(Number(e.target.value))} style={selectStyle}>
+                    {gwOptionElements}
+                  </select>
+                  <span style={{ color: '#C9B8E0', fontSize: '12px' }}>t/m</span>
+                  <select value={gwHorizonEnd} onChange={e => setGwHorizonEnd(Number(e.target.value))} style={selectStyle}>
+                    {gwOptionElements}
+                  </select>
+                </div>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#6B5289', fontSize: '11px' }}>
+                  <Info size={12} />
+                  Tik op grijze cellen of die met een * voor meer info
+                </span>
+              </div>
             </div>
             )}
             <div ref={tableRef} id="fdr-capture-wrapper">
