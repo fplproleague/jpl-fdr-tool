@@ -1,115 +1,20 @@
-import { useState, useMemo, useRef, useCallback, useEffect, useId, memo } from 'react';
-import { createPortal } from 'react-dom';
-import { RotateCcw, TrendingUp, Info, X, Link2, Download, Check, ChevronDown, ArrowUpDown, Settings2, Grid2x2, Scale, Plus, Eye, UserPlus, Copy } from 'lucide-react';
+// Hoofdbestand van de FDR-tool: pagina-chrome (header, minileague-code, tab-navigatie, footer, info-
+// modal, Thuisvoordeel-toast) en alle gedeelde/persistente state die de tabs nodig hebben (ratings,
+// homeAdvantage, watchlist, ...). De tab-specifieke content zelf zit in src/tabs/*.jsx en ontvangt
+// die state + handlers als props — geen lokale state daar, want die tabs worden conditioneel
+// gemount/unmount bij het wisselen van tab.
+
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+import { Info, X, Check, Copy } from 'lucide-react';
 import html2canvas from 'html2canvas';
-
-const TEAMS = [
-  { code: 'AND', name: 'Anderlecht' },
-  { code: 'ANT', name: 'Antwerp' },
-  { code: 'BEV', name: 'SK Beveren' },
-  { code: 'CER', name: 'Cercle Brugge' },
-  { code: 'CHA', name: 'Charleroi' },
-  { code: 'CLU', name: 'Club Brugge' },
-  { code: 'GNK', name: 'Genk' },
-  { code: 'GNT', name: 'Gent' },
-  { code: 'KOR', name: 'KV Kortrijk' },
-  { code: 'KVM', name: 'KV Mechelen' },
-  { code: 'LLV', name: 'RAAL La Louvière' },
-  { code: 'LOM', name: 'Lommel SK' },
-  { code: 'OHL', name: 'OH Leuven' },
-  { code: 'STA', name: 'Standard' },
-  { code: 'STV', name: 'Sint-Truiden' },
-  { code: 'USG', name: 'Union SG' },
-  { code: 'WES', name: 'Westerlo' },
-  { code: 'ZWA', name: 'Zulte Waregem' },
-];
-
-const FIXTURES = {
-  // AND-KOR (GW3) is door de Europese voorrondes uitgesteld naar GW4, waar het een dubbele speeldag
-  // (DGW) wordt naast de oorspronkelijke GW4-tegenstander. De GW3-cel zelf blijft hieronder ongewijzigd
-  // staan (nog altijd 'KOR-H'/'AND-A') — die rendert als "/" doordat de key in POSTPONED zit, zie verderop.
-  AND: ['LLV-H','BEV-A','KOR-H', ['USG-A','KOR-H'], 'GNK-H','KVM-A','ZWA-H','CER-A'],
-  ANT: ['BEV-H','KOR-A','GNK-H','STV-H','STA-A','CLU-A','USG-H','WES-A'],
-  CER: ['STA-A','STV-H','CLU-A','LOM-H','GNT-H','OHL-A','CHA-A','AND-H'],
-  CHA: ['OHL-H','LOM-A','KVM-H','KOR-A','USG-H','ZWA-A','CER-H','STA-A'],
-  CLU: ['KOR-H','OHL-A','CER-H','GNT-A','LOM-A','ANT-H','GNK-H','LLV-A'],
-  GNK: ['ZWA-A','WES-H','ANT-A','BEV-H','AND-A','GNT-H','CLU-A','KOR-H'],
-  GNT: ['KVM-H','LLV-A','OHL-H','CLU-H','CER-A','GNK-A','STA-H','ZWA-A'],
-  KOR: ['CLU-A','ANT-H','AND-A', ['CHA-H','AND-A'], 'ZWA-H','LLV-A','BEV-H','GNK-A'],
-  KVM: ['GNT-A','STA-H','CHA-A','LLV-A','WES-H','AND-H','LOM-A','STV-H'],
-  LOM: ['STV-A','CHA-H','WES-H','CER-A','CLU-H','USG-A','KVM-H','BEV-A'],
-  OHL: ['CHA-A','CLU-H','GNT-A','STA-H','BEV-A','CER-H','LLV-H','USG-A'],
-  LLV: ['AND-A','GNT-H','STA-A','KVM-H','STV-A','KOR-H','OHL-A','CLU-H'],
-  BEV: ['ANT-A','AND-H','ZWA-A','GNK-A','OHL-H','STV-H','KOR-A','LOM-H'],
-  // GW4 (index 3) is voor STV en USG een dubbele speeldag (DGW): zie isDoubleGameweek() hieronder.
-  STV: ['LOM-H','CER-A','USG-H', ['ANT-A','USG-H'], 'LLV-H','BEV-A','WES-H','KVM-A'],
-  STA: ['CER-H','KVM-A','LLV-H','OHL-A','ANT-H','WES-A','GNT-A','CHA-H'],
-  USG: ['WES-A','ZWA-H','STV-A', ['AND-H','STV-A'], 'CHA-A','LOM-H','ANT-A','OHL-H'],
-  WES: ['USG-H','GNK-A','LOM-A','ZWA-H','KVM-A','STA-H','STV-A','ANT-H'],
-  ZWA: ['GNK-H','USG-A','BEV-H','WES-A','KOR-A','CHA-H','AND-A','GNT-H'],
-};
-
-// Een fixture-entry in FIXTURES is normaal een string ("OPP-VENUE" — één wedstrijd). Voor een dubbele
-// speeldag (DGW) is diezelfde positie in plaats daarvan een ARRAY van zulke strings, bv. ['ANT-A','USG-H'].
-// Dit zijn de enige twee plekken die dat onderscheid maken — alle andere code roept isDoubleGameweek()/
-// getFixtureLegs() aan i.p.v. zelf te controleren of iets een array is. Om een nieuwe DGW toe te voegen:
-// vervang de betreffende FIXTURES-positie door een array van 2+ "OPP-VENUE"-strings, verder niets.
-function isDoubleGameweek(fixtureEntry) {
-  return Array.isArray(fixtureEntry);
-}
-
-// Normaliseert een fixture-entry naar een array van "OPP-VENUE"-strings: [fixture] voor een enkele
-// speeldag, of de array zelf voor een DGW. Zo kan alle downstream-code (getFixtureInfo, getFixtureScores)
-// hetzelfde .map()-patroon gebruiken ongeacht of het om 1 of meerdere wedstrijden gaat.
-function getFixtureLegs(fixtureEntry) {
-  return isDoubleGameweek(fixtureEntry) ? fixtureEntry : [fixtureEntry];
-}
-
-const POSTPONED = new Set([
-  'STV-3', // Sint-Truiden vs Union SG, GW3 — uitgesteld naar 2 september
-  'USG-3', // Union SG vs Sint-Truiden, GW3 — uitgesteld naar 2 september
-  'AND-3', // Anderlecht vs Kortrijk, GW3 — uitgesteld naar 3 september (Europese voorrondes)
-  'KOR-3', // Kortrijk vs Anderlecht, GW3 — uitgesteld naar 3 september (Europese voorrondes)
-]);
-// Datum waarnaar uitgestelde wedstrijden verplaatst zijn, per teamcode-onafhankelijke (gesorteerde)
-// paar-key — niet elke POSTPONED-wedstrijd valt op dezelfde datum.
-const POSTPONED_DATES = {
-  'STV-USG': '2 september',
-  'AND-KOR': '3 september',
-};
-
-// Nog niet zeker uitgesteld — kan verschuiven afhankelijk van Europese kwalificatie. Zelfde key-structuur als POSTPONED.
-const POSSIBLY_POSTPONED = new Set([
-  'GNT-3', // Gent vs OH Leuven, GW3 — bij Europese kwalificatie van Gent
-  'OHL-3', // OH Leuven vs Gent, GW3 — bij Europese kwalificatie van Gent
-  'USG-6', // Union SG vs Lommel, GW6 — afhankelijk van Europees programma Union SG
-  'LOM-6', // Lommel vs Union SG, GW6 — afhankelijk van Europees programma Union SG
-]);
-
-// Eén reden per wedstrijd, opgezocht via een teamcode-onafhankelijke (gesorteerde) paar-key.
-const POSSIBLY_POSTPONED_REASONS = {
-  'GNT-OHL': 'mogelijk uitgesteld als Gent zich plaatst voor de laatste Europese kwalificatieronde',
-  'LOM-USG': "mogelijk uitgesteld afhankelijk van Union SG's Europees programma",
-};
-
-const DEFAULT_RATINGS = {
-  LOM: 1, KOR: 1, BEV: 1, 
-  ZWA: 2, OHL: 2, CER: 2, LLV: 2,
-  STA: 3, KVM: 3, WES: 3, CHA: 3, ANT: 3, STV: 3,
-  GNK: 4, AND: 4, GNT: 4,
-  USG: 5, CLU: 5,
-};
-
-// Thuisvoordeel staat standaard overal uit — per team aan/uit-schakelbaar, los van de sterkte-rating zelf.
-const DEFAULT_HOME_ADVANTAGE = Object.fromEntries(TEAMS.map(t => [t.code, false]));
-
-const RATING_STYLE = {
-  1: { bg: '#1F7A4D', text: '#EAFBF1', label: 'Makkelijkst' },
-  2: { bg: '#5BAE7A', text: '#0B2E1B', label: 'Makkelijk' },
-  3: { bg: '#E8C547', text: '#3D2E00', label: 'Gemiddeld' },
-  4: { bg: '#E08A3E', text: '#2E1500', label: 'Moeilijk' },
-  5: { bg: '#C2402C', text: '#FBEAE7', label: 'Moeilijkst' },
-};
+import {
+  TEAMS, FIXTURES, GW_COUNT, DEFAULT_GW_HORIZON_END, MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS,
+  MINILEAGUE_CODE, LAST_UPDATED, GW_INDEXES, DEFAULT_RATINGS, DEFAULT_HOME_ADVANTAGE,
+  getFixtureScores, average,
+} from './constants';
+import FDRTab from './tabs/FDRTab';
+import WatchlistTab from './tabs/WatchlistTab';
+import PlayerStatusTab from './tabs/PlayerStatusTab';
 
 // Tab-navigatie bovenaan de pagina — array-gedreven zodat toekomstige onderdelen naast de FDR-tool
 // gewoon een extra entry kunnen worden.
@@ -121,19 +26,6 @@ const TABS = [
   { key: 'pricechanges', label: 'Price Changes' },
 ];
 
-const GW_COUNT = 8;
-// Standaard-eindpunt van de GW-horizon in de hoofdtabel: alle spelers krijgen na deze speeldag
-// onbeperkte gratis transfers, waardoor latere GW's minder relevant zijn bij het opstellen van het
-// eerste team. Gebruikers kunnen dit zelf nog verruimen tot GW_COUNT via de selector.
-const DEFAULT_GW_HORIZON_END = 7;
-// Min-width van de hoofdtabel bij de volledige GW1-GW_COUNT-breedte — referentiewaarde waar
-// mainTableMinWidth (zie FDRTool) evenredig van afschaalt bij een kleinere horizon.
-const MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS = 760;
-const MINILEAGUE_CODE = '19WN75';
-const LAST_UPDATED = '30 juli 2026';
-// Handmatig wekelijks bij te werken, net als LAST_UPDATED — markeert de "huidige" gameweek in de
-// hoofdtabel en bepaalt vanaf waar de mini-fixture-strip in de watch list start.
-const CURRENT_GW = 1;
 const STORAGE_KEY = 'fpl_proleague_fdr_ratings_v1';
 const HOME_ADVANTAGE_STORAGE_KEY = 'fpl_proleague_fdr_home_advantage_v1';
 // Eigen storage key voor de watch list — los van de FDR-ratings hierboven, zodat ze elkaar niet raken.
@@ -141,18 +33,14 @@ const WATCHLIST_STORAGE_KEY = 'fpl_proleague_watchlist_v1';
 // Onthoudt of de first-time-uitleg over Thuisvoordeel al getoond is, zodat die maar één keer ooit verschijnt.
 const HOME_ADVANTAGE_INTRO_SEEN_KEY = 'fpl_proleague_ha_intro_seen_v1';
 
-// TEAMS is al alfabetisch op code — eenmalig gesorteerde kopie voor UI-lijsten die dat expliciet willen.
-const TEAMS_ALPHA = [...TEAMS].sort((a, b) => a.code.localeCompare(b.code));
-const GW_INDEXES = Array.from({ length: GW_COUNT }, (_, i) => i);
-
-// Statische GW-headers/opties: eenmalig opgebouwd, hergebruikt door meerdere tabellen/selects.
+// Statische GW-headers, eenmalig opgebouwd — nodig voor visibleGwHeaderCells (hoofdtabel-horizon,
+// zie hieronder) en doorgegeven aan FDRTab voor de vergelijk-tabel (die altijd alle GW's toont).
+// Blijft hier i.p.v. in constants.js: dat is een .js-bestand en Vite/esbuild parsen JSX-syntax
+// enkel in .jsx-bestanden.
 const gwHeaderCells = GW_INDEXES.map(i => (
   <th key={i} style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', padding: '6px 4px', minWidth: '58px' }}>
     GW{i + 1}
   </th>
-));
-const gwOptionElements = GW_INDEXES.map(i => (
-  <option key={i} value={i + 1}>{i + 1}</option>
 ));
 
 function loadStoredRatings() {
@@ -248,393 +136,6 @@ function createWatchlistId() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
-
-function average(numbers) {
-  return numbers.reduce((a, b) => a + b, 0) / numbers.length;
-}
-
-// Effectieve rating van een tegenstander voor één fixture: de basis-sterkte, eventueel verhoogd
-// door Thuisvoordeel. Dit vervangt de vroegere simpele "ratings[opp] ?? 3"-lookup overal waar de
-// moeilijkheidsgraad van een fixture bepaald wordt (celkleur, tooltip, gemiddelde-berekeningen).
-function getEffectiveRating(opp, venue, ratings, homeAdvantage) {
-  const base = ratings[opp] ?? 3;
-  // Thuisvoordeel telt alléén mee wanneer de tegenstander (opp) thuis speelt tegen de rij-team
-  // (venue 'A'), én enkel als de tegenstander zélf de toggle heeft aangezet. Venue 'H' verandert nooit.
-  if (venue === 'A' && homeAdvantage[opp]) {
-    return Math.min(base + 1, 5);
-  }
-  return base;
-}
-
-function getFixtureScores(teamCode, fixtures, ratings, homeAdvantage, startGW) {
-  return fixtures.map((f, idx) => {
-    const gwNumber = startGW + idx;
-    if (POSTPONED.has(`${teamCode}-${gwNumber}`)) return 5; // gemiste speeldag = nadeel, telt als moeilijkst
-    // DGW = altijd de gunstigste rating in gemiddelde-berekeningen: een extra speeldag levert altijd
-    // extra puntenkansen op, ongeacht wie de tegenstanders zijn. Geldt voor elke plek die het gemiddelde
-    // berekent (teamAvgDifficulty, bestRuns), want die lopen allebei via deze functie.
-    if (isDoubleGameweek(f)) return 1;
-    const [opp, venue] = f.split('-');
-    return getEffectiveRating(opp, venue, ratings, homeAdvantage);
-  });
-}
-
-function splitHomeAway(teamCode, opp, venue) {
-  const team = TEAMS.find(t => t.code === teamCode)?.name ?? teamCode;
-  const oppTeam = TEAMS.find(t => t.code === opp)?.name ?? opp;
-  return venue === 'H' ? [team, oppTeam] : [oppTeam, team];
-}
-
-function buildPostponedTooltipText(teamCode, opp, venue) {
-  const [home, away] = splitHomeAway(teamCode, opp, venue);
-  const pairKey = [teamCode, opp].sort().join('-');
-  const date = POSTPONED_DATES[pairKey];
-  return `${home} - ${away} is uitgesteld naar ${date} wegens de Europese voorrondes.`;
-}
-
-function buildPossiblyPostponedTooltipText(teamCode, opp, venue) {
-  const [home, away] = splitHomeAway(teamCode, opp, venue);
-  const pairKey = [teamCode, opp].sort().join('-');
-  const reason = POSSIBLY_POSTPONED_REASONS[pairKey] ?? 'mogelijk uitgesteld door het Europese programma';
-  return `${home} - ${away} wordt ${reason}.`;
-}
-
-function getFixtureInfo(teamCode, fixture, gwNumber, ratings, homeAdvantage) {
-  const key = `${teamCode}-${gwNumber}`;
-  const isPostponed = POSTPONED.has(key);
-  const isPossiblyPostponed = !isPostponed && POSSIBLY_POSTPONED.has(key);
-
-  // DGW-tak: levert meerdere "legs" (elk hun eigen opp/venue/style) i.p.v. één opp/venue/style.
-  // POSTPONED/POSSIBLY_POSTPONED werken op het niveau van de hele speeldag (key = teamCode-gwNumber),
-  // niet per individuele wedstrijd binnen een DGW. Een POSTPONED DGW-speeldag valt daarom door naar het
-  // enkele-GW-pad hieronder en gedraagt zich als een normale uitgestelde cel (legs worden genegeerd).
-  // Tooltips voor mogelijk-uitgesteld tonen we bewust niet op DGW-cellen: 2 tegenstanders passen niet in
-  // 1 reden-tekst, en de cel toont z'n eigen twee kleurvakjes al als visueel signaal.
-  if (isDoubleGameweek(fixture) && !isPostponed) {
-    const legs = getFixtureLegs(fixture).map(f => {
-      const [opp, venue] = f.split('-');
-      return { opp, venue, style: RATING_STYLE[getEffectiveRating(opp, venue, ratings, homeAdvantage)] };
-    });
-    return {
-      isDoubleGameweek: true, legs,
-      isPostponed: false, isPossiblyPostponed,
-      postponedText: null, possiblyPostponedText: null,
-    };
-  }
-
-  // Enkele-GW-pad (bestaand gedrag). getFixtureLegs(...)[0] pakt bij een (toevallig) POSTPONED DGW de
-  // eerste wedstrijd, zodat de "was het tegen wie"-tooltiptekst nog altijd zinvol is.
-  const [opp, venue] = getFixtureLegs(fixture)[0].split('-');
-  const style = isPostponed ? null : RATING_STYLE[getEffectiveRating(opp, venue, ratings, homeAdvantage)];
-  const postponedText = isPostponed ? buildPostponedTooltipText(teamCode, opp, venue) : null;
-  const possiblyPostponedText = isPossiblyPostponed ? buildPossiblyPostponedTooltipText(teamCode, opp, venue) : null;
-  return { isDoubleGameweek: false, opp, venue, isPostponed, isPossiblyPostponed, style, postponedText, possiblyPostponedText };
-}
-
-const selectStyle = {
-  background: '#3D1E5C', color: '#FFF', border: '1px solid rgba(255,255,255,0.15)',
-  borderRadius: '6px', padding: '4px 8px', fontSize: '12px'
-};
-
-const watchlistInputStyle = {
-  background: '#3D1E5C', color: '#FFF', border: '1px solid rgba(255,255,255,0.15)',
-  borderRadius: '6px', padding: '8px 10px', fontSize: '13px', width: '100%'
-};
-
-const sectionToggleButtonStyle = {
-  display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
-  background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: '12px'
-};
-
-const sectionTitleStyle = {
-  color: '#FFFFFF', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.03em', margin: 0,
-  display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap'
-};
-
-const secondaryToolbarBtnStyle = {
-  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: 'transparent', color: '#C9B8E0',
-  border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', padding: '8px 14px',
-  fontWeight: 700, fontSize: '13px', cursor: 'pointer'
-};
-
-function chevronStyle(isOpen) {
-  return { transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s ease' };
-}
-
-const SectionHeader = memo(function SectionHeader({ icon: Icon, title, sectionKey, isOpen, onToggle }) {
-  return (
-    <button onClick={() => onToggle(sectionKey)} style={sectionToggleButtonStyle}>
-      <h2 className="fdr-title fdr-section-title" style={sectionTitleStyle}>
-        <Icon size={18} color="#4ECDC4" /> {title}
-      </h2>
-      {/* Vult de ruimte tussen titel en chevron; flex: 1 laat 'm meekrimpen/groeien met de knopbreedte. */}
-      <span aria-hidden="true" style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)', margin: '0 8px' }} />
-      <ChevronDown size={20} color="#C9B8E0" style={chevronStyle(isOpen)} />
-    </button>
-  );
-});
-
-// Gedeelde interactielogica voor fixture-tooltips: hover op desktop, tap-toggle + tap-buiten-sluit op mobiel.
-// Positie wordt in viewport-coördinaten bijgehouden zodat de bubble (via een portal) nooit wordt
-// afgesneden door de horizontaal scrollende tabellen.
-function useTooltipTrigger() {
-  const [hoverOpen, setHoverOpen] = useState(false);
-  const [clickOpen, setClickOpen] = useState(false);
-  const [coords, setCoords] = useState(null);
-  const triggerRef = useRef(null);
-  const bubbleRef = useRef(null);
-  const tooltipId = useId();
-  const visible = hoverOpen || clickOpen;
-
-  const updatePosition = useCallback(() => {
-    const el = triggerRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const placeBelow = rect.top < 70;
-    const left = Math.min(Math.max(rect.left + rect.width / 2, 100), window.innerWidth - 100);
-    setCoords({
-      left,
-      y: placeBelow ? rect.bottom + 8 : rect.top - 8,
-      placement: placeBelow ? 'bottom' : 'top',
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!visible) return;
-    updatePosition();
-    const handleReposition = () => updatePosition();
-    const handlePointerDown = (e) => {
-      if (triggerRef.current?.contains(e.target) || bubbleRef.current?.contains(e.target)) return;
-      setClickOpen(false);
-    };
-    window.addEventListener('scroll', handleReposition, true);
-    window.addEventListener('resize', handleReposition);
-    document.addEventListener('pointerdown', handlePointerDown);
-    return () => {
-      window.removeEventListener('scroll', handleReposition, true);
-      window.removeEventListener('resize', handleReposition);
-      document.removeEventListener('pointerdown', handlePointerDown);
-    };
-  }, [visible, updatePosition]);
-
-  const triggerProps = {
-    ref: triggerRef,
-    tabIndex: 0,
-    'aria-describedby': visible ? tooltipId : undefined,
-    onPointerEnter: (e) => { if (e.pointerType === 'mouse') { updatePosition(); setHoverOpen(true); } },
-    onPointerLeave: (e) => { if (e.pointerType === 'mouse') setHoverOpen(false); },
-    onFocus: (e) => { if (e.target.matches(':focus-visible')) { updatePosition(); setHoverOpen(true); } },
-    onBlur: () => setHoverOpen(false),
-    onClick: (e) => { e.stopPropagation(); updatePosition(); setClickOpen(o => !o); },
-  };
-
-  return { triggerProps, bubbleRef, tooltipId, visible, coords };
-}
-
-function TooltipBubble({ id, bubbleRef, coords, text }) {
-  return createPortal(
-    <div
-      id={id}
-      ref={bubbleRef}
-      role="tooltip"
-      className={`fdr-postponed-tooltip fdr-postponed-tooltip--${coords.placement}`}
-      style={{
-        top: coords.y,
-        left: coords.left,
-        transform: `translate(-50%, ${coords.placement === 'top' ? '-100%' : '0'})`,
-      }}
-    >
-      {text}
-    </div>,
-    document.body
-  );
-}
-
-// Maakt van "as" (td/span) een klikbare/hoverbare tooltip-trigger over zijn volledige oppervlak,
-// zowel voor het grijze "/"-vakje (POSTPONED) als voor mogelijk uitgestelde cellen die hun eigen
-// FDR-kleur behouden (POSSIBLY_POSTPONED) — de popup verschijnt bij een klik/tap/hover eender waar op de cel.
-const TooltipTrigger = memo(function TooltipTrigger({ as: Tag, text, style, className, children }) {
-  const { triggerProps, bubbleRef, tooltipId, visible, coords } = useTooltipTrigger();
-  return (
-    <>
-      <Tag {...triggerProps} className={className} style={style} aria-label={text}>
-        {children}
-      </Tag>
-      {visible && coords && <TooltipBubble id={tooltipId} bubbleRef={bubbleRef} coords={coords} text={text} />}
-    </>
-  );
-});
-
-// Grijs "/"-vakje voor zeker uitgestelde wedstrijden (POSTPONED).
-const PostponedIndicator = memo(function PostponedIndicator({ as: Tag, text, style, className }) {
-  return (
-    <TooltipTrigger as={Tag} text={text} style={style} className={className}>
-      /
-    </TooltipTrigger>
-  );
-});
-
-const FixtureCell = memo(function FixtureCell({
-  opp, venue, isPostponed, isPossiblyPostponed, bg, textColor, stacked, postponedText, possiblyPostponedText,
-  isDoubleGameweek, legs
-}) {
-  const stackingStyle = stacked ? { position: 'relative', zIndex: 1 } : null;
-
-  if (isPostponed) {
-    return (
-      <PostponedIndicator
-        as="td"
-        className="fdr-cell"
-        text={postponedText}
-        style={{
-          background: '#4A4560', color: '#9B93AD', textAlign: 'center',
-          fontSize: '14px', fontWeight: 700, borderRadius: '6px', padding: '8px 2px',
-          cursor: 'pointer',
-          ...stackingStyle
-        }}
-      />
-    );
-  }
-
-  // DGW: cel gesplitst in 2 gestapelde helften (elk hun eigen achtergrondkleur o.b.v. de rating van die
-  // tegenstander), in een kleiner lettertype dan de normale enkele cel zodat beide passen. Een <td> is
-  // van zichzelf al block-level voor z'n kinderen, dus de twee <div>'s stapelen vanzelf boven/onder.
-  // padding/fontSize zijn bewust krap: de 2 helften + border-bottom moeten samen binnen de hoogte van
-  // een normale enkele cel (~32px) blijven, anders wordt de hele rij (alle 8 kolommen) hoger dan de rest.
-  if (isDoubleGameweek) {
-    return (
-      <td className="fdr-cell" style={{ padding: 0, borderRadius: '6px', overflow: 'hidden', ...stackingStyle }}>
-        {legs.map((leg, i) => (
-          <div key={i} style={{
-            background: leg.style.bg, color: leg.style.text, textAlign: 'center',
-            fontSize: '9px', fontWeight: 700, padding: '2px 2px', lineHeight: 1.2,
-            // Duidelijke scheiding tussen de 2 helften: border-bottom op de bovenste (i===0), niet
-            // border-top op de onderste, zodat de lijn zichtbaar bij de bovenste fixture "hoort".
-            // Zelfde paarse kleur als de achtergrond/gutter tussen de tabelcellen, zodat de lijn oogt
-            // als een echte scheiding tussen 2 cellen i.p.v. een schaduwrand.
-            borderBottom: i === 0 ? '2px solid #2A1440' : undefined
-          }}>
-            {leg.opp} <span style={{ opacity: 0.75, fontWeight: 500 }}>({leg.venue})</span>
-          </div>
-        ))}
-      </td>
-    );
-  }
-
-  const content = (
-    <>
-      {opp}{' '}
-      <span style={{ position: isPossiblyPostponed ? 'relative' : undefined }}>
-        <span style={{ opacity: 0.75, fontWeight: 500 }}>({venue})</span>
-        {isPossiblyPostponed && <span className="fdr-maybe-postponed-marker" aria-hidden="true">*</span>}
-      </span>
-    </>
-  );
-
-  if (isPossiblyPostponed) {
-    return (
-      <TooltipTrigger
-        as="td"
-        className="fdr-cell"
-        text={possiblyPostponedText}
-        style={{
-          background: bg, color: textColor, textAlign: 'center',
-          fontSize: '12px', fontWeight: 700, borderRadius: '6px', padding: '8px 2px',
-          cursor: 'pointer',
-          ...stackingStyle
-        }}
-      >
-        {content}
-      </TooltipTrigger>
-    );
-  }
-
-  return (
-    <td className="fdr-cell" style={{
-      background: bg, color: textColor, textAlign: 'center',
-      fontSize: '12px', fontWeight: 700, borderRadius: '6px', padding: '8px 2px',
-      ...stackingStyle
-    }}>
-      {content}
-    </td>
-  );
-});
-
-// Compacte fixture-badge (tegenstander + venue) inclusief POSTPONED/POSSIBLY_POSTPONED-afhandeling,
-// in mini-formaat — gebruikt voor de fixture-strip per speler in de watch list.
-const MiniFixtureBadge = memo(function MiniFixtureBadge({ teamCode, fixture, gwNumber, ratings, homeAdvantage }) {
-  const { opp, venue, isPostponed, isPossiblyPostponed, style, postponedText, possiblyPostponedText, isDoubleGameweek, legs } =
-    getFixtureInfo(teamCode, fixture, gwNumber, ratings, homeAdvantage);
-
-  if (isPostponed) {
-    return (
-      <PostponedIndicator
-        as="span"
-        className="fdr-postponed-mini"
-        text={postponedText}
-        style={{
-          background: '#4A4560', color: '#9B93AD', fontSize: '10px', fontWeight: 700,
-          padding: '3px 6px', borderRadius: '5px', cursor: 'pointer', textAlign: 'center'
-        }}
-      />
-    );
-  }
-
-  // DGW: mini-badge gesplitst in 2 gestapelde regels i.p.v. 1 — zelfde idee als FixtureCell, maar
-  // dan als inline-flex span (blijft meelopen in de flex-wrap rij van badges). De "fdr-dgw-badge"-klasse
-  // laat mobiele CSS de padding van deze wrapper resetten, los van de padding van de losse badges.
-  if (isDoubleGameweek) {
-    return (
-      <span className="fdr-dgw-badge" style={{ display: 'inline-flex', flexDirection: 'column', borderRadius: '5px', overflow: 'hidden' }}>
-        {legs.map((leg, i) => (
-          <span key={i} style={{
-            display: 'block', background: leg.style.bg, color: leg.style.text,
-            fontSize: '8px', fontWeight: 700, padding: '2px 5px', lineHeight: 1.3, whiteSpace: 'nowrap',
-            // Zie FixtureCell hierboven: border-bottom op de bovenste helft (i===0) i.p.v. border-top
-            // op de onderste, in dezelfde paarse achtergrondkleur voor een consistente scheiding.
-            borderBottom: i === 0 ? '2px solid #2A1440' : undefined
-          }}>
-            {leg.opp} ({leg.venue})
-          </span>
-        ))}
-      </span>
-    );
-  }
-
-  const badgeContent = (
-    <>
-      {opp}{' '}
-      <span style={{ position: isPossiblyPostponed ? 'relative' : undefined }}>
-        ({venue})
-        {isPossiblyPostponed && <span className="fdr-maybe-postponed-marker" aria-hidden="true">*</span>}
-      </span>
-    </>
-  );
-
-  if (isPossiblyPostponed) {
-    return (
-      <TooltipTrigger
-        as="span"
-        text={possiblyPostponedText}
-        style={{
-          background: style.bg, color: style.text, fontSize: '10px', fontWeight: 700,
-          padding: '3px 6px', borderRadius: '5px', cursor: 'pointer', whiteSpace: 'nowrap'
-        }}
-      >
-        {badgeContent}
-      </TooltipTrigger>
-    );
-  }
-
-  return (
-    <span style={{
-      background: style.bg, color: style.text, fontSize: '10px', fontWeight: 700,
-      padding: '3px 6px', borderRadius: '5px', whiteSpace: 'nowrap'
-    }}>
-      {badgeContent}
-    </span>
-  );
-});
 
 export default function FDRTool() {
   const [activeTab, setActiveTab] = useState('fdr');
@@ -847,7 +348,7 @@ export default function FDRTool() {
   );
 
   // MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS (760px) is gekalibreerd voor de Team-kolom + alle GW_COUNT
-  // kolommen samen. De tabel heeft bewust GEEN width: '100%' (zie <table> hieronder) — anders rekt
+  // kolommen samen. De tabel heeft bewust GEEN width: '100%' (zie <table> in FDRTab) — anders rekt
   // de browser (table-layout: auto) elke kolom evenredig uit om de volledige breedte van de omringende
   // scroll-container te vullen, wat bij een kleine horizon (bv. maar 1-3 zichtbare GW's) grote lege
   // tussenruimtes tussen de kolommen oplevert. Door zowel het stretchen te vermijden als de min-width
@@ -1218,530 +719,61 @@ export default function FDRTool() {
         </div>
 
         {activeTab === 'fdr' && (
-        <>
-        <p style={{ color: '#8F79AD', fontSize: '13px', marginBottom: '18px' }}>
-          Mijn eigen fixture difficulty ratings — pas ze aan naar jouw mening en ontdek meteen welke teams de beste runs hebben.
-        </p>
-        <div className="fpl-toolbar" style={{
-          display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center',
-          marginBottom: '24px', padding: '14px 16px', background: 'rgba(255,255,255,0.04)',
-          border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px'
-        }}>
-          <span className="fdr-status-badge" style={{
-            fontSize: '12px', fontWeight: 700, padding: '4px 10px', borderRadius: '999px',
-            background: isCustom ? '#4ECDC4' : 'rgba(255,255,255,0.1)',
-            color: isCustom ? '#0B2E1B' : '#C9B8E0'
-          }}>
-            {isCustom ? 'JOUW AANGEPASTE VERSIE' : 'RATING VAN @FPL_PROLEAGUE'}
-          </span>
-          <div className="fpl-toolbar-actions">
-          <span className="fpl-toolbar-secondary">
-          <button onClick={handleCopyLink} className="fdr-toolbar-btn" style={secondaryToolbarBtnStyle}>
-            {linkCopied ? <Check size={14} /> : <Link2 size={14} />}
-            <span className="fdr-btn-label-full">{linkCopied ? 'Link gekopieerd!' : 'Kopieer link'}</span>
-            <span className="fdr-btn-label-short">{linkCopied ? 'Gekopieerd!' : 'Kopieer'}</span>
-          </button>
-          <button onClick={handleDownloadImage} disabled={downloading} className="fdr-toolbar-btn" style={{
-            ...secondaryToolbarBtnStyle,
-            cursor: downloading ? 'default' : 'pointer',
-            opacity: downloading ? 0.6 : 1
-          }}>
-            <Download size={14} />
-            <span className="fdr-btn-label-full">{downloading ? 'Bezig...' : 'Download als afbeelding'}</span>
-            <span className="fdr-btn-label-short">{downloading ? 'Bezig...' : 'Download'}</span>
-          </button>
-          <button onClick={handleReset} className="fdr-toolbar-btn" style={secondaryToolbarBtnStyle}>
-            <RotateCcw size={14} />
-            <span className="fdr-btn-label-full">Reset FDR</span>
-            <span className="fdr-btn-label-short">Reset</span>
-          </button>
-          <button onClick={handleSave} className="fdr-toolbar-btn" style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: '#4ECDC4', color: '#0B2E1B',
-            border: 'none', borderRadius: '8px', padding: '8px 14px', fontWeight: 700, fontSize: '13px',
-            cursor: 'pointer'
-          }}>
-            <Check size={14} />
-            <span className="fdr-btn-label-full">{saved ? 'Opgeslagen ✓' : 'Bewaar in browser'}</span>
-            <span className="fdr-btn-label-short">{saved ? 'Bewaard ✓' : 'Bewaar'}</span>
-          </button>
-          </span>
-          <button onClick={() => setShowInfo(true)} aria-label="Uitleg" style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', width: '34px', height: '34px',
-            background: 'transparent', color: '#C9B8E0', border: '1px solid rgba(255,255,255,0.2)',
-            borderRadius: '8px', cursor: 'pointer', flexShrink: 0
-          }}>
-            <Info size={16} />
-          </button>
-          </div>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '24px' }}>
-
-          <section>
-            <SectionHeader icon={Settings2} title="Team-sterkte instellen" sectionKey="sliders" isOpen={openSections.sliders} onToggle={toggleSection} />
-            {openSections.sliders && (
-            <div className="fdr-sliders-grid" style={{
-              display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '8px', marginBottom: '8px'
-            }}>
-              {TEAMS_ALPHA.map(team => {
-                const r = ratings[team.code];
-                const style = RATING_STYLE[r];
-                const homeAdvantageOn = !!homeAdvantage[team.code];
-                return (
-                  <div key={team.code} style={{
-                    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-                    borderRadius: '10px', padding: '8px 10px'
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <img
-                          src={`/club-logos/${team.code}.png`}
-                          alt=""
-                          className="club-logo"
-                          style={{ width: '16px', height: '16px', objectFit: 'contain', flexShrink: 0 }}
-                          onError={(e) => { e.target.style.display = 'none'; }}
-                        />
-                        <span style={{ color: '#FFF', fontSize: '12px', fontWeight: 600 }}>{team.code}</span>
-                      </span>
-                      <span style={{
-                        fontSize: '10px', fontWeight: 700, padding: '1px 6px', borderRadius: '999px',
-                        background: style.bg, color: style.text
-                      }}>{r}</span>
-                    </div>
-                    <input
-                      type="range" min={1} max={5} step={1} value={r}
-                      onChange={e => updateRating(team.code, Number(e.target.value))}
-                      style={{ width: '100%' }}
-                      aria-label={`Sterkte ${team.name}`}
-                    />
-                    {/* Thuisvoordeel: losstaand van de sterkte-slider hierboven, zie getEffectiveRating. */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
-                      <span style={{ color: '#C9B8E0', fontSize: '10px' }}>Thuisvoordeel</span>
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={homeAdvantageOn}
-                        aria-label={`Thuisvoordeel ${team.name}`}
-                        onClick={() => toggleHomeAdvantage(team.code)}
-                        style={{
-                          display: 'inline-flex', alignItems: 'center', width: '30px', height: '16px',
-                          borderRadius: '999px', border: 'none', padding: '2px', cursor: 'pointer',
-                          background: homeAdvantageOn ? '#4ECDC4' : 'rgba(255,255,255,0.15)',
-                          justifyContent: homeAdvantageOn ? 'flex-end' : 'flex-start', transition: 'background 0.15s ease'
-                        }}
-                      >
-                        <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#FFFFFF', display: 'block' }} />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            )}
-          </section>
-
-          <section>
-            <SectionHeader icon={Grid2x2} title="Fixture Difficulty Rating" sectionKey="table" isOpen={openSections.table} onToggle={toggleSection} />
-            {openSections.table && (
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              flexWrap: 'wrap', gap: '10px', marginBottom: '10px'
-            }}>
-              <button onClick={(e) => { e.stopPropagation(); setSortByDifficulty(s => !s); }} style={{
-                display: 'flex', alignItems: 'center', gap: '6px', background: 'transparent',
-                color: '#C9B8E0', border: '1px solid rgba(255,255,255,0.2)',
-                borderRadius: '8px', padding: '8px 14px', fontWeight: 700, fontSize: '13px', cursor: 'pointer'
-              }}>
-                <ArrowUpDown size={14} />
-                {sortByDifficulty ? 'Gesorteerd: makkelijkste eerst' : 'Sorteer op makkelijkste run'}
-              </button>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <label style={{ color: '#C9B8E0', fontSize: '12px' }}>GW</label>
-                  <select value={gwHorizonStart} onChange={e => setGwHorizonStart(Number(e.target.value))} style={selectStyle}>
-                    {gwOptionElements}
-                  </select>
-                  <span style={{ color: '#C9B8E0', fontSize: '12px' }}>t/m</span>
-                  <select value={gwHorizonEnd} onChange={e => setGwHorizonEnd(Number(e.target.value))} style={selectStyle}>
-                    {gwOptionElements}
-                  </select>
-                </div>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#6B5289', fontSize: '11px' }}>
-                  <Info size={12} />
-                  Tik op grijze cellen of die met een * voor meer info
-                </span>
-              </div>
-            </div>
-            )}
-            <div ref={tableRef} id="fdr-capture-wrapper">
-            <div className="fdr-table-scroll" style={{
-              overflowX: 'auto', background: '#2A1440', padding: '4px',
-              display: openSections.table ? 'block' : 'none'
-            }}>
-            <table style={{ borderCollapse: 'separate', borderSpacing: '4px', minWidth: `${mainTableMinWidth}px` }}>
-              <thead>
-                <tr>
-                  <th style={{
-                    textAlign: 'left', color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase',
-                    letterSpacing: '0.05em', padding: '6px 8px', position: 'sticky', left: 0,
-                    background: '#2A1440', zIndex: 3, boxShadow: '-4px 0 0 0 #2A1440, 4px 0 0 0 #2A1440'
-                  }}>Team</th>
-                  {visibleGwHeaderCells}
-                </tr>
-              </thead>
-              <tbody>
-                {displayedTeams.map(team => (
-                  <tr key={team.code}>
-                    <td style={{
-                      color: '#FFF', fontWeight: 700, fontSize: '13px', padding: '6px 8px',
-                      position: 'sticky', left: 0, background: '#2A1440', whiteSpace: 'nowrap',
-                      zIndex: 3, boxShadow: '-4px 0 0 0 #2A1440, 4px 0 0 0 #2A1440'
-                    }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <img
-                          src={`/club-logos/${team.code}.png`}
-                          alt=""
-                          className="club-logo"
-                          style={{ width: '20px', height: '20px', objectFit: 'contain', flexShrink: 0 }}
-                          onError={(e) => { e.target.style.display = 'none'; }}
-                        />
-                        {team.code}
-                      </span>
-                    </td>
-
-                    {FIXTURES[team.code].slice(gwHorizonRange.start - 1, gwHorizonRange.end).map((f, i) => {
-                      const gwNumber = gwHorizonRange.start + i;
-                      const { opp, venue, isPostponed, isPossiblyPostponed, style, postponedText, possiblyPostponedText, isDoubleGameweek, legs } =
-                        getFixtureInfo(team.code, f, gwNumber, ratings, homeAdvantage);
-                      return (
-                        <FixtureCell
-                          key={gwNumber}
-                          opp={opp}
-                          venue={venue}
-                          isPostponed={isPostponed}
-                          isPossiblyPostponed={isPossiblyPostponed}
-                          bg={style?.bg}
-                          textColor={style?.text}
-                          postponedText={postponedText}
-                          possiblyPostponedText={possiblyPostponedText}
-                          isDoubleGameweek={isDoubleGameweek}
-                          legs={legs}
-                          stacked
-                        />
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            </div>
-            {openSections.table && (
-            <div style={{ display: 'flex', gap: '10px', marginTop: '12px', flexWrap: 'wrap' }}>
-              {[1,2,3,4,5].map(r => (
-                <div key={r} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: RATING_STYLE[r].bg, display: 'inline-block' }} />
-                  <span style={{ color: '#C9B8E0', fontSize: '11px' }}>{RATING_STYLE[r].label}</span>
-                </div>
-              ))}
-            </div>
-            )}
-            </div>
-          </section>
-
-          <section>
-            <SectionHeader icon={TrendingUp} title="Beste fixture runs" sectionKey="runs" isOpen={openSections.runs} onToggle={toggleSection} />
-            {openSections.runs && (
-            <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
-              <label style={{ color: '#C9B8E0', fontSize: '12px' }}>GW</label>
-              <select value={rangeStart} onChange={e => setRangeStart(Number(e.target.value))} style={selectStyle}>
-                {gwOptionElements}
-              </select>
-              <span style={{ color: '#C9B8E0', fontSize: '12px' }}>t/m</span>
-              <select value={rangeEnd} onChange={e => setRangeEnd(Number(e.target.value))} style={selectStyle}>
-                {gwOptionElements}
-              </select>
-            </div>
-            <div style={{ display: 'grid', gap: '8px' }}>
-              {bestRuns.map((team, idx) => (
-                <div key={team.code} style={{
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '10px 14px'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <span className="fdr-title" style={{
-                      color: idx === 0 ? '#4ECDC4' : '#C9B8E0', fontWeight: 900, fontSize: '18px', width: '24px', flexShrink: 0
-                    }}>{idx + 1}</span>
-                    <img
-                      src={`/club-logos/${team.code}.png`}
-                      alt=""
-                      className="club-logo"
-                      style={{ width: '24px', height: '24px', objectFit: 'contain', flexShrink: 0 }}
-                      onError={(e) => { e.target.style.display = 'none'; }}
-                    />
-                    <div style={{ minWidth: '130px' }}>
-                      <div style={{ color: '#FFF', fontWeight: 700, fontSize: '14px' }}>{team.name}</div>
-                      <div style={{ color: '#8F79AD', fontSize: '11px' }}>Gem. moeilijkheid: {team.avg.toFixed(1)}</div>
-                    </div>
-                  </div>
-                  <div
-                    className={`fdr-mini-fixture-row${team.fixtures.length > 6 ? ' fdr-mini-fixture-row--compact' : ''}`}
-                    style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'flex-start', marginTop: '12px' }}
-                  >
-                    {team.fixtures.map((f, i) => (
-                      <MiniFixtureBadge
-                        key={i}
-                        teamCode={team.code}
-                        fixture={f}
-                        gwNumber={team.startGW + i}
-                        ratings={ratings}
-                        homeAdvantage={homeAdvantage}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-            </>
-            )}
-          </section>
-
-          {/* COMPARE TEAMS */}
-          <section>
-            <SectionHeader icon={Scale} title="Vergelijk teams" sectionKey="compare" isOpen={openSections.compare} onToggle={toggleSection} />
-            {openSections.compare && (
-            <>
-            <p style={{ color: '#8F79AD', fontSize: '12px', marginBottom: '10px' }}>
-              Kies tot 5 teams om hun fixtures onder elkaar te zien.
-            </p>
-            <div style={{
-              display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(70px, 1fr))', gap: '6px', marginBottom: '16px'
-            }}>
-              {TEAMS_ALPHA.map(team => {
-                const selected = compareTeams.includes(team.code);
-                const disabled = !selected && compareTeams.length >= 5;
-                return (
-                  <button key={team.code} onClick={() => toggleCompareTeam(team.code)} disabled={disabled} style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
-                    background: selected ? '#4ECDC4' : 'rgba(255,255,255,0.04)',
-                    color: selected ? '#0B2E1B' : disabled ? '#5A4A72' : '#FFF',
-                    border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px',
-                    padding: '6px 4px', fontSize: '12px', fontWeight: 700,
-                    cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.5 : 1
-                  }}>
-                    <img
-                      src={`/club-logos/${team.code}.png`}
-                      alt=""
-                      className="club-logo"
-                      style={{ width: '14px', height: '14px', objectFit: 'contain', flexShrink: 0 }}
-                      onError={(e) => { e.target.style.display = 'none'; }}
-                    />
-                    {team.code}
-                  </button>
-                );
-              })}
-            </div>
-            {compareTeams.length === 0 && (
-              <p style={{ color: '#6B5289', fontSize: '13px' }}>Nog geen teams geselecteerd.</p>
-            )}
-            {compareTeams.length > 0 && (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ borderCollapse: 'separate', borderSpacing: '4px', minWidth: '600px', width: '100%' }}>
-                  <thead>
-                    <tr>
-                      <th style={{ textAlign: 'left', color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', padding: '6px 8px' }}>Team</th>
-                      {gwHeaderCells}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {compareTeams.map(code => {
-                      const team = TEAMS.find(t => t.code === code);
-                      return (
-                        <tr key={code}>
-                          <td style={{ color: '#FFF', fontWeight: 700, fontSize: '13px', padding: '6px 8px', whiteSpace: 'nowrap' }}>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <img
-                                src={`/club-logos/${team.code}.png`}
-                                alt=""
-                                className="club-logo"
-                                style={{ width: '20px', height: '20px', objectFit: 'contain', flexShrink: 0 }}
-                                onError={(e) => { e.target.style.display = 'none'; }}
-                              />
-                              {team.code}
-                            </span>
-                          </td>
-                          {FIXTURES[code].map((f, i) => {
-                            const { opp, venue, isPostponed, isPossiblyPostponed, style, postponedText, possiblyPostponedText, isDoubleGameweek, legs } =
-                              getFixtureInfo(code, f, i + 1, ratings, homeAdvantage);
-                            return (
-                              <FixtureCell
-                                key={i}
-                                opp={opp}
-                                venue={venue}
-                                isPostponed={isPostponed}
-                                isPossiblyPostponed={isPossiblyPostponed}
-                                bg={style?.bg}
-                                textColor={style?.text}
-                                postponedText={postponedText}
-                                possiblyPostponedText={possiblyPostponedText}
-                                isDoubleGameweek={isDoubleGameweek}
-                                legs={legs}
-                              />
-                            );
-                          })}
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-            </>
-            )}
-          </section>
-        </div>
-        </>
+          <FDRTab
+            ratings={ratings}
+            homeAdvantage={homeAdvantage}
+            updateRating={updateRating}
+            toggleHomeAdvantage={toggleHomeAdvantage}
+            isCustom={isCustom}
+            saved={saved}
+            linkCopied={linkCopied}
+            downloading={downloading}
+            handleCopyLink={handleCopyLink}
+            handleDownloadImage={handleDownloadImage}
+            handleReset={handleReset}
+            handleSave={handleSave}
+            setShowInfo={setShowInfo}
+            openSections={openSections}
+            toggleSection={toggleSection}
+            sortByDifficulty={sortByDifficulty}
+            setSortByDifficulty={setSortByDifficulty}
+            gwHorizonStart={gwHorizonStart}
+            setGwHorizonStart={setGwHorizonStart}
+            gwHorizonEnd={gwHorizonEnd}
+            setGwHorizonEnd={setGwHorizonEnd}
+            gwHorizonRange={gwHorizonRange}
+            visibleGwHeaderCells={visibleGwHeaderCells}
+            gwHeaderCells={gwHeaderCells}
+            mainTableMinWidth={mainTableMinWidth}
+            displayedTeams={displayedTeams}
+            tableRef={tableRef}
+            rangeStart={rangeStart}
+            setRangeStart={setRangeStart}
+            rangeEnd={rangeEnd}
+            setRangeEnd={setRangeEnd}
+            bestRuns={bestRuns}
+            compareTeams={compareTeams}
+            toggleCompareTeam={toggleCompareTeam}
+          />
         )}
 
         {activeTab === 'watchlist' && (
-          <>
-          <p style={{ color: '#8F79AD', fontSize: '13px', marginBottom: '16px' }}>
-            Houd je favoriete spelers in de gaten — voeg ze toe aan je persoonlijke watchlist, samen met hun eerstvolgende fixtures. Deze lijst slaat automatisch op in je browser.
-          </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '24px' }}>
-            <section>
-              <div style={{
-                background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-                borderRadius: '10px', padding: '16px', marginBottom: '20px'
-              }}>
-              <h2 className="fdr-title fdr-section-title" style={{ ...sectionTitleStyle, marginBottom: '12px' }}>
-                <UserPlus size={18} color="#4ECDC4" /> Speler toevoegen
-              </h2>
-              <form onSubmit={handleAddWatchlistPlayer} style={{
-                display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px', alignItems: 'end'
-              }}>
-                <label style={{ display: 'grid', gap: '4px' }}>
-                  <span style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', marginLeft: '4px'}}>Naam</span>
-                  <input
-                    type="text" required value={newPlayerName}
-                    onChange={e => setNewPlayerName(e.target.value)}
-                    placeholder="Bv. Zorgane"
-                    style={watchlistInputStyle}
-                  />
-                </label>
-                <label style={{ display: 'grid', gap: '4px' }}>
-                  <span style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', marginLeft: '4px' }}>Team</span>
-                  <select required value={newPlayerTeam} onChange={e => setNewPlayerTeam(e.target.value)} style={watchlistInputStyle}>
-                    <option value="" disabled>Kies team</option>
-                    {TEAMS_ALPHA.map(team => (
-                      <option key={team.code} value={team.code}>{team.name}</option>
-                    ))}
-                  </select>
-                </label>
-                <label style={{ display: 'grid', gap: '4px' }}>
-                  <span style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', marginLeft: '4px' }}>Prijs (optioneel)</span>
-                  <input
-                    type="number" inputMode="decimal" step="0.1" min="0" max="12" placeholder="Bv. 8.5"
-                    value={newPlayerPrice} onChange={e => setNewPlayerPrice(e.target.value)}
-                    style={watchlistInputStyle}
-                    placeholder="Bv. 8.5"
-                  />
-                </label>
-                <button type="submit" style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                  background: '#4ECDC4', color: '#0B2E1B', border: 'none', borderRadius: '8px',
-                  padding: '9px 14px', fontWeight: 700, fontSize: '13px', cursor: 'pointer'
-                }}>
-                  <Plus size={18} /> Toevoegen
-                </button>
-              </form>
-              </div>
-            </section>
-
-            <section>
-              <h2 className="fdr-title fdr-section-title" style={{ ...sectionTitleStyle, marginBottom: '12px' }}>
-                <Eye size={18} color="#4ECDC4" /> Mijn watchlist
-              </h2>
-              {watchlist.length === 0 ? (
-                <p style={{ color: '#6B5289', fontSize: '13px' }}>
-                  Je watchlist is nog leeg. Voeg spelers toe die je in de gaten wil houden.
-                </p>
-              ) : (
-                <div style={{ display: 'grid', gap: '8px' }}>
-                  {watchlist.map(player => {
-                    const team = TEAMS.find(t => t.code === player.teamCode);
-                    // Eerstvolgende (max. 5) fixtures vanaf CURRENT_GW — .slice() geeft vanzelf minder
-                    // terug als het seizoen bijna afloopt, dus geen aparte "resterende fixtures"-logica nodig.
-                    const upcomingFixtures = (FIXTURES[player.teamCode] ?? []).slice(CURRENT_GW - 1, CURRENT_GW - 1 + 5);
-                    return (
-                      <div key={player.id} style={{
-                        position: 'relative', background: 'rgba(255,255,255,0.04)',
-                        border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '10px 12px'
-                      }}>
-                        <button
-                          onClick={() => handleRemoveWatchlistPlayer(player.id)}
-                          aria-label={`Verwijder ${player.name}`}
-                          style={{
-                            position: 'absolute', top: '6px', right: '6px',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', width: '22px', height: '22px',
-                            background: 'transparent', color: '#8F79AD', border: 'none', borderRadius: '6px', cursor: 'pointer'
-                          }}
-                        >
-                          <X size={14} />
-                        </button>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingRight: '24px' }}>
-                          <img
-                            src={`/club-logos/${player.teamCode}.png`}
-                            alt=""
-                            className="club-logo"
-                            style={{ width: '24px', height: '24px', objectFit: 'contain', flexShrink: 0 }}
-                            onError={(e) => { e.target.style.display = 'none'; }}
-                          />
-                          <div style={{ minWidth: 0, flex: 1 }}>
-                            <div style={{ color: '#FFF', fontWeight: 700, fontSize: '14px', lineHeight: 1.25 }}>{player.name}</div>
-                            <div style={{ color: '#8F79AD', fontSize: '11px', marginTop: '1px' }}>{team?.name ?? player.teamCode}</div>
-                          </div>
-                          {player.price != null && (
-                            <span style={{
-                              fontSize: '12px', fontWeight: 700, padding: '3px 8px', borderRadius: '999px',
-                              background: 'rgba(255,255,255,0.1)', color: '#4ECDC4', flexShrink: 0
-                            }}>{player.price}M</span>
-                          )}
-                        </div>
-                        <div className="fdr-mini-fixture-row" style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'flex-start', marginTop: '8px' }}>
-                          {upcomingFixtures.map((fixture, idx) => (
-                            <MiniFixtureBadge
-                              key={idx}
-                              teamCode={player.teamCode}
-                              fixture={fixture}
-                              gwNumber={CURRENT_GW + idx}
-                              ratings={ratings}
-                              homeAdvantage={homeAdvantage}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </section>
-          </div>
-          </>
+          <WatchlistTab
+            ratings={ratings}
+            homeAdvantage={homeAdvantage}
+            watchlist={watchlist}
+            newPlayerName={newPlayerName}
+            setNewPlayerName={setNewPlayerName}
+            newPlayerTeam={newPlayerTeam}
+            setNewPlayerTeam={setNewPlayerTeam}
+            newPlayerPrice={newPlayerPrice}
+            setNewPlayerPrice={setNewPlayerPrice}
+            handleAddWatchlistPlayer={handleAddWatchlistPlayer}
+            handleRemoveWatchlistPlayer={handleRemoveWatchlistPlayer}
+          />
         )}
 
-        {activeTab === 'playerstatus' && (
-          <div style={{ marginTop: '20px' }}>
-            <div style={{
-              background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: '10px', padding: '16px'
-            }}>
-              <p style={{ color: '#C9B8E0', fontSize: '13px', margin: 0 }}>
-                Hier komen binnenkort alle relevante updates over spelers die niet beschikbaar zijn.
-              </p>
-            </div>
-          </div>
-        )}
+        {activeTab === 'playerstatus' && <PlayerStatusTab />}
 
         {activeTab === 'teamplanner' && (
           <div style={{ marginTop: '20px' }}>
