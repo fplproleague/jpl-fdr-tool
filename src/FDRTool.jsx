@@ -122,6 +122,13 @@ const TABS = [
 ];
 
 const GW_COUNT = 8;
+// Standaard-eindpunt van de GW-horizon in de hoofdtabel: alle spelers krijgen na deze speeldag
+// onbeperkte gratis transfers, waardoor latere GW's minder relevant zijn bij het opstellen van het
+// eerste team. Gebruikers kunnen dit zelf nog verruimen tot GW_COUNT via de selector.
+const DEFAULT_GW_HORIZON_END = 7;
+// Min-width van de hoofdtabel bij de volledige GW1-GW_COUNT-breedte — referentiewaarde waar
+// mainTableMinWidth (zie FDRTool) evenredig van afschaalt bij een kleinere horizon.
+const MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS = 760;
 const MINILEAGUE_CODE = '19WN75';
 const LAST_UPDATED = '30 juli 2026';
 // Handmatig wekelijks bij te werken, net als LAST_UPDATED — markeert de "huidige" gameweek in de
@@ -635,6 +642,12 @@ export default function FDRTool() {
   const [homeAdvantage, setHomeAdvantage] = useState(() => loadHomeAdvantageFromURL() || loadStoredHomeAdvantage() || DEFAULT_HOME_ADVANTAGE);
   const [rangeStart, setRangeStart] = useState(1);
   const [rangeEnd, setRangeEnd] = useState(5);
+  // GW-horizon van de hoofdtabel (Fixture Difficulty Rating) — los van rangeStart/rangeEnd hierboven,
+  // die enkel "Beste fixture runs" sturen. Start standaard op GW1-DEFAULT_GW_HORIZON_END; de
+  // gebruiker kan dit zelf nog verruimen tot GW_COUNT via de selector. Bewust NIET opgeslagen
+  // (localStorage/deelbare link) — een tijdelijke weergave-instelling per sessie, geen permanente voorkeur.
+  const [gwHorizonStart, setGwHorizonStart] = useState(1);
+  const [gwHorizonEnd, setGwHorizonEnd] = useState(DEFAULT_GW_HORIZON_END);
   const [saved, setSaved] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [minileagueCodeCopied, setMinileagueCodeCopied] = useState(false);
@@ -819,13 +832,44 @@ export default function FDRTool() {
     return results.sort((a, b) => a.avg - b.avg).slice(0, 5);
   }, [ratings, homeAdvantage, rangeStart, rangeEnd]);
 
+  // Horizon van de hoofdtabel, genormaliseerd — zelfde Math.min/max-patroon als bestRuns hierboven,
+  // zodat een omgekeerde keuze (bv. eind vóór start) nooit een lege/negatieve range oplevert.
+  const gwHorizonRange = useMemo(() => ({
+    start: Math.min(gwHorizonStart, gwHorizonEnd),
+    end: Math.max(gwHorizonStart, gwHorizonEnd),
+  }), [gwHorizonStart, gwHorizonEnd]);
+
+  // Enkel de GW-headers binnen de gekozen horizon — gwHeaderCells zelf blijft ongewijzigd (de
+  // vergelijk-tabel verderop toont nog altijd alle GW1-GW_COUNT, los van deze instelling).
+  const visibleGwHeaderCells = useMemo(
+    () => gwHeaderCells.slice(gwHorizonRange.start - 1, gwHorizonRange.end),
+    [gwHorizonRange]
+  );
+
+  // MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS (760px) is gekalibreerd voor de Team-kolom + alle GW_COUNT
+  // kolommen samen. De tabel heeft bewust GEEN width: '100%' (zie <table> hieronder) — anders rekt
+  // de browser (table-layout: auto) elke kolom evenredig uit om de volledige breedte van de omringende
+  // scroll-container te vullen, wat bij een kleine horizon (bv. maar 1-3 zichtbare GW's) grote lege
+  // tussenruimtes tussen de kolommen oplevert. Door zowel het stretchen te vermijden als de min-width
+  // evenredig te laten meekrimpen met het aantal zichtbare kolommen (Team-kolom meegeteld als 1 "slot"
+  // naast de GW-kolommen), blijft de dichtheid/afstand tussen team-logo en tabel gelijk aan die bij de
+  // volledige 8-GW-breedte, ongeacht de gekozen horizon.
+  const mainTableMinWidth = useMemo(
+    () => Math.round(MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS * (visibleGwHeaderCells.length + 1) / (GW_COUNT + 1)),
+    [visibleGwHeaderCells]
+  );
+
+  // Gemiddelde moeilijkheid herberekend op enkel de zichtbare horizon (i.p.v. altijd GW1-GW_COUNT),
+  // zodat "Sorteer op makkelijkste run" ook echt naar de getoonde kolommen sorteert.
   const teamAvgDifficulty = useMemo(() => {
+    const { start, end } = gwHorizonRange;
     const map = {};
     TEAMS.forEach(team => {
-      map[team.code] = average(getFixtureScores(team.code, FIXTURES[team.code], ratings, homeAdvantage, 1));
+      const fixtures = FIXTURES[team.code].slice(start - 1, end);
+      map[team.code] = average(getFixtureScores(team.code, fixtures, ratings, homeAdvantage, start));
     });
     return map;
-  }, [ratings, homeAdvantage]);
+  }, [ratings, homeAdvantage, gwHorizonRange]);
 
   const displayedTeams = useMemo(() => {
     if (!sortByDifficulty) return TEAMS;
@@ -1301,7 +1345,7 @@ export default function FDRTool() {
             {openSections.table && (
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              flexWrap: 'wrap', gap: '8px', marginBottom: '10px'
+              flexWrap: 'wrap', gap: '10px', marginBottom: '10px'
             }}>
               <button onClick={(e) => { e.stopPropagation(); setSortByDifficulty(s => !s); }} style={{
                 display: 'flex', alignItems: 'center', gap: '6px', background: 'transparent',
@@ -1311,10 +1355,22 @@ export default function FDRTool() {
                 <ArrowUpDown size={14} />
                 {sortByDifficulty ? 'Gesorteerd: makkelijkste eerst' : 'Sorteer op makkelijkste run'}
               </button>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#6B5289', fontSize: '11px' }}>
-                <Info size={12} />
-                Tik op grijze cellen of die met een * voor meer info
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <label style={{ color: '#C9B8E0', fontSize: '12px' }}>GW</label>
+                  <select value={gwHorizonStart} onChange={e => setGwHorizonStart(Number(e.target.value))} style={selectStyle}>
+                    {gwOptionElements}
+                  </select>
+                  <span style={{ color: '#C9B8E0', fontSize: '12px' }}>t/m</span>
+                  <select value={gwHorizonEnd} onChange={e => setGwHorizonEnd(Number(e.target.value))} style={selectStyle}>
+                    {gwOptionElements}
+                  </select>
+                </div>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#6B5289', fontSize: '11px' }}>
+                  <Info size={12} />
+                  Tik op grijze cellen of die met een * voor meer info
+                </span>
+              </div>
             </div>
             )}
             <div ref={tableRef} id="fdr-capture-wrapper">
@@ -1322,7 +1378,7 @@ export default function FDRTool() {
               overflowX: 'auto', background: '#2A1440', padding: '4px',
               display: openSections.table ? 'block' : 'none'
             }}>
-            <table style={{ borderCollapse: 'separate', borderSpacing: '4px', minWidth: '760px', width: '100%' }}>
+            <table style={{ borderCollapse: 'separate', borderSpacing: '4px', minWidth: `${mainTableMinWidth}px` }}>
               <thead>
                 <tr>
                   <th style={{
@@ -1330,7 +1386,7 @@ export default function FDRTool() {
                     letterSpacing: '0.05em', padding: '6px 8px', position: 'sticky', left: 0,
                     background: '#2A1440', zIndex: 3, boxShadow: '-4px 0 0 0 #2A1440, 4px 0 0 0 #2A1440'
                   }}>Team</th>
-                  {gwHeaderCells}
+                  {visibleGwHeaderCells}
                 </tr>
               </thead>
               <tbody>
@@ -1353,12 +1409,13 @@ export default function FDRTool() {
                       </span>
                     </td>
 
-                    {FIXTURES[team.code].map((f, i) => {
+                    {FIXTURES[team.code].slice(gwHorizonRange.start - 1, gwHorizonRange.end).map((f, i) => {
+                      const gwNumber = gwHorizonRange.start + i;
                       const { opp, venue, isPostponed, isPossiblyPostponed, style, postponedText, possiblyPostponedText, isDoubleGameweek, legs } =
-                        getFixtureInfo(team.code, f, i + 1, ratings, homeAdvantage);
+                        getFixtureInfo(team.code, f, gwNumber, ratings, homeAdvantage);
                       return (
                         <FixtureCell
-                          key={i}
+                          key={gwNumber}
                           opp={opp}
                           venue={venue}
                           isPostponed={isPostponed}
