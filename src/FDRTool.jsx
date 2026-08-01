@@ -126,6 +126,9 @@ const GW_COUNT = 8;
 // onbeperkte gratis transfers, waardoor latere GW's minder relevant zijn bij het opstellen van het
 // eerste team. Gebruikers kunnen dit zelf nog verruimen tot GW_COUNT via de selector.
 const DEFAULT_GW_HORIZON_END = 7;
+// Min-width van de hoofdtabel bij de volledige GW1-GW_COUNT-breedte — referentiewaarde waar
+// mainTableMinWidth (zie FDRTool) evenredig van afschaalt bij een kleinere horizon.
+const MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS = 760;
 const MINILEAGUE_CODE = '19WN75';
 const LAST_UPDATED = '30 juli 2026';
 // Handmatig wekelijks bij te werken, net als LAST_UPDATED — markeert de "huidige" gameweek in de
@@ -843,6 +846,19 @@ export default function FDRTool() {
     [gwHorizonRange]
   );
 
+  // MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS (760px) is gekalibreerd voor de Team-kolom + alle GW_COUNT
+  // kolommen samen. De tabel heeft bewust GEEN width: '100%' (zie <table> hieronder) — anders rekt
+  // de browser (table-layout: auto) elke kolom evenredig uit om de volledige breedte van de omringende
+  // scroll-container te vullen, wat bij een kleine horizon (bv. maar 1-3 zichtbare GW's) grote lege
+  // tussenruimtes tussen de kolommen oplevert. Door zowel het stretchen te vermijden als de min-width
+  // evenredig te laten meekrimpen met het aantal zichtbare kolommen (Team-kolom meegeteld als 1 "slot"
+  // naast de GW-kolommen), blijft de dichtheid/afstand tussen team-logo en tabel gelijk aan die bij de
+  // volledige 8-GW-breedte, ongeacht de gekozen horizon.
+  const mainTableMinWidth = useMemo(
+    () => Math.round(MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS * (visibleGwHeaderCells.length + 1) / (GW_COUNT + 1)),
+    [visibleGwHeaderCells]
+  );
+
   // Gemiddelde moeilijkheid herberekend op enkel de zichtbare horizon (i.p.v. altijd GW1-GW_COUNT),
   // zodat "Sorteer op makkelijkste run" ook echt naar de getoonde kolommen sorteert.
   const teamAvgDifficulty = useMemo(() => {
@@ -1362,7 +1378,7 @@ export default function FDRTool() {
               overflowX: 'auto', background: '#2A1440', padding: '4px',
               display: openSections.table ? 'block' : 'none'
             }}>
-            <table style={{ borderCollapse: 'separate', borderSpacing: '4px', minWidth: '760px', width: '100%' }}>
+            <table style={{ borderCollapse: 'separate', borderSpacing: '4px', minWidth: `${mainTableMinWidth}px` }}>
               <thead>
                 <tr>
                   <th style={{
