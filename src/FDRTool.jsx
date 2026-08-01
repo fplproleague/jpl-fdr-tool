@@ -635,6 +635,12 @@ export default function FDRTool() {
   const [homeAdvantage, setHomeAdvantage] = useState(() => loadHomeAdvantageFromURL() || loadStoredHomeAdvantage() || DEFAULT_HOME_ADVANTAGE);
   const [rangeStart, setRangeStart] = useState(1);
   const [rangeEnd, setRangeEnd] = useState(5);
+  // GW-horizon van de hoofdtabel (Fixture Difficulty Rating) — los van rangeStart/rangeEnd hierboven,
+  // die enkel "Beste fixture runs" sturen. Standaard de volledige GW1-GW_COUNT-range, dus het gedrag
+  // verandert niet tenzij de gebruiker het zelf aanpast. Bewust NIET opgeslagen (localStorage/deelbare
+  // link) — een tijdelijke weergave-instelling per sessie, geen permanente voorkeur.
+  const [gwHorizonStart, setGwHorizonStart] = useState(1);
+  const [gwHorizonEnd, setGwHorizonEnd] = useState(GW_COUNT);
   const [saved, setSaved] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [minileagueCodeCopied, setMinileagueCodeCopied] = useState(false);
@@ -819,13 +825,31 @@ export default function FDRTool() {
     return results.sort((a, b) => a.avg - b.avg).slice(0, 5);
   }, [ratings, homeAdvantage, rangeStart, rangeEnd]);
 
+  // Horizon van de hoofdtabel, genormaliseerd — zelfde Math.min/max-patroon als bestRuns hierboven,
+  // zodat een omgekeerde keuze (bv. eind vóór start) nooit een lege/negatieve range oplevert.
+  const gwHorizonRange = useMemo(() => ({
+    start: Math.min(gwHorizonStart, gwHorizonEnd),
+    end: Math.max(gwHorizonStart, gwHorizonEnd),
+  }), [gwHorizonStart, gwHorizonEnd]);
+
+  // Enkel de GW-headers binnen de gekozen horizon — gwHeaderCells zelf blijft ongewijzigd (de
+  // vergelijk-tabel verderop toont nog altijd alle GW1-GW_COUNT, los van deze instelling).
+  const visibleGwHeaderCells = useMemo(
+    () => gwHeaderCells.slice(gwHorizonRange.start - 1, gwHorizonRange.end),
+    [gwHorizonRange]
+  );
+
+  // Gemiddelde moeilijkheid herberekend op enkel de zichtbare horizon (i.p.v. altijd GW1-GW_COUNT),
+  // zodat "Sorteer op makkelijkste run" ook echt naar de getoonde kolommen sorteert.
   const teamAvgDifficulty = useMemo(() => {
+    const { start, end } = gwHorizonRange;
     const map = {};
     TEAMS.forEach(team => {
-      map[team.code] = average(getFixtureScores(team.code, FIXTURES[team.code], ratings, homeAdvantage, 1));
+      const fixtures = FIXTURES[team.code].slice(start - 1, end);
+      map[team.code] = average(getFixtureScores(team.code, fixtures, ratings, homeAdvantage, start));
     });
     return map;
-  }, [ratings, homeAdvantage]);
+  }, [ratings, homeAdvantage, gwHorizonRange]);
 
   const displayedTeams = useMemo(() => {
     if (!sortByDifficulty) return TEAMS;
@@ -1299,6 +1323,18 @@ export default function FDRTool() {
           <section>
             <SectionHeader icon={Grid2x2} title="Fixture Difficulty Rating" sectionKey="table" isOpen={openSections.table} onToggle={toggleSection} />
             {openSections.table && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
+              <label style={{ color: '#C9B8E0', fontSize: '12px' }}>GW</label>
+              <select value={gwHorizonStart} onChange={e => setGwHorizonStart(Number(e.target.value))} style={selectStyle}>
+                {gwOptionElements}
+              </select>
+              <span style={{ color: '#C9B8E0', fontSize: '12px' }}>t/m</span>
+              <select value={gwHorizonEnd} onChange={e => setGwHorizonEnd(Number(e.target.value))} style={selectStyle}>
+                {gwOptionElements}
+              </select>
+            </div>
+            )}
+            {openSections.table && (
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               flexWrap: 'wrap', gap: '8px', marginBottom: '10px'
@@ -1330,7 +1366,7 @@ export default function FDRTool() {
                     letterSpacing: '0.05em', padding: '6px 8px', position: 'sticky', left: 0,
                     background: '#2A1440', zIndex: 3, boxShadow: '-4px 0 0 0 #2A1440, 4px 0 0 0 #2A1440'
                   }}>Team</th>
-                  {gwHeaderCells}
+                  {visibleGwHeaderCells}
                 </tr>
               </thead>
               <tbody>
@@ -1353,12 +1389,13 @@ export default function FDRTool() {
                       </span>
                     </td>
 
-                    {FIXTURES[team.code].map((f, i) => {
+                    {FIXTURES[team.code].slice(gwHorizonRange.start - 1, gwHorizonRange.end).map((f, i) => {
+                      const gwNumber = gwHorizonRange.start + i;
                       const { opp, venue, isPostponed, isPossiblyPostponed, style, postponedText, possiblyPostponedText, isDoubleGameweek, legs } =
-                        getFixtureInfo(team.code, f, i + 1, ratings, homeAdvantage);
+                        getFixtureInfo(team.code, f, gwNumber, ratings, homeAdvantage);
                       return (
                         <FixtureCell
-                          key={i}
+                          key={gwNumber}
                           opp={opp}
                           venue={venue}
                           isPostponed={isPostponed}
