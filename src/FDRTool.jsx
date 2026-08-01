@@ -122,6 +122,10 @@ const TABS = [
 ];
 
 const GW_COUNT = 8;
+// Standaard-eindpunt van de GW-horizon in de hoofdtabel: alle spelers krijgen na deze speeldag
+// onbeperkte gratis transfers, waardoor latere GW's minder relevant zijn bij het opstellen van het
+// eerste team. Gebruikers kunnen dit zelf nog verruimen tot GW_COUNT via de selector.
+const DEFAULT_GW_HORIZON_END = 7;
 const MINILEAGUE_CODE = '19WN75';
 const LAST_UPDATED = '30 juli 2026';
 // Handmatig wekelijks bij te werken, net als LAST_UPDATED — markeert de "huidige" gameweek in de
@@ -636,11 +640,11 @@ export default function FDRTool() {
   const [rangeStart, setRangeStart] = useState(1);
   const [rangeEnd, setRangeEnd] = useState(5);
   // GW-horizon van de hoofdtabel (Fixture Difficulty Rating) — los van rangeStart/rangeEnd hierboven,
-  // die enkel "Beste fixture runs" sturen. Standaard de volledige GW1-GW_COUNT-range, dus het gedrag
-  // verandert niet tenzij de gebruiker het zelf aanpast. Bewust NIET opgeslagen (localStorage/deelbare
-  // link) — een tijdelijke weergave-instelling per sessie, geen permanente voorkeur.
+  // die enkel "Beste fixture runs" sturen. Start standaard op GW1-DEFAULT_GW_HORIZON_END; de
+  // gebruiker kan dit zelf nog verruimen tot GW_COUNT via de selector. Bewust NIET opgeslagen
+  // (localStorage/deelbare link) — een tijdelijke weergave-instelling per sessie, geen permanente voorkeur.
   const [gwHorizonStart, setGwHorizonStart] = useState(1);
-  const [gwHorizonEnd, setGwHorizonEnd] = useState(GW_COUNT);
+  const [gwHorizonEnd, setGwHorizonEnd] = useState(DEFAULT_GW_HORIZON_END);
   const [saved, setSaved] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [minileagueCodeCopied, setMinileagueCodeCopied] = useState(false);
