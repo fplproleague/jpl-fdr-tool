@@ -66,6 +66,20 @@ function teamNameFor(teamCode) {
   return TEAMS.find(t => t.code === teamCode)?.name ?? teamCode;
 }
 
+// Twee spelers zijn "dezelfde speler" bij gelijke naam + club — dat combo is uniek per rij in de
+// spelersdatabank-CSV. Gebruikt om te verhinderen dat eenzelfde speler twee keer in de 15-koppige
+// selectie terechtkomt (zowel bij de initiële teaminvoer als bij een transfer).
+function isSamePlayer(a, b) {
+  return a.name === b.name && a.teamCode === b.teamCode;
+}
+
+// Filtert databank-kandidaten die al ergens anders in `usedPlayers` zitten weg — enkel ingevulde
+// spelers (met een naam) tellen als "in gebruik", lege slots blokkeren niets.
+function excludeUsedPlayers(candidates, usedPlayers) {
+  const used = usedPlayers.filter(p => p.name);
+  return candidates.filter(candidate => !used.some(u => isSamePlayer(u, candidate)));
+}
+
 // Eén speler-kaartje op het veld of de bank: clublogo, naam, en (indien een team gekozen is) de
 // fixture van de geselecteerde GW via de bestaande MiniFixtureBadge — die regelt zelf al DGW/
 // postponed/possibly-postponed-weergave, dus hier hoeft enkel de juiste fixture-string doorgegeven
@@ -103,7 +117,7 @@ function PlayerPitchCard({ player, gw, ratings, homeAdvantage, isBenched, isCapt
         style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
           background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: '10px', padding: '8px 10px', minWidth: '78px',
+          borderRadius: '10px', padding: '8px 10px', minWidth: '78px', flexShrink: 0,
           cursor: benchToggleDisabled ? 'not-allowed' : 'pointer',
         }}
       >
@@ -240,9 +254,12 @@ function TransferPanel({ gw, resolvedIndexedPlayers, playerDatabase, playerDatab
             </label>
             <label style={{ display: 'grid', gap: '4px' }}>
               <span style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase' }}>In (IN)</span>
+              {/* excludeUsedPlayers sluit spelers uit die al ergens in het huidige team zitten (inclusief
+                  de OUT-speler zelf, want die zit ook in resolvedIndexedPlayers) — zo kan een transfer
+                  nooit een speler binnenhalen die al elders in de 15 staat. */}
               <PlayerSearchInput
                 value={inPlayer?.name ?? ''}
-                players={playerDatabase}
+                players={excludeUsedPlayers(playerDatabase, resolvedIndexedPlayers)}
                 disabled={outIndex === '' || playerDatabaseLoading || !!playerDatabaseError}
                 placeholder={
                   outIndex === '' ? 'Kies eerst een uitgaande speler'
@@ -433,10 +450,13 @@ export default function TeamPlannerTab({
                                 (player.position, zie TEAM_PLANNER_SLOT_POSITIONS) — zo blijft de
                                 2 GK/5 DEF/5 MID/3 FWD-structuur altijd kloppen: wat je ook kiest, het
                                 is altijd een speler met de juiste positie voor dit slot. Dit vult de
-                                GW1-basisploeg in; transfers (hieronder bij "Veld") wijzigen dit niet. */}
+                                GW1-basisploeg in; transfers (hieronder bij "Veld") wijzigen dit niet.
+                                excludeUsedPlayers verwijdert spelers die al in een ANDER slot zitten
+                                (niet dit slot zelf, anders zou je je eigen huidige keuze niet meer
+                                terugzien) — zo kan dezelfde speler nooit twee keer in de 15 voorkomen. */}
                             <PlayerSearchInput
                               value={player.name}
-                              players={playerDatabase}
+                              players={excludeUsedPlayers(playerDatabase, teamPlannerPlayers.filter((_, i) => i !== index))}
                               filterPosition={player.position}
                               disabled={playerDatabaseLoading || !!playerDatabaseError}
                               placeholder={playerDatabaseLoading ? 'Databank laden...' : `Zoek ${player.position}...`}
@@ -559,7 +579,18 @@ export default function TeamPlannerTab({
             {PITCH_ROW_ORDER.map(pos => {
               const rowPlayers = resolvedIndexedPlayers.filter(p => p.position === pos && !benchForGw.includes(p.index));
               return (
-                <div key={pos} style={{ display: 'flex', justifyContent: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '16px' }}>
+                <div
+                  key={pos}
+                  className="fdr-pitch-row"
+                  style={{
+                    display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '16px',
+                    // Nooit wrappen naar een 2de regel per positie (altijd exact 4 rijen: FWD/MID/DEF/GK)
+                    // — op smalle schermen past een volle rij van 5 kaarten niet, dus die rij scrollt dan
+                    // gewoon horizontaal i.p.v. te wrappen. Moderne flexbox "safe center" zorgt ervoor dat
+                    // een overlopende rij automatisch links start i.p.v. het begin onbereikbaar af te snijden.
+                    flexWrap: 'nowrap', overflowX: 'auto', overflowY: 'hidden', padding: '2px',
+                  }}
+                >
                   {rowPlayers.length === 0 ? (
                     <span style={{ color: '#6B5289', fontSize: '11px', textTransform: 'uppercase' }}>{pos}</span>
                   ) : (
@@ -640,7 +671,10 @@ export default function TeamPlannerTab({
                               style={{ width: '18px', height: '18px', objectFit: 'contain', flexShrink: 0 }}
                               onError={(e) => { e.target.style.display = 'none'; }}
                             />
-                            <span style={{ color: '#FFF', fontSize: '13px' }}>{entry.outPlayer.name || '—'}</span>
+                            <span style={{ color: '#FFF', fontSize: '13px' }}>
+                              {entry.outPlayer.name || '—'}{' '}
+                              <span style={{ color: '#8F79AD', fontSize: '11px' }}>({formatPrice(entry.outPlayer.price)})</span>
+                            </span>
                             <ArrowRight size={14} color="#4ECDC4" style={{ flexShrink: 0 }} />
                             <img
                               src={`/club-logos/${entry.inPlayer.teamCode}.png`}
@@ -649,7 +683,10 @@ export default function TeamPlannerTab({
                               style={{ width: '18px', height: '18px', objectFit: 'contain', flexShrink: 0 }}
                               onError={(e) => { e.target.style.display = 'none'; }}
                             />
-                            <span style={{ color: '#FFF', fontSize: '13px', fontWeight: 700, flex: 1, minWidth: 0 }}>{entry.inPlayer.name}</span>
+                            <span style={{ color: '#FFF', fontSize: '13px', fontWeight: 700, flex: 1, minWidth: 0 }}>
+                              {entry.inPlayer.name}{' '}
+                              <span style={{ color: '#4ECDC4', fontSize: '11px' }}>({formatPrice(entry.inPlayer.price)})</span>
+                            </span>
                             <button
                               onClick={() => removeTeamPlannerTransfer(entry.slotIndex, entry.id)}
                               aria-label={`Verwijder transfer ${entry.outPlayer.name} naar ${entry.inPlayer.name}`}
