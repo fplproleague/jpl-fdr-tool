@@ -4,14 +4,15 @@
 // (geen lokale useState hier) — de tab-content wordt conditioneel gemount/unmount bij het wisselen
 // van tab, dus lokale state zou resetten telkens de gebruiker weg- en terugnavigeert.
 
-import { Users, Shirt, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Users, Shirt, ChevronLeft, ChevronRight, Loader2, AlertCircle, RotateCcw } from 'lucide-react';
 import {
-  TEAMS, TEAMS_ALPHA, FIXTURES, GW_COUNT,
+  TEAMS, FIXTURES, GW_COUNT,
   TEAM_PLANNER_BUDGET, TEAM_PLANNER_MAX_PER_CLUB, TEAM_PLANNER_BENCH_SIZE, VALID_FORMATIONS,
   sectionTitleStyle,
 } from '../constants';
 import { MiniFixtureBadge } from '../components/MiniFixtureBadge';
 import { SectionHeader } from '../components/SectionHeader';
+import { PlayerSearchInput } from '../components/PlayerSearchInput';
 
 const teamPlannerInputStyle = {
   background: '#3D1E5C', color: '#FFF', border: '1px solid rgba(255,255,255,0.15)',
@@ -21,6 +22,12 @@ const teamPlannerInputStyle = {
 const thStyle = {
   textAlign: 'left', color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase',
   letterSpacing: '0.05em', padding: '6px 8px'
+};
+
+const retryButtonStyle = {
+  display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0,
+  background: 'transparent', color: '#FBEAE7', border: '1px solid rgba(251,234,231,0.4)',
+  borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px', cursor: 'pointer',
 };
 
 // Alleen voor de veld-weergave hieronder — GK onderaan, FWD bovenaan (omgekeerd van POSITIONS,
@@ -110,6 +117,7 @@ export default function TeamPlannerTab({
   teamPlannerBenchByGw, teamPlannerCaptainByGw, setTeamPlannerCaptain,
   teamPlannerGw, handleTeamPlannerGwPrev, handleTeamPlannerGwNext,
   teamPlannerTotalPrice, teamPlannerClubCounts, teamPlannerFormationCounts,
+  playerDatabase, playerDatabaseLoading, playerDatabaseError, fetchPlayerDatabase,
 }) {
   const remainingBudget = TEAM_PLANNER_BUDGET - teamPlannerTotalPrice;
   const isOverBudget = teamPlannerTotalPrice > TEAM_PLANNER_BUDGET;
@@ -156,6 +164,29 @@ export default function TeamPlannerTab({
             <SectionHeader icon={Users} title="Mijn 15 spelers" sectionKey="teamPlannerRoster" isOpen={openSections.teamPlannerRoster} onToggle={toggleSection} />
             {openSections.teamPlannerRoster && (
               <>
+                {/* Laad-/foutstatus van de spelersdatabank (Google Sheet CSV, zie fetchPlayerDatabase in
+                    FDRTool.jsx) — zelfde patroon als de Spelerstatus-tab: spinner tijdens het laden, rode
+                    foutmelding met "opnieuw proberen"-knop bij een mislukte fetch. Zolang de databank niet
+                    geladen is, staat de zoek/autocomplete hieronder op disabled (zie PlayerSearchInput). */}
+                {playerDatabaseLoading && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#C9B8E0', fontSize: '13px', marginBottom: '16px' }}>
+                    <Loader2 size={16} className="fdr-spin" /> Spelersdatabank laden...
+                  </div>
+                )}
+                {!playerDatabaseLoading && playerDatabaseError && (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
+                    background: 'rgba(194,64,44,0.12)', border: '1px solid rgba(194,64,44,0.4)',
+                    borderRadius: '10px', padding: '12px 14px', marginBottom: '16px'
+                  }}>
+                    <AlertCircle size={16} color="#C2402C" style={{ flexShrink: 0 }} />
+                    <span style={{ color: '#FBEAE7', fontSize: '13px', flex: 1 }}>{playerDatabaseError}</span>
+                    <button onClick={fetchPlayerDatabase} style={retryButtonStyle}>
+                      <RotateCcw size={14} /> Probeer opnieuw
+                    </button>
+                  </div>
+                )}
+
                 {/* Validatie-overzicht: budget en club-limiet — live herberekend in FDRTool.jsx
                     (teamPlannerTotalPrice/ClubCounts) telkens teamPlannerPlayers wijzigt, dus dit blok
                     volgt vanzelf elke invoer hieronder zonder eigen state. Positie-aantallen staan hier
@@ -184,8 +215,7 @@ export default function TeamPlannerTab({
                     <thead>
                       <tr>
                         <th style={thStyle}>#</th>
-                        <th style={thStyle}>Naam</th>
-                        <th style={thStyle}>Team</th>
+                        <th style={thStyle}>Speler</th>
                         <th style={thStyle}>Positie</th>
                         <th style={thStyle}>Prijs (M)</th>
                       </tr>
@@ -194,37 +224,29 @@ export default function TeamPlannerTab({
                       {teamPlannerPlayers.map((player, index) => (
                         <tr key={index}>
                           <td style={{ color: '#6B5289', fontSize: '12px', padding: '4px 8px' }}>{index + 1}</td>
-                          <td style={{ padding: '4px 6px' }}>
-                            <input
-                              type="text" value={player.name}
-                              onChange={e => updateTeamPlannerPlayer(index, 'name', e.target.value)}
-                              placeholder="Naam"
-                              style={teamPlannerInputStyle}
+                          <td style={{ padding: '4px 6px', minWidth: '220px' }}>
+                            {/* filterPosition beperkt de suggesties tot de vaste positie van dit slot
+                                (player.position, zie TEAM_PLANNER_SLOT_POSITIONS) — zo blijft de
+                                2 GK/5 DEF/5 MID/3 FWD-structuur altijd kloppen: wat je ook kiest, het
+                                is altijd een speler met de juiste positie voor dit slot. */}
+                            <PlayerSearchInput
+                              value={player.name}
+                              players={playerDatabase}
+                              filterPosition={player.position}
+                              disabled={playerDatabaseLoading || !!playerDatabaseError}
+                              placeholder={playerDatabaseLoading ? 'Databank laden...' : `Zoek ${player.position}...`}
+                              onSelect={(selected) => {
+                                updateTeamPlannerPlayer(index, 'name', selected.name);
+                                updateTeamPlannerPlayer(index, 'teamCode', selected.teamCode);
+                                updateTeamPlannerPlayer(index, 'price', selected.price ?? '');
+                              }}
                             />
-                          </td>
-                          <td style={{ padding: '4px 6px', minWidth: '140px' }}>
-                            <select
-                              value={player.teamCode}
-                              onChange={e => updateTeamPlannerPlayer(index, 'teamCode', e.target.value)}
-                              style={teamPlannerInputStyle}
-                            >
-                              <option value="">Kies team</option>
-                              {TEAMS_ALPHA.map(team => (
-                                <option key={team.code} value={team.code}>{team.name}</option>
-                              ))}
-                            </select>
                           </td>
                           <td style={{ padding: '4px 6px', color: '#C9B8E0', fontSize: '13px', fontWeight: 700 }}>
                             {player.position}
                           </td>
-                          <td style={{ padding: '4px 6px', width: '90px' }}>
-                            <input
-                              type="number" inputMode="decimal" step="0.1" min="0"
-                              value={player.price}
-                              onChange={e => updateTeamPlannerPlayer(index, 'price', e.target.value)}
-                              placeholder="0.0"
-                              style={teamPlannerInputStyle}
-                            />
+                          <td style={{ padding: '4px 6px', width: '80px', color: '#FFF', fontSize: '13px', fontWeight: 700 }}>
+                            {player.price !== '' && player.price != null ? `${Number(player.price).toFixed(1)}M` : '—'}
                           </td>
                         </tr>
                       ))}

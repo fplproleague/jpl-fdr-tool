@@ -10,7 +10,8 @@ import html2canvas from 'html2canvas';
 import {
   TEAMS, FIXTURES, GW_COUNT, DEFAULT_GW_HORIZON_END, MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS,
   MINILEAGUE_CODE, LAST_UPDATED, GW_INDEXES, DEFAULT_RATINGS, DEFAULT_HOME_ADVANTAGE,
-  TEAM_PLANNER_SQUAD_SIZE, TEAM_PLANNER_BENCH_SIZE, TEAM_PLANNER_SLOT_POSITIONS, getFixtureScores, average,
+  TEAM_PLANNER_SQUAD_SIZE, TEAM_PLANNER_BENCH_SIZE, TEAM_PLANNER_SLOT_POSITIONS,
+  PLAYER_DATABASE_CSV_URL, parsePlayerDatabaseCsv, getFixtureScores, average,
 } from './constants';
 import FDRTab from './tabs/FDRTab';
 import WatchlistTab from './tabs/WatchlistTab';
@@ -226,6 +227,14 @@ export default function FDRTool() {
   // Geselecteerde gameweek voor de veld-weergave — bewust NIET opgeslagen (localStorage), start
   // altijd op GW1 bij het (her)laden van de pagina, zelfde patroon als gwHorizonStart/End in de FDR-tab.
   const [teamPlannerGw, setTeamPlannerGw] = useState(1);
+
+  // Spelersdatabank (Google Sheet CSV) voor de zoek/autocomplete bij teaminvoer — en straks transfers
+  // — in Team Planner. Los van teamPlannerPlayers hierboven: dit is de externe, gedeelde spelerslijst
+  // om UIT te kiezen, niet de 15-koppige selectie zelf. Niet in localStorage: elke sessie haalt de
+  // meest actuele sheet-inhoud op (zie fetchPlayerDatabase hieronder).
+  const [playerDatabase, setPlayerDatabase] = useState([]);
+  const [playerDatabaseLoading, setPlayerDatabaseLoading] = useState(true);
+  const [playerDatabaseError, setPlayerDatabaseError] = useState(null);
 
   // isCustom volgt exact of ratings/homeAdvantage hun gedeelde DEFAULT-referentie zijn
   // (zie updateRating/toggleHomeAdvantage/handleReset).
@@ -502,6 +511,36 @@ export default function FDRTool() {
     }
   }, [teamPlannerPlayers, teamPlannerBenchByGw, teamPlannerCaptainByGw]);
 
+  // Haalt de spelersdatabank-CSV op en parset ze naar playerDatabase. Losse useCallback (i.p.v.
+  // rechtstreeks in de useEffect hieronder) zodat zowel de automatische fetch bij het laden als de
+  // "opnieuw proberen"-knop in TeamPlannerTab.jsx exact dezelfde logica hergebruiken. cache: 'no-store'
+  // zodat elke fetch altijd de meest actuele sheet-inhoud ophaalt — de gebruiker werkt de sheet
+  // regelmatig bij tijdens de zomermercato, dus verouderde gecachete data zou hier vervelend zijn.
+  const fetchPlayerDatabase = useCallback(async () => {
+    setPlayerDatabaseLoading(true);
+    setPlayerDatabaseError(null);
+    try {
+      const response = await fetch(PLAYER_DATABASE_CSV_URL, { cache: 'no-store' });
+      if (!response.ok) throw new Error('Netwerkfout');
+      const text = await response.text();
+      // Een gepubliceerde Google Sheet kan bij verkeerde/ingetrokken publish-rechten een HTML-
+      // foutpagina teruggeven i.p.v. CSV — die herkennen we hier zodat de UI een duidelijke
+      // foutmelding toont i.p.v. stilzwijgend brokkenrijen te parsen.
+      if (/^\s*<(!doctype|html)/i.test(text)) throw new Error('Onverwacht antwoord');
+      setPlayerDatabase(parsePlayerDatabaseCsv(text));
+    } catch {
+      setPlayerDatabaseError('Kon spelersdatabank niet laden, probeer opnieuw.');
+    } finally {
+      setPlayerDatabaseLoading(false);
+    }
+  }, []);
+
+  // Haalt de spelersdatabank eenmalig op bij het laden van de app, los van de actieve tab — zodat ze
+  // al klaarstaat zodra de gebruiker naar Team Planner navigeert.
+  useEffect(() => {
+    fetchPlayerDatabase();
+  }, [fetchPlayerDatabase]);
+
   const handleAddWatchlistPlayer = (e) => {
     e.preventDefault();
     const name = newPlayerName.trim();
@@ -626,6 +665,8 @@ export default function FDRTool() {
         ::-webkit-scrollbar { height: 8px; width: 8px; }
         ::-webkit-scrollbar-thumb { background: #4ECDC4; border-radius: 4px; }
         ::-webkit-scrollbar-track { background: #3D1E5C; }
+        .fdr-spin { animation: fdr-spin 0.8s linear infinite; }
+        @keyframes fdr-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .fdr-tabs { scrollbar-width: none; -ms-overflow-style: none; }
         .fdr-tabs::-webkit-scrollbar { display: none; }
         .fdr-footer-link {
@@ -947,6 +988,10 @@ export default function FDRTool() {
             teamPlannerTotalPrice={teamPlannerTotalPrice}
             teamPlannerClubCounts={teamPlannerClubCounts}
             teamPlannerFormationCounts={teamPlannerFormationCounts}
+            playerDatabase={playerDatabase}
+            playerDatabaseLoading={playerDatabaseLoading}
+            playerDatabaseError={playerDatabaseError}
+            fetchPlayerDatabase={fetchPlayerDatabase}
           />
         )}
 

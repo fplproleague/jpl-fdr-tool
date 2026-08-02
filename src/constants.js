@@ -245,3 +245,88 @@ export const TEAM_PLANNER_BENCH_SIZE = 4;
 export const VALID_FORMATIONS = [
   [3, 4, 3], [3, 5, 2], [4, 3, 3], [4, 4, 2], [4, 5, 1], [5, 3, 2], [5, 4, 1],
 ];
+
+// --- Spelersdatabank (Team Planner): CSV-parsing voor de publieke Google Sheet met alle spelers ---
+// Herbruikbaar voor zowel de initiële 15-koppige teaminvoer (PlayerSearchInput in de spelerstabel)
+// als de latere transfer-functie in Team Planner — vandaar hier i.p.v. lokaal in TeamPlannerTab.jsx.
+// De fetch zelf gebeurt in FDRTool.jsx (state blijft daar, zie het architecturale patroon van de rest
+// van de app); dit bestand bevat enkel de pure parsing-logica.
+
+// Publiek gepubliceerde Google Sheet (CSV-export) met naam/team/positie/prijs van elke speler. De
+// gebruiker werkt deze sheet regelmatig bij tijdens de zomermercato — elke fetch in FDRTool.jsx
+// gebeurt daarom met cache: 'no-store', zodat nooit een verouderde, gecachete versie getoond wordt.
+export const PLAYER_DATABASE_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS_PSoy3cpm-nckncN8C8lmxg0PfxYpANthYfLFccxft2UuBbmCvOa8SXrlwyJkBWUu0ek3QMBsIknU/pub?gid=0&single=true&output=csv';
+
+// Eenvoudige RFC4180-achtige CSV-tokenizer (i.p.v. text.split(',')): velden tussen aanhalingstekens
+// kunnen komma's en regeleindes bevatten, en "" binnen zo'n veld is een ontsnapt aanhalingsteken.
+// Geeft een array van rijen terug, elke rij een array van ruwe (nog niet-getrimde) celwaarden.
+export function parseCsvRows(text) {
+  const rows = [];
+  let row = [];
+  let field = '';
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    if (inQuotes) {
+      if (char === '"') {
+        if (text[i + 1] === '"') { field += '"'; i++; }
+        else inQuotes = false;
+      } else {
+        field += char;
+      }
+    } else if (char === '"') {
+      inQuotes = true;
+    } else if (char === ',') {
+      row.push(field); field = '';
+    } else if (char === '\n') {
+      row.push(field); rows.push(row); row = []; field = '';
+    } else if (char === '\r') {
+      // negeren — \r\n regeleindes worden door de \n-tak hierboven afgehandeld
+    } else {
+      field += char;
+    }
+  }
+  if (field.length > 0 || row.length > 0) { row.push(field); rows.push(row); }
+  return rows;
+}
+
+// Haalt uit een prijscel een plain getal, ongeacht of de sheet "8.5", "8.5M" of "€8.5m" bevat — alles
+// behalve cijfers/punt/min wordt weggegooid vóór het parsen. Geeft null terug bij een lege of
+// onbruikbare waarde, zodat de aanroeper zelf een fallback/weergave ("—") kan kiezen.
+function parsePriceValue(raw) {
+  const cleaned = (raw ?? '').replace(/[^0-9.-]/g, '');
+  if (!cleaned) return null;
+  const value = parseFloat(cleaned);
+  return Number.isFinite(value) ? value : null;
+}
+
+// Zet de ruwe CSV-tekst van de spelersdatabank om naar een array van genormaliseerde speler-
+// objecten ({ name, teamCode, teamName, position, price }). Kolommen worden op hun EXACTE headertekst
+// opgezocht (Name/Team/Position/Price) i.p.v. blind op vaste index, met een index-fallback (0-3) voor
+// het geval een header onverhoopt ontbreekt — zo blijft de parsing ook werken als de kolomvolgorde in
+// de sheet ooit verandert, zolang de 4 headers zelf niet hernoemd worden. Rijen zonder naam (lege of
+// malformed rijen, of de header-rij zelf) worden stilzwijgend genegeerd i.p.v. te crashen.
+export function parsePlayerDatabaseCsv(text) {
+  const rows = parseCsvRows(text).filter(row => row.some(cell => (cell ?? '').trim() !== ''));
+  if (rows.length === 0) return [];
+  const [headerRow, ...dataRows] = rows;
+  const trimmedHeaders = headerRow.map(h => (h ?? '').trim());
+  const columnIndex = (headerName, fallbackIndex) => {
+    const found = trimmedHeaders.indexOf(headerName);
+    return found === -1 ? fallbackIndex : found;
+  };
+  const nameCol = columnIndex('Name', 0);
+  const teamCol = columnIndex('Team', 1);
+  const positionCol = columnIndex('Position', 2);
+  const priceCol = columnIndex('Price', 3);
+
+  return dataRows
+    .map(row => {
+      const name = (row[nameCol] ?? '').trim();
+      const teamCode = (row[teamCol] ?? '').trim().toUpperCase();
+      const position = (row[positionCol] ?? '').trim().toUpperCase();
+      const team = TEAMS.find(t => t.code === teamCode);
+      return { name, teamCode, teamName: team?.name ?? teamCode, position, price: parsePriceValue(row[priceCol]) };
+    })
+    .filter(p => p.name);
+}
