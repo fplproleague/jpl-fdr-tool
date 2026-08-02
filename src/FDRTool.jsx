@@ -965,6 +965,10 @@ export default function FDRTool() {
             setNewPlayerPrice={setNewPlayerPrice}
             handleAddWatchlistPlayer={handleAddWatchlistPlayer}
             handleRemoveWatchlistPlayer={handleRemoveWatchlistPlayer}
+            playerDatabase={playerDatabase}
+            playerDatabaseLoading={playerDatabaseLoading}
+            playerDatabaseError={playerDatabaseError}
+            fetchPlayerDatabase={fetchPlayerDatabase}
           />
         )}
 

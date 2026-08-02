@@ -3,19 +3,27 @@
 // tab-content wordt conditioneel gemount/unmount bij het wisselen van tab, dus lokale state zou
 // resetten telkens de gebruiker weg- en terugnavigeert.
 
-import { X, Plus, Eye, UserPlus } from 'lucide-react';
-import { TEAMS, TEAMS_ALPHA, CURRENT_GW, FIXTURES, sectionTitleStyle } from '../constants';
+import { X, Plus, Eye, UserPlus, Loader2, AlertCircle, RotateCcw } from 'lucide-react';
+import { TEAMS, CURRENT_GW, FIXTURES, sectionTitleStyle } from '../constants';
 import { MiniFixtureBadge } from '../components/MiniFixtureBadge';
+import { PlayerSearchInput } from '../components/PlayerSearchInput';
 
 const watchlistInputStyle = {
   background: '#3D1E5C', color: '#FFF', border: '1px solid rgba(255,255,255,0.15)',
   borderRadius: '6px', padding: '8px 10px', fontSize: '13px', width: '100%'
 };
 
+const retryButtonStyle = {
+  display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0,
+  background: 'transparent', color: '#FBEAE7', border: '1px solid rgba(251,234,231,0.4)',
+  borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px', cursor: 'pointer',
+};
+
 export default function WatchlistTab({
   ratings, homeAdvantage,
   watchlist, newPlayerName, setNewPlayerName, newPlayerTeam, setNewPlayerTeam, newPlayerPrice, setNewPlayerPrice,
   handleAddWatchlistPlayer, handleRemoveWatchlistPlayer,
+  playerDatabase, playerDatabaseLoading, playerDatabaseError, fetchPlayerDatabase,
 }) {
   return (
     <>
@@ -31,35 +39,55 @@ export default function WatchlistTab({
           <h2 className="fdr-title fdr-section-title" style={{ ...sectionTitleStyle, marginBottom: '12px' }}>
             <UserPlus size={18} color="#4ECDC4" /> Speler toevoegen
           </h2>
+
+          {/* Laad-/foutstatus van de spelersdatabank (Google Sheet CSV, zie fetchPlayerDatabase in
+              FDRTool.jsx) — zelfde patroon als Team Planner: spinner tijdens het laden, rode foutmelding
+              met "opnieuw proberen"-knop bij een mislukte fetch. De zoek/autocomplete hieronder staat
+              zolang op disabled (zie PlayerSearchInput). */}
+          {playerDatabaseLoading && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#C9B8E0', fontSize: '13px', marginBottom: '12px' }}>
+              <Loader2 size={16} className="fdr-spin" /> Spelersdatabank laden...
+            </div>
+          )}
+          {!playerDatabaseLoading && playerDatabaseError && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
+              background: 'rgba(194,64,44,0.12)', border: '1px solid rgba(194,64,44,0.4)',
+              borderRadius: '10px', padding: '12px 14px', marginBottom: '12px'
+            }}>
+              <AlertCircle size={16} color="#C2402C" style={{ flexShrink: 0 }} />
+              <span style={{ color: '#FBEAE7', fontSize: '13px', flex: 1 }}>{playerDatabaseError}</span>
+              <button onClick={fetchPlayerDatabase} style={retryButtonStyle}>
+                <RotateCcw size={14} /> Probeer opnieuw
+              </button>
+            </div>
+          )}
+
           <form onSubmit={handleAddWatchlistPlayer} style={{
             display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px', alignItems: 'end'
           }}>
-            <label style={{ display: 'grid', gap: '4px' }}>
-              <span style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', marginLeft: '4px'}}>Naam</span>
-              <input
-                type="text" required value={newPlayerName}
-                onChange={e => setNewPlayerName(e.target.value)}
-                placeholder="Bv. Zorgane"
-                style={watchlistInputStyle}
+            <label style={{ display: 'grid', gap: '4px', gridColumn: 'span 2' }}>
+              <span style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', marginLeft: '4px'}}>Speler</span>
+              {/* Zoek/autocomplete op de spelersdatabank i.p.v. vrije-tekst naam + los team-dropdown —
+                  bij selectie vullen newPlayerName/-Team/-Price automatisch (zie onSelect hieronder),
+                  zelfde patroon als de 15-koppige teaminvoer in TeamPlannerTab.jsx. */}
+              <PlayerSearchInput
+                value={newPlayerName}
+                players={playerDatabase}
+                disabled={playerDatabaseLoading || !!playerDatabaseError}
+                placeholder={playerDatabaseLoading ? 'Databank laden...' : 'Zoek speler...'}
+                onSelect={(selected) => {
+                  setNewPlayerName(selected.name);
+                  setNewPlayerTeam(selected.teamCode);
+                  setNewPlayerPrice(selected.price != null ? String(selected.price) : '');
+                }}
               />
             </label>
             <label style={{ display: 'grid', gap: '4px' }}>
-              <span style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', marginLeft: '4px' }}>Team</span>
-              <select required value={newPlayerTeam} onChange={e => setNewPlayerTeam(e.target.value)} style={watchlistInputStyle}>
-                <option value="" disabled>Kies team</option>
-                {TEAMS_ALPHA.map(team => (
-                  <option key={team.code} value={team.code}>{team.name}</option>
-                ))}
-              </select>
-            </label>
-            <label style={{ display: 'grid', gap: '4px' }}>
-              <span style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', marginLeft: '4px' }}>Prijs (optioneel)</span>
-              <input
-                type="number" inputMode="decimal" step="0.1" min="0" max="12" placeholder="Bv. 8.5"
-                value={newPlayerPrice} onChange={e => setNewPlayerPrice(e.target.value)}
-                style={watchlistInputStyle}
-                placeholder="Bv. 8.5"
-              />
+              <span style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', marginLeft: '4px' }}>Prijs</span>
+              <div style={{ ...watchlistInputStyle, color: newPlayerPrice !== '' ? '#FFF' : '#8F79AD', fontWeight: 700 }}>
+                {newPlayerPrice !== '' ? `${Number(newPlayerPrice).toFixed(1)}M` : '—'}
+              </div>
             </label>
             <button type="submit" style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
