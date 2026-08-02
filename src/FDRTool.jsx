@@ -10,7 +10,7 @@ import html2canvas from 'html2canvas';
 import {
   TEAMS, FIXTURES, GW_COUNT, DEFAULT_GW_HORIZON_END, MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS,
   MINILEAGUE_CODE, LAST_UPDATED, GW_INDEXES, DEFAULT_RATINGS, DEFAULT_HOME_ADVANTAGE,
-  TEAM_PLANNER_SQUAD_SIZE, TEAM_PLANNER_BENCH_SIZE, getFixtureScores, average,
+  TEAM_PLANNER_SQUAD_SIZE, TEAM_PLANNER_BENCH_SIZE, TEAM_PLANNER_SLOT_POSITIONS, getFixtureScores, average,
 } from './constants';
 import FDRTab from './tabs/FDRTab';
 import WatchlistTab from './tabs/WatchlistTab';
@@ -147,10 +147,11 @@ function createWatchlistId() {
 // objectreferentie delen en zou het wijzigen van slot 1 per ongeluk alle andere slots meewijzigen.
 // Bank- en kapiteinskeuze zijn GEEN veld op de speler zelf: die zijn per GW instelbaar (zie
 // teamPlannerBenchByGw/teamPlannerCaptainByGw hieronder), dus een speler kan in GW1 basis zijn en in
-// GW2 op de bank staan.
+// GW2 op de bank staan. Positie ligt wél vast per slot-index (TEAM_PLANNER_SLOT_POSITIONS) — de
+// gebruiker kiest 'm niet meer zelf, dus de positie-aantallen (2 GK/5 DEF/5 MID/3 FWD) kloppen altijd.
 function createEmptyTeamPlannerPlayers() {
-  return Array.from({ length: TEAM_PLANNER_SQUAD_SIZE }, () => ({
-    name: '', teamCode: '', position: '', price: '',
+  return Array.from({ length: TEAM_PLANNER_SQUAD_SIZE }, (_, index) => ({
+    name: '', teamCode: '', position: TEAM_PLANNER_SLOT_POSITIONS[index], price: '',
   }));
 }
 
@@ -162,12 +163,14 @@ function loadStoredTeamPlanner() {
     const raw = window.localStorage?.getItem(TEAM_PLANNER_STORAGE_KEY);
     if (!raw) return empty;
     const parsed = JSON.parse(raw);
-    // Oudere opslag (vóór per-GW bank/kapitein) was gewoon het spelers-array zelf, met een
-    // "isBench"-veld per speler dat nu vervallen is — dat veld wordt hier stilzwijgend genegeerd.
+    // Oudere opslag (vóór per-GW bank/kapitein, en vóór de vaste positie per slot) was gewoon het
+    // spelers-array zelf, met een "isBench"-veld per speler dat nu vervallen is — dat veld wordt hier
+    // stilzwijgend genegeerd. Positie wordt altijd herberekend uit de slot-index, ongeacht wat er
+    // eventueel nog aan oude, handmatig gekozen positie in de opslag stond.
     const rawPlayers = Array.isArray(parsed) ? parsed : parsed?.players;
     const players = Array.isArray(rawPlayers) && rawPlayers.length === TEAM_PLANNER_SQUAD_SIZE
-      ? rawPlayers.map(p => ({
-          name: p?.name ?? '', teamCode: p?.teamCode ?? '', position: p?.position ?? '', price: p?.price ?? '',
+      ? rawPlayers.map((p, index) => ({
+          name: p?.name ?? '', teamCode: p?.teamCode ?? '', position: TEAM_PLANNER_SLOT_POSITIONS[index], price: p?.price ?? '',
         }))
       : empty.players;
     const benchByGw = (!Array.isArray(parsed) && parsed?.benchByGw && typeof parsed.benchByGw === 'object') ? parsed.benchByGw : {};
@@ -447,16 +450,6 @@ export default function FDRTool() {
     }, 0);
   }, [teamPlannerPlayers]);
 
-  // Telt hoeveel slots per positie al gekozen zijn — een slot telt mee zodra de positie-dropdown
-  // een waarde heeft, ongeacht of naam/team/prijs ook al ingevuld zijn.
-  const teamPlannerPositionCounts = useMemo(() => {
-    const counts = { GK: 0, DEF: 0, MID: 0, FWD: 0 };
-    teamPlannerPlayers.forEach(p => {
-      if (p.position) counts[p.position] += 1;
-    });
-    return counts;
-  }, [teamPlannerPlayers]);
-
   // Telt hoeveel spelers per club gekozen zijn, voor de "max 3 per club"-waarschuwing in de tab.
   const teamPlannerClubCounts = useMemo(() => {
     const counts = {};
@@ -469,7 +462,7 @@ export default function FDRTool() {
   // Positie-tellingen van de BASISPLOEG (niet-bank) voor de op dit moment bekeken GW — dit voedt
   // zowel de bank-teller ("Bank: x/4") als de formatie-validatie (3-4-3, 4-4-2, ...) in de tab. Een
   // reduce over het volledige spelers-array, dus hier i.p.v. lokaal in TeamPlannerTab.jsx, net als
-  // teamPlannerPositionCounts/teamPlannerClubCounts hierboven.
+  // teamPlannerClubCounts hierboven.
   const teamPlannerFormationCounts = useMemo(() => {
     const bench = teamPlannerBenchByGw[teamPlannerGw] ?? [];
     const counts = { GK: 0, DEF: 0, MID: 0, FWD: 0 };
@@ -557,13 +550,14 @@ export default function FDRTool() {
     }
   };
 
-  // Kapitein is per GW: klikken op de huidige kapitein heft de band op, klikken op een andere
-  // basisspeler verplaatst 'm. Een bankspeler kan geen kapitein worden (zie PlayerPitchCard, die de
-  // knop enkel toont voor niet-gebankte spelers).
+  // Kapitein is per GW: `index` is de slot-index van de nieuwe kapitein, of null om de band voor deze
+  // GW te wissen (zie de kapitein-dropdown in TeamPlannerTab.jsx, die expliciet één keuze doorgeeft
+  // i.p.v. te togglen). De dropdown biedt enkel niet-gebankte spelers aan, dus een bankspeler kan
+  // hier sowieso niet als kapitein binnenkomen.
   const setTeamPlannerCaptain = (index) => {
     setTeamPlannerCaptainByGw(prev => {
       const updated = { ...prev };
-      if (updated[teamPlannerGw] === index) {
+      if (index === null) {
         delete updated[teamPlannerGw];
       } else {
         updated[teamPlannerGw] = index;
@@ -951,7 +945,6 @@ export default function FDRTool() {
             handleTeamPlannerGwPrev={handleTeamPlannerGwPrev}
             handleTeamPlannerGwNext={handleTeamPlannerGwNext}
             teamPlannerTotalPrice={teamPlannerTotalPrice}
-            teamPlannerPositionCounts={teamPlannerPositionCounts}
             teamPlannerClubCounts={teamPlannerClubCounts}
             teamPlannerFormationCounts={teamPlannerFormationCounts}
           />

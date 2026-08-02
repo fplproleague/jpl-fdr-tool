@@ -221,12 +221,18 @@ export const sectionTitleStyle = {
 
 // --- Team Planner: spelregels voor de 15-koppige selectie (Fase 1, handmatige invoer) ---
 
-// Positie-volgorde (canoniek — het formulier-dropdown en de positie-telling in TeamPlannerTab.jsx
-// gebruiken deze volgorde; de veld-lay-out zelf gebruikt lokaal een omgekeerde volgorde daar).
+// Positie-volgorde (canoniek — TEAM_PLANNER_SLOT_POSITIONS hieronder en de veld-lay-out in
+// TeamPlannerTab.jsx gebruiken deze volgorde; de veld-lay-out zelf gebruikt lokaal een omgekeerde
+// volgorde daar).
 export const POSITIONS = ['GK', 'DEF', 'MID', 'FWD'];
 
 // Vereist aantal spelers per positie voor een geldige 15-koppige selectie.
 export const POSITION_REQUIREMENTS = { GK: 2, DEF: 5, MID: 5, FWD: 3 };
+
+// Vaste positie per slot-index (0-14): de eerste 2 slots zijn altijd GK, de volgende 5 altijd DEF,
+// enzovoort — POSITION_REQUIREMENTS'  aantallen liggen toch al vast, dus de gebruiker hoeft de
+// positie niet meer zelf te kiezen per speler (voorheen een dropdown in TeamPlannerTab.jsx).
+export const TEAM_PLANNER_SLOT_POSITIONS = POSITIONS.flatMap(pos => Array(POSITION_REQUIREMENTS[pos]).fill(pos));
 
 export const TEAM_PLANNER_SQUAD_SIZE = 15;
 export const TEAM_PLANNER_BUDGET = 100; // in miljoenen, zelfde eenheid als de watchlist-prijzen
