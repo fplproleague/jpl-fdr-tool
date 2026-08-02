@@ -231,3 +231,11 @@ export const POSITION_REQUIREMENTS = { GK: 2, DEF: 5, MID: 5, FWD: 3 };
 export const TEAM_PLANNER_SQUAD_SIZE = 15;
 export const TEAM_PLANNER_BUDGET = 100; // in miljoenen, zelfde eenheid als de watchlist-prijzen
 export const TEAM_PLANNER_MAX_PER_CLUB = 3;
+
+// Aantal bankspelers per GW (15 - 11 basisspelers). Bank-samenstelling is per GW instelbaar.
+export const TEAM_PLANNER_BENCH_SIZE = 4;
+
+// Geldige formaties als [DEF, MID, FWD]-telling onder de basisploeg (GK is altijd 1, niet in de tripel).
+export const VALID_FORMATIONS = [
+  [3, 4, 3], [3, 5, 2], [4, 3, 3], [4, 4, 2], [4, 5, 1], [5, 3, 2], [5, 4, 1],
+];

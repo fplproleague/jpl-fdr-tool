@@ -1,15 +1,17 @@
 // Inhoud van de Team Planner-tab: handmatige invoer van een 15-koppige selectie (Fase 1, geen
-// externe spelersdatabank), met live budget-/positie-/club-validatie en een eenvoudige veld-
-// weergave met per-GW fixtures. Ontvangt alle state en handlers als props vanuit FDRTool.jsx (geen
-// lokale useState hier) — de tab-content wordt conditioneel gemount/unmount bij het wisselen van
-// tab, dus lokale state zou resetten telkens de gebruiker weg- en terugnavigeert.
+// externe spelersdatabank), met live budget-/positie-/club-validatie en een veld-weergave met
+// per-GW fixtures, bank en kapitein. Ontvangt alle state en handlers als props vanuit FDRTool.jsx
+// (geen lokale useState hier) — de tab-content wordt conditioneel gemount/unmount bij het wisselen
+// van tab, dus lokale state zou resetten telkens de gebruiker weg- en terugnavigeert.
 
 import { Users, Shirt, ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   TEAMS, TEAMS_ALPHA, FIXTURES, GW_COUNT, POSITIONS, POSITION_REQUIREMENTS,
-  TEAM_PLANNER_BUDGET, TEAM_PLANNER_MAX_PER_CLUB, sectionTitleStyle,
+  TEAM_PLANNER_BUDGET, TEAM_PLANNER_MAX_PER_CLUB, TEAM_PLANNER_BENCH_SIZE, VALID_FORMATIONS,
+  sectionTitleStyle,
 } from '../constants';
 import { MiniFixtureBadge } from '../components/MiniFixtureBadge';
+import { SectionHeader } from '../components/SectionHeader';
 
 const teamPlannerInputStyle = {
   background: '#3D1E5C', color: '#FFF', border: '1px solid rgba(255,255,255,0.15)',
@@ -25,56 +27,93 @@ const thStyle = {
 // dat de canonieke volgorde voor het formulier en de positie-telling levert).
 const PITCH_ROW_ORDER = ['FWD', 'MID', 'DEF', 'GK'];
 
-// Kleurstaat per positie-teller: compleet (teal), te vol (rood, zelfde rood als elders in de app
+// Kleurstaat voor een "x/y"-telling: compleet (teal), te vol (rood, zelfde rood als elders in de app
 // voor "moeilijkst"/waarschuwingen), nog te kort (neutraal gedempt — geen waarschuwingskleur, want
-// een half ingevuld formulier is nog geen fout).
-function positionBadgeStyle(count, required) {
+// een half ingevuld formulier of een nog niet volledige bank is nog geen fout). Gebruikt voor zowel
+// de positie-tellers als de bank-teller in de veld-sectie hieronder.
+function countBadgeStyle(count, required) {
   if (count === required) return { background: '#4ECDC4', color: '#0B2E1B' };
   if (count > required) return { background: '#C2402C', color: '#FBEAE7' };
   return { background: 'rgba(255,255,255,0.08)', color: '#C9B8E0' };
 }
 
+// Kleurstaat voor de formatie-pill: neutraal zolang de bank nog niet exact 4 spelers telt (de
+// basisploeg staat dan nog niet vast op 11), anders teal (geldig) of rood (ongeldig).
+function formationBadgeStyle(isBenchComplete, isValidFormation) {
+  if (!isBenchComplete) return { background: 'rgba(255,255,255,0.08)', color: '#C9B8E0' };
+  return isValidFormation ? { background: '#4ECDC4', color: '#0B2E1B' } : { background: '#C2402C', color: '#FBEAE7' };
+}
+
 // Eén speler-kaartje op het veld of de bank: clublogo, naam, en (indien een team gekozen is) de
 // fixture van de geselecteerde GW via de bestaande MiniFixtureBadge — die regelt zelf al DGW/
 // postponed/possibly-postponed-weergave, dus hier hoeft enkel de juiste fixture-string doorgegeven
-// te worden. Leeg gebleven slots (geen naam, geen team) worden niet getoond.
-function PlayerPitchCard({ player, gw, ratings, homeAdvantage, onToggleBench }) {
+// te worden. Leeg gebleven slots (geen naam, geen team) worden niet getoond. Basisspelers krijgen
+// een klein "C"-knopje (kapitein voor deze GW) bovenop de kaart — bankspelers niet, want een
+// kapitein moet een basisspeler zijn.
+function PlayerPitchCard({ player, gw, ratings, homeAdvantage, isBenched, isCaptain, benchToggleDisabled, onToggleBench, onToggleCaptain }) {
   if (!player.name && !player.teamCode) return null;
   const fixture = player.teamCode ? FIXTURES[player.teamCode]?.[gw - 1] : null;
   return (
-    <button
-      onClick={onToggleBench}
-      title="Klik om bank-status te wisselen"
-      style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
-        background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: '10px', padding: '8px 10px', minWidth: '78px', cursor: 'pointer'
-      }}
-    >
-      {player.teamCode && (
-        <img
-          src={`/club-logos/${player.teamCode}.png`}
-          alt=""
-          className="club-logo"
-          style={{ width: '24px', height: '24px', objectFit: 'contain' }}
-          onError={(e) => { e.target.style.display = 'none'; }}
-        />
+    <div style={{ position: 'relative' }}>
+      {!isBenched && (
+        <button
+          onClick={onToggleCaptain}
+          title={isCaptain ? 'Kapitein voor deze GW — klik om te wisselen' : 'Maak kapitein voor deze GW'}
+          style={{
+            position: 'absolute', top: '-6px', right: '-6px', zIndex: 1,
+            width: '20px', height: '20px', borderRadius: '50%', display: 'flex',
+            alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 900,
+            lineHeight: 1, cursor: 'pointer',
+            background: isCaptain ? '#4ECDC4' : '#3D1E5C',
+            color: isCaptain ? '#0B2E1B' : '#C9B8E0',
+            border: isCaptain ? '1px solid #4ECDC4' : '1px solid rgba(255,255,255,0.25)',
+          }}
+        >
+          C
+        </button>
       )}
-      <span style={{ color: '#FFF', fontSize: '11px', fontWeight: 700, textAlign: 'center', lineHeight: 1.2 }}>
-        {player.name || '—'}
-      </span>
-      {fixture && (
-        <MiniFixtureBadge teamCode={player.teamCode} fixture={fixture} gwNumber={gw} ratings={ratings} homeAdvantage={homeAdvantage} />
-      )}
-    </button>
+      <button
+        onClick={onToggleBench}
+        disabled={benchToggleDisabled}
+        title={
+          isBenched ? 'Klik om terug naar het veld te zetten'
+            : benchToggleDisabled ? `Bank is al vol (${TEAM_PLANNER_BENCH_SIZE}/${TEAM_PLANNER_BENCH_SIZE}) voor GW${gw}`
+              : 'Klik om naar de bank te sturen'
+        }
+        style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
+          background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: '10px', padding: '8px 10px', minWidth: '78px',
+          cursor: benchToggleDisabled ? 'not-allowed' : 'pointer',
+          opacity: benchToggleDisabled ? 0.5 : 1,
+        }}
+      >
+        {player.teamCode && (
+          <img
+            src={`/club-logos/${player.teamCode}.png`}
+            alt=""
+            className="club-logo"
+            style={{ width: '24px', height: '24px', objectFit: 'contain' }}
+            onError={(e) => { e.target.style.display = 'none'; }}
+          />
+        )}
+        <span style={{ color: '#FFF', fontSize: '11px', fontWeight: 700, textAlign: 'center', lineHeight: 1.2 }}>
+          {player.name || '—'}
+        </span>
+        {fixture && (
+          <MiniFixtureBadge teamCode={player.teamCode} fixture={fixture} gwNumber={gw} ratings={ratings} homeAdvantage={homeAdvantage} />
+        )}
+      </button>
+    </div>
   );
 }
 
 export default function TeamPlannerTab({
-  ratings, homeAdvantage,
+  ratings, homeAdvantage, openSections, toggleSection,
   teamPlannerPlayers, updateTeamPlannerPlayer, toggleTeamPlannerBench,
+  teamPlannerBenchByGw, teamPlannerCaptainByGw, setTeamPlannerCaptain,
   teamPlannerGw, handleTeamPlannerGwPrev, handleTeamPlannerGwNext,
-  teamPlannerTotalPrice, teamPlannerPositionCounts, teamPlannerClubCounts,
+  teamPlannerTotalPrice, teamPlannerPositionCounts, teamPlannerClubCounts, teamPlannerFormationCounts,
 }) {
   const remainingBudget = TEAM_PLANNER_BUDGET - teamPlannerTotalPrice;
   const isOverBudget = teamPlannerTotalPrice > TEAM_PLANNER_BUDGET;
@@ -84,15 +123,29 @@ export default function TeamPlannerTab({
   const overCapClubs = Object.entries(teamPlannerClubCounts).filter(([, count]) => count > TEAM_PLANNER_MAX_PER_CLUB);
 
   // Elke speler krijgt zijn oorspronkelijke slot-index mee, want na filteren (per positie/bank
-  // hieronder) is de array-index niet meer bruikbaar om updateTeamPlannerPlayer/toggleTeamPlannerBench
-  // op het juiste slot te laten aangrijpen.
+  // hieronder) is de array-index niet meer bruikbaar om updateTeamPlannerPlayer/toggleTeamPlannerBench/
+  // setTeamPlannerCaptain op het juiste slot te laten aangrijpen.
   const indexedPlayers = teamPlannerPlayers.map((player, index) => ({ ...player, index }));
-  const benchPlayers = indexedPlayers.filter(p => p.isBench);
+
+  // Bank en kapitein zijn per GW ingesteld (zie FDRTool.jsx) — hier enkel een triviale lookup voor
+  // de op dit moment bekeken GW, geen reduce over het volledige spelers-array.
+  const benchForGw = teamPlannerBenchByGw[teamPlannerGw] ?? [];
+  const captainForGw = teamPlannerCaptainByGw[teamPlannerGw];
+  const benchCount = benchForGw.length;
+  const isBenchComplete = benchCount === TEAM_PLANNER_BENCH_SIZE;
+  const benchFull = benchCount >= TEAM_PLANNER_BENCH_SIZE;
+  const benchPlayers = indexedPlayers.filter(p => benchForGw.includes(p.index));
+
+  // Formatie-validatie: enkel zinvol zodra de bank exact 4 spelers telt (dan staat de basisploeg
+  // vast op 11) — zie VALID_FORMATIONS in constants.js voor de toegestane DEF-MID-FWD-combinaties.
+  const { GK: gkCount, DEF: defCount, MID: midCount, FWD: fwdCount } = teamPlannerFormationCounts;
+  const matchesValidFormation = VALID_FORMATIONS.some(([d, m, f]) => d === defCount && m === midCount && f === fwdCount);
+  const isValidFormation = isBenchComplete && gkCount === 1 && matchesValidFormation;
 
   return (
     <>
       <p style={{ color: '#8F79AD', fontSize: '13px', marginBottom: '16px' }}>
-        Stel je 15-koppige selectie samen en bekijk per gameweek de fixture van elke speler. Deze planner slaat automatisch op in je browser.
+        Stel je 15-koppige selectie samen en bekijk per gameweek de fixture, bank en kapitein. Deze planner slaat automatisch op in je browser.
       </p>
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '24px' }}>
         <section>
@@ -100,117 +153,110 @@ export default function TeamPlannerTab({
             background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
             borderRadius: '10px', padding: '16px', marginBottom: '20px'
           }}>
-            <h2 className="fdr-title fdr-section-title" style={{ ...sectionTitleStyle, marginBottom: '12px' }}>
-              <Users size={18} color="#4ECDC4" /> Mijn 15 spelers
-            </h2>
-
-            {/* Validatie-overzicht: budget, positie-tellingen en club-limiet — alle 3 live herberekend
-                in FDRTool.jsx (teamPlannerTotalPrice/PositionCounts/ClubCounts) telkens teamPlannerPlayers
-                wijzigt, dus dit blok volgt vanzelf elke invoer hieronder zonder eigen state. */}
-            <div style={{
-              display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center',
-              background: 'rgba(255,255,255,0.04)',
-              border: isOverBudget ? '1px solid #C2402C' : '1px solid rgba(255,255,255,0.08)',
-              borderRadius: '10px', padding: '12px 14px', marginBottom: '16px'
-            }}>
-              <div>
-                <div style={{ color: '#8F79AD', fontSize: '11px', textTransform: 'uppercase' }}>Budget</div>
-                <div style={{ color: isOverBudget ? '#C2402C' : '#FFF', fontWeight: 700, fontSize: '15px' }}>
-                  {teamPlannerTotalPrice.toFixed(1)}M / {TEAM_PLANNER_BUDGET}M
-                  {isOverBudget && ` — ${Math.abs(remainingBudget).toFixed(1)}M te veel`}
+            <SectionHeader icon={Users} title="Mijn 15 spelers" sectionKey="teamPlannerRoster" isOpen={openSections.teamPlannerRoster} onToggle={toggleSection} />
+            {openSections.teamPlannerRoster && (
+              <>
+                {/* Validatie-overzicht: budget, positie-tellingen en club-limiet — alle 3 live herberekend
+                    in FDRTool.jsx (teamPlannerTotalPrice/PositionCounts/ClubCounts) telkens teamPlannerPlayers
+                    wijzigt, dus dit blok volgt vanzelf elke invoer hieronder zonder eigen state. */}
+                <div style={{
+                  display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center',
+                  background: 'rgba(255,255,255,0.04)',
+                  border: isOverBudget ? '1px solid #C2402C' : '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: '10px', padding: '12px 14px', marginBottom: '16px'
+                }}>
+                  <div>
+                    <div style={{ color: '#8F79AD', fontSize: '11px', textTransform: 'uppercase' }}>Budget</div>
+                    <div style={{ color: isOverBudget ? '#C2402C' : '#FFF', fontWeight: 700, fontSize: '15px' }}>
+                      {teamPlannerTotalPrice.toFixed(1)}M / {TEAM_PLANNER_BUDGET}M
+                      {isOverBudget && ` — ${Math.abs(remainingBudget).toFixed(1)}M te veel`}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    {POSITIONS.map(pos => {
+                      const count = teamPlannerPositionCounts[pos];
+                      const required = POSITION_REQUIREMENTS[pos];
+                      return (
+                        <span key={pos} style={{
+                          fontSize: '12px', fontWeight: 700, padding: '4px 10px', borderRadius: '999px',
+                          ...countBadgeStyle(count, required)
+                        }}>
+                          {pos}: {count}/{required}
+                        </span>
+                      );
+                    })}
+                  </div>
+                  {overCapClubs.length > 0 && (
+                    <div style={{ color: '#C2402C', fontSize: '12px' }}>
+                      Max {TEAM_PLANNER_MAX_PER_CLUB} per club overschreden bij:{' '}
+                      {overCapClubs.map(([code, count]) => `${TEAMS.find(t => t.code === code)?.name ?? code} (${count})`).join(', ')}
+                    </div>
+                  )}
                 </div>
-              </div>
-              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                {POSITIONS.map(pos => {
-                  const count = teamPlannerPositionCounts[pos];
-                  const required = POSITION_REQUIREMENTS[pos];
-                  return (
-                    <span key={pos} style={{
-                      fontSize: '12px', fontWeight: 700, padding: '4px 10px', borderRadius: '999px',
-                      ...positionBadgeStyle(count, required)
-                    }}>
-                      {pos}: {count}/{required}
-                    </span>
-                  );
-                })}
-              </div>
-              {overCapClubs.length > 0 && (
-                <div style={{ color: '#C2402C', fontSize: '12px' }}>
-                  Max {TEAM_PLANNER_MAX_PER_CLUB} per club overschreden bij:{' '}
-                  {overCapClubs.map(([code, count]) => `${TEAMS.find(t => t.code === code)?.name ?? code} (${count})`).join(', ')}
-                </div>
-              )}
-            </div>
 
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ borderCollapse: 'separate', borderSpacing: '0 4px', width: '100%', minWidth: '620px' }}>
-                <thead>
-                  <tr>
-                    <th style={thStyle}>#</th>
-                    <th style={thStyle}>Naam</th>
-                    <th style={thStyle}>Team</th>
-                    <th style={thStyle}>Positie</th>
-                    <th style={thStyle}>Prijs (M)</th>
-                    <th style={{ ...thStyle, textAlign: 'center' }}>Bank</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {teamPlannerPlayers.map((player, index) => (
-                    <tr key={index}>
-                      <td style={{ color: '#6B5289', fontSize: '12px', padding: '4px 8px' }}>{index + 1}</td>
-                      <td style={{ padding: '4px 6px' }}>
-                        <input
-                          type="text" value={player.name}
-                          onChange={e => updateTeamPlannerPlayer(index, 'name', e.target.value)}
-                          placeholder="Naam"
-                          style={teamPlannerInputStyle}
-                        />
-                      </td>
-                      <td style={{ padding: '4px 6px', minWidth: '140px' }}>
-                        <select
-                          value={player.teamCode}
-                          onChange={e => updateTeamPlannerPlayer(index, 'teamCode', e.target.value)}
-                          style={teamPlannerInputStyle}
-                        >
-                          <option value="">Kies team</option>
-                          {TEAMS_ALPHA.map(team => (
-                            <option key={team.code} value={team.code}>{team.name}</option>
-                          ))}
-                        </select>
-                      </td>
-                      <td style={{ padding: '4px 6px', minWidth: '80px' }}>
-                        <select
-                          value={player.position}
-                          onChange={e => updateTeamPlannerPlayer(index, 'position', e.target.value)}
-                          style={teamPlannerInputStyle}
-                        >
-                          <option value="">-</option>
-                          {POSITIONS.map(pos => (
-                            <option key={pos} value={pos}>{pos}</option>
-                          ))}
-                        </select>
-                      </td>
-                      <td style={{ padding: '4px 6px', width: '90px' }}>
-                        <input
-                          type="number" inputMode="decimal" step="0.1" min="0"
-                          value={player.price}
-                          onChange={e => updateTeamPlannerPlayer(index, 'price', e.target.value)}
-                          placeholder="0.0"
-                          style={teamPlannerInputStyle}
-                        />
-                      </td>
-                      <td style={{ padding: '4px 6px', textAlign: 'center' }}>
-                        <input
-                          type="checkbox" checked={player.isBench}
-                          onChange={() => toggleTeamPlannerBench(index)}
-                          aria-label={`${player.name || `Speler ${index + 1}`} op de bank`}
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ borderCollapse: 'separate', borderSpacing: '0 4px', width: '100%', minWidth: '520px' }}>
+                    <thead>
+                      <tr>
+                        <th style={thStyle}>#</th>
+                        <th style={thStyle}>Naam</th>
+                        <th style={thStyle}>Team</th>
+                        <th style={thStyle}>Positie</th>
+                        <th style={thStyle}>Prijs (M)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {teamPlannerPlayers.map((player, index) => (
+                        <tr key={index}>
+                          <td style={{ color: '#6B5289', fontSize: '12px', padding: '4px 8px' }}>{index + 1}</td>
+                          <td style={{ padding: '4px 6px' }}>
+                            <input
+                              type="text" value={player.name}
+                              onChange={e => updateTeamPlannerPlayer(index, 'name', e.target.value)}
+                              placeholder="Naam"
+                              style={teamPlannerInputStyle}
+                            />
+                          </td>
+                          <td style={{ padding: '4px 6px', minWidth: '140px' }}>
+                            <select
+                              value={player.teamCode}
+                              onChange={e => updateTeamPlannerPlayer(index, 'teamCode', e.target.value)}
+                              style={teamPlannerInputStyle}
+                            >
+                              <option value="">Kies team</option>
+                              {TEAMS_ALPHA.map(team => (
+                                <option key={team.code} value={team.code}>{team.name}</option>
+                              ))}
+                            </select>
+                          </td>
+                          <td style={{ padding: '4px 6px', minWidth: '80px' }}>
+                            <select
+                              value={player.position}
+                              onChange={e => updateTeamPlannerPlayer(index, 'position', e.target.value)}
+                              style={teamPlannerInputStyle}
+                            >
+                              <option value="">-</option>
+                              {POSITIONS.map(pos => (
+                                <option key={pos} value={pos}>{pos}</option>
+                              ))}
+                            </select>
+                          </td>
+                          <td style={{ padding: '4px 6px', width: '90px' }}>
+                            <input
+                              type="number" inputMode="decimal" step="0.1" min="0"
+                              value={player.price}
+                              onChange={e => updateTeamPlannerPlayer(index, 'price', e.target.value)}
+                              placeholder="0.0"
+                              style={teamPlannerInputStyle}
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
           </div>
         </section>
 
@@ -219,7 +265,7 @@ export default function TeamPlannerTab({
             <Shirt size={18} color="#4ECDC4" /> Veld
           </h2>
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '14px', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '14px', marginBottom: '12px' }}>
             <button
               onClick={handleTeamPlannerGwPrev}
               disabled={teamPlannerGw <= 1}
@@ -251,12 +297,39 @@ export default function TeamPlannerTab({
             </button>
           </div>
 
+          {/* Bank- en formatie-status voor de bekeken GW — klik op een speler op het veld/de bank
+              hieronder om de bank aan te passen; de "C"-knop op een basisspeler stelt de kapitein in. */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center', justifyContent: 'center', marginBottom: '6px' }}>
+            <span style={{
+              fontSize: '12px', fontWeight: 700, padding: '4px 10px', borderRadius: '999px',
+              ...countBadgeStyle(benchCount, TEAM_PLANNER_BENCH_SIZE)
+            }}>
+              Bank: {benchCount}/{TEAM_PLANNER_BENCH_SIZE}
+            </span>
+            <span style={{
+              fontSize: '12px', fontWeight: 700, padding: '4px 10px', borderRadius: '999px',
+              ...formationBadgeStyle(isBenchComplete, isValidFormation)
+            }}>
+              Formatie: {defCount}-{midCount}-{fwdCount}
+            </span>
+          </div>
+          {!isBenchComplete && (
+            <p style={{ textAlign: 'center', color: '#8F79AD', fontSize: '12px', margin: '0 0 12px' }}>
+              Kies exact {TEAM_PLANNER_BENCH_SIZE} bankspelers voor GW{teamPlannerGw} om je formatie te valideren.
+            </p>
+          )}
+          {isBenchComplete && !isValidFormation && (
+            <p style={{ textAlign: 'center', color: '#C2402C', fontSize: '12px', margin: '0 0 12px' }}>
+              Ongeldige formatie ({defCount}-{midCount}-{fwdCount}, GK: {gkCount}). Geldige opties: 3-4-3, 3-5-2, 4-3-3, 4-4-2, 4-5-1, 5-3-2, 5-4-1 met exact 1 doelman.
+            </p>
+          )}
+
           <div style={{
             background: 'linear-gradient(180deg, rgba(78,205,196,0.08), rgba(78,205,196,0.02))',
             border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '16px'
           }}>
             {PITCH_ROW_ORDER.map(pos => {
-              const rowPlayers = indexedPlayers.filter(p => p.position === pos && !p.isBench);
+              const rowPlayers = indexedPlayers.filter(p => p.position === pos && !benchForGw.includes(p.index));
               return (
                 <div key={pos} style={{ display: 'flex', justifyContent: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '16px' }}>
                   {rowPlayers.length === 0 ? (
@@ -269,7 +342,11 @@ export default function TeamPlannerTab({
                         gw={teamPlannerGw}
                         ratings={ratings}
                         homeAdvantage={homeAdvantage}
+                        isBenched={false}
+                        isCaptain={captainForGw === player.index}
+                        benchToggleDisabled={benchFull}
                         onToggleBench={() => toggleTeamPlannerBench(player.index)}
+                        onToggleCaptain={() => setTeamPlannerCaptain(player.index)}
                       />
                     ))
                   )}
@@ -280,10 +357,10 @@ export default function TeamPlannerTab({
 
           <div style={{ marginTop: '16px' }}>
             <h3 className="fdr-title" style={{ color: '#C9B8E0', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.03em', margin: '0 0 10px' }}>
-              Bank
+              Bank — GW{teamPlannerGw}
             </h3>
             {benchPlayers.length === 0 ? (
-              <p style={{ color: '#6B5289', fontSize: '13px' }}>Nog geen spelers op de bank.</p>
+              <p style={{ color: '#6B5289', fontSize: '13px' }}>Nog geen bankspelers voor deze GW. Klik een speler op het veld aan om 'm naar de bank te sturen.</p>
             ) : (
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                 {benchPlayers.map(player => (
@@ -293,7 +370,11 @@ export default function TeamPlannerTab({
                     gw={teamPlannerGw}
                     ratings={ratings}
                     homeAdvantage={homeAdvantage}
+                    isBenched
+                    isCaptain={false}
+                    benchToggleDisabled={false}
                     onToggleBench={() => toggleTeamPlannerBench(player.index)}
+                    onToggleCaptain={() => {}}
                   />
                 ))}
               </div>
