@@ -926,6 +926,57 @@ export default function FDRTool() {
             padding: 1px 3px !important;
             line-height: 1.05 !important;
           }
+
+          /* Team Planner-veld: de opstelling (GK/DEF/MID/FWD, telkens exact 1 rij) moet op mobiel altijd
+             volledig binnen het vak passen zonder te moeten scrollen — vandaar kleinere kaartjes, minder
+             gap, en minder padding op de rij/container dan op desktop. 5 kaarten (de breedste rij, DEF of
+             MID) × ~48px + 4 gaps van 3px moet passen binnen de resterende breedte na de paginarand
+             (20px) en de vak-padding (6px), ook op de allersmalste ondersteunde telefoons (320px, bv.
+             iPhone SE) — getest tot en met die breedte, niet enkel de gangbare 360-390px. */
+          .fdr-pitch-container {
+            padding: 6px !important;
+          }
+          .fdr-pitch-row {
+            gap: 3px !important;
+            padding: 0 !important;
+            margin-bottom: 6px !important;
+          }
+          .fdr-pitch-card {
+            min-width: 48px !important;
+            padding: 3px 1px !important;
+            gap: 2px !important;
+          }
+          .fdr-pitch-card .fdr-pitch-card-logo {
+            width: 14px !important;
+            height: 14px !important;
+          }
+          .fdr-pitch-card .fdr-pitch-card-name {
+            font-size: 7px !important;
+            line-height: 1.1 !important;
+          }
+          .fdr-pitch-card-captain {
+            width: 13px !important;
+            height: 13px !important;
+            font-size: 7px !important;
+            top: -4px !important;
+            right: -4px !important;
+          }
+          /* Nog kleiner dan de algemene .fdr-mini-fixture-row-mobielstijl hierboven — deze badge zit in
+             een kaartje van maar ~48px breed, smaller dan waarvoor die algemene stijl bedoeld is. */
+          .fdr-pitch-card-fixture {
+            min-height: 0 !important;
+          }
+          .fdr-pitch-card-fixture > span {
+            font-size: 7px !important;
+            padding: 1px 3px !important;
+          }
+          .fdr-pitch-card-fixture > .fdr-postponed-mini {
+            min-width: 20px !important;
+          }
+          .fdr-pitch-card-fixture > .fdr-dgw-badge > span {
+            font-size: 7px !important;
+            padding: 1px 3px !important;
+          }
         }
 
       `}</style>

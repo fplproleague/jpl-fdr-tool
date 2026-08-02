@@ -95,6 +95,7 @@ function PlayerPitchCard({ player, gw, ratings, homeAdvantage, isBenched, isCapt
     <div style={{ position: 'relative' }}>
       {isCaptain && (
         <span
+          className="fdr-pitch-card-captain"
           title="Kapitein voor deze GW"
           style={{
             position: 'absolute', top: '-6px', right: '-6px', zIndex: 1,
@@ -109,6 +110,7 @@ function PlayerPitchCard({ player, gw, ratings, homeAdvantage, isBenched, isCapt
       <button
         onClick={onToggleBench}
         disabled={benchToggleDisabled}
+        className="fdr-pitch-card"
         title={
           isBenched ? 'Klik om terug naar het veld te zetten'
             : benchToggleDisabled ? `Bank is al vol (${TEAM_PLANNER_BENCH_SIZE}/${TEAM_PLANNER_BENCH_SIZE}) voor GW${gw}`
@@ -125,16 +127,22 @@ function PlayerPitchCard({ player, gw, ratings, homeAdvantage, isBenched, isCapt
           <img
             src={`/club-logos/${player.teamCode}.png`}
             alt=""
-            className="club-logo"
+            className="club-logo fdr-pitch-card-logo"
             style={{ width: '24px', height: '24px', objectFit: 'contain' }}
             onError={(e) => { e.target.style.display = 'none'; }}
           />
         )}
-        <span style={{ color: '#FFF', fontSize: '11px', fontWeight: 700, textAlign: 'center', lineHeight: 1.2 }}>
+        <span className="fdr-pitch-card-name" style={{ color: '#FFF', fontSize: '11px', fontWeight: 700, textAlign: 'center', lineHeight: 1.2 }}>
           {player.name || '—'}
         </span>
         {fixture && (
-          <MiniFixtureBadge teamCode={player.teamCode} fixture={fixture} gwNumber={gw} ratings={ratings} homeAdvantage={homeAdvantage} />
+          // .fdr-mini-fixture-row hergebruikt de al bestaande mobiele compacte badge-stijlen — oorspronkelijk
+          // gebouwd voor de fixture-rijen in FDRTab/WatchlistTab, maar even goed toepasbaar op deze ene badge
+          // in een klein kaartje hier. .fdr-pitch-card-fixture verkleint 'm nog verder (zie mediaquery), want
+          // de pitch-kaartjes zelf zijn smaller dan waarvoor die algemene stijl oorspronkelijk bedoeld was.
+          <span className="fdr-mini-fixture-row fdr-pitch-card-fixture">
+            <MiniFixtureBadge teamCode={player.teamCode} fixture={fixture} gwNumber={gw} ratings={ratings} homeAdvantage={homeAdvantage} />
+          </span>
         )}
       </button>
     </div>
@@ -572,7 +580,7 @@ export default function TeamPlannerTab({
             </p>
           )}
 
-          <div style={{
+          <div className="fdr-pitch-container" style={{
             background: 'linear-gradient(180deg, rgba(78,205,196,0.08), rgba(78,205,196,0.02))',
             border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '16px'
           }}>
