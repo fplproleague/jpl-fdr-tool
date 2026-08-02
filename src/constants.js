@@ -246,6 +246,30 @@ export const VALID_FORMATIONS = [
   [3, 4, 3], [3, 5, 2], [4, 3, 3], [4, 4, 2], [4, 5, 1], [5, 3, 2], [5, 4, 1],
 ];
 
+// --- Team Planner: transfers zijn tijdgebonden ---
+// Een transfer op een slot geldt vanaf zijn geplande GW en blijft van kracht voor alle latere GW's,
+// tot een nieuwe transfer op datzelfde slot het opnieuw wijzigt. Het team is dus geen vaste lijst
+// meer, maar per slot een tijdlijn van "wie zit hier vanaf welke GW". Deze ene functie is de enige
+// plek waar die tijdlijn wordt opgelost naar "wie zit hier op GW X" — alle andere code (veld-weergave,
+// transfer-UI, geschiedenis) bouwt hierop voort, zodat er maar één plek is om te controleren/aan te
+// passen als deze regel ooit verandert.
+
+// `transfersForSlot`: array van { gw, player }, één entry per geplande transfer op dit ene slot
+// (player = de speler die vanaf die GW instroomt). Retourneert wie het slot bezet op GW `atGw`: de
+// meest recente transfer met transfer.gw <= atGw, of `basePlayer` (de oorspronkelijke, in GW1
+// ingevulde speler) als er nog geen enkele transfer op of vóór atGw gepland is.
+export function resolveSlotPlayerAtGw(basePlayer, transfersForSlot, atGw) {
+  let current = basePlayer;
+  let currentGw = -Infinity; // basePlayer geldt "vanaf het prille begin", dus altijd eerst overschreven
+  for (const transfer of transfersForSlot) {
+    if (transfer.gw <= atGw && transfer.gw > currentGw) {
+      current = transfer.player;
+      currentGw = transfer.gw;
+    }
+  }
+  return current;
+}
+
 // --- Spelersdatabank (Team Planner): CSV-parsing voor de publieke Google Sheet met alle spelers ---
 // Herbruikbaar voor zowel de initiële 15-koppige teaminvoer (PlayerSearchInput in de spelerstabel)
 // als de latere transfer-functie in Team Planner — vandaar hier i.p.v. lokaal in TeamPlannerTab.jsx.

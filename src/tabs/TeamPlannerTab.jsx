@@ -1,10 +1,17 @@
-// Inhoud van de Team Planner-tab: handmatige invoer van een 15-koppige selectie (Fase 1, geen
-// externe spelersdatabank), met live budget-/positie-/club-validatie en een veld-weergave met
-// per-GW fixtures, bank en kapitein. Ontvangt alle state en handlers als props vanuit FDRTool.jsx
-// (geen lokale useState hier) — de tab-content wordt conditioneel gemount/unmount bij het wisselen
-// van tab, dus lokale state zou resetten telkens de gebruiker weg- en terugnavigeert.
+// Inhoud van de Team Planner-tab: handmatige invoer van een 15-koppige selectie, met live budget-/
+// club-validatie, een veld-weergave met per-GW fixtures/bank/kapitein, en een transfer-laag erbovenop
+// (spelers vervangen vanaf een gekozen GW, tijdgebonden — zie het commentaar bij TransferPanel/
+// resolvedIndexedPlayers hieronder). Ontvangt alle state en handlers als props vanuit FDRTool.jsx
+// (geen domein-state hier) — de tab-content wordt conditioneel gemount/unmount bij het wisselen van
+// tab, dus lokale state zou resetten telkens de gebruiker weg- en terugnavigeert. Uitzondering: de
+// transfer-DRAFT in TransferPanel (welke OUT/IN nog niet bevestigd is) is bewust wél lokale useState,
+// net als PlayerSearchInput's eigen zoekveld-state — voorbijgaande UI-invoer, geen domein-data.
 
-import { Users, Shirt, ChevronLeft, ChevronRight, Loader2, AlertCircle, RotateCcw } from 'lucide-react';
+import { useState } from 'react';
+import {
+  Users, Shirt, ChevronLeft, ChevronRight, Loader2, AlertCircle, RotateCcw,
+  ArrowLeftRight, ArrowRight, X,
+} from 'lucide-react';
 import {
   TEAMS, FIXTURES, GW_COUNT,
   TEAM_PLANNER_BUDGET, TEAM_PLANNER_MAX_PER_CLUB, TEAM_PLANNER_BENCH_SIZE, VALID_FORMATIONS,
@@ -51,13 +58,22 @@ function formationBadgeStyle(isBenchComplete, isValidFormation) {
   return isValidFormation ? { background: '#4ECDC4', color: '#0B2E1B' } : { background: '#C2402C', color: '#FBEAE7' };
 }
 
+function formatPrice(price) {
+  return price != null && price !== '' && Number.isFinite(Number(price)) ? `${Number(price).toFixed(1)}M` : '—';
+}
+
+function teamNameFor(teamCode) {
+  return TEAMS.find(t => t.code === teamCode)?.name ?? teamCode;
+}
+
 // Eén speler-kaartje op het veld of de bank: clublogo, naam, en (indien een team gekozen is) de
 // fixture van de geselecteerde GW via de bestaande MiniFixtureBadge — die regelt zelf al DGW/
 // postponed/possibly-postponed-weergave, dus hier hoeft enkel de juiste fixture-string doorgegeven
 // te worden. Leeg gebleven slots (geen naam, geen team) worden niet getoond. De "C"-badge is puur
 // informatief (geen knop) en verschijnt enkel op de effectieve kapitein — de kapitein zelf wordt
 // gekozen via de dropdown boven het veld, niet door op een kaart te klikken (dat zou anders 11
-// zichtbare, grotendeels inactieve "C"-knoppen opleveren).
+// zichtbare, grotendeels inactieve "C"-knoppen opleveren). `player` komt hier altijd uit
+// resolvedIndexedPlayers, dus dit toont altijd wie er op de bekeken GW effectief speelt (na transfers).
 function PlayerPitchCard({ player, gw, ratings, homeAdvantage, isBenched, isCaptain, benchToggleDisabled, onToggleBench }) {
   if (!player.name && !player.teamCode) return null;
   const fixture = player.teamCode ? FIXTURES[player.teamCode]?.[gw - 1] : null;
@@ -111,6 +127,178 @@ function PlayerPitchCard({ player, gw, ratings, homeAdvantage, isBenched, isCapt
   );
 }
 
+// Klein kaartje voor de "voor → na"-vergelijking in TransferPanel hieronder — enkel weergave, geen
+// interactie (in tegenstelling tot PlayerPitchCard, dat een klikbare bank-toggle is).
+function TransferPlayerCard({ player, highlight }) {
+  return (
+    <div style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', minWidth: '120px',
+      background: highlight ? 'rgba(78,205,196,0.1)' : 'rgba(255,255,255,0.06)',
+      border: highlight ? '1px solid rgba(78,205,196,0.4)' : '1px solid rgba(255,255,255,0.1)',
+      borderRadius: '10px', padding: '10px 12px',
+    }}>
+      {player.teamCode && (
+        <img
+          src={`/club-logos/${player.teamCode}.png`}
+          alt=""
+          className="club-logo"
+          style={{ width: '22px', height: '22px', objectFit: 'contain' }}
+          onError={(e) => { e.target.style.display = 'none'; }}
+        />
+      )}
+      <span style={{ color: '#FFF', fontSize: '12px', fontWeight: 700, textAlign: 'center' }}>{player.name || '—'}</span>
+      <span style={{ color: '#8F79AD', fontSize: '10px' }}>{teamNameFor(player.teamCode)} · {player.position}</span>
+      <span style={{ color: '#4ECDC4', fontSize: '11px', fontWeight: 700 }}>{formatPrice(player.price)}</span>
+    </div>
+  );
+}
+
+// Transfer plannen voor de bekeken GW `gw`: OUT komt uit resolvedIndexedPlayers (het HUIDIGE team op
+// dit punt in de tijd, dus al rekening houdend met eerder geplande transfers — niet per se het
+// oorspronkelijke GW1-team), IN komt uit de spelersdatabank via dezelfde PlayerSearchInput als de
+// spelerslijst hierboven (zonder positie-filter: een andere positie mag, met waarschuwing). Alle
+// validaties hieronder zijn subtiele waarschuwingen — net als de budget-/club-validaties in de
+// spelerslijst — "Bevestig transfer" blijft altijd klikbaar, ook als er een waarschuwing getoond wordt.
+// De OUT/IN-keuze zelf is lokale draft-state (zie bestandscommentaar bovenaan): pas bij "Bevestig
+// transfer" wordt het via onConfirm naar FDRTool.jsx doorgegeven en permanent (localStorage).
+function TransferPanel({ gw, resolvedIndexedPlayers, playerDatabase, playerDatabaseLoading, playerDatabaseError, onConfirm }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [outIndex, setOutIndex] = useState('');
+  const [inPlayer, setInPlayer] = useState(null);
+
+  // Enkel gevulde slots kunnen "uit" — een leeg slot heeft niets om te vervangen.
+  const outOptions = resolvedIndexedPlayers.filter(p => p.name || p.teamCode);
+  const outPlayer = outIndex !== '' ? resolvedIndexedPlayers[Number(outIndex)] : null;
+
+  const resetDraft = () => { setOutIndex(''); setInPlayer(null); };
+  const handleToggle = () => { setIsOpen(o => !o); resetDraft(); };
+
+  const handleConfirm = () => {
+    if (!outPlayer || !inPlayer) return;
+    onConfirm(outPlayer.index, gw, {
+      name: inPlayer.name, teamCode: inPlayer.teamCode, position: inPlayer.position, price: inPlayer.price,
+    });
+    resetDraft();
+    setIsOpen(false);
+  };
+
+  // Budget/club-impact van de (nog niet bevestigde) transfer, berekend op het HUIDIGE team op deze
+  // GW (resolvedIndexedPlayers) — dus los van de statische GW1-budgetvalidatie in de spelerslijst.
+  const currentTotal = resolvedIndexedPlayers.reduce((sum, p) => {
+    const price = parseFloat(p.price);
+    return Number.isFinite(price) ? sum + price : sum;
+  }, 0);
+  const newTotal = outPlayer && inPlayer
+    ? currentTotal - (parseFloat(outPlayer.price) || 0) + (parseFloat(inPlayer.price) || 0)
+    : currentTotal;
+  const isOverBudgetAfter = outPlayer && inPlayer && newTotal > TEAM_PLANNER_BUDGET;
+
+  let clubCountAfter = null;
+  if (outPlayer && inPlayer && inPlayer.teamCode) {
+    const currentInClub = resolvedIndexedPlayers.filter(p => p.teamCode === inPlayer.teamCode).length;
+    // Als OUT en IN toevallig dezelfde club hebben, blijft het aantal voor die club gelijk (één weg,
+    // één erbij) — anders komt er simpelweg één bij voor IN's club.
+    clubCountAfter = outPlayer.teamCode === inPlayer.teamCode ? currentInClub : currentInClub + 1;
+  }
+  const isClubOverCapAfter = clubCountAfter !== null && clubCountAfter > TEAM_PLANNER_MAX_PER_CLUB;
+  const isPositionMismatch = outPlayer && inPlayer && outPlayer.position !== inPlayer.position;
+
+  return (
+    <div style={{ marginBottom: '16px' }}>
+      <button
+        onClick={handleToggle}
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', width: '100%',
+          background: isOpen ? '#4ECDC4' : 'transparent', color: isOpen ? '#0B2E1B' : '#4ECDC4',
+          border: '1px solid #4ECDC4', borderRadius: '8px', padding: '9px 14px',
+          fontWeight: 700, fontSize: '13px', cursor: 'pointer',
+        }}
+      >
+        <ArrowLeftRight size={15} /> {isOpen ? 'Annuleer transfer' : `Transfer plannen voor GW${gw}`}
+      </button>
+
+      {isOpen && (
+        <div style={{
+          marginTop: '10px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: '10px', padding: '14px', display: 'grid', gap: '12px'
+        }}>
+          <div style={{ display: 'grid', gap: '10px', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
+            <label style={{ display: 'grid', gap: '4px' }}>
+              <span style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase' }}>Uit (OUT)</span>
+              <select
+                value={outIndex}
+                onChange={e => { setOutIndex(e.target.value); setInPlayer(null); }}
+                style={teamPlannerInputStyle}
+              >
+                <option value="">Kies speler...</option>
+                {outOptions.map(p => (
+                  <option key={p.index} value={p.index}>
+                    {p.position} — {p.name || `Speler ${p.index + 1}`} ({formatPrice(p.price)})
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label style={{ display: 'grid', gap: '4px' }}>
+              <span style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase' }}>In (IN)</span>
+              <PlayerSearchInput
+                value={inPlayer?.name ?? ''}
+                players={playerDatabase}
+                disabled={outIndex === '' || playerDatabaseLoading || !!playerDatabaseError}
+                placeholder={
+                  outIndex === '' ? 'Kies eerst een uitgaande speler'
+                    : playerDatabaseLoading ? 'Databank laden...' : 'Zoek inkomende speler...'
+                }
+                onSelect={setInPlayer}
+              />
+            </label>
+          </div>
+
+          {outPlayer && inPlayer && (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                <TransferPlayerCard player={outPlayer} />
+                <ArrowRight size={18} color="#4ECDC4" style={{ flexShrink: 0 }} />
+                <TransferPlayerCard player={inPlayer} highlight />
+              </div>
+
+              {isPositionMismatch && (
+                <p style={{ color: '#C2402C', fontSize: '12px', margin: 0, textAlign: 'center' }}>
+                  Let op: {inPlayer.name} ({inPlayer.position}) heeft een andere positie dan {outPlayer.name} ({outPlayer.position}).
+                </p>
+              )}
+              {isOverBudgetAfter && (
+                <p style={{ color: '#C2402C', fontSize: '12px', margin: 0, textAlign: 'center' }}>
+                  Budget na transfer: {newTotal.toFixed(1)}M / {TEAM_PLANNER_BUDGET}M — {(newTotal - TEAM_PLANNER_BUDGET).toFixed(1)}M te veel.
+                </p>
+              )}
+              {isClubOverCapAfter && (
+                <p style={{ color: '#C2402C', fontSize: '12px', margin: 0, textAlign: 'center' }}>
+                  Max {TEAM_PLANNER_MAX_PER_CLUB} per club overschreden bij {teamNameFor(inPlayer.teamCode)} na deze transfer.
+                </p>
+              )}
+              {!isPositionMismatch && !isOverBudgetAfter && !isClubOverCapAfter && (
+                <p style={{ color: '#8F79AD', fontSize: '12px', margin: 0, textAlign: 'center' }}>
+                  Nieuw budget na transfer: {newTotal.toFixed(1)}M / {TEAM_PLANNER_BUDGET}M
+                </p>
+              )}
+
+              <button
+                onClick={handleConfirm}
+                style={{
+                  background: '#4ECDC4', color: '#0B2E1B', border: 'none', borderRadius: '8px',
+                  padding: '9px 14px', fontWeight: 700, fontSize: '13px', cursor: 'pointer'
+                }}
+              >
+                Bevestig transfer
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function TeamPlannerTab({
   ratings, homeAdvantage, openSections, toggleSection,
   teamPlannerPlayers, updateTeamPlannerPlayer, toggleTeamPlannerBench,
@@ -118,6 +306,7 @@ export default function TeamPlannerTab({
   teamPlannerGw, handleTeamPlannerGwPrev, handleTeamPlannerGwNext,
   teamPlannerTotalPrice, teamPlannerClubCounts, teamPlannerFormationCounts,
   playerDatabase, playerDatabaseLoading, playerDatabaseError, fetchPlayerDatabase,
+  teamPlannerResolvedPlayers, teamPlannerTransferHistory, planTeamPlannerTransfer, removeTeamPlannerTransfer,
 }) {
   const remainingBudget = TEAM_PLANNER_BUDGET - teamPlannerTotalPrice;
   const isOverBudget = teamPlannerTotalPrice > TEAM_PLANNER_BUDGET;
@@ -126,10 +315,14 @@ export default function TeamPlannerTab({
   // de daadwerkelijke telling zelf gebeurt al in FDRTool.jsx (teamPlannerClubCounts).
   const overCapClubs = Object.entries(teamPlannerClubCounts).filter(([, count]) => count > TEAM_PLANNER_MAX_PER_CLUB);
 
-  // Elke speler krijgt zijn oorspronkelijke slot-index mee, want na filteren (per positie/bank
-  // hieronder) is de array-index niet meer bruikbaar om updateTeamPlannerPlayer/toggleTeamPlannerBench/
-  // setTeamPlannerCaptain op het juiste slot te laten aangrijpen.
-  const indexedPlayers = teamPlannerPlayers.map((player, index) => ({ ...player, index }));
+  // Voor de veld-weergave/bank/kapitein/transfer-UI gebruiken we teamPlannerResolvedPlayers (het team
+  // ZOALS HET ERUIT ZIET op de bekeken GW, inclusief alle transfers t/m die GW) i.p.v. de statische
+  // teamPlannerPlayers — die laatste blijft enkel gebruikt voor de spelerslijst/budget-tabel hierboven
+  // (de oorspronkelijke GW1-basisploeg, ongewijzigd door transfers). Elke speler krijgt zijn slot-index
+  // mee, want na filteren (per positie/bank) is de array-index niet meer bruikbaar om
+  // toggleTeamPlannerBench/setTeamPlannerCaptain/planTeamPlannerTransfer op het juiste slot te laten
+  // aangrijpen.
+  const resolvedIndexedPlayers = teamPlannerResolvedPlayers.map((player, index) => ({ ...player, index }));
 
   // Bank en kapitein zijn per GW ingesteld (zie FDRTool.jsx) — hier enkel een triviale lookup voor
   // de op dit moment bekeken GW, geen reduce over het volledige spelers-array.
@@ -138,11 +331,11 @@ export default function TeamPlannerTab({
   const benchCount = benchForGw.length;
   const isBenchComplete = benchCount === TEAM_PLANNER_BENCH_SIZE;
   const benchFull = benchCount >= TEAM_PLANNER_BENCH_SIZE;
-  const benchPlayers = indexedPlayers.filter(p => benchForGw.includes(p.index));
+  const benchPlayers = resolvedIndexedPlayers.filter(p => benchForGw.includes(p.index));
 
   // Kandidaten voor de kapitein-dropdown: enkel basisspelers (niet gebankt) die al iets ingevuld
   // hebben — een volledig leeg slot heeft niets om kapitein van te maken.
-  const captainOptions = indexedPlayers.filter(p => !benchForGw.includes(p.index) && (p.name || p.teamCode));
+  const captainOptions = resolvedIndexedPlayers.filter(p => !benchForGw.includes(p.index) && (p.name || p.teamCode));
 
   // Formatie-validatie: enkel zinvol zodra de bank exact 4 spelers telt (dan staat de basisploeg
   // vast op 11) — zie VALID_FORMATIONS in constants.js voor de toegestane DEF-MID-FWD-combinaties.
@@ -150,10 +343,20 @@ export default function TeamPlannerTab({
   const matchesValidFormation = VALID_FORMATIONS.some(([d, m, f]) => d === defCount && m === midCount && f === fwdCount);
   const isValidFormation = isBenchComplete && gkCount === 1 && matchesValidFormation;
 
+  // Transfer-tijdlijn gegroepeerd per GW voor de "Transfers"-sectie hieronder. teamPlannerTransferHistory
+  // (FDRTool.jsx) staat al gesorteerd op GW, dus aangrenzende entries met dezelfde GW simpelweg samen
+  // in één groep zetten volstaat — geen Map/object nodig.
+  const transferGroups = [];
+  teamPlannerTransferHistory.forEach(entry => {
+    const lastGroup = transferGroups[transferGroups.length - 1];
+    if (lastGroup && lastGroup.gw === entry.gw) lastGroup.entries.push(entry);
+    else transferGroups.push({ gw: entry.gw, entries: [entry] });
+  });
+
   return (
     <>
       <p style={{ color: '#8F79AD', fontSize: '13px', marginBottom: '16px' }}>
-        Stel je 15-koppige selectie samen en bekijk per gameweek de fixture, bank en kapitein. Deze planner slaat automatisch op in je browser.
+        Stel je 15-koppige selectie samen, plan transfers per gameweek, en bekijk je team, bank en kapitein op elk moment in het seizoen. Deze planner slaat automatisch op in je browser.
       </p>
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '24px' }}>
         <section>
@@ -191,7 +394,8 @@ export default function TeamPlannerTab({
                     (teamPlannerTotalPrice/ClubCounts) telkens teamPlannerPlayers wijzigt, dus dit blok
                     volgt vanzelf elke invoer hieronder zonder eigen state. Positie-aantallen staan hier
                     bewust niet meer bij: die liggen vast per slot (TEAM_PLANNER_SLOT_POSITIONS) en zijn
-                    dus altijd exact 2 GK/5 DEF/5 MID/3 FWD. */}
+                    dus altijd exact 2 GK/5 DEF/5 MID/3 FWD. Dit blok toont bewust de GW1-basisploeg, niet
+                    het team-op-de-bekeken-GW — transfers wijzigen dus dit budget-overzicht niet. */}
                 <div style={{
                   display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center',
                   background: 'rgba(255,255,255,0.04)',
@@ -205,7 +409,7 @@ export default function TeamPlannerTab({
                   {overCapClubs.length > 0 && (
                     <div style={{ color: '#C2402C', fontSize: '12px' }}>
                       Max {TEAM_PLANNER_MAX_PER_CLUB} per club overschreden bij:{' '}
-                      {overCapClubs.map(([code, count]) => `${TEAMS.find(t => t.code === code)?.name ?? code} (${count})`).join(', ')}
+                      {overCapClubs.map(([code, count]) => `${teamNameFor(code)} (${count})`).join(', ')}
                     </div>
                   )}
                 </div>
@@ -228,7 +432,8 @@ export default function TeamPlannerTab({
                             {/* filterPosition beperkt de suggesties tot de vaste positie van dit slot
                                 (player.position, zie TEAM_PLANNER_SLOT_POSITIONS) — zo blijft de
                                 2 GK/5 DEF/5 MID/3 FWD-structuur altijd kloppen: wat je ook kiest, het
-                                is altijd een speler met de juiste positie voor dit slot. */}
+                                is altijd een speler met de juiste positie voor dit slot. Dit vult de
+                                GW1-basisploeg in; transfers (hieronder bij "Veld") wijzigen dit niet. */}
                             <PlayerSearchInput
                               value={player.name}
                               players={playerDatabase}
@@ -246,7 +451,7 @@ export default function TeamPlannerTab({
                             {player.position}
                           </td>
                           <td style={{ padding: '4px 6px', width: '80px', color: '#FFF', fontSize: '13px', fontWeight: 700 }}>
-                            {player.price !== '' && player.price != null ? `${Number(player.price).toFixed(1)}M` : '—'}
+                            {formatPrice(player.price)}
                           </td>
                         </tr>
                       ))}
@@ -295,6 +500,17 @@ export default function TeamPlannerTab({
             </button>
           </div>
 
+          {/* Transfer plannen voor de bekeken GW — zie TransferPanel hierboven. Geconfirmeerde transfers
+              gelden meteen vanaf deze GW en alle latere GW's, tot een nieuwe transfer op datzelfde slot. */}
+          <TransferPanel
+            gw={teamPlannerGw}
+            resolvedIndexedPlayers={resolvedIndexedPlayers}
+            playerDatabase={playerDatabase}
+            playerDatabaseLoading={playerDatabaseLoading}
+            playerDatabaseError={playerDatabaseError}
+            onConfirm={planTeamPlannerTransfer}
+          />
+
           {/* Bank-, formatie- en kapiteinsstatus voor de bekeken GW — klik op een speler op het veld/
               de bank hieronder om de bank aan te passen; de kapitein wordt expliciet gekozen via de
               dropdown (i.p.v. een knop per kaart, wat 11 grotendeels inactieve "C"-badges zou geven). */}
@@ -341,7 +557,7 @@ export default function TeamPlannerTab({
             border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '16px'
           }}>
             {PITCH_ROW_ORDER.map(pos => {
-              const rowPlayers = indexedPlayers.filter(p => p.position === pos && !benchForGw.includes(p.index));
+              const rowPlayers = resolvedIndexedPlayers.filter(p => p.position === pos && !benchForGw.includes(p.index));
               return (
                 <div key={pos} style={{ display: 'flex', justifyContent: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '16px' }}>
                   {rowPlayers.length === 0 ? (
@@ -388,6 +604,69 @@ export default function TeamPlannerTab({
                   />
                 ))}
               </div>
+            )}
+          </div>
+        </section>
+
+        <section>
+          <div style={{
+            background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: '10px', padding: '16px'
+          }}>
+            <SectionHeader icon={ArrowLeftRight} title="Transfers" sectionKey="teamPlannerTransfers" isOpen={openSections.teamPlannerTransfers} onToggle={toggleSection} />
+            {openSections.teamPlannerTransfers && (
+              transferGroups.length === 0 ? (
+                <p style={{ color: '#6B5289', fontSize: '13px' }}>
+                  Nog geen transfers gepland. Gebruik "Transfer plannen" bij het veld hierboven om spelers vanaf een gekozen GW te vervangen.
+                </p>
+              ) : (
+                <div style={{ display: 'grid', gap: '16px' }}>
+                  {transferGroups.map(group => (
+                    <div key={group.gw}>
+                      <h3 className="fdr-title" style={{ color: '#C9B8E0', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.03em', margin: '0 0 8px' }}>
+                        GW{group.gw}
+                      </h3>
+                      <div style={{ display: 'grid', gap: '6px' }}>
+                        {group.entries.map(entry => (
+                          <div key={entry.id} style={{
+                            display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
+                            background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+                            borderRadius: '8px', padding: '8px 10px'
+                          }}>
+                            <img
+                              src={`/club-logos/${entry.outPlayer.teamCode}.png`}
+                              alt=""
+                              className="club-logo"
+                              style={{ width: '18px', height: '18px', objectFit: 'contain', flexShrink: 0 }}
+                              onError={(e) => { e.target.style.display = 'none'; }}
+                            />
+                            <span style={{ color: '#FFF', fontSize: '13px' }}>{entry.outPlayer.name || '—'}</span>
+                            <ArrowRight size={14} color="#4ECDC4" style={{ flexShrink: 0 }} />
+                            <img
+                              src={`/club-logos/${entry.inPlayer.teamCode}.png`}
+                              alt=""
+                              className="club-logo"
+                              style={{ width: '18px', height: '18px', objectFit: 'contain', flexShrink: 0 }}
+                              onError={(e) => { e.target.style.display = 'none'; }}
+                            />
+                            <span style={{ color: '#FFF', fontSize: '13px', fontWeight: 700, flex: 1, minWidth: 0 }}>{entry.inPlayer.name}</span>
+                            <button
+                              onClick={() => removeTeamPlannerTransfer(entry.slotIndex, entry.id)}
+                              aria-label={`Verwijder transfer ${entry.outPlayer.name} naar ${entry.inPlayer.name}`}
+                              style={{
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', flexShrink: 0,
+                                background: 'transparent', color: '#8F79AD', border: 'none', borderRadius: '6px', cursor: 'pointer'
+                              }}
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
             )}
           </div>
         </section>
