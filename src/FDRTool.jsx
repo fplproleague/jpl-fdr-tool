@@ -932,50 +932,63 @@ export default function FDRTool() {
              gap, en minder padding op de rij/container dan op desktop. 5 kaarten (de breedste rij, DEF of
              MID) × ~48px + 4 gaps van 3px moet passen binnen de resterende breedte na de paginarand
              (20px) en de vak-padding (6px), ook op de allersmalste ondersteunde telefoons (320px, bv.
-             iPhone SE) — getest tot en met die breedte, niet enkel de gangbare 360-390px. */
+             iPhone SE) — getest tot en met die breedte, niet enkel de gangbare 360-390px.
+             48px blijft de minimumbreedte (dat is wat de 5-kaartenrij nodig heeft om nooit te scrollen),
+             maar de rijhoogte is niet beperkt: enkel horizontaal scrollen was het probleem, dus logo,
+             naam en badges mogen ruimer/leesbaarder — en via flex-grow (met een max-width-cap) worden
+             de kaarten in rijen met minder dan 5 spelers (GK, FWD) automatisch breder en dus nog beter
+             leesbaar, voor zowel korte als lange spelersnamen. */
           .fdr-pitch-container {
             padding: 6px !important;
           }
           .fdr-pitch-row {
             gap: 3px !important;
             padding: 0 !important;
-            margin-bottom: 6px !important;
+            margin-bottom: 8px !important;
           }
           .fdr-pitch-card {
             min-width: 48px !important;
-            padding: 3px 1px !important;
-            gap: 2px !important;
+            max-width: 88px !important;
+            flex: 1 1 48px !important;
+            padding: 4px 2px !important;
+            gap: 3px !important;
           }
           .fdr-pitch-card .fdr-pitch-card-logo {
-            width: 14px !important;
-            height: 14px !important;
+            width: 20px !important;
+            height: 20px !important;
           }
           .fdr-pitch-card .fdr-pitch-card-name {
-            font-size: 7px !important;
-            line-height: 1.1 !important;
+            font-size: 9px !important;
+            line-height: 1.15 !important;
+            /* Sommige achternamen bevatten een lang, aan-elkaar-geschreven woord zonder spatie (bv.
+               "Vanwesemael") dat breder kan zijn dan de kaart — forceer daarom dat woorden zo nodig
+               midden-in kunnen breken, zodat de kaart nooit breder wordt dan zijn eigen rij toelaat. */
+            overflow-wrap: anywhere !important;
+            word-break: break-word !important;
           }
           .fdr-pitch-card-captain {
-            width: 13px !important;
-            height: 13px !important;
-            font-size: 7px !important;
-            top: -4px !important;
-            right: -4px !important;
+            width: 16px !important;
+            height: 16px !important;
+            font-size: 8px !important;
+            top: -5px !important;
+            right: -5px !important;
           }
           /* Nog kleiner dan de algemene .fdr-mini-fixture-row-mobielstijl hierboven — deze badge zit in
-             een kaartje van maar ~48px breed, smaller dan waarvoor die algemene stijl bedoeld is. */
+             een kaartje dat op zijn smalst maar ~48px breed is, smaller dan waarvoor die algemene stijl
+             bedoeld is; toch iets groter dan voorheen voor betere leesbaarheid. */
           .fdr-pitch-card-fixture {
             min-height: 0 !important;
           }
           .fdr-pitch-card-fixture > span {
-            font-size: 7px !important;
-            padding: 1px 3px !important;
+            font-size: 8px !important;
+            padding: 1px 4px !important;
           }
           .fdr-pitch-card-fixture > .fdr-postponed-mini {
-            min-width: 20px !important;
+            min-width: 22px !important;
           }
           .fdr-pitch-card-fixture > .fdr-dgw-badge > span {
-            font-size: 7px !important;
-            padding: 1px 3px !important;
+            font-size: 8px !important;
+            padding: 1px 4px !important;
           }
         }
 
