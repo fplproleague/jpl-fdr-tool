@@ -5,7 +5,8 @@
 // initiële 15-koppige teaminvoer in TeamPlannerTab.jsx, en straks ook door de transfer-functie —
 // vandaar hier in components/ i.p.v. lokaal in een tab-bestand.
 
-import { useState, useRef, useEffect, memo } from 'react';
+import { useState, useRef, useEffect, useCallback, memo } from 'react';
+import { createPortal } from 'react-dom';
 import { Search } from 'lucide-react';
 
 const dropdownItemStyle = {
@@ -36,7 +37,9 @@ export const PlayerSearchInput = memo(function PlayerSearchInput({
   // typen wegnavigeert is het prima dat dat resetten, net als een gewoon zoekveld in de browser.
   const [query, setQuery] = useState(value ?? '');
   const [isOpen, setIsOpen] = useState(false);
+  const [coords, setCoords] = useState(null);
   const containerRef = useRef(null);
+  const dropdownRef = useRef(null);
 
   // Synct het zoekveld met de van buitenaf geselecteerde speler (bv. na een reset of bij het laden
   // vanuit localStorage) — niet tijdens het typen zelf, anders zou elke toetsaanslag de tekst overschrijven.
@@ -44,18 +47,42 @@ export const PlayerSearchInput = memo(function PlayerSearchInput({
     setQuery(value ?? '');
   }, [value]);
 
-  // Sluit de dropdown bij een klik/tik buiten de component, zelfde patroon (pointerdown op document)
-  // als useTooltipTrigger in components/Tooltip.jsx.
+  // Positie van de dropdown in viewport-coördinaten, herberekend bij het openen en bij elke scroll/
+  // resize. De 15-spelerstabel staat in een horizontaal scrollbare container (overflow-x: auto) — en
+  // door een CSS-eigenaardigheid maakt dat overflow-y impliciet ook 'auto', waardoor een gewone
+  // position:absolute-dropdown afgesneden werd bij spelers onderaan de tabel (met name speler 15).
+  // Door de dropdown via een portal naar document.body te renderen, in viewport-coördinaten
+  // gepositioneerd, ontsnapt hij aan die begrensde/scrollbare container volledig — zelfde aanpak als
+  // de fixture-tooltips in components/Tooltip.jsx.
+  const updatePosition = useCallback(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    setCoords({ left: rect.left, top: rect.bottom + 4, width: rect.width });
+  }, []);
+
   useEffect(() => {
     if (!isOpen) return;
+    updatePosition();
+    const handleReposition = () => updatePosition();
     const handlePointerDown = (e) => {
-      if (!containerRef.current?.contains(e.target)) setIsOpen(false);
+      if (containerRef.current?.contains(e.target) || dropdownRef.current?.contains(e.target)) return;
+      setIsOpen(false);
     };
+    // capture: true zodat ook scrollen binnen de horizontaal scrollbare tabelcontainer (niet enkel
+    // het window zelf) de dropdown mee herpositioneert i.p.v. hem los te laten drijven.
+    window.addEventListener('scroll', handleReposition, true);
+    window.addEventListener('resize', handleReposition);
     document.addEventListener('pointerdown', handlePointerDown);
-    return () => document.removeEventListener('pointerdown', handlePointerDown);
-  }, [isOpen]);
+    return () => {
+      window.removeEventListener('scroll', handleReposition, true);
+      window.removeEventListener('resize', handleReposition);
+      document.removeEventListener('pointerdown', handlePointerDown);
+    };
+  }, [isOpen, updatePosition]);
 
   const matches = findMatches(players, query, filterPosition);
+  const showNoMatches = query.trim() && matches.length === 0;
 
   const handleSelect = (player) => {
     setQuery(player.name);
@@ -65,29 +92,30 @@ export const PlayerSearchInput = memo(function PlayerSearchInput({
 
   return (
     <div ref={containerRef} style={{ position: 'relative' }}>
-      <div style={{ position: 'relative' }}>
-        <Search size={13} color="#8F79AD" style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-        <input
-          type="text"
-          value={query}
-          disabled={disabled}
-          onChange={e => { setQuery(e.target.value); setIsOpen(true); }}
-          onFocus={() => setIsOpen(true)}
-          placeholder={placeholder}
+      <Search size={13} color="#8F79AD" style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+      <input
+        type="text"
+        value={query}
+        disabled={disabled}
+        onChange={e => { setQuery(e.target.value); setIsOpen(true); }}
+        onFocus={() => setIsOpen(true)}
+        placeholder={placeholder}
+        style={{
+          background: '#3D1E5C', color: '#FFF', border: '1px solid rgba(255,255,255,0.15)',
+          borderRadius: '6px', padding: '6px 8px 6px 26px', fontSize: '13px', width: '100%',
+          boxSizing: 'border-box', opacity: disabled ? 0.6 : 1,
+        }}
+      />
+      {isOpen && coords && (matches.length > 0 || showNoMatches) && createPortal(
+        <div
+          ref={dropdownRef}
           style={{
-            background: '#3D1E5C', color: '#FFF', border: '1px solid rgba(255,255,255,0.15)',
-            borderRadius: '6px', padding: '6px 8px 6px 26px', fontSize: '13px', width: '100%',
-            boxSizing: 'border-box', opacity: disabled ? 0.6 : 1,
+            position: 'fixed', zIndex: 50, top: coords.top, left: coords.left, width: coords.width,
+            background: '#3D1E5C', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px',
+            boxShadow: '0 8px 20px rgba(0,0,0,0.35)', maxHeight: '220px', overflowY: 'auto',
           }}
-        />
-      </div>
-      {isOpen && matches.length > 0 && (
-        <div style={{
-          position: 'absolute', zIndex: 5, top: 'calc(100% + 4px)', left: 0, right: 0,
-          background: '#3D1E5C', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px',
-          boxShadow: '0 8px 20px rgba(0,0,0,0.35)', maxHeight: '220px', overflowY: 'auto',
-        }}>
-          {matches.map((p, i) => (
+        >
+          {matches.length > 0 ? matches.map((p, i) => (
             <button
               key={`${p.teamCode}-${p.name}-${i}`}
               type="button"
@@ -110,17 +138,13 @@ export const PlayerSearchInput = memo(function PlayerSearchInput({
                 {p.price != null ? `${p.price.toFixed(1)}M` : '—'}
               </span>
             </button>
-          ))}
-        </div>
-      )}
-      {isOpen && query.trim() && matches.length === 0 && (
-        <div style={{
-          position: 'absolute', zIndex: 5, top: 'calc(100% + 4px)', left: 0, right: 0,
-          background: '#3D1E5C', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px',
-          padding: '10px', color: '#8F79AD', fontSize: '12px',
-        }}>
-          Geen spelers gevonden.
-        </div>
+          )) : (
+            <div style={{ padding: '10px', color: '#8F79AD', fontSize: '12px' }}>
+              Geen spelers gevonden.
+            </div>
+          )}
+        </div>,
+        document.body
       )}
     </div>
   );
