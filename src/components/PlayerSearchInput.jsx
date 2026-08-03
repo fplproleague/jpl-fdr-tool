@@ -74,10 +74,19 @@ export const PlayerSearchInput = memo(function PlayerSearchInput({
     window.addEventListener('scroll', handleReposition, true);
     window.addEventListener('resize', handleReposition);
     document.addEventListener('pointerdown', handlePointerDown);
+    // Dit component is gememoized (React.memo hieronder), dus het herrendert NIET vanzelf wanneer een
+    // andere rij in dezelfde tabel iets laat verschijnen/verdwijnen (bv. de budget-waarschuwing in
+    // TeamPlannerTab.jsx) waardoor dit veld verticaal verschuift — zo'n verschuiving triggert geen
+    // scroll/resize-event, dus zonder deze observer zou de dropdown op zijn oude (verkeerde) positie
+    // blijven hangen. Een ResizeObserver op document.body vangt elke layout-verschuiving op de pagina
+    // op, ongeacht de oorzaak, en herberekent de positie dan mee.
+    const resizeObserver = new ResizeObserver(handleReposition);
+    resizeObserver.observe(document.body);
     return () => {
       window.removeEventListener('scroll', handleReposition, true);
       window.removeEventListener('resize', handleReposition);
       document.removeEventListener('pointerdown', handlePointerDown);
+      resizeObserver.disconnect();
     };
   }, [isOpen, updatePosition]);
 

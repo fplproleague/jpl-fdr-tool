@@ -10,7 +10,7 @@
 import { useState } from 'react';
 import {
   Users, Shirt, ChevronLeft, ChevronRight, Loader2, AlertCircle, RotateCcw,
-  ArrowLeftRight, ArrowRight, X, Wand2, Zap, Star, RefreshCw,
+  ArrowLeftRight, ArrowRight, X, Wand2, Armchair, Zap, Star, RefreshCw,
 } from 'lucide-react';
 import {
   TEAMS, FIXTURES, GW_COUNT, GW_DEADLINES,
@@ -58,12 +58,14 @@ function formationBadgeStyle(isBenchComplete, isValidFormation) {
   return isValidFormation ? { background: '#4ECDC4', color: '#0B2E1B' } : { background: '#C2402C', color: '#FBEAE7' };
 }
 
-// Kleine, subtiele ronde icoon-knop voor de booster-stapel rechtsboven het veld (zie de "Veld"-sectie
-// hieronder) — géén zichtbaar tekstlabel, enkel het icoon + een title-attribuut voor een browser-
-// tooltip bij hover, zelfde eenvoudige patroon als de GW-navigatiepijltjes hierboven. `state` is
-// 'active' (booster loopt voor de bekeken GW — klikbaar om te annuleren), 'used-elsewhere' (al
-// verbruikt op een andere GW — disabled) of 'available' (nog vrij te gebruiken).
-function BoosterIconButton({ icon: Icon, title, state, onClick }) {
+// Kleine, subtiele ronde icoon-knop voor de booster-stapel rechtsboven in het veld-kaartje (zie
+// .fdr-pitch-container hieronder) — géén zichtbaar tekstlabel naast de knop, enkel het icoon/label
+// erin + een title-attribuut voor een browser-tooltip bij hover, zelfde eenvoudige patroon als de
+// GW-navigatiepijltjes hierboven. `state` is 'active' (booster loopt voor de bekeken GW — klikbaar
+// om te annuleren), 'used-elsewhere' (al verbruikt op een andere GW — disabled) of 'available' (nog
+// vrij te gebruiken). Ofwel `icon` (een lucide-component) ofwel `label` (korte tekst, bv. "3×" voor
+// Driedubbele kapitein — zelfde glyph als de kapitein-badge op de kaart zelf) meegeven, niet beide.
+function BoosterIconButton({ icon: Icon, label, title, state, onClick }) {
   const isActive = state === 'active';
   const isUsedElsewhere = state === 'used-elsewhere';
   return (
@@ -72,16 +74,17 @@ function BoosterIconButton({ icon: Icon, title, state, onClick }) {
       disabled={isUsedElsewhere}
       title={isUsedElsewhere ? `${title} — al gebruikt` : title}
       style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', width: '26px', height: '26px',
         borderRadius: '50%', flexShrink: 0,
-        background: isActive ? 'rgba(78,205,196,0.2)' : 'transparent',
+        background: isActive ? 'rgba(78,205,196,0.25)' : 'rgba(42,20,64,0.55)',
         color: isActive ? '#4ECDC4' : isUsedElsewhere ? '#5A4A72' : '#C9B8E0',
-        border: `1px solid ${isActive ? '#4ECDC4' : 'rgba(255,255,255,0.2)'}`,
+        border: `1px solid ${isActive ? '#4ECDC4' : 'rgba(255,255,255,0.25)'}`,
         opacity: isUsedElsewhere ? 0.5 : 1,
         cursor: isUsedElsewhere ? 'not-allowed' : 'pointer',
+        fontSize: '10px', fontWeight: 900, lineHeight: 1,
       }}
     >
-      <Icon size={14} />
+      {Icon ? <Icon size={13} /> : label}
     </button>
   );
 }
@@ -368,18 +371,39 @@ export default function TeamPlannerTab({
   handleOptimizeTeamPlannerLineup, teamPlannerOptimized,
   teamPlannerBoosters, toggleTeamPlannerBooster,
 }) {
-  const remainingBudget = TEAM_PLANNER_BUDGET - teamPlannerTotalPrice;
-  const isOverBudget = teamPlannerTotalPrice > TEAM_PLANNER_BUDGET;
-
   // Recharge-bewerking (booster, zie FDRTool.jsx): tijdelijke, niet-bevestigde bewerking van de 15
   // spelers zoals ze op de bekeken GW spelen — vergelijkbaar met TransferPanel's OUT/IN-draft
   // hierboven (bestandscommentaar bovenaan), dus bewust lokale state i.p.v. domein-state in
   // FDRTool.jsx. null = niet aan het bewerken; anders array van 15 { name, teamCode, price }.
   const [rechargeDraft, setRechargeDraft] = useState(null);
 
-  // Clubs met te veel spelers — enkel gebruikt om de waarschuwingstekst hieronder op te bouwen,
-  // de daadwerkelijke telling zelf gebeurt al in FDRTool.jsx (teamPlannerClubCounts).
-  const overCapClubs = Object.entries(teamPlannerClubCounts).filter(([, count]) => count > TEAM_PLANNER_MAX_PER_CLUB);
+  // Budget-/club-validatie: normaal gebaseerd op de statische GW1-basisploeg (teamPlannerTotalPrice/
+  // ClubCounts, hierboven al herberekend in FDRTool.jsx). Tijdens een actieve Recharge-bewerking moet
+  // dit ONMOGELIJK overschreden kunnen worden (in tegenstelling tot elders in de app, waar dit enkel
+  // een waarschuwing is) — dus reken dan met de draft zelf i.p.v. de basisploeg. rechargeDraft is
+  // geseed vanuit teamPlannerResolvedPlayers (handleStartRecharge hieronder), dus deze berekening
+  // houdt vanzelf al rekening met eerder geplande transfers die de prijs beïnvloeden. Buiten Recharge
+  // (rechargeDraft === null) is effectiveRosterList gewoon teamPlannerPlayers, dus dit gedraagt zich
+  // dan identiek aan voorheen.
+  const effectiveRosterList = rechargeDraft ?? teamPlannerPlayers;
+  const effectiveTotalPrice = rechargeDraft
+    ? rechargeDraft.reduce((sum, p) => {
+        const price = parseFloat(p.price);
+        return Number.isFinite(price) ? sum + price : sum;
+      }, 0)
+    : teamPlannerTotalPrice;
+  const effectiveClubCounts = rechargeDraft
+    ? effectiveRosterList.reduce((counts, p) => {
+        if (p.teamCode) counts[p.teamCode] = (counts[p.teamCode] ?? 0) + 1;
+        return counts;
+      }, {})
+    : teamPlannerClubCounts;
+  const remainingBudget = TEAM_PLANNER_BUDGET - effectiveTotalPrice;
+  const isOverBudget = effectiveTotalPrice > TEAM_PLANNER_BUDGET;
+  // Clubs met te veel spelers — enkel gebruikt om de waarschuwingstekst hieronder op te bouwen.
+  const overCapClubs = Object.entries(effectiveClubCounts).filter(([, count]) => count > TEAM_PLANNER_MAX_PER_CLUB);
+  // Blokkeert "Bevestig recharge" hieronder zolang de bewerking het budget of de clublimiet overschrijdt.
+  const isRechargeInvalid = rechargeDraft !== null && (isOverBudget || overCapClubs.length > 0);
 
   // Voor de veld-weergave/bank/kapitein/transfer-UI gebruiken we teamPlannerResolvedPlayers (het team
   // ZOALS HET ERUIT ZIET op de bekeken GW, inclusief alle transfers t/m die GW) i.p.v. de statische
@@ -413,7 +437,10 @@ export default function TeamPlannerTab({
   // toggleTeamPlannerBooster in FDRTool.jsx voor de vergrendel-/vervang-logica).
   const isBenchBoostActive = teamPlannerBoosters.benchBoost === teamPlannerGw;
   const isTripleCaptainActive = teamPlannerBoosters.tripleCaptain === teamPlannerGw;
-  const isRechargeActiveForGw = teamPlannerBoosters.recharge === teamPlannerGw;
+  // GW8 (de laatste GW) krijgt automatisch een gratis Recharge voor iedereen — telt niet als
+  // "verbruikt" (teamPlannerBoosters.recharge blijft ongemoeid) en is niet uit te zetten, vandaar de
+  // los van teamPlannerBoosters staande OR hier.
+  const isRechargeActiveForGw = teamPlannerBoosters.recharge === teamPlannerGw || teamPlannerGw === GW_COUNT;
 
   // 'active' (loopt voor de bekeken GW), 'used-elsewhere' (al verbruikt op een andere GW, vergrendeld)
   // of 'available' (nog vrij) — zie BoosterIconButton en toggleTeamPlannerBooster (FDRTool.jsx).
@@ -435,7 +462,7 @@ export default function TeamPlannerTab({
   };
 
   const handleConfirmRecharge = () => {
-    if (!rechargeDraft) return;
+    if (!rechargeDraft || isRechargeInvalid) return;
     rechargeDraft.forEach((draftPlayer, index) => {
       const current = teamPlannerResolvedPlayers[index];
       const changed = draftPlayer.name !== current.name || draftPlayer.teamCode !== current.teamCode;
@@ -495,10 +522,21 @@ export default function TeamPlannerTab({
                       </button>
                     ) : (
                       <>
-                        <button onClick={handleConfirmRecharge} style={{
-                          background: '#4ECDC4', color: '#0B2E1B', border: 'none',
-                          borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px', cursor: 'pointer',
-                        }}>
+                        {/* Onmogelijk te bevestigen zolang de bewerking het budget of de clublimiet
+                            overschrijdt (isRechargeInvalid) — het validatie-overzicht hierboven toont
+                            ondertussen al de reden (rood budget/clubtekst), dus enkel disabled + title
+                            hier, geen dubbele foutmelding. */}
+                        <button
+                          onClick={handleConfirmRecharge}
+                          disabled={isRechargeInvalid}
+                          title={isRechargeInvalid ? 'Los eerst het budget of de clublimiet hierboven op' : undefined}
+                          style={{
+                            background: isRechargeInvalid ? 'rgba(255,255,255,0.08)' : '#4ECDC4',
+                            color: isRechargeInvalid ? '#6B5289' : '#0B2E1B', border: 'none',
+                            borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px',
+                            cursor: isRechargeInvalid ? 'not-allowed' : 'pointer',
+                          }}
+                        >
                           Bevestig recharge
                         </button>
                         <button onClick={() => setRechargeDraft(null)} style={{
@@ -535,12 +573,14 @@ export default function TeamPlannerTab({
                   </div>
                 )}
 
-                {/* Validatie-overzicht: budget en club-limiet — live herberekend in FDRTool.jsx
-                    (teamPlannerTotalPrice/ClubCounts) telkens teamPlannerPlayers wijzigt, dus dit blok
-                    volgt vanzelf elke invoer hieronder zonder eigen state. Positie-aantallen staan hier
-                    bewust niet meer bij: die liggen vast per slot (TEAM_PLANNER_SLOT_POSITIONS) en zijn
-                    dus altijd exact 2 GK/5 DEF/5 MID/3 FWD. Dit blok toont bewust de GW1-basisploeg, niet
-                    het team-op-de-bekeken-GW — transfers wijzigen dus dit budget-overzicht niet. */}
+                {/* Validatie-overzicht: budget en club-limiet. Buiten een Recharge-bewerking toont dit
+                    de statische GW1-basisploeg (teamPlannerTotalPrice/ClubCounts, live herberekend in
+                    FDRTool.jsx telkens teamPlannerPlayers wijzigt) — transfers wijzigen dit dan niet.
+                    Zodra rechargeDraft actief is, toont/valideert dit blok in plaats daarvan de
+                    bewerking zelf (effectiveTotalPrice/ClubCounts hierboven), zodat overschrijden
+                    onmogelijk wordt gemaakt (zie isRechargeInvalid, dat "Bevestig recharge" blokkeert).
+                    Positie-aantallen staan hier bewust niet bij: die liggen vast per slot
+                    (TEAM_PLANNER_SLOT_POSITIONS) en zijn dus altijd exact 2 GK/5 DEF/5 MID/3 FWD. */}
                 <div style={{
                   display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center',
                   background: 'rgba(255,255,255,0.04)',
@@ -548,7 +588,7 @@ export default function TeamPlannerTab({
                   borderRadius: '10px', padding: '12px 14px', marginBottom: '16px'
                 }}>
                   <div style={{ color: isOverBudget ? '#C2402C' : '#FFF', fontWeight: 700, fontSize: '15px' }}>
-                    {teamPlannerTotalPrice.toFixed(1)}M / {TEAM_PLANNER_BUDGET}M
+                    {effectiveTotalPrice.toFixed(1)}M / {TEAM_PLANNER_BUDGET}M
                     {isOverBudget && ` — ${Math.abs(remainingBudget).toFixed(1)}M te veel`}
                   </div>
                   {overCapClubs.length > 0 && (
@@ -619,24 +659,9 @@ export default function TeamPlannerTab({
         </section>
 
         <section>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px', marginBottom: '12px' }}>
-            <h2 className="fdr-title fdr-section-title" style={{ ...sectionTitleStyle, margin: 0 }}>
-              <Shirt size={18} color="#4ECDC4" /> Veld
-            </h2>
-            {/* Booster-stapel (zie FDRTool.jsx): subtiele iconen rechtsboven het veld, niet overlappend
-                met de pitch-kaarten zelf (die staan op mobiel al krap). Enkel binnen GW1-7 — GW8 heeft
-                geen boosters. De Recharge-toggle reset ook defensief rechargeDraft, voor het geval de
-                gebruiker halverwege een bewerking de booster hier uitzet i.p.v. via "Annuleer" hieronder. */}
-            {teamPlannerGw <= 7 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end', flexShrink: 0 }}>
-                <BoosterIconButton icon={Zap} title="Bankzitters" state={boosterState('benchBoost')} onClick={() => toggleTeamPlannerBooster('benchBoost', teamPlannerGw)} />
-                <BoosterIconButton icon={Star} title="Driedubbele kapitein" state={boosterState('tripleCaptain')} onClick={() => toggleTeamPlannerBooster('tripleCaptain', teamPlannerGw)} />
-                <BoosterIconButton icon={RefreshCw} title="Recharge" state={boosterState('recharge')} onClick={() => { toggleTeamPlannerBooster('recharge', teamPlannerGw); setRechargeDraft(null); }} />
-              </div>
-            ) : (
-              <p style={{ color: '#6B5289', fontSize: '11px', margin: 0, textAlign: 'right' }}>Geen boosters&nbsp;op GW8</p>
-            )}
-          </div>
+          <h2 className="fdr-title fdr-section-title" style={{ ...sectionTitleStyle, marginBottom: '12px' }}>
+            <Shirt size={18} color="#4ECDC4" /> Veld
+          </h2>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '14px', marginBottom: '4px' }}>
             <button
@@ -730,10 +755,40 @@ export default function TeamPlannerTab({
             </p>
           )}
 
+          {/* Zelfde korte-tekstje-patroon als de Bankzitters-banner bij de bank hieronder — maakt
+              duidelijk dat de booster actief is voor deze GW, zonder dat de gebruiker de kapitein-
+              badge op het veld hoeft op te merken. */}
+          {isTripleCaptainActive && (
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginBottom: '10px',
+              background: 'rgba(232,197,71,0.12)', border: '1px solid rgba(232,197,71,0.4)',
+              borderRadius: '8px', padding: '6px 10px', color: '#E8C547', fontSize: '12px', fontWeight: 700,
+            }}>
+              <Star size={14} /> Driedubbele kapitein actief voor GW{teamPlannerGw} — de kapitein telt 3× mee.
+            </div>
+          )}
+
           <div className="fdr-pitch-container" style={{
+            position: 'relative',
             background: 'linear-gradient(180deg, rgba(78,205,196,0.08), rgba(78,205,196,0.02))',
             border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '16px'
           }}>
+            {/* Booster-stapel: subtiele iconen rechtsboven IN het veld-kaartje zelf (niet erboven) — zie
+                toggleTeamPlannerBooster (FDRTool.jsx) voor de vergrendel-/vervang-logica. Enkel binnen
+                GW1-7 handmatig te activeren; GW8 krijgt automatisch (en gratis — telt niet als
+                "verbruikt") een Recharge voor iedereen, dus daar tonen we enkel dat ene, niet-klikbare,
+                actief-gemarkeerde icoon i.p.v. de volledige 3-stapel (zie isRechargeActiveForGw). */}
+            <div style={{ position: 'absolute', top: '8px', right: '8px', display: 'flex', flexDirection: 'column', gap: '4px', zIndex: 2 }}>
+              {teamPlannerGw <= 7 ? (
+                <>
+                  <BoosterIconButton icon={Armchair} title="Bankzitters" state={boosterState('benchBoost')} onClick={() => toggleTeamPlannerBooster('benchBoost', teamPlannerGw)} />
+                  <BoosterIconButton label="3×" title="Driedubbele kapitein" state={boosterState('tripleCaptain')} onClick={() => toggleTeamPlannerBooster('tripleCaptain', teamPlannerGw)} />
+                  <BoosterIconButton icon={RefreshCw} title="Recharge" state={boosterState('recharge')} onClick={() => { toggleTeamPlannerBooster('recharge', teamPlannerGw); setRechargeDraft(null); }} />
+                </>
+              ) : (
+                <BoosterIconButton icon={RefreshCw} title="Recharge — automatisch voor iedereen op GW8" state="active" onClick={() => {}} />
+              )}
+            </div>
             {PITCH_ROW_ORDER.map(pos => {
               const rowPlayers = resolvedIndexedPlayers.filter(p => p.position === pos && !benchForGw.includes(p.index));
               return (
