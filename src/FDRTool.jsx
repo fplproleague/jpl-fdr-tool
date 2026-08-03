@@ -10,8 +10,8 @@ import html2canvas from 'html2canvas';
 import {
   TEAMS, FIXTURES, GW_COUNT, DEFAULT_GW_HORIZON_END, MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS,
   MINILEAGUE_CODE, LAST_UPDATED, GW_INDEXES, DEFAULT_RATINGS, DEFAULT_HOME_ADVANTAGE,
-  TEAM_PLANNER_SQUAD_SIZE, TEAM_PLANNER_BENCH_SIZE, TEAM_PLANNER_SLOT_POSITIONS, resolveSlotPlayerAtGw,
-  PLAYER_DATABASE_CSV_URL, parsePlayerDatabaseCsv, getFixtureScores, average,
+  TEAM_PLANNER_SQUAD_SIZE, TEAM_PLANNER_BENCH_SIZE, TEAM_PLANNER_SLOT_POSITIONS, VALID_FORMATIONS,
+  resolveSlotPlayerAtGw, PLAYER_DATABASE_CSV_URL, parsePlayerDatabaseCsv, getFixtureScores, average,
 } from './constants';
 import FDRTab from './tabs/FDRTab';
 import WatchlistTab from './tabs/WatchlistTab';
@@ -177,10 +177,21 @@ function sanitizeTransfer(raw) {
   };
 }
 
+// Booster-gebruik: een geheel getal 1-7 (de GW waarop 'm gebruikt is) of null (nog niet gebruikt).
+// Boosters gelden enkel binnen GW1-7 (nooit GW8), zie toggleTeamPlannerBooster hieronder.
+function sanitizeBoosterGw(raw) {
+  const gw = Number(raw);
+  return Number.isFinite(gw) && gw >= 1 && gw <= 7 ? gw : null;
+}
+
 // Leest het volledige, opgeslagen Team Planner-blok (spelers + per-GW bank/kapitein + transfer-
-// tijdlijn) in één keer in, zodat de useState-initializers hieronder er stuk voor stuk uit kunnen putten.
+// tijdlijn + boosters) in één keer in, zodat de useState-initializers hieronder er stuk voor stuk uit
+// kunnen putten.
 function loadStoredTeamPlanner() {
-  const empty = { players: createEmptyTeamPlannerPlayers(), benchByGw: {}, captainByGw: {}, transfersBySlot: {} };
+  const empty = {
+    players: createEmptyTeamPlannerPlayers(), benchByGw: {}, captainByGw: {}, transfersBySlot: {},
+    boosters: { benchBoost: null, tripleCaptain: null, recharge: null },
+  };
   try {
     const raw = window.localStorage?.getItem(TEAM_PLANNER_STORAGE_KEY);
     if (!raw) return empty;
@@ -204,7 +215,13 @@ function loadStoredTeamPlanner() {
       const sanitized = transfers.map(sanitizeTransfer).filter(Boolean);
       if (sanitized.length > 0) transfersBySlot[slotIndex] = sanitized;
     });
-    return { players, benchByGw, captainByGw, transfersBySlot };
+    const rawBoosters = (!Array.isArray(parsed) && parsed?.boosters && typeof parsed.boosters === 'object') ? parsed.boosters : {};
+    const boosters = {
+      benchBoost: sanitizeBoosterGw(rawBoosters.benchBoost),
+      tripleCaptain: sanitizeBoosterGw(rawBoosters.tripleCaptain),
+      recharge: sanitizeBoosterGw(rawBoosters.recharge),
+    };
+    return { players, benchByGw, captainByGw, transfersBySlot, boosters };
   } catch {
     return empty;
   }
@@ -224,6 +241,9 @@ export default function FDRTool() {
   const [gwHorizonEnd, setGwHorizonEnd] = useState(DEFAULT_GW_HORIZON_END);
   const [saved, setSaved] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  // Transiënte succes-melding na "Optimaliseer opstelling" in Team Planner — zelfde patroon als
+  // linkCopied/saved hierboven (verdwijnt vanzelf na 2s).
+  const [teamPlannerOptimized, setTeamPlannerOptimized] = useState(false);
   const [minileagueCodeCopied, setMinileagueCodeCopied] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
@@ -258,6 +278,9 @@ export default function FDRTool() {
   // resolveSlotPlayerAtGw (constants.js) voor hoe dit naar "team op GW X" herleid wordt, en
   // planTeamPlannerTransfer/removeTeamPlannerTransfer hieronder voor het aanmaken/verwijderen.
   const [teamPlannerTransfersBySlot, setTeamPlannerTransfersBySlot] = useState(() => loadStoredTeamPlanner().transfersBySlot);
+  // Boosters: { benchBoost, tripleCaptain, recharge }, elk null (nog niet gebruikt) of de GW (1-7)
+  // waarop 'm gebruikt is — zie toggleTeamPlannerBooster hieronder voor de vergrendel-/vervang-logica.
+  const [teamPlannerBoosters, setTeamPlannerBoosters] = useState(() => loadStoredTeamPlanner().boosters);
   // Geselecteerde gameweek voor de veld-weergave — bewust NIET opgeslagen (localStorage), start
   // altijd op GW1 bij het (her)laden van de pagina, zelfde patroon als gwHorizonStart/End in de FDR-tab.
   const [teamPlannerGw, setTeamPlannerGw] = useState(1);
@@ -577,12 +600,12 @@ export default function FDRTool() {
     try {
       window.localStorage?.setItem(TEAM_PLANNER_STORAGE_KEY, JSON.stringify({
         players: teamPlannerPlayers, benchByGw: teamPlannerBenchByGw, captainByGw: teamPlannerCaptainByGw,
-        transfersBySlot: teamPlannerTransfersBySlot,
+        transfersBySlot: teamPlannerTransfersBySlot, boosters: teamPlannerBoosters,
       }));
     } catch {
       // storage unavailable — silently ignore, team planner still works this session
     }
-  }, [teamPlannerPlayers, teamPlannerBenchByGw, teamPlannerCaptainByGw, teamPlannerTransfersBySlot]);
+  }, [teamPlannerPlayers, teamPlannerBenchByGw, teamPlannerCaptainByGw, teamPlannerTransfersBySlot, teamPlannerBoosters]);
 
   // Haalt de spelersdatabank-CSV op en parset ze naar playerDatabase. Losse useCallback (i.p.v.
   // rechtstreeks in de useEffect hieronder) zodat zowel de automatische fetch bij het laden als de
@@ -703,6 +726,80 @@ export default function FDRTool() {
     setTeamPlannerTransfersBySlot(prev => {
       const existing = prev[slotIndex] ?? [];
       return { ...prev, [slotIndex]: existing.filter(t => t.id !== transferId) };
+    });
+  };
+
+  // Optimaliseert de bank voor de bekeken GW: bankt de 4 spelers met de moeilijkste fixture voor
+  // teamPlannerGw, met behoud van een geldige formatie (VALID_FORMATIONS) en exact 1 keeper in de
+  // basisploeg. Werkt op teamPlannerResolvedPlayers (het team zoals het eruit ziet op déze GW, dus
+  // ná transfers) — niet op de statische teamPlannerPlayers. Schrijft alleen naar
+  // teamPlannerBenchByGw[teamPlannerGw], en wist de kapitein voor deze GW als die toevallig in de
+  // nieuwe bank terechtkomt (zelfde gedrag als toggleTeamPlannerBench hierboven).
+  const optimizeTeamPlannerLineup = () => {
+    const scoreForSlot = (player) => {
+      if (!player.teamCode) return 5; // geen team gekozen = worst-case, net als POSTPONED
+      const fixture = FIXTURES[player.teamCode]?.[teamPlannerGw - 1];
+      if (!fixture) return 5;
+      return getFixtureScores(player.teamCode, [fixture], ratings, homeAdvantage, teamPlannerGw)[0];
+    };
+
+    const indexed = teamPlannerResolvedPlayers.map((p, index) => ({ ...p, index, score: scoreForSlot(p) }));
+
+    // 2 GK-slots liggen vast — hou de best scorende (laagste = makkelijkst), bank de andere.
+    const gkSlots = indexed.filter(p => p.position === 'GK').sort((a, b) => a.score - b.score || a.index - b.index);
+    const gkBenched = gkSlots.slice(1);
+
+    // Outfield: probeer elke geldige formatie (VALID_FORMATIONS) en kies de combinatie met de laagste
+    // totaalscore (dus de makkelijkste fixtures) over alle 7 mogelijke DEF-MID-FWD-verdelingen heen.
+    const byPos = {
+      DEF: indexed.filter(p => p.position === 'DEF').sort((a, b) => a.score - b.score),
+      MID: indexed.filter(p => p.position === 'MID').sort((a, b) => a.score - b.score),
+      FWD: indexed.filter(p => p.position === 'FWD').sort((a, b) => a.score - b.score),
+    };
+    let best = null;
+    VALID_FORMATIONS.forEach(([d, m, f]) => {
+      const starters = [...byPos.DEF.slice(0, d), ...byPos.MID.slice(0, m), ...byPos.FWD.slice(0, f)];
+      const total = starters.reduce((sum, p) => sum + p.score, 0);
+      if (!best || total < best.total) best = { total, starters };
+    });
+    const starterIndexes = new Set(best.starters.map(p => p.index));
+    const outfieldBenched = [...byPos.DEF, ...byPos.MID, ...byPos.FWD].filter(p => !starterIndexes.has(p.index));
+
+    const newBench = [...gkBenched, ...outfieldBenched].map(p => p.index);
+    setTeamPlannerBenchByGw(prev => ({ ...prev, [teamPlannerGw]: newBench }));
+    if (newBench.includes(teamPlannerCaptainByGw[teamPlannerGw])) {
+      setTeamPlannerCaptainByGw(prev => {
+        const updated = { ...prev };
+        delete updated[teamPlannerGw];
+        return updated;
+      });
+    }
+  };
+
+  const handleOptimizeTeamPlannerLineup = () => {
+    optimizeTeamPlannerLineup();
+    setTeamPlannerOptimized(true);
+    setTimeout(() => setTeamPlannerOptimized(false), 2000);
+  };
+
+  // Boosters: exact 1x per booster-type te gebruiken over het hele seizoen, en max 1 actieve booster
+  // per GW. Eenmaal geactiveerd op GW X, is de booster VERGRENDELD op GW X — pas als hij op die exacte
+  // GW opnieuw aangeklikt wordt (annuleren) komt hij weer vrij. Op een andere GW aanklikken terwijl
+  // hij al elders actief is, doet niets (de UI toont 'm daar disabled, zie TeamPlannerTab.jsx).
+  const toggleTeamPlannerBooster = (boosterKey, gw) => {
+    if (gw < 1 || gw > 7) return;
+    setTeamPlannerBoosters(prev => {
+      if (prev[boosterKey] === gw) {
+        return { ...prev, [boosterKey]: null }; // annuleren, enkel mogelijk op de GW waar hij actief is
+      }
+      if (prev[boosterKey] != null) return prev; // al verbruikt op een andere GW — geblokkeerd
+      const updated = { ...prev, [boosterKey]: gw };
+      // Max 1 actieve booster per GW: een andere booster die toevallig al op déze GW actief stond,
+      // wordt vervangen (niet gestapeld) — user-bevestigd gedrag.
+      Object.keys(updated).forEach(key => {
+        if (key !== boosterKey && updated[key] === gw) updated[key] = null;
+      });
+      return updated;
     });
   };
 
@@ -1157,6 +1254,10 @@ export default function FDRTool() {
             teamPlannerTransferHistory={teamPlannerTransferHistory}
             planTeamPlannerTransfer={planTeamPlannerTransfer}
             removeTeamPlannerTransfer={removeTeamPlannerTransfer}
+            handleOptimizeTeamPlannerLineup={handleOptimizeTeamPlannerLineup}
+            teamPlannerOptimized={teamPlannerOptimized}
+            teamPlannerBoosters={teamPlannerBoosters}
+            toggleTeamPlannerBooster={toggleTeamPlannerBooster}
           />
         )}
 

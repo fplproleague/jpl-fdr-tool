@@ -126,6 +126,14 @@ export const LAST_UPDATED = '30 juli 2026';
 // hoofdtabel en bepaalt vanaf waar de mini-fixture-strip in de watch list start.
 export const CURRENT_GW = 1;
 
+// Handmatig wekelijks bij te werken (net als LAST_UPDATED/CURRENT_GW) — deadline-tekst per GW, getoond
+// klein/subtiel onder de GW-navigator in Team Planner. Kant-en-klare weergavestring i.p.v. een Date-
+// object, zelfde precedent als LAST_UPDATED (vermijdt tijdzone-gedoe). Lege/ontbrekende GW-waarden
+// tonen simpelweg niks.
+export const GW_DEADLINES = {
+  1: '', 2: '', 3: '', 4: '', 5: '', 6: '', 7: '', 8: '',
+};
+
 // TEAMS is al alfabetisch op code — eenmalig gesorteerde kopie voor UI-lijsten die dat expliciet willen.
 export const TEAMS_ALPHA = [...TEAMS].sort((a, b) => a.code.localeCompare(b.code));
 export const GW_INDEXES = Array.from({ length: GW_COUNT }, (_, i) => i);

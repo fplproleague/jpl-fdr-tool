@@ -10,12 +10,12 @@
 import { useState } from 'react';
 import {
   Users, Shirt, ChevronLeft, ChevronRight, Loader2, AlertCircle, RotateCcw,
-  ArrowLeftRight, ArrowRight, X,
+  ArrowLeftRight, ArrowRight, X, Wand2, Zap, Star, RefreshCw,
 } from 'lucide-react';
 import {
-  TEAMS, FIXTURES, GW_COUNT,
+  TEAMS, FIXTURES, GW_COUNT, GW_DEADLINES,
   TEAM_PLANNER_BUDGET, TEAM_PLANNER_MAX_PER_CLUB, TEAM_PLANNER_BENCH_SIZE, VALID_FORMATIONS,
-  sectionTitleStyle,
+  TEAM_PLANNER_SLOT_POSITIONS, sectionTitleStyle,
 } from '../constants';
 import { MiniFixtureBadge } from '../components/MiniFixtureBadge';
 import { SectionHeader } from '../components/SectionHeader';
@@ -58,6 +58,34 @@ function formationBadgeStyle(isBenchComplete, isValidFormation) {
   return isValidFormation ? { background: '#4ECDC4', color: '#0B2E1B' } : { background: '#C2402C', color: '#FBEAE7' };
 }
 
+// Kleine, subtiele ronde icoon-knop voor de booster-stapel rechtsboven het veld (zie de "Veld"-sectie
+// hieronder) — géén zichtbaar tekstlabel, enkel het icoon + een title-attribuut voor een browser-
+// tooltip bij hover, zelfde eenvoudige patroon als de GW-navigatiepijltjes hierboven. `state` is
+// 'active' (booster loopt voor de bekeken GW — klikbaar om te annuleren), 'used-elsewhere' (al
+// verbruikt op een andere GW — disabled) of 'available' (nog vrij te gebruiken).
+function BoosterIconButton({ icon: Icon, title, state, onClick }) {
+  const isActive = state === 'active';
+  const isUsedElsewhere = state === 'used-elsewhere';
+  return (
+    <button
+      onClick={onClick}
+      disabled={isUsedElsewhere}
+      title={isUsedElsewhere ? `${title} — al gebruikt` : title}
+      style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px',
+        borderRadius: '50%', flexShrink: 0,
+        background: isActive ? 'rgba(78,205,196,0.2)' : 'transparent',
+        color: isActive ? '#4ECDC4' : isUsedElsewhere ? '#5A4A72' : '#C9B8E0',
+        border: `1px solid ${isActive ? '#4ECDC4' : 'rgba(255,255,255,0.2)'}`,
+        opacity: isUsedElsewhere ? 0.5 : 1,
+        cursor: isUsedElsewhere ? 'not-allowed' : 'pointer',
+      }}
+    >
+      <Icon size={14} />
+    </button>
+  );
+}
+
 function formatPrice(price) {
   return price != null && price !== '' && Number.isFinite(Number(price)) ? `${Number(price).toFixed(1)}M` : '—';
 }
@@ -88,7 +116,7 @@ function excludeUsedPlayers(candidates, usedPlayers) {
 // gekozen via de dropdown boven het veld, niet door op een kaart te klikken (dat zou anders 11
 // zichtbare, grotendeels inactieve "C"-knoppen opleveren). `player` komt hier altijd uit
 // resolvedIndexedPlayers, dus dit toont altijd wie er op de bekeken GW effectief speelt (na transfers).
-function PlayerPitchCard({ player, gw, ratings, homeAdvantage, isBenched, isCaptain, benchToggleDisabled, onToggleBench }) {
+function PlayerPitchCard({ player, gw, ratings, homeAdvantage, isBenched, isCaptain, isTripleCaptainActive, accentActive, benchToggleDisabled, onToggleBench }) {
   if (!player.name && !player.teamCode) return null;
   const fixture = player.teamCode ? FIXTURES[player.teamCode]?.[gw - 1] : null;
   return (
@@ -96,15 +124,18 @@ function PlayerPitchCard({ player, gw, ratings, homeAdvantage, isBenched, isCapt
       {isCaptain && (
         <span
           className="fdr-pitch-card-captain"
-          title="Kapitein voor deze GW"
+          title={isTripleCaptainActive ? 'Driedubbele kapitein voor deze GW' : 'Kapitein voor deze GW'}
           style={{
             position: 'absolute', top: '-6px', right: '-6px', zIndex: 1,
             width: '20px', height: '20px', borderRadius: '50%', display: 'flex',
             alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 900,
-            lineHeight: 1, background: '#4ECDC4', color: '#0B2E1B', border: '1px solid #4ECDC4',
+            lineHeight: 1,
+            background: isTripleCaptainActive ? '#E8C547' : '#4ECDC4',
+            color: '#0B2E1B',
+            border: `1px solid ${isTripleCaptainActive ? '#E8C547' : '#4ECDC4'}`,
           }}
         >
-          C
+          {isTripleCaptainActive ? '3×' : 'C'}
         </span>
       )}
       <button
@@ -118,7 +149,9 @@ function PlayerPitchCard({ player, gw, ratings, homeAdvantage, isBenched, isCapt
         }
         style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
-          background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+          background: 'rgba(255,255,255,0.06)',
+          border: accentActive ? '1px solid #4ECDC4' : '1px solid rgba(255,255,255,0.1)',
+          boxShadow: accentActive ? '0 0 0 1px rgba(78,205,196,0.4)' : 'none',
           borderRadius: '10px', padding: '8px 10px', minWidth: '78px', flexShrink: 0,
           cursor: benchToggleDisabled ? 'not-allowed' : 'pointer',
         }}
@@ -332,9 +365,17 @@ export default function TeamPlannerTab({
   teamPlannerTotalPrice, teamPlannerClubCounts, teamPlannerFormationCounts,
   playerDatabase, playerDatabaseLoading, playerDatabaseError, fetchPlayerDatabase,
   teamPlannerResolvedPlayers, teamPlannerTransferHistory, planTeamPlannerTransfer, removeTeamPlannerTransfer,
+  handleOptimizeTeamPlannerLineup, teamPlannerOptimized,
+  teamPlannerBoosters, toggleTeamPlannerBooster,
 }) {
   const remainingBudget = TEAM_PLANNER_BUDGET - teamPlannerTotalPrice;
   const isOverBudget = teamPlannerTotalPrice > TEAM_PLANNER_BUDGET;
+
+  // Recharge-bewerking (booster, zie FDRTool.jsx): tijdelijke, niet-bevestigde bewerking van de 15
+  // spelers zoals ze op de bekeken GW spelen — vergelijkbaar met TransferPanel's OUT/IN-draft
+  // hierboven (bestandscommentaar bovenaan), dus bewust lokale state i.p.v. domein-state in
+  // FDRTool.jsx. null = niet aan het bewerken; anders array van 15 { name, teamCode, price }.
+  const [rechargeDraft, setRechargeDraft] = useState(null);
 
   // Clubs met te veel spelers — enkel gebruikt om de waarschuwingstekst hieronder op te bouwen,
   // de daadwerkelijke telling zelf gebeurt al in FDRTool.jsx (teamPlannerClubCounts).
@@ -368,6 +409,46 @@ export default function TeamPlannerTab({
   const matchesValidFormation = VALID_FORMATIONS.some(([d, m, f]) => d === defCount && m === midCount && f === fwdCount);
   const isValidFormation = isBenchComplete && gkCount === 1 && matchesValidFormation;
 
+  // Boosters zijn actief voor de bekeken GW als hun opgeslagen GW exact teamPlannerGw is (zie
+  // toggleTeamPlannerBooster in FDRTool.jsx voor de vergrendel-/vervang-logica).
+  const isBenchBoostActive = teamPlannerBoosters.benchBoost === teamPlannerGw;
+  const isTripleCaptainActive = teamPlannerBoosters.tripleCaptain === teamPlannerGw;
+  const isRechargeActiveForGw = teamPlannerBoosters.recharge === teamPlannerGw;
+
+  // 'active' (loopt voor de bekeken GW), 'used-elsewhere' (al verbruikt op een andere GW, vergrendeld)
+  // of 'available' (nog vrij) — zie BoosterIconButton en toggleTeamPlannerBooster (FDRTool.jsx).
+  const boosterState = (key) => {
+    const usedGw = teamPlannerBoosters[key];
+    if (usedGw === teamPlannerGw) return 'active';
+    if (usedGw != null) return 'used-elsewhere';
+    return 'available';
+  };
+
+  // Zolang rechargeDraft niet null is, bewerkt de spelerslijst-tabel hieronder het team ZOALS HET
+  // ERUIT ZIET op de bekeken GW (teamPlannerResolvedPlayers) i.p.v. de statische GW1-basisploeg
+  // (teamPlannerPlayers) — bevestigen zet elke gewijzigde rij om in een transfer op teamPlannerGw
+  // (planTeamPlannerTransfer), zonder teamPlannerPlayers zelf ooit aan te raken.
+  const rosterRowsData = rechargeDraft ?? teamPlannerPlayers;
+
+  const handleStartRecharge = () => {
+    setRechargeDraft(teamPlannerResolvedPlayers.map(p => ({ name: p.name, teamCode: p.teamCode, price: p.price })));
+  };
+
+  const handleConfirmRecharge = () => {
+    if (!rechargeDraft) return;
+    rechargeDraft.forEach((draftPlayer, index) => {
+      const current = teamPlannerResolvedPlayers[index];
+      const changed = draftPlayer.name !== current.name || draftPlayer.teamCode !== current.teamCode;
+      if (changed && draftPlayer.name) {
+        planTeamPlannerTransfer(index, teamPlannerGw, {
+          name: draftPlayer.name, teamCode: draftPlayer.teamCode,
+          position: TEAM_PLANNER_SLOT_POSITIONS[index], price: draftPlayer.price ?? null,
+        });
+      }
+    });
+    setRechargeDraft(null);
+  };
+
   // Transfer-tijdlijn gegroepeerd per GW voor de "Transfers"-sectie hieronder. teamPlannerTransferHistory
   // (FDRTool.jsx) staat al gesorteerd op GW, dus aangrenzende entries met dezelfde GW simpelweg samen
   // in één groep zetten volstaat — geen Map/object nodig.
@@ -392,6 +473,45 @@ export default function TeamPlannerTab({
             <SectionHeader icon={Users} title="Mijn 15 spelers" sectionKey="teamPlannerRoster" isOpen={openSections.teamPlannerRoster} onToggle={toggleSection} />
             {openSections.teamPlannerRoster && (
               <>
+                {/* Recharge-booster (zie FDRTool.jsx): laat de gebruiker het volledige team op de bekeken
+                    GW herbekijken/herbewerken via deze zelfde tabel, i.p.v. spelers één voor één via
+                    "Transfer plannen" te vervangen — zie rechargeDraft/handleConfirmRecharge hierboven. */}
+                {isRechargeActiveForGw && (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
+                    background: 'rgba(232,197,71,0.12)', border: '1px solid rgba(232,197,71,0.4)',
+                    borderRadius: '10px', padding: '10px 14px', marginBottom: '16px',
+                  }}>
+                    <RefreshCw size={16} color="#E8C547" style={{ flexShrink: 0 }} />
+                    <span style={{ color: '#E8C547', fontSize: '13px', flex: 1, fontWeight: 700 }}>
+                      Recharge actief voor GW{teamPlannerGw}{rechargeDraft ? ' — bewerk je team hieronder' : ''}.
+                    </span>
+                    {rechargeDraft === null ? (
+                      <button onClick={handleStartRecharge} style={{
+                        background: 'transparent', color: '#E8C547', border: '1px solid #E8C547',
+                        borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px', cursor: 'pointer',
+                      }}>
+                        Start bewerking
+                      </button>
+                    ) : (
+                      <>
+                        <button onClick={handleConfirmRecharge} style={{
+                          background: '#4ECDC4', color: '#0B2E1B', border: 'none',
+                          borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px', cursor: 'pointer',
+                        }}>
+                          Bevestig recharge
+                        </button>
+                        <button onClick={() => setRechargeDraft(null)} style={{
+                          background: 'transparent', color: '#C9B8E0', border: '1px solid rgba(255,255,255,0.2)',
+                          borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px', cursor: 'pointer',
+                        }}>
+                          Annuleer
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+
                 {/* Laad-/foutstatus van de spelersdatabank (Google Sheet CSV, zie fetchPlayerDatabase in
                     FDRTool.jsx) — zelfde patroon als de Spelerstatus-tab: spinner tijdens het laden, rode
                     foutmelding met "opnieuw proberen"-knop bij een mislukte fetch. Zolang de databank niet
@@ -450,33 +570,40 @@ export default function TeamPlannerTab({
                       </tr>
                     </thead>
                     <tbody>
-                      {teamPlannerPlayers.map((player, index) => (
+                      {rosterRowsData.map((player, index) => (
                         <tr key={index}>
                           <td style={{ color: '#6B5289', fontSize: '12px', padding: '4px 8px' }}>{index + 1}</td>
                           <td style={{ padding: '4px 6px', minWidth: '220px' }}>
                             {/* filterPosition beperkt de suggesties tot de vaste positie van dit slot
-                                (player.position, zie TEAM_PLANNER_SLOT_POSITIONS) — zo blijft de
-                                2 GK/5 DEF/5 MID/3 FWD-structuur altijd kloppen: wat je ook kiest, het
-                                is altijd een speler met de juiste positie voor dit slot. Dit vult de
-                                GW1-basisploeg in; transfers (hieronder bij "Veld") wijzigen dit niet.
-                                excludeUsedPlayers verwijdert spelers die al in een ANDER slot zitten
-                                (niet dit slot zelf, anders zou je je eigen huidige keuze niet meer
-                                terugzien) — zo kan dezelfde speler nooit twee keer in de 15 voorkomen. */}
+                                (TEAM_PLANNER_SLOT_POSITIONS) — zo blijft de 2 GK/5 DEF/5 MID/3 FWD-
+                                structuur altijd kloppen, ook tijdens een Recharge-bewerking. Buiten
+                                Recharge vult dit de GW1-basisploeg in (updateTeamPlannerPlayer); tijdens
+                                Recharge (rechargeDraft niet null) schrijft een keuze enkel naar de lokale
+                                draft, pas "Bevestig recharge" zet gewijzigde rijen om in transfers.
+                                excludeUsedPlayers verwijdert spelers die al in een ANDER slot zitten van
+                                dezelfde lijst (rosterRowsData) — zo kan dezelfde speler nooit twee keer
+                                in de 15 voorkomen, in beide modi. */}
                             <PlayerSearchInput
                               value={player.name}
-                              players={excludeUsedPlayers(playerDatabase, teamPlannerPlayers.filter((_, i) => i !== index))}
-                              filterPosition={player.position}
+                              players={excludeUsedPlayers(playerDatabase, rosterRowsData.filter((_, i) => i !== index))}
+                              filterPosition={TEAM_PLANNER_SLOT_POSITIONS[index]}
                               disabled={playerDatabaseLoading || !!playerDatabaseError}
-                              placeholder={playerDatabaseLoading ? 'Databank laden...' : `Zoek ${player.position}...`}
+                              placeholder={playerDatabaseLoading ? 'Databank laden...' : `Zoek ${TEAM_PLANNER_SLOT_POSITIONS[index]}...`}
                               onSelect={(selected) => {
-                                updateTeamPlannerPlayer(index, 'name', selected.name);
-                                updateTeamPlannerPlayer(index, 'teamCode', selected.teamCode);
-                                updateTeamPlannerPlayer(index, 'price', selected.price ?? '');
+                                if (rechargeDraft) {
+                                  setRechargeDraft(prev => prev.map((p, i) => (
+                                    i === index ? { name: selected.name, teamCode: selected.teamCode, price: selected.price ?? '' } : p
+                                  )));
+                                } else {
+                                  updateTeamPlannerPlayer(index, 'name', selected.name);
+                                  updateTeamPlannerPlayer(index, 'teamCode', selected.teamCode);
+                                  updateTeamPlannerPlayer(index, 'price', selected.price ?? '');
+                                }
                               }}
                             />
                           </td>
                           <td style={{ padding: '4px 6px', color: '#C9B8E0', fontSize: '13px', fontWeight: 700 }}>
-                            {player.position}
+                            {TEAM_PLANNER_SLOT_POSITIONS[index]}
                           </td>
                           <td style={{ padding: '4px 6px', width: '80px', color: '#FFF', fontSize: '13px', fontWeight: 700 }}>
                             {formatPrice(player.price)}
@@ -492,11 +619,26 @@ export default function TeamPlannerTab({
         </section>
 
         <section>
-          <h2 className="fdr-title fdr-section-title" style={{ ...sectionTitleStyle, marginBottom: '12px' }}>
-            <Shirt size={18} color="#4ECDC4" /> Veld
-          </h2>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px', marginBottom: '12px' }}>
+            <h2 className="fdr-title fdr-section-title" style={{ ...sectionTitleStyle, margin: 0 }}>
+              <Shirt size={18} color="#4ECDC4" /> Veld
+            </h2>
+            {/* Booster-stapel (zie FDRTool.jsx): subtiele iconen rechtsboven het veld, niet overlappend
+                met de pitch-kaarten zelf (die staan op mobiel al krap). Enkel binnen GW1-7 — GW8 heeft
+                geen boosters. De Recharge-toggle reset ook defensief rechargeDraft, voor het geval de
+                gebruiker halverwege een bewerking de booster hier uitzet i.p.v. via "Annuleer" hieronder. */}
+            {teamPlannerGw <= 7 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end', flexShrink: 0 }}>
+                <BoosterIconButton icon={Zap} title="Bankzitters" state={boosterState('benchBoost')} onClick={() => toggleTeamPlannerBooster('benchBoost', teamPlannerGw)} />
+                <BoosterIconButton icon={Star} title="Driedubbele kapitein" state={boosterState('tripleCaptain')} onClick={() => toggleTeamPlannerBooster('tripleCaptain', teamPlannerGw)} />
+                <BoosterIconButton icon={RefreshCw} title="Recharge" state={boosterState('recharge')} onClick={() => { toggleTeamPlannerBooster('recharge', teamPlannerGw); setRechargeDraft(null); }} />
+              </div>
+            ) : (
+              <p style={{ color: '#6B5289', fontSize: '11px', margin: 0, textAlign: 'right' }}>Geen boosters&nbsp;op GW8</p>
+            )}
+          </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '14px', marginBottom: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '14px', marginBottom: '4px' }}>
             <button
               onClick={handleTeamPlannerGwPrev}
               disabled={teamPlannerGw <= 1}
@@ -527,6 +669,14 @@ export default function TeamPlannerTab({
               <ChevronRight size={16} />
             </button>
           </div>
+
+          {/* Handmatig bij te werken deadline-tekst per GW (zie GW_DEADLINES in constants.js) — klein en
+              subtiel, enkel getoond als er voor deze GW iets is ingevuld. */}
+          {GW_DEADLINES[teamPlannerGw] && (
+            <p style={{ textAlign: 'center', color: '#8F79AD', fontSize: '10px', margin: '0 0 12px' }}>
+              Deadline: {GW_DEADLINES[teamPlannerGw]}
+            </p>
+          )}
 
           {/* Transfer plannen voor de bekeken GW — zie TransferPanel hierboven. Geconfirmeerde transfers
               gelden meteen vanaf deze GW en alle latere GW's, tot een nieuwe transfer op datzelfde slot. */}
@@ -592,11 +742,13 @@ export default function TeamPlannerTab({
                   className="fdr-pitch-row"
                   style={{
                     display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '16px',
-                    // Nooit wrappen naar een 2de regel per positie (altijd exact 4 rijen: FWD/MID/DEF/GK)
-                    // — op smalle schermen past een volle rij van 5 kaarten niet, dus die rij scrollt dan
-                    // gewoon horizontaal i.p.v. te wrappen. Moderne flexbox "safe center" zorgt ervoor dat
-                    // een overlopende rij automatisch links start i.p.v. het begin onbereikbaar af te snijden.
-                    flexWrap: 'nowrap', overflowX: 'auto', overflowY: 'hidden', padding: '2px',
+                    // Nooit wrappen naar een 2de regel per positie (altijd exact 4 rijen: FWD/MID/DEF/GK).
+                    // Geen overflowX/overflowY meer hier: kaartgroottes (zie mobile media query) zijn al zo
+                    // afgestemd dat een rij nooit meer moet scrollen, en overflow:hidden sneed voorheen de
+                    // kapitein-badge af (die met een negatieve top/right-offset net buiten zijn kaartje
+                    // uitsteekt) — overflow:visible (het default, dus simpelweg weglaten) laat die badge
+                    // altijd volledig zien.
+                    flexWrap: 'nowrap', padding: '2px',
                   }}
                 >
                   {rowPlayers.length === 0 ? (
@@ -611,6 +763,7 @@ export default function TeamPlannerTab({
                         homeAdvantage={homeAdvantage}
                         isBenched={false}
                         isCaptain={captainForGw === player.index}
+                        isTripleCaptainActive={isTripleCaptainActive}
                         benchToggleDisabled={benchFull}
                         onToggleBench={() => toggleTeamPlannerBench(player.index)}
                       />
@@ -622,9 +775,38 @@ export default function TeamPlannerTab({
           </div>
 
           <div style={{ marginTop: '16px' }}>
-            <h3 className="fdr-title" style={{ color: '#C9B8E0', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.03em', margin: '0 0 10px' }}>
-              Bank — GW{teamPlannerGw}
-            </h3>
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              flexWrap: 'wrap', gap: '10px', marginBottom: '10px',
+            }}>
+              <h3 className="fdr-title" style={{ color: '#C9B8E0', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.03em', margin: 0 }}>
+                Bank — GW{teamPlannerGw}
+              </h3>
+              {/* Herbouwt de bank voor de bekeken GW op basis van de moeilijkste fixtures — zie
+                  optimizeTeamPlannerLineup in FDRTool.jsx. flexWrap op de ouder-rij hierboven zorgt dat
+                  deze knop op erg smalle schermen netjes onder de kop uitvalt i.p.v. iets af te knijpen. */}
+              <button onClick={handleOptimizeTeamPlannerLineup} style={{
+                display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'transparent',
+                color: '#4ECDC4', border: '1px solid #4ECDC4', borderRadius: '8px',
+                padding: '6px 12px', fontWeight: 700, fontSize: '12px', cursor: 'pointer', flexShrink: 0,
+              }}>
+                <Wand2 size={14} /> Optimaliseer opstelling
+              </button>
+            </div>
+            {teamPlannerOptimized && (
+              <p style={{ color: '#4ECDC4', fontSize: '12px', margin: '0 0 10px' }}>
+                Opstelling geoptimaliseerd voor GW{teamPlannerGw}.
+              </p>
+            )}
+            {isBenchBoostActive && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px',
+                background: 'rgba(78,205,196,0.12)', border: '1px solid rgba(78,205,196,0.4)',
+                borderRadius: '8px', padding: '6px 10px', color: '#4ECDC4', fontSize: '12px', fontWeight: 700,
+              }}>
+                <Zap size={14} /> Bankzitters actief voor GW{teamPlannerGw} — bankspelers tellen mee.
+              </div>
+            )}
             {benchPlayers.length === 0 ? (
               <p style={{ color: '#6B5289', fontSize: '13px' }}>Nog geen bankspelers voor deze GW. Klik een speler op het veld aan om 'm naar de bank te sturen.</p>
             ) : (
@@ -638,6 +820,7 @@ export default function TeamPlannerTab({
                     homeAdvantage={homeAdvantage}
                     isBenched
                     isCaptain={false}
+                    accentActive={isBenchBoostActive}
                     benchToggleDisabled={false}
                     onToggleBench={() => toggleTeamPlannerBench(player.index)}
                   />
