@@ -7,7 +7,7 @@
 // transfer-DRAFT in TransferPanel (welke OUT/IN nog niet bevestigd is) is bewust wél lokale useState,
 // net als PlayerSearchInput's eigen zoekveld-state — voorbijgaande UI-invoer, geen domein-data.
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   Users, Shirt, ChevronLeft, ChevronRight, Loader2, AlertCircle, RotateCcw,
   ArrowLeftRight, ArrowRight, X, Wand2, Armchair, Zap, Star, RefreshCw,
@@ -376,6 +376,25 @@ export default function TeamPlannerTab({
   // hierboven (bestandscommentaar bovenaan), dus bewust lokale state i.p.v. domein-state in
   // FDRTool.jsx. null = niet aan het bewerken; anders array van 15 { name, teamCode, price }.
   const [rechargeDraft, setRechargeDraft] = useState(null);
+  // Ref op de "Mijn 15 spelers"-kaart, enkel om bij het activeren van Recharge automatisch daarnaartoe
+  // te scrollen (zie handleActivateRecharge hieronder) — geen domein-state, puur een DOM-handle.
+  const rosterSectionRef = useRef(null);
+
+  // Activeert Recharge voor de bekeken GW EN leidt de gebruiker meteen naar zijn 15-spelerslijst, waar
+  // hij effectief kan bewerken — vouwt die sectie open als ze toevallig dichtgeklapt was. Enkel bij het
+  // ACTIVEREN (niet bij het annuleren via dezelfde knop) is scrollen zinvol, vandaar de wasActive-check
+  // vóór het togglen.
+  const handleActivateRecharge = () => {
+    const wasActive = boosterState('recharge') === 'active';
+    toggleTeamPlannerBooster('recharge', teamPlannerGw);
+    setRechargeDraft(null);
+    if (!wasActive) {
+      if (!openSections.teamPlannerRoster) toggleSection('teamPlannerRoster');
+      requestAnimationFrame(() => {
+        rosterSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+  };
 
   // Budget-/club-validatie: normaal gebaseerd op de statische GW1-basisploeg (teamPlannerTotalPrice/
   // ClubCounts, hierboven al herberekend in FDRTool.jsx). Tijdens een actieve Recharge-bewerking moet
@@ -493,7 +512,7 @@ export default function TeamPlannerTab({
       </p>
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '24px' }}>
         <section>
-          <div style={{
+          <div ref={rosterSectionRef} style={{
             background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
             borderRadius: '10px', padding: '16px', marginBottom: '20px'
           }}>
@@ -767,6 +786,15 @@ export default function TeamPlannerTab({
               <Star size={14} /> Driedubbele kapitein actief voor GW{teamPlannerGw} — de kapitein telt 3× mee.
             </div>
           )}
+          {isRechargeActiveForGw && (
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginBottom: '10px',
+              background: 'rgba(232,197,71,0.12)', border: '1px solid rgba(232,197,71,0.4)',
+              borderRadius: '8px', padding: '6px 10px', color: '#E8C547', fontSize: '12px', fontWeight: 700,
+            }}>
+              <RefreshCw size={14} /> Recharge actief voor GW{teamPlannerGw} — bewerk je volledige team bij "Mijn 15 spelers" hierboven.
+            </div>
+          )}
 
           <div className="fdr-pitch-container" style={{
             position: 'relative',
@@ -783,7 +811,7 @@ export default function TeamPlannerTab({
                 <>
                   <BoosterIconButton icon={Armchair} title="Bankzitters" state={boosterState('benchBoost')} onClick={() => toggleTeamPlannerBooster('benchBoost', teamPlannerGw)} />
                   <BoosterIconButton label="3×" title="Driedubbele kapitein" state={boosterState('tripleCaptain')} onClick={() => toggleTeamPlannerBooster('tripleCaptain', teamPlannerGw)} />
-                  <BoosterIconButton icon={RefreshCw} title="Recharge" state={boosterState('recharge')} onClick={() => { toggleTeamPlannerBooster('recharge', teamPlannerGw); setRechargeDraft(null); }} />
+                  <BoosterIconButton icon={RefreshCw} title="Recharge" state={boosterState('recharge')} onClick={handleActivateRecharge} />
                 </>
               ) : (
                 <BoosterIconButton icon={RefreshCw} title="Recharge — automatisch voor iedereen op GW8" state="active" onClick={() => {}} />
@@ -900,8 +928,18 @@ export default function TeamPlannerTab({
                 <div style={{ display: 'grid', gap: '16px' }}>
                   {transferGroups.map(group => (
                     <div key={group.gw}>
-                      <h3 className="fdr-title" style={{ color: '#C9B8E0', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.03em', margin: '0 0 8px' }}>
+                      <h3 className="fdr-title" style={{
+                        display: 'flex', alignItems: 'center', gap: '6px',
+                        color: '#C9B8E0', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.03em', margin: '0 0 8px',
+                      }}>
                         GW{group.gw}
+                        {/* teamPlannerBoosters.recharge === group.gw: Recharge werd handmatig geactiveerd
+                            voor precies deze GW; group.gw === GW_COUNT: GW8's automatische Recharge voor
+                            iedereen (zie isRechargeActiveForGw hierboven) — in beide gevallen tonen we
+                            hetzelfde icoontje om aan te geven dat deze transfer(s) uit een recharge komen. */}
+                        {(teamPlannerBoosters.recharge === group.gw || group.gw === GW_COUNT) && (
+                          <RefreshCw size={12} color="#E8C547" title="Recharge" />
+                        )}
                       </h3>
                       <div style={{ display: 'grid', gap: '6px' }}>
                         {group.entries.map(entry => (

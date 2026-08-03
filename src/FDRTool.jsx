@@ -12,6 +12,7 @@ import {
   MINILEAGUE_CODE, LAST_UPDATED, GW_INDEXES, DEFAULT_RATINGS, DEFAULT_HOME_ADVANTAGE,
   TEAM_PLANNER_SQUAD_SIZE, TEAM_PLANNER_BENCH_SIZE, TEAM_PLANNER_SLOT_POSITIONS, VALID_FORMATIONS,
   resolveSlotPlayerAtGw, PLAYER_DATABASE_CSV_URL, parsePlayerDatabaseCsv, getFixtureScores, average,
+  POSTPONED,
 } from './constants';
 import FDRTab from './tabs/FDRTab';
 import WatchlistTab from './tabs/WatchlistTab';
@@ -729,38 +730,58 @@ export default function FDRTool() {
     });
   };
 
-  // Optimaliseert de bank voor de bekeken GW: bankt de 4 spelers met de moeilijkste fixture voor
-  // teamPlannerGw, met behoud van een geldige formatie (VALID_FORMATIONS) en exact 1 keeper in de
-  // basisploeg. Werkt op teamPlannerResolvedPlayers (het team zoals het eruit ziet op déze GW, dus
-  // ná transfers) — niet op de statische teamPlannerPlayers. Schrijft alleen naar
+  // Optimaliseert de bank voor de bekeken GW in twee fases: EERST spelers zonder match (leeg slot, of
+  // een uitgestelde wedstrijd — POSTPONED) naar de bank, en pas DAARNA, onder de spelers die wél
+  // spelen, de moeilijkste fixture. Behoudt een geldige formatie (VALID_FORMATIONS) en exact 1 keeper
+  // in de basisploeg. Werkt op teamPlannerResolvedPlayers (het team zoals het eruit ziet op déze GW,
+  // dus ná transfers) — niet op de statische teamPlannerPlayers. Schrijft alleen naar
   // teamPlannerBenchByGw[teamPlannerGw], en wist de kapitein voor deze GW als die toevallig in de
   // nieuwe bank terechtkomt (zelfde gedrag als toggleTeamPlannerBench hierboven).
   const optimizeTeamPlannerLineup = () => {
+    const hasNoMatch = (player) => {
+      if (!player.teamCode) return true; // leeg slot = geen match
+      const fixture = FIXTURES[player.teamCode]?.[teamPlannerGw - 1];
+      if (!fixture) return true;
+      return POSTPONED.has(`${player.teamCode}-${teamPlannerGw}`);
+    };
     const scoreForSlot = (player) => {
       if (!player.teamCode) return 5; // geen team gekozen = worst-case, net als POSTPONED
       const fixture = FIXTURES[player.teamCode]?.[teamPlannerGw - 1];
       if (!fixture) return 5;
       return getFixtureScores(player.teamCode, [fixture], ratings, homeAdvantage, teamPlannerGw)[0];
     };
+    // Fase 1: geen-match weegt zwaarder dan fixture difficulty — een speler zonder match komt altijd
+    // ná spelers mét match, ongeacht hoe moeilijk hun fixture is. Fase 2 (score) is enkel de tie-
+    // breaker onder spelers die wél spelen.
+    const compareForBench = (a, b) => {
+      if (a.noMatch !== b.noMatch) return a.noMatch ? 1 : -1;
+      return a.score - b.score;
+    };
 
-    const indexed = teamPlannerResolvedPlayers.map((p, index) => ({ ...p, index, score: scoreForSlot(p) }));
+    const indexed = teamPlannerResolvedPlayers.map((p, index) => (
+      { ...p, index, score: scoreForSlot(p), noMatch: hasNoMatch(p) }
+    ));
 
-    // 2 GK-slots liggen vast — hou de best scorende (laagste = makkelijkst), bank de andere.
-    const gkSlots = indexed.filter(p => p.position === 'GK').sort((a, b) => a.score - b.score || a.index - b.index);
+    // 2 GK-slots liggen vast — hou de "beste" (eerst: heeft een match, dan: laagste score), bank de andere.
+    const gkSlots = indexed.filter(p => p.position === 'GK').sort((a, b) => compareForBench(a, b) || a.index - b.index);
     const gkBenched = gkSlots.slice(1);
 
-    // Outfield: probeer elke geldige formatie (VALID_FORMATIONS) en kies de combinatie met de laagste
-    // totaalscore (dus de makkelijkste fixtures) over alle 7 mogelijke DEF-MID-FWD-verdelingen heen.
+    // Outfield: elke positie eerst gesorteerd volgens dezelfde twee fases, dan voor elke geldige
+    // formatie (VALID_FORMATIONS) de top-d/m/f nemen. Kies de combinatie met (1) zo min mogelijk
+    // "geen match"-spelers in de basis, en pas als tie-breaker (2) de laagste totaalscore.
     const byPos = {
-      DEF: indexed.filter(p => p.position === 'DEF').sort((a, b) => a.score - b.score),
-      MID: indexed.filter(p => p.position === 'MID').sort((a, b) => a.score - b.score),
-      FWD: indexed.filter(p => p.position === 'FWD').sort((a, b) => a.score - b.score),
+      DEF: indexed.filter(p => p.position === 'DEF').sort(compareForBench),
+      MID: indexed.filter(p => p.position === 'MID').sort(compareForBench),
+      FWD: indexed.filter(p => p.position === 'FWD').sort(compareForBench),
     };
     let best = null;
     VALID_FORMATIONS.forEach(([d, m, f]) => {
       const starters = [...byPos.DEF.slice(0, d), ...byPos.MID.slice(0, m), ...byPos.FWD.slice(0, f)];
+      const noMatchCount = starters.filter(p => p.noMatch).length;
       const total = starters.reduce((sum, p) => sum + p.score, 0);
-      if (!best || total < best.total) best = { total, starters };
+      if (!best || noMatchCount < best.noMatchCount || (noMatchCount === best.noMatchCount && total < best.total)) {
+        best = { noMatchCount, total, starters };
+      }
     });
     const starterIndexes = new Set(best.starters.map(p => p.index));
     const outfieldBenched = [...byPos.DEF, ...byPos.MID, ...byPos.FWD].filter(p => !starterIndexes.has(p.index));
