@@ -7,15 +7,15 @@
 // transfer-DRAFT in TransferPanel (welke OUT/IN nog niet bevestigd is) is bewust wél lokale useState,
 // net als PlayerSearchInput's eigen zoekveld-state — voorbijgaande UI-invoer, geen domein-data.
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   Users, Shirt, ChevronLeft, ChevronRight, Loader2, AlertCircle, RotateCcw,
   ArrowLeftRight, ArrowRight, X, Wand2, Armchair, Zap, Star, RefreshCw,
 } from 'lucide-react';
 import {
   TEAMS, FIXTURES, GW_COUNT, GW_DEADLINES,
-  TEAM_PLANNER_BUDGET, TEAM_PLANNER_MAX_PER_CLUB, TEAM_PLANNER_BENCH_SIZE, VALID_FORMATIONS,
-  TEAM_PLANNER_SLOT_POSITIONS, sectionTitleStyle,
+  TEAM_PLANNER_BUDGET, TEAM_PLANNER_MAX_PER_CLUB, TEAM_PLANNER_BENCH_SIZE, TEAM_PLANNER_SQUAD_SIZE,
+  VALID_FORMATIONS, TEAM_PLANNER_SLOT_POSITIONS, sectionTitleStyle,
 } from '../constants';
 import { MiniFixtureBadge } from '../components/MiniFixtureBadge';
 import { SectionHeader } from '../components/SectionHeader';
@@ -119,7 +119,10 @@ function excludeUsedPlayers(candidates, usedPlayers) {
 // gekozen via de dropdown boven het veld, niet door op een kaart te klikken (dat zou anders 11
 // zichtbare, grotendeels inactieve "C"-knoppen opleveren). `player` komt hier altijd uit
 // resolvedIndexedPlayers, dus dit toont altijd wie er op de bekeken GW effectief speelt (na transfers).
-function PlayerPitchCard({ player, gw, ratings, homeAdvantage, isBenched, isCaptain, isTripleCaptainActive, accentActive, benchToggleDisabled, onToggleBench }) {
+// Het kruisje linksboven (onSelectForTransfer) selecteert deze speler als uitgaande transfer — zie
+// transferOutIndex/handleSelectForTransfer in het hoofdcomponent hieronder: dat opent TransferPanel
+// meteen met deze speler al gekozen als OUT, i.p.v. dat de gebruiker 'm nog moet opzoeken in de select.
+function PlayerPitchCard({ player, gw, ratings, homeAdvantage, isBenched, isCaptain, isTripleCaptainActive, accentActive, benchToggleDisabled, onToggleBench, onSelectForTransfer }) {
   if (!player.name && !player.teamCode) return null;
   const fixture = player.teamCode ? FIXTURES[player.teamCode]?.[gw - 1] : null;
   return (
@@ -141,6 +144,19 @@ function PlayerPitchCard({ player, gw, ratings, homeAdvantage, isBenched, isCapt
           {isTripleCaptainActive ? '3×' : 'C'}
         </span>
       )}
+      <button
+        onClick={(e) => { e.stopPropagation(); onSelectForTransfer(); }}
+        title="Selecteer als uitgaande transfer"
+        style={{
+          position: 'absolute', top: '-6px', left: '-6px', zIndex: 1,
+          width: '18px', height: '18px', borderRadius: '50%', display: 'flex',
+          alignItems: 'center', justifyContent: 'center', padding: 0,
+          background: 'rgba(42,20,64,0.85)', color: '#8F79AD',
+          border: '1px solid rgba(255,255,255,0.25)', cursor: 'pointer',
+        }}
+      >
+        <X size={11} />
+      </button>
       <button
         onClick={onToggleBench}
         disabled={benchToggleDisabled}
@@ -219,7 +235,7 @@ function TransferPlayerCard({ player, highlight }) {
 // spelerslijst — "Bevestig transfer" blijft altijd klikbaar, ook als er een waarschuwing getoond wordt.
 // De OUT/IN-keuze zelf is lokale draft-state (zie bestandscommentaar bovenaan): pas bij "Bevestig
 // transfer" wordt het via onConfirm naar FDRTool.jsx doorgegeven en permanent (localStorage).
-function TransferPanel({ gw, resolvedIndexedPlayers, playerDatabase, playerDatabaseLoading, playerDatabaseError, onConfirm }) {
+function TransferPanel({ gw, resolvedIndexedPlayers, playerDatabase, playerDatabaseLoading, playerDatabaseError, onConfirm, externalOutIndex, onExternalOutIndexConsumed }) {
   const [isOpen, setIsOpen] = useState(false);
   const [outIndex, setOutIndex] = useState('');
   const [inPlayer, setInPlayer] = useState(null);
@@ -230,6 +246,19 @@ function TransferPanel({ gw, resolvedIndexedPlayers, playerDatabase, playerDatab
 
   const resetDraft = () => { setOutIndex(''); setInPlayer(null); };
   const handleToggle = () => { setIsOpen(o => !o); resetDraft(); };
+
+  // Selecteren als uitgaande transfer via het kruisje op een veld-/bankkaartje (zie TeamPlannerTab
+  // hieronder, handleSelectForTransfer) opent dit paneel meteen met die speler al gekozen als OUT —
+  // externalOutIndex is enkel een "signaal", vandaar dat de ouder 'm meteen weer terugzet naar null
+  // via onExternalOutIndexConsumed zodra dit effect 'm verwerkt heeft (anders zou nogmaals op dezelfde
+  // speler klikken niets meer doen, want de prop-waarde zou dan niet meer "veranderen").
+  useEffect(() => {
+    if (externalOutIndex === null || externalOutIndex === undefined) return;
+    setOutIndex(String(externalOutIndex));
+    setInPlayer(null);
+    setIsOpen(true);
+    onExternalOutIndexConsumed?.();
+  }, [externalOutIndex, onExternalOutIndexConsumed]);
 
   const handleConfirm = () => {
     if (!outPlayer || !inPlayer) return;
@@ -379,6 +408,10 @@ export default function TeamPlannerTab({
   // Ref op de "Mijn 15 spelers"-kaart, enkel om bij het activeren van Recharge automatisch daarnaartoe
   // te scrollen (zie handleActivateRecharge hieronder) — geen domein-state, puur een DOM-handle.
   const rosterSectionRef = useRef(null);
+  // Slot-index van de speler die via het kruisje op een veld-/bankkaartje als uitgaande transfer
+  // geselecteerd is — een "signaal" naar TransferPanel (zie externalOutIndex daar), niet zelf
+  // domein-state: null zodra TransferPanel het verwerkt heeft (onExternalOutIndexConsumed).
+  const [transferOutIndex, setTransferOutIndex] = useState(null);
 
   // Activeert Recharge voor de bekeken GW EN leidt de gebruiker meteen naar zijn 15-spelerslijst, waar
   // hij effectief kan bewerken — vouwt die sectie open als ze toevallig dichtgeklapt was. Enkel bij het
@@ -419,8 +452,10 @@ export default function TeamPlannerTab({
     : teamPlannerClubCounts;
   const remainingBudget = TEAM_PLANNER_BUDGET - effectiveTotalPrice;
   const isOverBudget = effectiveTotalPrice > TEAM_PLANNER_BUDGET;
-  // Clubs met te veel spelers — enkel gebruikt om de waarschuwingstekst hieronder op te bouwen.
+  // Clubs met te veel spelers — gebruikt voor zowel de waarschuwingstekst als het subtiel aanduiden
+  // van de betrokken spelersrijen in de tabel hieronder (overCapClubCodes).
   const overCapClubs = Object.entries(effectiveClubCounts).filter(([, count]) => count > TEAM_PLANNER_MAX_PER_CLUB);
+  const overCapClubCodes = new Set(overCapClubs.map(([code]) => code));
   // Blokkeert "Bevestig recharge" hieronder zolang de bewerking het budget of de clublimiet overschrijdt.
   const isRechargeInvalid = rechargeDraft !== null && (isOverBudget || overCapClubs.length > 0);
 
@@ -592,22 +627,27 @@ export default function TeamPlannerTab({
                   </div>
                 )}
 
-                {/* Validatie-overzicht: budget en club-limiet. Buiten een Recharge-bewerking toont dit
-                    de statische GW1-basisploeg (teamPlannerTotalPrice/ClubCounts, live herberekend in
-                    FDRTool.jsx telkens teamPlannerPlayers wijzigt) — transfers wijzigen dit dan niet.
-                    Zodra rechargeDraft actief is, toont/valideert dit blok in plaats daarvan de
-                    bewerking zelf (effectiveTotalPrice/ClubCounts hierboven), zodat overschrijden
-                    onmogelijk wordt gemaakt (zie isRechargeInvalid, dat "Bevestig recharge" blokkeert).
-                    Positie-aantallen staan hier bewust niet bij: die liggen vast per slot
-                    (TEAM_PLANNER_SLOT_POSITIONS) en zijn dus altijd exact 2 GK/5 DEF/5 MID/3 FWD. */}
+                {/* Validatie-overzicht: aantal ingevulde spelers en resterend budget, tellend vanaf
+                    TEAM_PLANNER_BUDGET (100M) — zelfde weergave als de echte FPL-app ("Squad: x/15" +
+                    "In the bank"), i.p.v. een "besteed/totaal"-framing. Buiten een Recharge-bewerking
+                    toont dit de statische GW1-basisploeg (teamPlannerTotalPrice/ClubCounts, live
+                    herberekend in FDRTool.jsx telkens teamPlannerPlayers wijzigt) — transfers wijzigen
+                    dit dan niet. Zodra rechargeDraft actief is, toont/valideert dit blok in plaats
+                    daarvan de bewerking zelf (effectiveTotalPrice/ClubCounts hierboven), zodat
+                    overschrijden onmogelijk wordt gemaakt (zie isRechargeInvalid, dat "Bevestig
+                    recharge" blokkeert). Positie-aantallen staan hier bewust niet bij: die liggen vast
+                    per slot (TEAM_PLANNER_SLOT_POSITIONS) en zijn dus altijd exact 2 GK/5 DEF/5 MID/3 FWD. */}
                 <div style={{
                   display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center',
                   background: 'rgba(255,255,255,0.04)',
                   border: isOverBudget ? '1px solid #C2402C' : '1px solid rgba(255,255,255,0.08)',
                   borderRadius: '10px', padding: '12px 14px', marginBottom: '16px'
                 }}>
-                  <div style={{ color: isOverBudget ? '#C2402C' : '#FFF', fontWeight: 700, fontSize: '15px' }}>
-                    {effectiveTotalPrice.toFixed(1)}M / {TEAM_PLANNER_BUDGET}M
+                  <div style={{ color: '#FFF', fontWeight: 700, fontSize: '15px' }}>
+                    Spelers: {effectiveRosterList.filter(p => p.name).length}/{TEAM_PLANNER_SQUAD_SIZE}
+                  </div>
+                  <div style={{ color: isOverBudget ? '#C2402C' : '#4ECDC4', fontWeight: 700, fontSize: '15px' }}>
+                    Resterend budget: {remainingBudget.toFixed(1)}M
                     {isOverBudget && ` — ${Math.abs(remainingBudget).toFixed(1)}M te veel`}
                   </div>
                   {overCapClubs.length > 0 && (
@@ -629,46 +669,58 @@ export default function TeamPlannerTab({
                       </tr>
                     </thead>
                     <tbody>
-                      {rosterRowsData.map((player, index) => (
-                        <tr key={index}>
-                          <td style={{ color: '#6B5289', fontSize: '12px', padding: '4px 8px' }}>{index + 1}</td>
-                          <td style={{ padding: '4px 6px', minWidth: '220px' }}>
-                            {/* filterPosition beperkt de suggesties tot de vaste positie van dit slot
-                                (TEAM_PLANNER_SLOT_POSITIONS) — zo blijft de 2 GK/5 DEF/5 MID/3 FWD-
-                                structuur altijd kloppen, ook tijdens een Recharge-bewerking. Buiten
-                                Recharge vult dit de GW1-basisploeg in (updateTeamPlannerPlayer); tijdens
-                                Recharge (rechargeDraft niet null) schrijft een keuze enkel naar de lokale
-                                draft, pas "Bevestig recharge" zet gewijzigde rijen om in transfers.
-                                excludeUsedPlayers verwijdert spelers die al in een ANDER slot zitten van
-                                dezelfde lijst (rosterRowsData) — zo kan dezelfde speler nooit twee keer
-                                in de 15 voorkomen, in beide modi. */}
-                            <PlayerSearchInput
-                              value={player.name}
-                              players={excludeUsedPlayers(playerDatabase, rosterRowsData.filter((_, i) => i !== index))}
-                              filterPosition={TEAM_PLANNER_SLOT_POSITIONS[index]}
-                              disabled={playerDatabaseLoading || !!playerDatabaseError}
-                              placeholder={playerDatabaseLoading ? 'Databank laden...' : `Zoek ${TEAM_PLANNER_SLOT_POSITIONS[index]}...`}
-                              onSelect={(selected) => {
-                                if (rechargeDraft) {
-                                  setRechargeDraft(prev => prev.map((p, i) => (
-                                    i === index ? { name: selected.name, teamCode: selected.teamCode, price: selected.price ?? '' } : p
-                                  )));
-                                } else {
-                                  updateTeamPlannerPlayer(index, 'name', selected.name);
-                                  updateTeamPlannerPlayer(index, 'teamCode', selected.teamCode);
-                                  updateTeamPlannerPlayer(index, 'price', selected.price ?? '');
-                                }
-                              }}
-                            />
-                          </td>
-                          <td style={{ padding: '4px 6px', color: '#C9B8E0', fontSize: '13px', fontWeight: 700 }}>
-                            {TEAM_PLANNER_SLOT_POSITIONS[index]}
-                          </td>
-                          <td style={{ padding: '4px 6px', width: '80px', color: '#FFF', fontSize: '13px', fontWeight: 700 }}>
-                            {formatPrice(player.price)}
-                          </td>
-                        </tr>
-                      ))}
+                      {rosterRowsData.map((player, index) => {
+                        // Subtiele markering van de rijen die het "max per club"-probleem veroorzaken —
+                        // een dun rood randje + lichte tint, zelfde rode kleur als de waarschuwingstekst
+                        // hierboven, maar zonder de tabel drukker te maken dan nodig.
+                        const isOverCapClub = player.teamCode && overCapClubCodes.has(player.teamCode);
+                        const rowBg = isOverCapClub ? 'rgba(194,64,44,0.08)' : 'transparent';
+                        return (
+                          <tr key={index}>
+                            <td style={{
+                              color: '#6B5289', fontSize: '12px', padding: '4px 8px', background: rowBg,
+                              borderLeft: isOverCapClub ? '3px solid #C2402C' : '3px solid transparent',
+                            }}>
+                              {index + 1}
+                            </td>
+                            <td style={{ padding: '4px 6px', minWidth: '220px', background: rowBg }}>
+                              {/* filterPosition beperkt de suggesties tot de vaste positie van dit slot
+                                  (TEAM_PLANNER_SLOT_POSITIONS) — zo blijft de 2 GK/5 DEF/5 MID/3 FWD-
+                                  structuur altijd kloppen, ook tijdens een Recharge-bewerking. Buiten
+                                  Recharge vult dit de GW1-basisploeg in (updateTeamPlannerPlayer); tijdens
+                                  Recharge (rechargeDraft niet null) schrijft een keuze enkel naar de lokale
+                                  draft, pas "Bevestig recharge" zet gewijzigde rijen om in transfers.
+                                  excludeUsedPlayers verwijdert spelers die al in een ANDER slot zitten van
+                                  dezelfde lijst (rosterRowsData) — zo kan dezelfde speler nooit twee keer
+                                  in de 15 voorkomen, in beide modi. */}
+                              <PlayerSearchInput
+                                value={player.name}
+                                players={excludeUsedPlayers(playerDatabase, rosterRowsData.filter((_, i) => i !== index))}
+                                filterPosition={TEAM_PLANNER_SLOT_POSITIONS[index]}
+                                disabled={playerDatabaseLoading || !!playerDatabaseError}
+                                placeholder={playerDatabaseLoading ? 'Databank laden...' : `Zoek ${TEAM_PLANNER_SLOT_POSITIONS[index]}...`}
+                                onSelect={(selected) => {
+                                  if (rechargeDraft) {
+                                    setRechargeDraft(prev => prev.map((p, i) => (
+                                      i === index ? { name: selected.name, teamCode: selected.teamCode, price: selected.price ?? '' } : p
+                                    )));
+                                  } else {
+                                    updateTeamPlannerPlayer(index, 'name', selected.name);
+                                    updateTeamPlannerPlayer(index, 'teamCode', selected.teamCode);
+                                    updateTeamPlannerPlayer(index, 'price', selected.price ?? '');
+                                  }
+                                }}
+                              />
+                            </td>
+                            <td style={{ padding: '4px 6px', color: '#C9B8E0', fontSize: '13px', fontWeight: 700, background: rowBg }}>
+                              {TEAM_PLANNER_SLOT_POSITIONS[index]}
+                            </td>
+                            <td style={{ padding: '4px 6px', width: '80px', color: '#FFF', fontSize: '13px', fontWeight: 700, background: rowBg }}>
+                              {formatPrice(player.price)}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -731,6 +783,8 @@ export default function TeamPlannerTab({
             playerDatabaseLoading={playerDatabaseLoading}
             playerDatabaseError={playerDatabaseError}
             onConfirm={planTeamPlannerTransfer}
+            externalOutIndex={transferOutIndex}
+            onExternalOutIndexConsumed={() => setTransferOutIndex(null)}
           />
 
           {/* Bank-, formatie- en kapiteinsstatus voor de bekeken GW — klik op een speler op het veld/
@@ -849,6 +903,7 @@ export default function TeamPlannerTab({
                         isTripleCaptainActive={isTripleCaptainActive}
                         benchToggleDisabled={benchFull}
                         onToggleBench={() => toggleTeamPlannerBench(player.index)}
+                        onSelectForTransfer={() => setTransferOutIndex(player.index)}
                       />
                     ))
                   )}
@@ -906,6 +961,7 @@ export default function TeamPlannerTab({
                     accentActive={isBenchBoostActive}
                     benchToggleDisabled={false}
                     onToggleBench={() => toggleTeamPlannerBench(player.index)}
+                    onSelectForTransfer={() => setTransferOutIndex(player.index)}
                   />
                 ))}
               </div>
