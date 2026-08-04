@@ -646,14 +646,15 @@ export default function TeamPlannerTab({
                   <div style={{ color: '#FFF', fontWeight: 700, fontSize: '15px' }}>
                     Spelers: {effectiveRosterList.filter(p => p.name).length}/{TEAM_PLANNER_SQUAD_SIZE}
                   </div>
+                  {/* Bij overschrijding volstaat het negatieve bedrag zelf (bv. "-3.0M") als signaal — geen
+                      aparte "X.XM te veel"-herhaling van hetzelfde getal. Budget- en club-overschrijding
+                      delen bewust dezelfde tekststijl (rood, vet, 15px), zodat beide even prominent ogen. */}
                   <div style={{ color: isOverBudget ? '#C2402C' : '#4ECDC4', fontWeight: 700, fontSize: '15px' }}>
                     Resterend budget: {remainingBudget.toFixed(1)}M
-                    {isOverBudget && ` — ${Math.abs(remainingBudget).toFixed(1)}M te veel`}
                   </div>
                   {overCapClubs.length > 0 && (
-                    <div style={{ color: '#C2402C', fontSize: '12px' }}>
-                      Max {TEAM_PLANNER_MAX_PER_CLUB} per club overschreden bij:{' '}
-                      {overCapClubs.map(([code, count]) => `${teamNameFor(code)} (${count})`).join(', ')}
+                    <div style={{ color: '#C2402C', fontWeight: 700, fontSize: '15px' }}>
+                      Max {TEAM_PLANNER_MAX_PER_CLUB} per club: {overCapClubs.map(([code, count]) => `${teamNameFor(code)} (${count})`).join(', ')}
                     </div>
                   )}
                 </div>
