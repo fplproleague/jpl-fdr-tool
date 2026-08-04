@@ -10,7 +10,7 @@
 import { useState, useRef, useEffect } from 'react';
 import {
   Users, Shirt, ChevronLeft, ChevronRight, Loader2, AlertCircle, RotateCcw,
-  ArrowLeftRight, ArrowRight, X, Wand2, Armchair, Zap, Star, RefreshCw, Trash2, ChevronUp, ChevronDown,
+  ArrowLeftRight, ArrowRight, X, Wand2, Armchair, Zap, Star, RefreshCw, Trash2, ArrowUpDown,
 } from 'lucide-react';
 import {
   TEAMS, FIXTURES, GW_COUNT, GW_DEADLINES,
@@ -122,10 +122,13 @@ function excludeUsedPlayers(candidates, usedPlayers) {
 // Het kruisje linksboven (onSelectForTransfer) selecteert deze speler als uitgaande transfer — zie
 // transferOutIndex/handleSelectForTransfer in het hoofdcomponent hieronder: dat opent TransferPanel
 // meteen met deze speler al gekozen als OUT, i.p.v. dat de gebruiker 'm nog moet opzoeken in de select.
-// De pijltjes rechtsboven (enkel meegegeven voor niet-keeper bankspelers, zie benchPlayers hierboven)
-// herschikken de bank-volgorde — die plek is vrij op bankkaartjes, want daar staat nooit een "C"-badge
+// Enkel zichtbaar zolang TransferPanel effectief open staat (onSelectForTransfer is dan pas gezet,
+// zie isTransferPanelOpen) — anders staan er 15 kruisjes op het scherm terwijl er nog niemand aan een
+// transfer denkt. Het verwissel-icoontje rechtsboven (enkel meegegeven voor niet-keeper bankspelers,
+// zie benchPlayers hierboven) selecteert deze speler om van bankplaats te wisselen met een volgende
+// klik op een ANDERE bankspeler — die plek is vrij op bankkaartjes, want daar staat nooit een "C"-badge
 // (isCaptain is er altijd false, een bankspeler kan geen kapitein zijn).
-function PlayerPitchCard({ player, gw, ratings, homeAdvantage, isBenched, isCaptain, isTripleCaptainActive, accentActive, benchToggleDisabled, onToggleBench, onSelectForTransfer, onMoveUp, onMoveDown, canMoveUp, canMoveDown }) {
+function PlayerPitchCard({ player, gw, ratings, homeAdvantage, isBenched, isCaptain, isTripleCaptainActive, accentActive, benchToggleDisabled, onToggleBench, onSelectForTransfer, onSelectForSwap, isSelectedForSwap }) {
   if (!player.name && !player.teamCode) return null;
   const fixture = player.teamCode ? FIXTURES[player.teamCode]?.[gw - 1] : null;
   return (
@@ -147,48 +150,37 @@ function PlayerPitchCard({ player, gw, ratings, homeAdvantage, isBenched, isCapt
           {isTripleCaptainActive ? '3×' : 'C'}
         </span>
       )}
-      <button
-        onClick={(e) => { e.stopPropagation(); onSelectForTransfer(); }}
-        title="Selecteer als uitgaande transfer"
-        style={{
-          position: 'absolute', top: '-6px', left: '-6px', zIndex: 1,
-          width: '18px', height: '18px', borderRadius: '50%', display: 'flex',
-          alignItems: 'center', justifyContent: 'center', padding: 0,
-          background: 'rgba(42,20,64,0.85)', color: '#8F79AD',
-          border: '1px solid rgba(255,255,255,0.25)', cursor: 'pointer',
-        }}
-      >
-        <X size={11} />
-      </button>
-      {(onMoveUp || onMoveDown) && (
-        <div style={{ position: 'absolute', top: '-6px', right: '-6px', zIndex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          <button
-            onClick={(e) => { e.stopPropagation(); onMoveUp(); }}
-            disabled={!canMoveUp}
-            title="Naar boven in de bank-volgorde"
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center', width: '16px', height: '13px',
-              borderRadius: '4px', padding: 0, background: 'rgba(42,20,64,0.85)',
-              color: canMoveUp ? '#C9B8E0' : '#5A4A72', border: '1px solid rgba(255,255,255,0.25)',
-              cursor: canMoveUp ? 'pointer' : 'not-allowed',
-            }}
-          >
-            <ChevronUp size={10} />
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); onMoveDown(); }}
-            disabled={!canMoveDown}
-            title="Naar onder in de bank-volgorde"
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center', width: '16px', height: '13px',
-              borderRadius: '4px', padding: 0, background: 'rgba(42,20,64,0.85)',
-              color: canMoveDown ? '#C9B8E0' : '#5A4A72', border: '1px solid rgba(255,255,255,0.25)',
-              cursor: canMoveDown ? 'pointer' : 'not-allowed',
-            }}
-          >
-            <ChevronDown size={10} />
-          </button>
-        </div>
+      {onSelectForTransfer && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onSelectForTransfer(); }}
+          title="Selecteer als uitgaande transfer"
+          style={{
+            position: 'absolute', top: '-6px', left: '-6px', zIndex: 1,
+            width: '18px', height: '18px', borderRadius: '50%', display: 'flex',
+            alignItems: 'center', justifyContent: 'center', padding: 0,
+            background: 'rgba(42,20,64,0.85)', color: '#8F79AD',
+            border: '1px solid rgba(255,255,255,0.25)', cursor: 'pointer',
+          }}
+        >
+          <X size={11} />
+        </button>
+      )}
+      {onSelectForSwap && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onSelectForSwap(); }}
+          title={isSelectedForSwap ? 'Klik om te annuleren' : 'Klik, en klik daarna een andere bankspeler aan om van plaats te wisselen'}
+          style={{
+            position: 'absolute', top: '-6px', right: '-6px', zIndex: 1,
+            width: '18px', height: '18px', borderRadius: '50%', display: 'flex',
+            alignItems: 'center', justifyContent: 'center', padding: 0,
+            background: isSelectedForSwap ? '#4ECDC4' : 'rgba(42,20,64,0.85)',
+            color: isSelectedForSwap ? '#0B2E1B' : '#8F79AD',
+            border: `1px solid ${isSelectedForSwap ? '#4ECDC4' : 'rgba(255,255,255,0.25)'}`,
+            cursor: 'pointer',
+          }}
+        >
+          <ArrowUpDown size={10} />
+        </button>
       )}
       <button
         onClick={onToggleBench}
@@ -202,8 +194,8 @@ function PlayerPitchCard({ player, gw, ratings, homeAdvantage, isBenched, isCapt
         style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
           background: 'rgba(255,255,255,0.06)',
-          border: accentActive ? '1px solid #4ECDC4' : '1px solid rgba(255,255,255,0.1)',
-          boxShadow: accentActive ? '0 0 0 1px rgba(78,205,196,0.4)' : 'none',
+          border: isSelectedForSwap ? '1px solid #4ECDC4' : accentActive ? '1px solid #4ECDC4' : '1px solid rgba(255,255,255,0.1)',
+          boxShadow: isSelectedForSwap ? '0 0 0 2px rgba(78,205,196,0.6)' : accentActive ? '0 0 0 1px rgba(78,205,196,0.4)' : 'none',
           borderRadius: '10px', padding: '8px 10px', minWidth: '78px', flexShrink: 0,
           cursor: benchToggleDisabled ? 'not-allowed' : 'pointer',
         }}
@@ -268,7 +260,7 @@ function TransferPlayerCard({ player, highlight }) {
 // spelerslijst — "Bevestig transfer" blijft altijd klikbaar, ook als er een waarschuwing getoond wordt.
 // De OUT/IN-keuze zelf is lokale draft-state (zie bestandscommentaar bovenaan): pas bij "Bevestig
 // transfer" wordt het via onConfirm naar FDRTool.jsx doorgegeven en permanent (localStorage).
-function TransferPanel({ gw, resolvedIndexedPlayers, playerDatabase, playerDatabaseLoading, playerDatabaseError, onConfirm, externalOutIndex, onExternalOutIndexConsumed }) {
+function TransferPanel({ gw, resolvedIndexedPlayers, playerDatabase, playerDatabaseLoading, playerDatabaseError, onConfirm, externalOutIndex, onExternalOutIndexConsumed, onOpenChange }) {
   const [isOpen, setIsOpen] = useState(false);
   const [outIndex, setOutIndex] = useState('');
   const [inPlayer, setInPlayer] = useState(null);
@@ -279,6 +271,13 @@ function TransferPanel({ gw, resolvedIndexedPlayers, playerDatabase, playerDatab
 
   const resetDraft = () => { setOutIndex(''); setInPlayer(null); };
   const handleToggle = () => { setIsOpen(o => !o); resetDraft(); };
+
+  // Meldt de open/dicht-status naar boven — TeamPlannerTab gebruikt dit om de "selecteer als
+  // uitgaande transfer"-kruisjes op de veld-/bankkaartjes enkel te tonen zolang dit paneel open staat
+  // (zie isTransferPanelOpen daar), i.p.v. dat die 15 kruisjes altijd op het scherm staan.
+  useEffect(() => {
+    onOpenChange?.(isOpen);
+  }, [isOpen, onOpenChange]);
 
   // Selecteren als uitgaande transfer via het kruisje op een veld-/bankkaartje (zie TeamPlannerTab
   // hieronder, handleSelectForTransfer) opent dit paneel meteen met die speler al gekozen als OUT —
@@ -432,7 +431,7 @@ export default function TeamPlannerTab({
   teamPlannerResolvedPlayers, teamPlannerTransferHistory, planTeamPlannerTransfer, removeTeamPlannerTransfer,
   handleOptimizeTeamPlannerLineup, teamPlannerOptimized,
   teamPlannerBoosters, toggleTeamPlannerBooster,
-  handleClearTeamPlanner, moveTeamPlannerBenchPlayer,
+  handleClearTeamPlanner, swapTeamPlannerBenchPlayers,
 }) {
   // Enkel gebruikt om "Wis team" te disablen als er toch al niets ingevuld is — voorkomt een zinloze
   // bevestigingsdialoog. Gebaseerd op de echte basisploeg (teamPlannerPlayers), niet op een eventuele
@@ -451,6 +450,29 @@ export default function TeamPlannerTab({
   // geselecteerd is — een "signaal" naar TransferPanel (zie externalOutIndex daar), niet zelf
   // domein-state: null zodra TransferPanel het verwerkt heeft (onExternalOutIndexConsumed).
   const [transferOutIndex, setTransferOutIndex] = useState(null);
+  // Of TransferPanel op dit moment open staat — enkel dan tonen de kruisjes op de veld-/bankkaartjes
+  // zich (zie PlayerPitchCard's onSelectForTransfer hieronder), zodat ze niet altijd op het scherm
+  // staan terwijl er nog niemand een transfer aan het plannen is.
+  const [isTransferPanelOpen, setIsTransferPanelOpen] = useState(false);
+  // Slot-index van de bankspeler die geselecteerd is om van plaats te wisselen — de eerste klik op een
+  // niet-keeper bankkaartje zet dit, een tweede klik op een ANDERE bankspeler voert de wissel uit (zie
+  // handleSelectForSwap hieronder). Reset bij GW-wissel, want een selectie van een andere GW zou anders
+  // een verwarrende, ongerelateerde wissel kunnen veroorzaken.
+  const [benchSwapSlot, setBenchSwapSlot] = useState(null);
+  useEffect(() => {
+    setBenchSwapSlot(null);
+  }, [teamPlannerGw]);
+
+  const handleSelectForSwap = (slotIndex) => {
+    if (benchSwapSlot === null) {
+      setBenchSwapSlot(slotIndex);
+    } else if (benchSwapSlot === slotIndex) {
+      setBenchSwapSlot(null); // nogmaals dezelfde speler aanklikken annuleert de selectie
+    } else {
+      swapTeamPlannerBenchPlayers(benchSwapSlot, slotIndex);
+      setBenchSwapSlot(null);
+    }
+  };
 
   // Activeert Recharge voor de bekeken GW EN leidt de gebruiker meteen naar zijn 15-spelerslijst, waar
   // hij effectief kan bewerken — vouwt die sectie open als ze toevallig dichtgeklapt was. Enkel bij het
@@ -517,7 +539,8 @@ export default function TeamPlannerTab({
   // Bank-volgorde: een gebankte keeper staat altijd vooraan (real-FPL-gedrag), ongeacht zijn positie
   // in benchForGw — de overige (niet-keeper) slots volgen in de door de gebruiker ingestelde volgorde,
   // dus benchForGw.map(...) i.p.v. filter(...) om die bewaarde array-volgorde effectief te tonen (zie
-  // moveTeamPlannerBenchPlayer in FDRTool.jsx, dat enkel de niet-keeper slots herschikt).
+  // swapTeamPlannerBenchPlayers in FDRTool.jsx en handleSelectForSwap hierboven, die enkel de niet-
+  // keeper slots laten wisselen van array-positie).
   const benchPlayersInStoredOrder = benchForGw.map(index => resolvedIndexedPlayers[index]).filter(Boolean);
   const benchOutfieldPlayers = benchPlayersInStoredOrder.filter(p => p.position !== 'GK');
   const benchPlayers = [
@@ -854,6 +877,7 @@ export default function TeamPlannerTab({
             onConfirm={planTeamPlannerTransfer}
             externalOutIndex={transferOutIndex}
             onExternalOutIndexConsumed={() => setTransferOutIndex(null)}
+            onOpenChange={setIsTransferPanelOpen}
           />
 
           {/* Bank-, formatie- en kapiteinsstatus voor de bekeken GW — klik op een speler op het veld/
@@ -972,7 +996,7 @@ export default function TeamPlannerTab({
                         isTripleCaptainActive={isTripleCaptainActive}
                         benchToggleDisabled={benchFull}
                         onToggleBench={() => toggleTeamPlannerBench(player.index)}
-                        onSelectForTransfer={() => setTransferOutIndex(player.index)}
+                        onSelectForTransfer={isTransferPanelOpen ? () => setTransferOutIndex(player.index) : undefined}
                       />
                     ))
                   )}
@@ -1017,17 +1041,14 @@ export default function TeamPlannerTab({
             {benchPlayers.length === 0 ? (
               <p style={{ color: '#6B5289', fontSize: '13px' }}>Nog geen bankspelers voor deze GW. Klik een speler op het veld aan om 'm naar de bank te sturen.</p>
             ) : (
-              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                {benchPlayers.map(player => {
-                  // Enkel niet-keeper bankspelers zijn herschikbaar (zie benchPlayersInStoredOrder/
-                  // moveTeamPlannerBenchPlayer hierboven) — outfieldPos is de positie binnen die
-                  // herschikbare sub-lijst, gebruikt om de op/neer-pijltjes correct te disablen aan
-                  // de randen.
-                  const outfieldPos = player.position !== 'GK'
-                    ? benchOutfieldPlayers.findIndex(p => p.index === player.index)
-                    : -1;
-                  const isReorderable = outfieldPos !== -1;
-                  return (
+              <>
+                {benchOutfieldPlayers.length >= 2 && (
+                  <p style={{ color: '#6B5289', fontSize: '11px', margin: '0 0 8px' }}>
+                    Klik het ⇅-icoontje op 2 bankspelers (niet de keeper) om ze van plaats te wisselen.
+                  </p>
+                )}
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  {benchPlayers.map(player => (
                     <PlayerPitchCard
                       key={player.index}
                       player={player}
@@ -1039,15 +1060,13 @@ export default function TeamPlannerTab({
                       accentActive={isBenchBoostActive}
                       benchToggleDisabled={false}
                       onToggleBench={() => toggleTeamPlannerBench(player.index)}
-                      onSelectForTransfer={() => setTransferOutIndex(player.index)}
-                      onMoveUp={isReorderable ? () => moveTeamPlannerBenchPlayer(player.index, -1) : undefined}
-                      onMoveDown={isReorderable ? () => moveTeamPlannerBenchPlayer(player.index, 1) : undefined}
-                      canMoveUp={isReorderable && outfieldPos > 0}
-                      canMoveDown={isReorderable && outfieldPos < benchOutfieldPlayers.length - 1}
+                      onSelectForTransfer={isTransferPanelOpen ? () => setTransferOutIndex(player.index) : undefined}
+                      onSelectForSwap={player.position !== 'GK' ? () => handleSelectForSwap(player.index) : undefined}
+                      isSelectedForSwap={benchSwapSlot === player.index}
                     />
-                  );
-                })}
-              </div>
+                  ))}
+                </div>
+              </>
             )}
           </div>
         </section>

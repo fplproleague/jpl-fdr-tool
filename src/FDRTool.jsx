@@ -837,25 +837,21 @@ export default function FDRTool() {
     setTeamPlannerBoosters({ benchBoost: null, tripleCaptain: null, recharge: null });
   };
 
-  // Herschikt de bank-volgorde voor de bekeken GW: verwisselt het slot op `slotIndex` met zijn buur
-  // (direction: -1 omhoog, +1 omlaag) BINNEN de niet-keeper slots — een gebankte keeper telt niet mee
-  // in deze volgorde en blijft altijd vooraan staan (zie de bench-weergave in TeamPlannerTab.jsx, die
-  // GK-slots altijd eerst toont, ongeacht hun positie in dit array). Enkel de array-posities van de
-  // twee betrokken NIET-keeper slots wisselen — keeper-slots in het array blijven op hun plek.
-  const moveTeamPlannerBenchPlayer = (slotIndex, direction) => {
+  // Herschikt de bank-volgorde voor de bekeken GW: wisselt de array-posities van de twee gegeven
+  // slots — bedoeld voor "klik 2 bankspelers om te wisselen" in TeamPlannerTab.jsx (handleSelectForSwap).
+  // Een gebankte keeper telt niet mee in deze volgorde en blijft altijd vooraan staan (zie de bench-
+  // weergave in TeamPlannerTab.jsx, die GK-slots altijd eerst toont, ongeacht hun positie in dit
+  // array) — de UI laat een keeper-slot dan ook nooit als swap-kandidaat selecteren, maar deze functie
+  // no-opt defensief als een van beide slots toch niet (meer) gebankt is (bv. een verouderde/dubbel
+  // verwerkte klik).
+  const swapTeamPlannerBenchPlayers = (slotA, slotB) => {
     setTeamPlannerBenchByGw(prev => {
       const current = prev[teamPlannerGw] ?? [];
-      const outfieldPositions = current
-        .map((slot, arrIndex) => ({ slot, arrIndex }))
-        .filter(({ slot }) => TEAM_PLANNER_SLOT_POSITIONS[slot] !== 'GK');
-      const pos = outfieldPositions.findIndex(({ slot }) => slot === slotIndex);
-      if (pos === -1) return prev; // een keeper-slot is niet herschikbaar
-      const swapPos = pos + direction;
-      if (swapPos < 0 || swapPos >= outfieldPositions.length) return prev;
-      const arrIndexA = outfieldPositions[pos].arrIndex;
-      const arrIndexB = outfieldPositions[swapPos].arrIndex;
+      const idxA = current.indexOf(slotA);
+      const idxB = current.indexOf(slotB);
+      if (idxA === -1 || idxB === -1) return prev;
       const updated = [...current];
-      [updated[arrIndexA], updated[arrIndexB]] = [updated[arrIndexB], updated[arrIndexA]];
+      [updated[idxA], updated[idxB]] = [updated[idxB], updated[idxA]];
       return { ...prev, [teamPlannerGw]: updated };
     });
   };
@@ -1316,7 +1312,7 @@ export default function FDRTool() {
             teamPlannerBoosters={teamPlannerBoosters}
             toggleTeamPlannerBooster={toggleTeamPlannerBooster}
             handleClearTeamPlanner={handleClearTeamPlanner}
-            moveTeamPlannerBenchPlayer={moveTeamPlannerBenchPlayer}
+            swapTeamPlannerBenchPlayers={swapTeamPlannerBenchPlayers}
           />
         )}
 
