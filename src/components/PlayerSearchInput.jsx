@@ -18,13 +18,16 @@ const dropdownItemStyle = {
 // Zoekt op elk deel van de naam (case-insensitief), niet enkel het begin — zo vindt "iels" ook
 // "Thielemans". `filterPosition`, indien gezet, beperkt de kandidaten vooraf tot die ene positie
 // (gebruikt door TeamPlannerTab.jsx omdat elk speler-slot daar een vaste, vereiste positie heeft).
-// Maximaal 8 suggesties, zodat de dropdown leesbaar blijft ook bij een erg korte zoekterm.
+// Gesorteerd van duurste naar goedkoopste (los van de volgorde in de bron-sheet) — spelers zonder
+// prijs komen achteraan. Maximaal 8 suggesties, zodat de dropdown leesbaar blijft ook bij een erg
+// korte zoekterm.
 function findMatches(players, query, filterPosition) {
   const trimmed = query.trim().toLowerCase();
   if (!trimmed) return [];
   return players
     .filter(p => !filterPosition || p.position === filterPosition)
     .filter(p => p.name.toLowerCase().includes(trimmed))
+    .sort((a, b) => (b.price ?? -Infinity) - (a.price ?? -Infinity))
     .slice(0, 8);
 }
 
