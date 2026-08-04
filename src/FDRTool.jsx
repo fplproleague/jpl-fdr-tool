@@ -16,16 +16,14 @@ import {
 } from './constants';
 import FDRTab from './tabs/FDRTab';
 import WatchlistTab from './tabs/WatchlistTab';
-import PlayerStatusTab from './tabs/PlayerStatusTab';
 import TeamPlannerTab from './tabs/TeamPlannerTab';
 
 // Tab-navigatie bovenaan de pagina — array-gedreven zodat toekomstige onderdelen naast de FDR-tool
 // gewoon een extra entry kunnen worden.
 const TABS = [
   { key: 'fdr', label: 'FDR' },
+  { key: 'teamplanner', label: 'Team Planner', isNew: true },
   { key: 'watchlist', label: 'Watchlist' },
-  { key: 'playerstatus', label: 'Spelerstatus' },
-  { key: 'teamplanner', label: 'Team Planner' },
   { key: 'pricechanges', label: 'Price Changes' },
 ];
 
@@ -1211,10 +1209,20 @@ export default function FDRTool() {
                 aria-current={isActive ? 'page' : undefined}
                 style={{
                   color: isActive ? '#4ECDC4' : '#C9B8E0',
-                  borderBottom: isActive ? '2px solid #4ECDC4' : '2px solid transparent'
+                  borderBottom: isActive ? '2px solid #4ECDC4' : '2px solid transparent',
+                  display: 'inline-flex', alignItems: 'center', gap: '5px',
                 }}
               >
                 {tab.label}
+                {tab.isNew && (
+                  <span
+                    title="Nieuw"
+                    style={{
+                      width: '6px', height: '6px', borderRadius: '50%',
+                      background: '#4ECDC4', flexShrink: 0,
+                    }}
+                  />
+                )}
               </button>
             );
           })}
@@ -1278,8 +1286,6 @@ export default function FDRTool() {
             fetchPlayerDatabase={fetchPlayerDatabase}
           />
         )}
-
-        {activeTab === 'playerstatus' && <PlayerStatusTab />}
 
         {activeTab === 'teamplanner' && (
           <TeamPlannerTab
