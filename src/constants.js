@@ -126,6 +126,14 @@ export const LAST_UPDATED = '30 juli 2026';
 // hoofdtabel en bepaalt vanaf waar de mini-fixture-strip in de watch list start.
 export const CURRENT_GW = 1;
 
+// Handmatig wekelijks bij te werken (net als LAST_UPDATED/CURRENT_GW) — deadline-tekst per GW, getoond
+// klein/subtiel onder de GW-navigator in Team Planner. Kant-en-klare weergavestring i.p.v. een Date-
+// object, zelfde precedent als LAST_UPDATED (vermijdt tijdzone-gedoe). Lege/ontbrekende GW-waarden
+// tonen simpelweg niks.
+export const GW_DEADLINES = {
+  1: '', 2: '', 3: '', 4: '', 5: '', 6: '', 7: '', 8: '',
+};
+
 // TEAMS is al alfabetisch op code — eenmalig gesorteerde kopie voor UI-lijsten die dat expliciet willen.
 export const TEAMS_ALPHA = [...TEAMS].sort((a, b) => a.code.localeCompare(b.code));
 export const GW_INDEXES = Array.from({ length: GW_COUNT }, (_, i) => i);
@@ -218,3 +226,139 @@ export const sectionTitleStyle = {
   color: '#FFFFFF', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.03em', margin: 0,
   display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap'
 };
+
+// --- Team Planner: spelregels voor de 15-koppige selectie (Fase 1, handmatige invoer) ---
+
+// Positie-volgorde (canoniek — TEAM_PLANNER_SLOT_POSITIONS hieronder en de veld-lay-out in
+// TeamPlannerTab.jsx gebruiken deze volgorde; de veld-lay-out zelf gebruikt lokaal een omgekeerde
+// volgorde daar).
+export const POSITIONS = ['GK', 'DEF', 'MID', 'FWD'];
+
+// Vereist aantal spelers per positie voor een geldige 15-koppige selectie.
+export const POSITION_REQUIREMENTS = { GK: 2, DEF: 5, MID: 5, FWD: 3 };
+
+// Vaste positie per slot-index (0-14): de eerste 2 slots zijn altijd GK, de volgende 5 altijd DEF,
+// enzovoort — POSITION_REQUIREMENTS'  aantallen liggen toch al vast, dus de gebruiker hoeft de
+// positie niet meer zelf te kiezen per speler (voorheen een dropdown in TeamPlannerTab.jsx).
+export const TEAM_PLANNER_SLOT_POSITIONS = POSITIONS.flatMap(pos => Array(POSITION_REQUIREMENTS[pos]).fill(pos));
+
+export const TEAM_PLANNER_SQUAD_SIZE = 15;
+export const TEAM_PLANNER_BUDGET = 100; // in miljoenen, zelfde eenheid als de watchlist-prijzen
+export const TEAM_PLANNER_MAX_PER_CLUB = 3;
+
+// Aantal bankspelers per GW (15 - 11 basisspelers). Bank-samenstelling is per GW instelbaar.
+export const TEAM_PLANNER_BENCH_SIZE = 4;
+
+// Geldige formaties als [DEF, MID, FWD]-telling onder de basisploeg (GK is altijd 1, niet in de tripel).
+export const VALID_FORMATIONS = [
+  [3, 4, 3], [3, 5, 2], [4, 3, 3], [4, 4, 2], [4, 5, 1], [5, 3, 2], [5, 4, 1],
+];
+
+// --- Team Planner: transfers zijn tijdgebonden ---
+// Een transfer op een slot geldt vanaf zijn geplande GW en blijft van kracht voor alle latere GW's,
+// tot een nieuwe transfer op datzelfde slot het opnieuw wijzigt. Het team is dus geen vaste lijst
+// meer, maar per slot een tijdlijn van "wie zit hier vanaf welke GW". Deze ene functie is de enige
+// plek waar die tijdlijn wordt opgelost naar "wie zit hier op GW X" — alle andere code (veld-weergave,
+// transfer-UI, geschiedenis) bouwt hierop voort, zodat er maar één plek is om te controleren/aan te
+// passen als deze regel ooit verandert.
+
+// `transfersForSlot`: array van { gw, player }, één entry per geplande transfer op dit ene slot
+// (player = de speler die vanaf die GW instroomt). Retourneert wie het slot bezet op GW `atGw`: de
+// meest recente transfer met transfer.gw <= atGw, of `basePlayer` (de oorspronkelijke, in GW1
+// ingevulde speler) als er nog geen enkele transfer op of vóór atGw gepland is.
+export function resolveSlotPlayerAtGw(basePlayer, transfersForSlot, atGw) {
+  let current = basePlayer;
+  let currentGw = -Infinity; // basePlayer geldt "vanaf het prille begin", dus altijd eerst overschreven
+  for (const transfer of transfersForSlot) {
+    if (transfer.gw <= atGw && transfer.gw > currentGw) {
+      current = transfer.player;
+      currentGw = transfer.gw;
+    }
+  }
+  return current;
+}
+
+// --- Spelersdatabank (Team Planner): CSV-parsing voor de publieke Google Sheet met alle spelers ---
+// Herbruikbaar voor zowel de initiële 15-koppige teaminvoer (PlayerSearchInput in de spelerstabel)
+// als de latere transfer-functie in Team Planner — vandaar hier i.p.v. lokaal in TeamPlannerTab.jsx.
+// De fetch zelf gebeurt in FDRTool.jsx (state blijft daar, zie het architecturale patroon van de rest
+// van de app); dit bestand bevat enkel de pure parsing-logica.
+
+// Publiek gepubliceerde Google Sheet (CSV-export) met naam/team/positie/prijs van elke speler. De
+// gebruiker werkt deze sheet regelmatig bij tijdens de zomermercato — elke fetch in FDRTool.jsx
+// gebeurt daarom met cache: 'no-store', zodat nooit een verouderde, gecachete versie getoond wordt.
+export const PLAYER_DATABASE_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS_PSoy3cpm-nckncN8C8lmxg0PfxYpANthYfLFccxft2UuBbmCvOa8SXrlwyJkBWUu0ek3QMBsIknU/pub?gid=0&single=true&output=csv';
+
+// Eenvoudige RFC4180-achtige CSV-tokenizer (i.p.v. text.split(',')): velden tussen aanhalingstekens
+// kunnen komma's en regeleindes bevatten, en "" binnen zo'n veld is een ontsnapt aanhalingsteken.
+// Geeft een array van rijen terug, elke rij een array van ruwe (nog niet-getrimde) celwaarden.
+export function parseCsvRows(text) {
+  const rows = [];
+  let row = [];
+  let field = '';
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    if (inQuotes) {
+      if (char === '"') {
+        if (text[i + 1] === '"') { field += '"'; i++; }
+        else inQuotes = false;
+      } else {
+        field += char;
+      }
+    } else if (char === '"') {
+      inQuotes = true;
+    } else if (char === ',') {
+      row.push(field); field = '';
+    } else if (char === '\n') {
+      row.push(field); rows.push(row); row = []; field = '';
+    } else if (char === '\r') {
+      // negeren — \r\n regeleindes worden door de \n-tak hierboven afgehandeld
+    } else {
+      field += char;
+    }
+  }
+  if (field.length > 0 || row.length > 0) { row.push(field); rows.push(row); }
+  return rows;
+}
+
+// Haalt uit een prijscel een plain getal, ongeacht of de sheet "8.5", "8.5M" of "€8.5m" bevat — alles
+// behalve cijfers/punt/min wordt weggegooid vóór het parsen. Geeft null terug bij een lege of
+// onbruikbare waarde, zodat de aanroeper zelf een fallback/weergave ("—") kan kiezen.
+function parsePriceValue(raw) {
+  const cleaned = (raw ?? '').replace(/[^0-9.-]/g, '');
+  if (!cleaned) return null;
+  const value = parseFloat(cleaned);
+  return Number.isFinite(value) ? value : null;
+}
+
+// Zet de ruwe CSV-tekst van de spelersdatabank om naar een array van genormaliseerde speler-
+// objecten ({ name, teamCode, teamName, position, price }). Kolommen worden op hun EXACTE headertekst
+// opgezocht (Name/Team/Position/Price) i.p.v. blind op vaste index, met een index-fallback (0-3) voor
+// het geval een header onverhoopt ontbreekt — zo blijft de parsing ook werken als de kolomvolgorde in
+// de sheet ooit verandert, zolang de 4 headers zelf niet hernoemd worden. Rijen zonder naam (lege of
+// malformed rijen, of de header-rij zelf) worden stilzwijgend genegeerd i.p.v. te crashen.
+export function parsePlayerDatabaseCsv(text) {
+  const rows = parseCsvRows(text).filter(row => row.some(cell => (cell ?? '').trim() !== ''));
+  if (rows.length === 0) return [];
+  const [headerRow, ...dataRows] = rows;
+  const trimmedHeaders = headerRow.map(h => (h ?? '').trim());
+  const columnIndex = (headerName, fallbackIndex) => {
+    const found = trimmedHeaders.indexOf(headerName);
+    return found === -1 ? fallbackIndex : found;
+  };
+  const nameCol = columnIndex('Name', 0);
+  const teamCol = columnIndex('Team', 1);
+  const positionCol = columnIndex('Position', 2);
+  const priceCol = columnIndex('Price', 3);
+
+  return dataRows
+    .map(row => {
+      const name = (row[nameCol] ?? '').trim();
+      const teamCode = (row[teamCol] ?? '').trim().toUpperCase();
+      const position = (row[positionCol] ?? '').trim().toUpperCase();
+      const team = TEAMS.find(t => t.code === teamCode);
+      return { name, teamCode, teamName: team?.name ?? teamCode, position, price: parsePriceValue(row[priceCol]) };
+    })
+    .filter(p => p.name);
+}
