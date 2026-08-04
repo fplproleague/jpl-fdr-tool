@@ -124,11 +124,17 @@ function excludeUsedPlayers(candidates, usedPlayers) {
 // meteen met deze speler al gekozen als OUT, i.p.v. dat de gebruiker 'm nog moet opzoeken in de select.
 // Enkel zichtbaar zolang TransferPanel effectief open staat (onSelectForTransfer is dan pas gezet,
 // zie isTransferPanelOpen) — anders staan er 15 kruisjes op het scherm terwijl er nog niemand aan een
-// transfer denkt. Het verwissel-icoontje rechtsboven (enkel meegegeven voor niet-keeper bankspelers,
-// zie benchPlayers hierboven) selecteert deze speler om van bankplaats te wisselen met een volgende
-// klik op een ANDERE bankspeler — die plek is vrij op bankkaartjes, want daar staat nooit een "C"-badge
-// (isCaptain is er altijd false, een bankspeler kan geen kapitein zijn).
-function PlayerPitchCard({ player, gw, ratings, homeAdvantage, isBenched, isCaptain, isTripleCaptainActive, accentActive, benchToggleDisabled, onToggleBench, onSelectForTransfer, onSelectForSwap, isSelectedForSwap }) {
+// transfer denkt.
+//
+// Bank-herschikken gebeurt NIET via een klein icoontje op de kaart (dat leidde tot per-ongeluk-
+// mistikken naar de onderliggende "terug naar het veld"-knop op mobiel, precies de tiny-target-fout
+// die zoiets veroorzaakt) — in plaats daarvan schakelt "Herschik bank" hieronder de betekenis van de
+// hele kaart-klik zelf om: normaal = terug naar het veld, in herschik-modus = selecteren om te
+// wisselen (onToggleBench/benchToggleDisabled worden dan al door de ouder op de wissel-logica gezet,
+// zie de bench-render hieronder). Zo is er nooit twee gedragingen die om dezelfde krappe tikruimte
+// concurreren: de volledige (ruime) kaart is altijd het enige klikdoel, en de betekenis ervan hangt af
+// van de modus, niet van waar precies je tikt.
+function PlayerPitchCard({ player, gw, ratings, homeAdvantage, isBenched, isCaptain, isTripleCaptainActive, accentActive, benchToggleDisabled, onToggleBench, onSelectForTransfer, benchReorderMode, isSelectedForSwap }) {
   if (!player.name && !player.teamCode) return null;
   const fixture = player.teamCode ? FIXTURES[player.teamCode]?.[gw - 1] : null;
   return (
@@ -165,38 +171,30 @@ function PlayerPitchCard({ player, gw, ratings, homeAdvantage, isBenched, isCapt
           <X size={11} />
         </button>
       )}
-      {onSelectForSwap && (
-        <button
-          onClick={(e) => { e.stopPropagation(); onSelectForSwap(); }}
-          title={isSelectedForSwap ? 'Klik om te annuleren' : 'Klik, en klik daarna een andere bankspeler aan om van plaats te wisselen'}
-          style={{
-            position: 'absolute', top: '-6px', right: '-6px', zIndex: 1,
-            width: '18px', height: '18px', borderRadius: '50%', display: 'flex',
-            alignItems: 'center', justifyContent: 'center', padding: 0,
-            background: isSelectedForSwap ? '#4ECDC4' : 'rgba(42,20,64,0.85)',
-            color: isSelectedForSwap ? '#0B2E1B' : '#8F79AD',
-            border: `1px solid ${isSelectedForSwap ? '#4ECDC4' : 'rgba(255,255,255,0.25)'}`,
-            cursor: 'pointer',
-          }}
-        >
-          <ArrowUpDown size={10} />
-        </button>
-      )}
       <button
         onClick={onToggleBench}
         disabled={benchToggleDisabled}
         className="fdr-pitch-card"
         title={
-          isBenched ? 'Klik om terug naar het veld te zetten'
+          isBenched
+            ? (benchReorderMode
+                ? (benchToggleDisabled ? 'Doelmannen kunnen niet van bankplaats wisselen'
+                    : isSelectedForSwap ? 'Klik om te annuleren'
+                      : 'Klik, en klik daarna een andere bankspeler aan om van plaats te wisselen')
+                : 'Klik om terug naar het veld te zetten')
             : benchToggleDisabled ? `Bank is al vol (${TEAM_PLANNER_BENCH_SIZE}/${TEAM_PLANNER_BENCH_SIZE}) voor GW${gw}`
               : 'Klik om naar de bank te sturen'
         }
         style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
           background: 'rgba(255,255,255,0.06)',
-          border: isSelectedForSwap ? '1px solid #4ECDC4' : accentActive ? '1px solid #4ECDC4' : '1px solid rgba(255,255,255,0.1)',
+          border: isSelectedForSwap ? '1px solid #4ECDC4' : accentActive ? '1px solid #4ECDC4' : benchReorderMode && !benchToggleDisabled ? '1px dashed rgba(78,205,196,0.5)' : '1px solid rgba(255,255,255,0.1)',
           boxShadow: isSelectedForSwap ? '0 0 0 2px rgba(78,205,196,0.6)' : accentActive ? '0 0 0 1px rgba(78,205,196,0.4)' : 'none',
           borderRadius: '10px', padding: '8px 10px', minWidth: '78px', flexShrink: 0,
+          // Gedimd wanneer niet-klikbaar (bv. de keeper tijdens herschik-modus) — maakt in één oogopslag
+          // duidelijk dat deze kaart nu geen wisselkandidaat is, i.p.v. dat de gebruiker het pas merkt
+          // na een klik die niets doet.
+          opacity: benchToggleDisabled ? 0.45 : 1,
           cursor: benchToggleDisabled ? 'not-allowed' : 'pointer',
         }}
       >
@@ -454,14 +452,23 @@ export default function TeamPlannerTab({
   // zich (zie PlayerPitchCard's onSelectForTransfer hieronder), zodat ze niet altijd op het scherm
   // staan terwijl er nog niemand een transfer aan het plannen is.
   const [isTransferPanelOpen, setIsTransferPanelOpen] = useState(false);
+  // Herschik-modus voor de bank: staat UIT tenzij expliciet aangezet via de "Herschik bank"-knop bij
+  // de bank-sectie hieronder. Zolang UIT, doet een klik op een bankkaartje wat het altijd deed (terug
+  // naar het veld). Zolang AAN, doet diezelfde kaart-klik iets anders (selecteren om te wisselen) en
+  // is "terug naar het veld" tijdelijk niet mogelijk — bewust zo, want een klein apart icoontje voor
+  // "selecteer om te wisselen" bleek op mobiel makkelijk mis te tikken naar de onderliggende "terug
+  // naar het veld"-knop ernaast. Door i.p.v. daarvan de betekenis van de VOLLEDIGE (ruime) kaart-klik
+  // te laten afhangen van een expliciete modus, is er nooit twijfel over wat een tik zal doen.
+  const [isBenchReorderMode, setIsBenchReorderMode] = useState(false);
   // Slot-index van de bankspeler die geselecteerd is om van plaats te wisselen — de eerste klik op een
-  // niet-keeper bankkaartje zet dit, een tweede klik op een ANDERE bankspeler voert de wissel uit (zie
-  // handleSelectForSwap hieronder). Reset bij GW-wissel, want een selectie van een andere GW zou anders
-  // een verwarrende, ongerelateerde wissel kunnen veroorzaken.
+  // niet-keeper bankkaartje (in herschik-modus) zet dit, een tweede klik op een ANDERE bankspeler
+  // voert de wissel uit (zie handleSelectForSwap hieronder). Reset bij GW-wissel of het verlaten van
+  // herschik-modus, want een oude selectie zou anders een verwarrende, ongerelateerde wissel kunnen
+  // veroorzaken.
   const [benchSwapSlot, setBenchSwapSlot] = useState(null);
   useEffect(() => {
     setBenchSwapSlot(null);
-  }, [teamPlannerGw]);
+  }, [teamPlannerGw, isBenchReorderMode]);
 
   const handleSelectForSwap = (slotIndex) => {
     if (benchSwapSlot === null) {
@@ -1014,15 +1021,36 @@ export default function TeamPlannerTab({
                 Bank — GW{teamPlannerGw}
               </h3>
               {/* Herbouwt de bank voor de bekeken GW op basis van de moeilijkste fixtures — zie
-                  optimizeTeamPlannerLineup in FDRTool.jsx. flexWrap op de ouder-rij hierboven zorgt dat
-                  deze knop op erg smalle schermen netjes onder de kop uitvalt i.p.v. iets af te knijpen. */}
-              <button onClick={handleOptimizeTeamPlannerLineup} style={{
-                display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'transparent',
-                color: '#4ECDC4', border: '1px solid #4ECDC4', borderRadius: '8px',
-                padding: '6px 12px', fontWeight: 700, fontSize: '12px', cursor: 'pointer', flexShrink: 0,
-              }}>
-                <Wand2 size={14} /> Optimaliseer opstelling
-              </button>
+                  optimizeTeamPlannerLineup in FDRTool.jsx. "Herschik bank" schakelt de betekenis van
+                  een klik op een bankkaartje om (zie isBenchReorderMode/PlayerPitchCard hierboven) —
+                  géén klein icoontje op de kaart zelf, want dat bleek op mobiel makkelijk mis te tikken
+                  naar de onderliggende "terug naar het veld"-knop. flexWrap op de ouder-rij hierboven
+                  zorgt dat deze knoppen op erg smalle schermen netjes onder de kop uitvallen i.p.v.
+                  iets af te knijpen. */}
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => setIsBenchReorderMode(o => !o)}
+                  disabled={benchOutfieldPlayers.length < 2}
+                  title={benchOutfieldPlayers.length < 2 ? 'Minstens 2 niet-keeper bankspelers nodig om te herschikken' : undefined}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '6px',
+                    background: isBenchReorderMode ? '#4ECDC4' : 'transparent',
+                    color: isBenchReorderMode ? '#0B2E1B' : benchOutfieldPlayers.length < 2 ? '#5A4A72' : '#4ECDC4',
+                    border: `1px solid ${isBenchReorderMode ? '#4ECDC4' : benchOutfieldPlayers.length < 2 ? 'rgba(255,255,255,0.15)' : '#4ECDC4'}`,
+                    borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px',
+                    cursor: benchOutfieldPlayers.length < 2 ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  <ArrowUpDown size={14} /> {isBenchReorderMode ? 'Klaar met herschikken' : 'Herschik bank'}
+                </button>
+                <button onClick={handleOptimizeTeamPlannerLineup} style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'transparent',
+                  color: '#4ECDC4', border: '1px solid #4ECDC4', borderRadius: '8px',
+                  padding: '6px 12px', fontWeight: 700, fontSize: '12px', cursor: 'pointer', flexShrink: 0,
+                }}>
+                  <Wand2 size={14} /> Optimaliseer opstelling
+                </button>
+              </div>
             </div>
             {teamPlannerOptimized && (
               <p style={{ color: '#4ECDC4', fontSize: '12px', margin: '0 0 10px' }}>
@@ -1038,17 +1066,18 @@ export default function TeamPlannerTab({
                 <Zap size={14} /> Bankzitters actief voor GW{teamPlannerGw} — bankspelers tellen mee.
               </div>
             )}
+            {isBenchReorderMode && (
+              <p style={{ color: '#4ECDC4', fontSize: '11px', margin: '0 0 8px' }}>
+                Herschik-modus actief: klik een bankspeler (niet de keeper) aan, en daarna een andere, om ze van plaats te wisselen.
+              </p>
+            )}
             {benchPlayers.length === 0 ? (
               <p style={{ color: '#6B5289', fontSize: '13px' }}>Nog geen bankspelers voor deze GW. Klik een speler op het veld aan om 'm naar de bank te sturen.</p>
             ) : (
-              <>
-                {benchOutfieldPlayers.length >= 2 && (
-                  <p style={{ color: '#6B5289', fontSize: '11px', margin: '0 0 8px' }}>
-                    Klik het ⇅-icoontje op 2 bankspelers (niet de keeper) om ze van plaats te wisselen.
-                  </p>
-                )}
-                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                  {benchPlayers.map(player => (
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                {benchPlayers.map(player => {
+                  const isGkCard = player.position === 'GK';
+                  return (
                     <PlayerPitchCard
                       key={player.index}
                       player={player}
@@ -1058,15 +1087,19 @@ export default function TeamPlannerTab({
                       isBenched
                       isCaptain={false}
                       accentActive={isBenchBoostActive}
-                      benchToggleDisabled={false}
-                      onToggleBench={() => toggleTeamPlannerBench(player.index)}
+                      benchToggleDisabled={isBenchReorderMode && isGkCard}
+                      onToggleBench={
+                        isBenchReorderMode
+                          ? (isGkCard ? undefined : () => handleSelectForSwap(player.index))
+                          : () => toggleTeamPlannerBench(player.index)
+                      }
                       onSelectForTransfer={isTransferPanelOpen ? () => setTransferOutIndex(player.index) : undefined}
-                      onSelectForSwap={player.position !== 'GK' ? () => handleSelectForSwap(player.index) : undefined}
+                      benchReorderMode={isBenchReorderMode}
                       isSelectedForSwap={benchSwapSlot === player.index}
                     />
-                  ))}
-                </div>
-              </>
+                  );
+                })}
+              </div>
             )}
           </div>
         </section>
