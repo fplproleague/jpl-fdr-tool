@@ -542,7 +542,6 @@ export default function TeamPlannerTab({
   const captainForGw = teamPlannerCaptainByGw[teamPlannerGw];
   const benchCount = benchForGw.length;
   const isBenchComplete = benchCount === TEAM_PLANNER_BENCH_SIZE;
-  const benchFull = benchCount >= TEAM_PLANNER_BENCH_SIZE;
   // Bank-volgorde: een gebankte keeper staat altijd vooraan (real-FPL-gedrag), ongeacht zijn positie
   // in benchForGw — de overige (niet-keeper) slots volgen in de door de gebruiker ingestelde volgorde,
   // dus benchForGw.map(...) i.p.v. filter(...) om die bewaarde array-volgorde effectief te tonen (zie
@@ -1001,7 +1000,6 @@ export default function TeamPlannerTab({
                         isBenched={false}
                         isCaptain={captainForGw === player.index}
                         isTripleCaptainActive={isTripleCaptainActive}
-                        benchToggleDisabled={benchFull}
                         onToggleBench={() => toggleTeamPlannerBench(player.index)}
                         onSelectForTransfer={isTransferPanelOpen ? () => setTransferOutIndex(player.index) : undefined}
                       />
