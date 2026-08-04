@@ -10,7 +10,7 @@
 import { useState, useRef, useEffect } from 'react';
 import {
   Users, Shirt, ChevronLeft, ChevronRight, Loader2, AlertCircle, RotateCcw,
-  ArrowLeftRight, ArrowRight, X, Wand2, Armchair, Zap, Star, RefreshCw,
+  ArrowLeftRight, ArrowRight, X, Wand2, Armchair, Zap, Star, RefreshCw, Trash2, ChevronUp, ChevronDown,
 } from 'lucide-react';
 import {
   TEAMS, FIXTURES, GW_COUNT, GW_DEADLINES,
@@ -37,9 +37,9 @@ const retryButtonStyle = {
   borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px', cursor: 'pointer',
 };
 
-// Alleen voor de veld-weergave hieronder — GK onderaan, FWD bovenaan (omgekeerd van POSITIONS,
-// dat de canonieke volgorde voor het formulier en de positie-telling levert).
-const PITCH_ROW_ORDER = ['FWD', 'MID', 'DEF', 'GK'];
+// Alleen voor de veld-weergave hieronder — GK bovenaan, FWD onderaan, zoals de echte FPL-app (gelijk
+// aan POSITIONS, de canonieke volgorde voor het formulier en de positie-telling).
+const PITCH_ROW_ORDER = ['GK', 'DEF', 'MID', 'FWD'];
 
 // Kleurstaat voor een "x/y"-telling: compleet (teal), te vol (rood, zelfde rood als elders in de app
 // voor "moeilijkst"/waarschuwingen), nog te kort (neutraal gedempt — geen waarschuwingskleur, want
@@ -122,7 +122,10 @@ function excludeUsedPlayers(candidates, usedPlayers) {
 // Het kruisje linksboven (onSelectForTransfer) selecteert deze speler als uitgaande transfer — zie
 // transferOutIndex/handleSelectForTransfer in het hoofdcomponent hieronder: dat opent TransferPanel
 // meteen met deze speler al gekozen als OUT, i.p.v. dat de gebruiker 'm nog moet opzoeken in de select.
-function PlayerPitchCard({ player, gw, ratings, homeAdvantage, isBenched, isCaptain, isTripleCaptainActive, accentActive, benchToggleDisabled, onToggleBench, onSelectForTransfer }) {
+// De pijltjes rechtsboven (enkel meegegeven voor niet-keeper bankspelers, zie benchPlayers hierboven)
+// herschikken de bank-volgorde — die plek is vrij op bankkaartjes, want daar staat nooit een "C"-badge
+// (isCaptain is er altijd false, een bankspeler kan geen kapitein zijn).
+function PlayerPitchCard({ player, gw, ratings, homeAdvantage, isBenched, isCaptain, isTripleCaptainActive, accentActive, benchToggleDisabled, onToggleBench, onSelectForTransfer, onMoveUp, onMoveDown, canMoveUp, canMoveDown }) {
   if (!player.name && !player.teamCode) return null;
   const fixture = player.teamCode ? FIXTURES[player.teamCode]?.[gw - 1] : null;
   return (
@@ -157,6 +160,36 @@ function PlayerPitchCard({ player, gw, ratings, homeAdvantage, isBenched, isCapt
       >
         <X size={11} />
       </button>
+      {(onMoveUp || onMoveDown) && (
+        <div style={{ position: 'absolute', top: '-6px', right: '-6px', zIndex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          <button
+            onClick={(e) => { e.stopPropagation(); onMoveUp(); }}
+            disabled={!canMoveUp}
+            title="Naar boven in de bank-volgorde"
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', width: '16px', height: '13px',
+              borderRadius: '4px', padding: 0, background: 'rgba(42,20,64,0.85)',
+              color: canMoveUp ? '#C9B8E0' : '#5A4A72', border: '1px solid rgba(255,255,255,0.25)',
+              cursor: canMoveUp ? 'pointer' : 'not-allowed',
+            }}
+          >
+            <ChevronUp size={10} />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onMoveDown(); }}
+            disabled={!canMoveDown}
+            title="Naar onder in de bank-volgorde"
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', width: '16px', height: '13px',
+              borderRadius: '4px', padding: 0, background: 'rgba(42,20,64,0.85)',
+              color: canMoveDown ? '#C9B8E0' : '#5A4A72', border: '1px solid rgba(255,255,255,0.25)',
+              cursor: canMoveDown ? 'pointer' : 'not-allowed',
+            }}
+          >
+            <ChevronDown size={10} />
+          </button>
+        </div>
+      )}
       <button
         onClick={onToggleBench}
         disabled={benchToggleDisabled}
@@ -399,7 +432,13 @@ export default function TeamPlannerTab({
   teamPlannerResolvedPlayers, teamPlannerTransferHistory, planTeamPlannerTransfer, removeTeamPlannerTransfer,
   handleOptimizeTeamPlannerLineup, teamPlannerOptimized,
   teamPlannerBoosters, toggleTeamPlannerBooster,
+  handleClearTeamPlanner, moveTeamPlannerBenchPlayer,
 }) {
+  // Enkel gebruikt om "Wis team" te disablen als er toch al niets ingevuld is — voorkomt een zinloze
+  // bevestigingsdialoog. Gebaseerd op de echte basisploeg (teamPlannerPlayers), niet op een eventuele
+  // Recharge-draft.
+  const isRosterEmpty = teamPlannerPlayers.every(p => !p.name);
+
   // Recharge-bewerking (booster, zie FDRTool.jsx): tijdelijke, niet-bevestigde bewerking van de 15
   // spelers zoals ze op de bekeken GW spelen — vergelijkbaar met TransferPanel's OUT/IN-draft
   // hierboven (bestandscommentaar bovenaan), dus bewust lokale state i.p.v. domein-state in
@@ -475,7 +514,16 @@ export default function TeamPlannerTab({
   const benchCount = benchForGw.length;
   const isBenchComplete = benchCount === TEAM_PLANNER_BENCH_SIZE;
   const benchFull = benchCount >= TEAM_PLANNER_BENCH_SIZE;
-  const benchPlayers = resolvedIndexedPlayers.filter(p => benchForGw.includes(p.index));
+  // Bank-volgorde: een gebankte keeper staat altijd vooraan (real-FPL-gedrag), ongeacht zijn positie
+  // in benchForGw — de overige (niet-keeper) slots volgen in de door de gebruiker ingestelde volgorde,
+  // dus benchForGw.map(...) i.p.v. filter(...) om die bewaarde array-volgorde effectief te tonen (zie
+  // moveTeamPlannerBenchPlayer in FDRTool.jsx, dat enkel de niet-keeper slots herschikt).
+  const benchPlayersInStoredOrder = benchForGw.map(index => resolvedIndexedPlayers[index]).filter(Boolean);
+  const benchOutfieldPlayers = benchPlayersInStoredOrder.filter(p => p.position !== 'GK');
+  const benchPlayers = [
+    ...benchPlayersInStoredOrder.filter(p => p.position === 'GK'),
+    ...benchOutfieldPlayers,
+  ];
 
   // Kandidaten voor de kapitein-dropdown: enkel basisspelers (niet gebankt) die al iets ingevuld
   // hebben — een volledig leeg slot heeft niets om kapitein van te maken.
@@ -551,7 +599,27 @@ export default function TeamPlannerTab({
             background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
             borderRadius: '10px', padding: '16px', marginBottom: '20px'
           }}>
-            <SectionHeader icon={Users} title="Mijn 15 spelers" sectionKey="teamPlannerRoster" isOpen={openSections.teamPlannerRoster} onToggle={toggleSection} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              {/* SectionHeader is zelf al een <button> (toggle voor in-/uitklappen) — "Wis team" moet
+                  daarom een sibling zijn, geen kind, anders geeft dat ongeldige geneste <button>'s. */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <SectionHeader icon={Users} title="Mijn 15 spelers" sectionKey="teamPlannerRoster" isOpen={openSections.teamPlannerRoster} onToggle={toggleSection} />
+              </div>
+              <button
+                onClick={handleClearTeamPlanner}
+                disabled={isRosterEmpty}
+                title={isRosterEmpty ? 'Team is al leeg' : 'Wis je volledige 15-koppige selectie'}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0,
+                  background: 'transparent', color: isRosterEmpty ? '#5A4A72' : '#C2402C',
+                  border: `1px solid ${isRosterEmpty ? 'rgba(255,255,255,0.15)' : 'rgba(194,64,44,0.4)'}`,
+                  borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px',
+                  cursor: isRosterEmpty ? 'not-allowed' : 'pointer', marginBottom: '12px',
+                }}
+              >
+                <Trash2 size={13} /> Wis team
+              </button>
+            </div>
             {openSections.teamPlannerRoster && (
               <>
                 {/* Recharge-booster (zie FDRTool.jsx): laat de gebruiker het volledige team op de bekeken
@@ -950,21 +1018,35 @@ export default function TeamPlannerTab({
               <p style={{ color: '#6B5289', fontSize: '13px' }}>Nog geen bankspelers voor deze GW. Klik een speler op het veld aan om 'm naar de bank te sturen.</p>
             ) : (
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                {benchPlayers.map(player => (
-                  <PlayerPitchCard
-                    key={player.index}
-                    player={player}
-                    gw={teamPlannerGw}
-                    ratings={ratings}
-                    homeAdvantage={homeAdvantage}
-                    isBenched
-                    isCaptain={false}
-                    accentActive={isBenchBoostActive}
-                    benchToggleDisabled={false}
-                    onToggleBench={() => toggleTeamPlannerBench(player.index)}
-                    onSelectForTransfer={() => setTransferOutIndex(player.index)}
-                  />
-                ))}
+                {benchPlayers.map(player => {
+                  // Enkel niet-keeper bankspelers zijn herschikbaar (zie benchPlayersInStoredOrder/
+                  // moveTeamPlannerBenchPlayer hierboven) — outfieldPos is de positie binnen die
+                  // herschikbare sub-lijst, gebruikt om de op/neer-pijltjes correct te disablen aan
+                  // de randen.
+                  const outfieldPos = player.position !== 'GK'
+                    ? benchOutfieldPlayers.findIndex(p => p.index === player.index)
+                    : -1;
+                  const isReorderable = outfieldPos !== -1;
+                  return (
+                    <PlayerPitchCard
+                      key={player.index}
+                      player={player}
+                      gw={teamPlannerGw}
+                      ratings={ratings}
+                      homeAdvantage={homeAdvantage}
+                      isBenched
+                      isCaptain={false}
+                      accentActive={isBenchBoostActive}
+                      benchToggleDisabled={false}
+                      onToggleBench={() => toggleTeamPlannerBench(player.index)}
+                      onSelectForTransfer={() => setTransferOutIndex(player.index)}
+                      onMoveUp={isReorderable ? () => moveTeamPlannerBenchPlayer(player.index, -1) : undefined}
+                      onMoveDown={isReorderable ? () => moveTeamPlannerBenchPlayer(player.index, 1) : undefined}
+                      canMoveUp={isReorderable && outfieldPos > 0}
+                      canMoveDown={isReorderable && outfieldPos < benchOutfieldPlayers.length - 1}
+                    />
+                  );
+                })}
               </div>
             )}
           </div>

@@ -824,6 +824,42 @@ export default function FDRTool() {
     });
   };
 
+  // Wist de volledige 15-koppige selectie EN alle daaraan gekoppelde state (bank/kapitein per GW,
+  // transfer-tijdlijn, boosters) — anders zou die achterblijven en verwijzen naar nu-lege slots (bv.
+  // "GW3 kapitein = slot 5" terwijl slot 5 leeg is). Bevestiging via window.confirm, want dit is niet
+  // ongedaan te maken.
+  const handleClearTeamPlanner = () => {
+    if (!window.confirm("Weet je zeker dat je je volledige team wilt wissen? Bank, kapitein, transfers en boosters voor alle GW's worden ook gereset.")) return;
+    setTeamPlannerPlayers(createEmptyTeamPlannerPlayers());
+    setTeamPlannerBenchByGw({});
+    setTeamPlannerCaptainByGw({});
+    setTeamPlannerTransfersBySlot({});
+    setTeamPlannerBoosters({ benchBoost: null, tripleCaptain: null, recharge: null });
+  };
+
+  // Herschikt de bank-volgorde voor de bekeken GW: verwisselt het slot op `slotIndex` met zijn buur
+  // (direction: -1 omhoog, +1 omlaag) BINNEN de niet-keeper slots — een gebankte keeper telt niet mee
+  // in deze volgorde en blijft altijd vooraan staan (zie de bench-weergave in TeamPlannerTab.jsx, die
+  // GK-slots altijd eerst toont, ongeacht hun positie in dit array). Enkel de array-posities van de
+  // twee betrokken NIET-keeper slots wisselen — keeper-slots in het array blijven op hun plek.
+  const moveTeamPlannerBenchPlayer = (slotIndex, direction) => {
+    setTeamPlannerBenchByGw(prev => {
+      const current = prev[teamPlannerGw] ?? [];
+      const outfieldPositions = current
+        .map((slot, arrIndex) => ({ slot, arrIndex }))
+        .filter(({ slot }) => TEAM_PLANNER_SLOT_POSITIONS[slot] !== 'GK');
+      const pos = outfieldPositions.findIndex(({ slot }) => slot === slotIndex);
+      if (pos === -1) return prev; // een keeper-slot is niet herschikbaar
+      const swapPos = pos + direction;
+      if (swapPos < 0 || swapPos >= outfieldPositions.length) return prev;
+      const arrIndexA = outfieldPositions[pos].arrIndex;
+      const arrIndexB = outfieldPositions[swapPos].arrIndex;
+      const updated = [...current];
+      [updated[arrIndexA], updated[arrIndexB]] = [updated[arrIndexB], updated[arrIndexA]];
+      return { ...prev, [teamPlannerGw]: updated };
+    });
+  };
+
   return (
     <div style={{ minHeight: '100vh', background: '#2A1440', fontFamily: "'Archivo', 'Arial Black', sans-serif", position: 'relative' }}>
       <style>{`
@@ -1279,6 +1315,8 @@ export default function FDRTool() {
             teamPlannerOptimized={teamPlannerOptimized}
             teamPlannerBoosters={teamPlannerBoosters}
             toggleTeamPlannerBooster={toggleTeamPlannerBooster}
+            handleClearTeamPlanner={handleClearTeamPlanner}
+            moveTeamPlannerBenchPlayer={moveTeamPlannerBenchPlayer}
           />
         )}
 
