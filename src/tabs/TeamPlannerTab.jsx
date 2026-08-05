@@ -24,7 +24,7 @@ import { TeamScreenshotUpload } from './TeamScreenshotUpload';
 
 const teamPlannerInputStyle = {
   background: '#3D1E5C', color: '#FFF', border: '1px solid rgba(255,255,255,0.15)',
-  borderRadius: '6px', padding: '6px 8px', fontSize: '13px', width: '70%'
+  borderRadius: '6px', padding: '6px 8px', fontSize: '13px', width: '30%'
 };
 
 const thStyle = {
