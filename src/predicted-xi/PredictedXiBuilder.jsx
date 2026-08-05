@@ -120,11 +120,12 @@ export default function PredictedXiBuilder() {
         return [...prev, {
           line: '_unassigned', role: player.position, broadPosition: player.position,
           xPercent: 0, yPercent: 0,
-          playerName: player.name, playerTeamCode: player.teamCode, playerPosition: player.position, safety: 'green',
+          playerName: player.name, playerTeamCode: player.teamCode, playerPosition: player.position,
+          playerPrice: player.price ?? null, safety: 'green',
         }];
       }
       return prev.map((s, i) => (i === targetIndex
-        ? { ...s, playerName: player.name, playerTeamCode: player.teamCode, playerPosition: player.position, safety: s.safety || 'green' }
+        ? { ...s, playerName: player.name, playerTeamCode: player.teamCode, playerPosition: player.position, playerPrice: player.price ?? null, safety: s.safety || 'green' }
         : s));
     });
     setActiveSlotIndex(null);
@@ -135,7 +136,7 @@ export default function PredictedXiBuilder() {
       const slot = prev[index];
       if (slot.line === '_unassigned') return prev.filter((_, i) => i !== index);
       return prev.map((s, i) => (i === index
-        ? { ...s, playerName: '', playerTeamCode: '', playerPosition: '', safety: 'green' }
+        ? { ...s, playerName: '', playerTeamCode: '', playerPosition: '', playerPrice: null, safety: 'green' }
         : s));
     });
   }
@@ -157,12 +158,19 @@ export default function PredictedXiBuilder() {
     if (Number.isNaN(sourceIndex) || sourceIndex === targetIndex) return;
     setSlots(prev => {
       const next = [...prev];
-      const sourceFields = { playerName: prev[sourceIndex].playerName, playerTeamCode: prev[sourceIndex].playerTeamCode, playerPosition: prev[sourceIndex].playerPosition, safety: prev[sourceIndex].safety };
-      const targetFields = { playerName: prev[targetIndex].playerName, playerTeamCode: prev[targetIndex].playerTeamCode, playerPosition: prev[targetIndex].playerPosition, safety: prev[targetIndex].safety };
+      const sourceFields = { playerName: prev[sourceIndex].playerName, playerTeamCode: prev[sourceIndex].playerTeamCode, playerPosition: prev[sourceIndex].playerPosition, playerPrice: prev[sourceIndex].playerPrice, safety: prev[sourceIndex].safety };
+      const targetFields = { playerName: prev[targetIndex].playerName, playerTeamCode: prev[targetIndex].playerTeamCode, playerPosition: prev[targetIndex].playerPosition, playerPrice: prev[targetIndex].playerPrice, safety: prev[targetIndex].safety };
       next[sourceIndex] = { ...prev[sourceIndex], ...targetFields };
       next[targetIndex] = { ...prev[targetIndex], ...sourceFields };
       return next;
     });
+  }
+
+  // Vrij verslepen: loslaten ergens op het veld (niet bovenop een ander kaartje — dat blijft de
+  // wissel-logica hierboven, want PitchSlot's eigen onDrop stopt propagatie) verplaatst het kaartje
+  // gewoon naar die exacte plek, los van de formatie-rasterpositie.
+  function handlePitchDrop(index, xPercent, yPercent) {
+    setSlots(prev => prev.map((s, i) => (i === index ? { ...s, xPercent, yPercent } : s)));
   }
 
   // --- Autosave: elke wijziging aan de open lineup wordt bewaard. Een volledig lege, nooit-aangeraakte
@@ -312,6 +320,7 @@ export default function PredictedXiBuilder() {
               onDragStart={handleDragStart}
               onDragOver={handleDragOver}
               onDrop={handleDrop}
+              onPitchDrop={handlePitchDrop}
             />
 
             {unassigned.length > 0 && (
@@ -330,7 +339,7 @@ export default function PredictedXiBuilder() {
                           const newTarget = findFirstEmptySlotIndex(withoutPlayer, s.broadPosition);
                           if (newTarget === -1) return prev;
                           return withoutPlayer.map((slot, i) => (i === newTarget
-                            ? { ...slot, playerName: player.playerName, playerTeamCode: player.playerTeamCode, playerPosition: player.playerPosition, safety: player.safety }
+                            ? { ...slot, playerName: player.playerName, playerTeamCode: player.playerTeamCode, playerPosition: player.playerPosition, playerPrice: player.playerPrice, safety: player.safety }
                             : slot));
                         });
                       }}

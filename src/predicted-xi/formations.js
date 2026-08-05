@@ -73,7 +73,7 @@ export const DEFAULT_FORMATION_KEY = '4-3-3';
 // Slot dat nog geen speler bevat — playerName === '' is de "leeg"-conventie (zelfde patroon als
 // createEmptyTeamPlannerPlayers() in FDRTool.jsx), nooit null: elke array-index is altijd een object.
 function emptySlotFields() {
-  return { playerName: '', playerTeamCode: '', playerPosition: '', safety: 'green' };
+  return { playerName: '', playerTeamCode: '', playerPosition: '', playerPrice: null, safety: 'green' };
 }
 
 // Zet een formatie om in een platte, renderbare lijst — xPercent wordt hier afgeleid (niet opgeslagen
@@ -118,6 +118,7 @@ export function remapLineupToFormation(currentSlots, newFormationKey) {
       slot.playerName = player.playerName;
       slot.playerTeamCode = player.playerTeamCode;
       slot.playerPosition = player.playerPosition;
+      slot.playerPrice = player.playerPrice;
       slot.safety = player.safety;
     }
   });
@@ -128,7 +129,7 @@ export function remapLineupToFormation(currentSlots, newFormationKey) {
       line: '_unassigned', role: slot.playerPosition, broadPosition: slot.broadPosition,
       xPercent: 0, yPercent: 0,
       playerName: slot.playerName, playerTeamCode: slot.playerTeamCode,
-      playerPosition: slot.playerPosition, safety: slot.safety,
+      playerPosition: slot.playerPosition, playerPrice: slot.playerPrice, safety: slot.safety,
     }));
 
   return [...newSlots, ...unassigned];

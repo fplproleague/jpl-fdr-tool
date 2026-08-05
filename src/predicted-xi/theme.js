@@ -26,7 +26,7 @@ export const PITCH_GRADIENT = 'linear-gradient(180deg, #1F7A4D 0%, #16532F 100%)
 
 // Watermerk-tekst, zelfde stijl als de bestaande FDR-export (handleDownloadImage, FDRTool.jsx) — deze
 // beelden worden publiek op het @fpl_proleague-account gepost, consistente branding is dus zinvol.
-export const WATERMARK_TEXT = '@fpl_proleague';
+export const WATERMARK_TEXT = 'Siebe x @fpl_proleague';
 export const WATERMARK_FONT = 'bold 26px Archivo, Arial, sans-serif';
 export const WATERMARK_COLOR = '#4ECDC4';
 export const EXPORT_BACKGROUND = '#2A1440';
