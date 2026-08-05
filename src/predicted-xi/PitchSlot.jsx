@@ -39,9 +39,13 @@ export default function PitchSlot({
                 background: safety.badgeBg, border: '1px solid rgba(255,255,255,0.5)', cursor: 'pointer',
               }}
             />
+            {/* pxi-no-export: enkel een bewerk-knop, mag nooit op de geëxporteerde afbeelding staan —
+                exportImage.js sluit dit element expliciet uit via html2canvas's ignoreElements, dus dit
+                blijft onafhankelijk van React-rendertiming gegarandeerd verborgen op de export. */}
             <button
               onClick={(e) => { e.stopPropagation(); onRemove(index); }}
               title="Verwijder speler"
+              className="pxi-no-export"
               style={{
                 position: 'absolute', top: '-6px', left: '-6px', zIndex: 1,
                 width: '18px', height: '18px', borderRadius: '50%', display: 'flex',
