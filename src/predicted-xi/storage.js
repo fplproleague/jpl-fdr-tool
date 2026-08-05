@@ -3,7 +3,7 @@
 // FDRTool.jsx): een versie-key, een defensieve loader die elk veld valideert en op een veilige fallback
 // terugvalt, en een enkele autosave-effect bij de aanroeper.
 import { TEAMS } from '../constants';
-import { FORMATIONS, DEFAULT_FORMATION_KEY, POSITION_PRESETS, generateEmptySlotsForFormation } from './formations';
+import { FORMATIONS, DEFAULT_FORMATION_KEY, POSITION_PRESETS, generateEmptySlotsForFormation, remapLineupToFormation } from './formations';
 
 const DRAFTS_STORAGE_KEY = 'fpl_proleague_predicted_xi_drafts_v1';
 
@@ -29,13 +29,42 @@ function sanitizeSlot(raw) {
   };
 }
 
+// Bepaalt of `slotsArray` een geldige set posities voor `formationKey` bevat — d.w.z. elke positionId
+// die de formatie vereist (bv. 'LCB','ST',...) komt minstens één keer voor. Dit dekt zowel écht
+// verouderde data (van vóór de klik-positiekiezer, die een grof 'line'-veld i.p.v. 'positionId'
+// opsloeg — 'FWD'/'MID'/... komt nooit voor als positionId) als data die door die vorige bug al
+// eenmalig herschreven werd naar allemaal positionId:'_unassigned'.
+function hasCompleteFormationSlots(slotsArray, formationKey) {
+  const present = new Set(slotsArray.map(s => s.positionId).filter(id => POSITION_PRESETS[id]));
+  return FORMATIONS[formationKey].positionIds.every(id => present.has(id));
+}
+
 function sanitizeDraft(raw) {
   if (!raw || typeof raw !== 'object') return null;
   if (!TEAMS.some(t => t.code === raw.clubCode)) return null; // onrenderbaar zonder geldige club
   const formationKey = FORMATIONS[raw.formationKey] ? raw.formationKey : DEFAULT_FORMATION_KEY;
-  const slots = Array.isArray(raw.slots)
-    ? raw.slots.map(sanitizeSlot).filter(Boolean)
-    : generateEmptySlotsForFormation(formationKey);
+  const rawSlotsArray = Array.isArray(raw.slots) ? raw.slots.filter(s => s && typeof s === 'object') : [];
+
+  let slots;
+  if (rawSlotsArray.length === 0) {
+    slots = generateEmptySlotsForFormation(formationKey);
+  } else if (hasCompleteFormationSlots(rawSlotsArray, formationKey)) {
+    slots = rawSlotsArray.map(sanitizeSlot).filter(Boolean);
+  } else {
+    // Migratie: herverdeel de spelers uit het oude/onvolledige formaat via dezelfde greedy-logica als
+    // een formatiewissel, zodat ze op geldige posities terechtkomen i.p.v. allemaal onterecht in het
+    // niet-toegewezen-bakje te belanden — nooit stilzwijgend spelersdata verliezen.
+    const roughSlots = rawSlotsArray.map(s => ({
+      playerName: typeof s.playerName === 'string' ? s.playerName : '',
+      playerTeamCode: typeof s.playerTeamCode === 'string' ? s.playerTeamCode : '',
+      playerPosition: typeof s.playerPosition === 'string' ? s.playerPosition : '',
+      playerPrice: Number.isFinite(s.playerPrice) ? s.playerPrice : null,
+      broadPosition: ['GK', 'DEF', 'MID', 'FWD'].includes(s.broadPosition) ? s.broadPosition : 'MID',
+      safety: ['green', 'orange', 'red'].includes(s.safety) ? s.safety : 'green',
+    }));
+    slots = remapLineupToFormation(roughSlots, formationKey);
+  }
+
   return {
     id: typeof raw.id === 'string' ? raw.id : createDraftId(),
     clubCode: raw.clubCode,
