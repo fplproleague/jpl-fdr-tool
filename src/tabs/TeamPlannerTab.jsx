@@ -322,7 +322,7 @@ function TransferPanel({ gw, resolvedIndexedPlayers, playerDatabase, playerDatab
   const isPositionMismatch = outPlayer && inPlayer && outPlayer.position !== inPlayer.position;
 
   return (
-    <div style={{ marginBottom: '16px' }}>
+    <div style={{ marginBottom: '16px', marginTop:'16px'}}>
       <button
         onClick={handleToggle}
         style={{
