@@ -14,6 +14,7 @@ import { exportLineupAsPng } from './exportImage';
 import PitchField from './PitchField';
 import PlayerSearchPanel from './PlayerSearchPanel';
 import DraftsPanel from './DraftsPanel';
+import PositionPicker from './PositionPicker';
 
 const retryButtonStyle = {
   display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0,
@@ -65,6 +66,8 @@ export default function PredictedXiBuilder() {
   // Slot-index die net leeg aangeklikt werd — richt het zoekpaneel op precies die plek in plaats van
   // "eerste lege slot met matchende positie" (zie handleSearchSelect hieronder).
   const [activeSlotIndex, setActiveSlotIndex] = useState(null);
+  // Index van de gevulde kaart waarvoor de positiekiezer open staat, null = gesloten.
+  const [positionPickerIndex, setPositionPickerIndex] = useState(null);
   const [isExporting, setIsExporting] = useState(false);
 
   const pitchRef = useRef(null);
@@ -104,12 +107,15 @@ export default function PredictedXiBuilder() {
   }
 
   function handleSlotClick(index) {
-    if (slots[index].playerName) return; // gevulde slots openen geen zoekpaneel — gebruik sleep/verwijder
+    if (slots[index].playerName) {
+      setPositionPickerIndex(index); // gevulde kaart: open de klik-gebaseerde positiekiezer
+      return;
+    }
     setActiveSlotIndex(prev => (prev === index ? null : index));
   }
 
   function findFirstEmptySlotIndex(list, broadPosition) {
-    return list.findIndex(s => s.line !== '_unassigned' && !s.playerName && s.broadPosition === broadPosition);
+    return list.findIndex(s => s.positionId !== '_unassigned' && !s.playerName && s.broadPosition === broadPosition);
   }
 
   function handleSearchSelect(player) {
@@ -118,7 +124,7 @@ export default function PredictedXiBuilder() {
       if (targetIndex === -1 || targetIndex == null) {
         // Geen passende lege plek — nooit een dode klik: speler gaat naar het niet-toegewezen-bakje.
         return [...prev, {
-          line: '_unassigned', role: player.position, broadPosition: player.position,
+          positionId: '_unassigned', role: player.position, broadPosition: player.position,
           xPercent: 0, yPercent: 0,
           playerName: player.name, playerTeamCode: player.teamCode, playerPosition: player.position,
           playerPrice: player.price ?? null, safety: 'green',
@@ -134,7 +140,7 @@ export default function PredictedXiBuilder() {
   function handleRemove(index) {
     setSlots(prev => {
       const slot = prev[index];
-      if (slot.line === '_unassigned') return prev.filter((_, i) => i !== index);
+      if (slot.positionId === '_unassigned') return prev.filter((_, i) => i !== index);
       return prev.map((s, i) => (i === index
         ? { ...s, playerName: '', playerTeamCode: '', playerPosition: '', playerPrice: null, safety: 'green' }
         : s));
@@ -145,32 +151,21 @@ export default function PredictedXiBuilder() {
     setSlots(prev => prev.map((s, i) => (i === index ? { ...s, safety: nextSafety(s.safety) } : s)));
   }
 
-  function handleDragStart(e, index) {
-    e.dataTransfer.setData('text/plain', String(index));
-    e.dataTransfer.effectAllowed = 'move';
-  }
-  function handleDragOver(e) {
-    e.preventDefault();
-  }
-  function handleDrop(e, targetIndex) {
-    e.preventDefault();
-    const sourceIndex = Number(e.dataTransfer.getData('text/plain'));
-    if (Number.isNaN(sourceIndex) || sourceIndex === targetIndex) return;
+  // Klik-gebaseerde positiekiezer: verplaatst de speler op `index` naar de plek met `presetId`. Is die
+  // al bezet door een andere speler, dan wisselen de twee (dezelfde swap-mechaniek als het vroegere
+  // sleep-gedrag, nu getriggerd via een klik in PositionPicker.jsx i.p.v. een pixel-drop).
+  function handleAssignPosition(index, presetId) {
     setSlots(prev => {
+      const targetIndex = prev.findIndex(s => s.positionId === presetId);
+      if (targetIndex === -1 || targetIndex === index) return prev;
       const next = [...prev];
-      const sourceFields = { playerName: prev[sourceIndex].playerName, playerTeamCode: prev[sourceIndex].playerTeamCode, playerPosition: prev[sourceIndex].playerPosition, playerPrice: prev[sourceIndex].playerPrice, safety: prev[sourceIndex].safety };
+      const sourceFields = { playerName: prev[index].playerName, playerTeamCode: prev[index].playerTeamCode, playerPosition: prev[index].playerPosition, playerPrice: prev[index].playerPrice, safety: prev[index].safety };
       const targetFields = { playerName: prev[targetIndex].playerName, playerTeamCode: prev[targetIndex].playerTeamCode, playerPosition: prev[targetIndex].playerPosition, playerPrice: prev[targetIndex].playerPrice, safety: prev[targetIndex].safety };
-      next[sourceIndex] = { ...prev[sourceIndex], ...targetFields };
+      next[index] = { ...prev[index], ...targetFields };
       next[targetIndex] = { ...prev[targetIndex], ...sourceFields };
       return next;
     });
-  }
-
-  // Vrij verslepen: loslaten ergens op het veld (niet bovenop een ander kaartje — dat blijft de
-  // wissel-logica hierboven, want PitchSlot's eigen onDrop stopt propagatie) verplaatst het kaartje
-  // gewoon naar die exacte plek, los van de formatie-rasterpositie.
-  function handlePitchDrop(index, xPercent, yPercent) {
-    setSlots(prev => prev.map((s, i) => (i === index ? { ...s, xPercent, yPercent } : s)));
+    setPositionPickerIndex(null);
   }
 
   // --- Autosave: elke wijziging aan de open lineup wordt bewaard. Een volledig lege, nooit-aangeraakte
@@ -236,6 +231,7 @@ export default function PredictedXiBuilder() {
 
   async function handleExport() {
     if (!pitchRef.current) return;
+    setPositionPickerIndex(null);
     setIsExporting(true);
     try {
       await exportLineupAsPng(pitchRef.current, { clubCode, formationKey });
@@ -246,7 +242,7 @@ export default function PredictedXiBuilder() {
     }
   }
 
-  const unassigned = slots.filter(s => s.line === '_unassigned');
+  const unassigned = slots.filter(s => s.positionId === '_unassigned');
   const activeSlotRole = activeSlotIndex != null ? slots[activeSlotIndex]?.role : null;
 
   return (
@@ -317,10 +313,6 @@ export default function PredictedXiBuilder() {
               onSlotClick={handleSlotClick}
               onRemove={handleRemove}
               onCycleSafety={handleCycleSafety}
-              onDragStart={handleDragStart}
-              onDragOver={handleDragOver}
-              onDrop={handleDrop}
-              onPitchDrop={handlePitchDrop}
             />
 
             {unassigned.length > 0 && (
@@ -329,7 +321,7 @@ export default function PredictedXiBuilder() {
                   Niet toegewezen (past niet in de huidige formatie — klik om terug op het veld te plaatsen):
                 </p>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  {slots.map((s, index) => s.line === '_unassigned' && (
+                  {slots.map((s, index) => s.positionId === '_unassigned' && (
                     <button
                       key={index}
                       onClick={() => {
@@ -386,6 +378,13 @@ export default function PredictedXiBuilder() {
           </div>
         </div>
       </div>
+
+      <PositionPicker
+        slots={slots}
+        activeIndex={positionPickerIndex}
+        onAssign={handleAssignPosition}
+        onClose={() => setPositionPickerIndex(null)}
+      />
     </div>
   );
 }

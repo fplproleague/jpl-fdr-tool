@@ -3,7 +3,7 @@
 // FDRTool.jsx): een versie-key, een defensieve loader die elk veld valideert en op een veilige fallback
 // terugvalt, en een enkele autosave-effect bij de aanroeper.
 import { TEAMS } from '../constants';
-import { FORMATIONS, DEFAULT_FORMATION_KEY, generateEmptySlotsForFormation } from './formations';
+import { FORMATIONS, DEFAULT_FORMATION_KEY, POSITION_PRESETS, generateEmptySlotsForFormation } from './formations';
 
 const DRAFTS_STORAGE_KEY = 'fpl_proleague_predicted_xi_drafts_v1';
 
@@ -14,8 +14,9 @@ export function createDraftId() {
 
 function sanitizeSlot(raw) {
   if (!raw || typeof raw !== 'object') return null;
+  const positionId = raw.positionId === '_unassigned' || POSITION_PRESETS[raw.positionId] ? raw.positionId : '_unassigned';
   return {
-    line: typeof raw.line === 'string' ? raw.line : '_unassigned',
+    positionId,
     role: typeof raw.role === 'string' ? raw.role : '',
     broadPosition: ['GK', 'DEF', 'MID', 'FWD'].includes(raw.broadPosition) ? raw.broadPosition : 'MID',
     xPercent: Number.isFinite(raw.xPercent) ? raw.xPercent : 0,

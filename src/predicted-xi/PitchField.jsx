@@ -1,13 +1,9 @@
 // De volledige exporteerbare oppervlakte: grasveld + belijning, club-header, formatielabel, en alle
 // speler-kaartjes. Dit is de ENIGE component die binnen de forwardRef zit die exportImage.js capture't
 // — niets anders (notities, drafts-lijst, zoekpaneel) mag hier ooit binnen komen te staan.
-import { forwardRef, useRef } from 'react';
+import { forwardRef } from 'react';
 import { PITCH_GRADIENT } from './theme';
 import PitchSlot from './PitchSlot';
-
-function clampPercent(value) {
-  return Math.min(96, Math.max(4, value));
-}
 
 // Echte veldverhoudingen (68m x 105m) als SVG-viewBox-eenheden — middencirkel/strafschopgebied/
 // doelgebied staan zo op hun letterlijke werkelijke proportie, wat het "realistisch" laat aanvoelen
@@ -41,23 +37,9 @@ function PitchMarkings() {
 
 const PitchField = forwardRef(function PitchField({
   club, formationLabel, slots, activeSlotIndex,
-  onSlotClick, onRemove, onCycleSafety, onDragStart, onDragOver, onDrop, onPitchDrop,
+  onSlotClick, onRemove, onCycleSafety,
 }, ref) {
-  const pitchSlots = slots.filter(s => s.line !== '_unassigned');
-  const pitchInnerRef = useRef(null);
-
-  // Vrij verslepen: loslaten ergens op het grasveld dat NIET al door een kaartje's eigen onDrop is
-  // afgehandeld (die stopt propagatie, zie PitchSlot.jsx) — berekent de exacte procentuele positie
-  // t.o.v. dit veld en geeft die door, los van de vaste formatie-rasterpositie van dat slot.
-  function handlePitchDrop(e) {
-    e.preventDefault();
-    const sourceIndex = Number(e.dataTransfer.getData('text/plain'));
-    if (Number.isNaN(sourceIndex) || !pitchInnerRef.current) return;
-    const rect = pitchInnerRef.current.getBoundingClientRect();
-    const xPercent = clampPercent(((e.clientX - rect.left) / rect.width) * 100);
-    const yPercent = clampPercent(((e.clientY - rect.top) / rect.height) * 100);
-    onPitchDrop(sourceIndex, xPercent, yPercent);
-  }
+  const pitchSlots = slots.filter(s => s.positionId !== '_unassigned');
 
   return (
     <div
@@ -95,9 +77,6 @@ const PitchField = forwardRef(function PitchField({
       </div>
 
       <div
-        ref={pitchInnerRef}
-        onDragOver={(e) => e.preventDefault()}
-        onDrop={handlePitchDrop}
         style={{
           position: 'relative', width: '100%', aspectRatio: '4 / 5',
           borderRadius: '14px', overflow: 'hidden', background: PITCH_GRADIENT,
@@ -115,9 +94,6 @@ const PitchField = forwardRef(function PitchField({
               onSlotClick={onSlotClick}
               onRemove={onRemove}
               onCycleSafety={onCycleSafety}
-              onDragStart={onDragStart}
-              onDragOver={onDragOver}
-              onDrop={onDrop}
             />
           );
         })}
