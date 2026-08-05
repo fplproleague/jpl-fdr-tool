@@ -1,8 +1,9 @@
 // De volledige exporteerbare oppervlakte: grasveld + belijning, club-header, formatielabel, en alle
 // speler-kaartjes. Dit is de ENIGE component die binnen de forwardRef zit die exportImage.js capture't
 // — niets anders (notities, drafts-lijst, zoekpaneel) mag hier ooit binnen komen te staan.
-import { forwardRef } from 'react';
+import { forwardRef, useRef } from 'react';
 import { PITCH_GRADIENT } from './theme';
+import { POSITION_PRESETS } from './formations';
 import PitchSlot from './PitchSlot';
 
 // Echte veldverhoudingen (68m x 105m) als SVG-viewBox-eenheden — middencirkel/strafschopgebied/
@@ -37,9 +38,36 @@ function PitchMarkings() {
 
 const PitchField = forwardRef(function PitchField({
   club, formationLabel, slots, activeSlotIndex,
-  onSlotClick, onRemove, onCycleSafety,
+  onSlotClick, onRemove, onCycleSafety, onDragStart, onSlotDrop,
 }, ref) {
   const pitchSlots = slots.filter(s => s.positionId !== '_unassigned');
+  const pitchInnerRef = useRef(null);
+
+  // Automatische settle: bereken bij loslaten de dichtstbijzijnde vaste positie (in echte pixels,
+  // niet ruwe procenten — het veld is geen vierkant, dus anders zou "dichtstbij" scheef getrokken
+  // worden) en wijs de gesleepte speler daaraan toe. Dezelfde toewijzingslogica (incl. wisselen bij een
+  // bezette positie) als de klik-positiekiezer — sleep en klik werken dus naast elkaar op hetzelfde pad.
+  function handleDrop(e) {
+    e.preventDefault();
+    const sourceIndex = Number(e.dataTransfer.getData('text/plain'));
+    if (Number.isNaN(sourceIndex) || !pitchInnerRef.current) return;
+    const rect = pitchInnerRef.current.getBoundingClientRect();
+    const dropXPercent = ((e.clientX - rect.left) / rect.width) * 100;
+    const dropYPercent = ((e.clientY - rect.top) / rect.height) * 100;
+
+    let nearestId = null;
+    let nearestDistance = Infinity;
+    for (const [id, preset] of Object.entries(POSITION_PRESETS)) {
+      const dx = (preset.xPercent - dropXPercent) * (rect.width / 100);
+      const dy = (preset.yPercent - dropYPercent) * (rect.height / 100);
+      const distance = dx * dx + dy * dy;
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearestId = id;
+      }
+    }
+    if (nearestId) onSlotDrop(sourceIndex, nearestId);
+  }
 
   return (
     <div
@@ -77,6 +105,9 @@ const PitchField = forwardRef(function PitchField({
       </div>
 
       <div
+        ref={pitchInnerRef}
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={handleDrop}
         style={{
           position: 'relative', width: '100%', aspectRatio: '4 / 5',
           borderRadius: '14px', overflow: 'hidden', background: PITCH_GRADIENT,
@@ -94,6 +125,7 @@ const PitchField = forwardRef(function PitchField({
               onSlotClick={onSlotClick}
               onRemove={onRemove}
               onCycleSafety={onCycleSafety}
+              onDragStart={onDragStart}
             />
           );
         })}

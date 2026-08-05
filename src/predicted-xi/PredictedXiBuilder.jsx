@@ -151,9 +151,10 @@ export default function PredictedXiBuilder() {
     setSlots(prev => prev.map((s, i) => (i === index ? { ...s, safety: nextSafety(s.safety) } : s)));
   }
 
-  // Klik-gebaseerde positiekiezer: verplaatst de speler op `index` naar de plek met `presetId`. Is die
-  // al bezet door een andere speler, dan wisselen de twee (dezelfde swap-mechaniek als het vroegere
-  // sleep-gedrag, nu getriggerd via een klik in PositionPicker.jsx i.p.v. een pixel-drop).
+  // Verplaatst de speler op `index` naar de plek met `presetId`. Is die al bezet door een andere
+  // speler, dan wisselen de twee. Gedeelde toewijzingslogica voor beide interactiepaden: een klik in
+  // PositionPicker.jsx (kiest presetId rechtstreeks) én een sleep-en-los op het veld (PitchField.jsx
+  // berekent de dichtstbijzijnde presetId via automatische settle, zie handleDragStart hieronder).
   function handleAssignPosition(index, presetId) {
     setSlots(prev => {
       const targetIndex = prev.findIndex(s => s.positionId === presetId);
@@ -166,6 +167,11 @@ export default function PredictedXiBuilder() {
       return next;
     });
     setPositionPickerIndex(null);
+  }
+
+  function handleDragStart(e, index) {
+    e.dataTransfer.setData('text/plain', String(index));
+    e.dataTransfer.effectAllowed = 'move';
   }
 
   // --- Autosave: elke wijziging aan de open lineup wordt bewaard. Een volledig lege, nooit-aangeraakte
@@ -313,6 +319,8 @@ export default function PredictedXiBuilder() {
               onSlotClick={handleSlotClick}
               onRemove={handleRemove}
               onCycleSafety={handleCycleSafety}
+              onDragStart={handleDragStart}
+              onSlotDrop={handleAssignPosition}
             />
 
             {unassigned.length > 0 && (
