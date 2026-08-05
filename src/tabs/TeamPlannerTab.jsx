@@ -20,6 +20,7 @@ import {
 import { MiniFixtureBadge } from '../components/MiniFixtureBadge';
 import { SectionHeader } from '../components/SectionHeader';
 import { PlayerSearchInput } from '../components/PlayerSearchInput';
+import { TeamScreenshotUpload } from './TeamScreenshotUpload';
 
 const teamPlannerInputStyle = {
   background: '#3D1E5C', color: '#FFF', border: '1px solid rgba(255,255,255,0.15)',
@@ -622,6 +623,14 @@ export default function TeamPlannerTab({
       <p style={{ color: '#8F79AD', fontSize: '13px', marginBottom: '16px' }}>
         Stel je 15-koppige selectie samen, plan transfers per gameweek, en bekijk je team, bank en kapitein op elk moment in het seizoen. Deze planner slaat automatisch op in je browser.
       </p>
+      <TeamScreenshotUpload
+        playerDatabase={playerDatabase}
+        playerDatabaseLoading={playerDatabaseLoading}
+        playerDatabaseError={playerDatabaseError}
+        updateTeamPlannerPlayer={updateTeamPlannerPlayer}
+        setTeamPlannerCaptain={setTeamPlannerCaptain}
+        teamPlannerGw={teamPlannerGw}
+      />
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '24px' }}>
         <section>
           <div ref={rosterSectionRef} style={{
