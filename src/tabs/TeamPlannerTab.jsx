@@ -24,7 +24,7 @@ import { TeamScreenshotUpload } from './TeamScreenshotUpload';
 
 const teamPlannerInputStyle = {
   background: '#3D1E5C', color: '#FFF', border: '1px solid rgba(255,255,255,0.15)',
-  borderRadius: '6px', padding: '6px 8px', fontSize: '13px', width: '30%'
+  borderRadius: '6px', padding: '6px 8px', fontSize: '13px', width: '100%'
 };
 
 const thStyle = {
@@ -181,7 +181,7 @@ function PlayerPitchCard({ player, gw, ratings, homeAdvantage, isBenched, isCapt
             ? (benchReorderMode
                 ? (benchToggleDisabled ? 'Doelmannen kunnen niet van bankplaats wisselen'
                     : isSelectedForSwap ? 'Klik om te annuleren'
-                      : 'Klik, en klik daarna een andere bankspeler aan om van plaats te wisselen')
+                      : 'Klik 2 bankspelers aan om ze van plaats te wisselen')
                 : 'Klik om terug naar het veld te zetten')
             : benchToggleDisabled ? `Bank is al vol (${TEAM_PLANNER_BENCH_SIZE}/${TEAM_PLANNER_BENCH_SIZE}) voor GW${gw}`
               : 'Klik om naar de bank te sturen'
@@ -621,7 +621,7 @@ export default function TeamPlannerTab({
   return (
     <>
       <p style={{ color: '#8F79AD', fontSize: '13px', marginBottom: '16px' }}>
-        Stel je 15-koppige selectie samen, plan transfers per gameweek, en bekijk je team, bank en kapitein op elk moment in het seizoen. Deze planner slaat automatisch op in je browser.
+        Stel je selectie samen, plan transfers en bekijk je team, bank en kapitein op elk moment in het seizoen. Deze planner slaat automatisch op in je browser.
       </p>
       <TeamScreenshotUpload
         playerDatabase={playerDatabase}
@@ -790,7 +790,7 @@ export default function TeamPlannerTab({
                             }}>
                               {index + 1}
                             </td>
-                            <td style={{ padding: '4px 6px', minWidth: '220px', background: rowBg }}>
+                            <td style={{ padding: '4px 6px', minWidth: '150px', background: rowBg }}>
                               {/* filterPosition beperkt de suggesties tot de vaste positie van dit slot
                                   (TEAM_PLANNER_SLOT_POSITIONS) — zo blijft de 2 GK/5 DEF/5 MID/3 FWD-
                                   structuur altijd kloppen, ook tijdens een Recharge-bewerking. Buiten
