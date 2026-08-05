@@ -121,7 +121,7 @@ export const DEFAULT_GW_HORIZON_END = 7;
 // mainTableMinWidth (zie FDRTool) evenredig van afschaalt bij een kleinere horizon.
 export const MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS = 760;
 export const MINILEAGUE_CODE = '19WN75';
-export const LAST_UPDATED = '4 augustus 2026';
+export const LAST_UPDATED = '5 augustus 2026';
 // Handmatig wekelijks bij te werken, net als LAST_UPDATED — markeert de "huidige" gameweek in de
 // hoofdtabel en bepaalt vanaf waar de mini-fixture-strip in de watch list start.
 export const CURRENT_GW = 1;
