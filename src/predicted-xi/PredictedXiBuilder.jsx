@@ -6,7 +6,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Download, Loader2, AlertCircle, RotateCcw } from 'lucide-react';
 import { TEAMS, TEAMS_ALPHA, PLAYER_DATABASE_CSV_URL, parsePlayerDatabaseCsv } from '../constants';
 import {
-  FORMATIONS, DEFAULT_FORMATION_KEY, generateEmptySlotsForFormation, remapLineupToFormation,
+  FORMATIONS, DEFAULT_FORMATION_KEY, POSITION_PRESETS, generateEmptySlotsForFormation, remapLineupToFormation,
 } from './formations';
 import { nextSafety } from './theme';
 import { loadStoredDrafts, saveDrafts, createDraftId, duplicateDraft, deleteDraft } from './storage';
@@ -59,6 +59,9 @@ export default function PredictedXiBuilder() {
 
   // --- Open lineup: club/formatie/slots/notities/welk opgeslagen record (indien aangeraakt) ---
   const [clubCode, setClubCode] = useState(TEAMS_ALPHA[0].code);
+  // Tegenstander voor deze lineup — '' = geen tegenstander gekozen. Puur informatief (geen invloed op
+  // spelerskeuze/formatie), enkel getoond in de header en op de export.
+  const [opponentCode, setOpponentCode] = useState('');
   const [openDraftId, setOpenDraftId] = useState(null);
   const [formationKey, setFormationKey] = useState(DEFAULT_FORMATION_KEY);
   const [slots, setSlots] = useState(() => generateEmptySlotsForFormation(DEFAULT_FORMATION_KEY));
@@ -85,11 +88,13 @@ export default function PredictedXiBuilder() {
       setFormationKey(existing.formationKey);
       setSlots(existing.slots);
       setNotes(existing.notes);
+      setOpponentCode(existing.opponentCode ?? '');
     } else {
       setOpenDraftId(null);
       setFormationKey(DEFAULT_FORMATION_KEY);
       setSlots(generateEmptySlotsForFormation(DEFAULT_FORMATION_KEY));
       setNotes('');
+      setOpponentCode('');
     }
     setActiveSlotIndex(null);
   }
@@ -151,22 +156,46 @@ export default function PredictedXiBuilder() {
     setSlots(prev => prev.map((s, i) => (i === index ? { ...s, safety: nextSafety(s.safety) } : s)));
   }
 
-  // Verplaatst de speler op `index` naar de plek met `presetId`. Is die al bezet door een andere
-  // speler, dan wisselen de twee. Gedeelde toewijzingslogica voor beide interactiepaden: een klik in
-  // PositionPicker.jsx (kiest presetId rechtstreeks) én een sleep-en-los op het veld (PitchField.jsx
-  // berekent de dichtstbijzijnde presetId via automatische settle, zie handleDragStart hieronder).
+  // Verplaatst de speler op `index` naar de plek met `presetId`. De aangeduide formatie is enkel een
+  // startlayout, geen dwingende beperking — presetId hoeft dus niet per se al voor te komen in de
+  // huidige formatie (bv. een LW omzetten naar LST in een 4-3-3, die normaal geen LST-slot heeft).
+  // Bestaat er al een ANDER slot met die presetId (binnen de huidige formatie, of omdat een eerdere
+  // vrije keuze het daar al naartoe verplaatste), dan wisselen de twee spelers van plek; anders
+  // verandert dit slot gewoon zelf van positie, de speler blijft dezelfde. Gedeelde toewijzingslogica
+  // voor beide interactiepaden: een klik in PositionPicker.jsx (kiest presetId rechtstreeks) én een
+  // sleep-en-los op het veld (PitchField.jsx berekent de dichtstbijzijnde presetId via automatische
+  // settle, zie handleDragStart hieronder).
   function handleAssignPosition(index, presetId) {
     setSlots(prev => {
-      const targetIndex = prev.findIndex(s => s.positionId === presetId);
-      if (targetIndex === -1 || targetIndex === index) return prev;
+      const preset = POSITION_PRESETS[presetId];
+      if (!preset || prev[index].positionId === presetId) return prev;
+      const targetIndex = prev.findIndex((s, i) => i !== index && s.positionId === presetId);
       const next = [...prev];
-      const sourceFields = { playerName: prev[index].playerName, playerTeamCode: prev[index].playerTeamCode, playerPosition: prev[index].playerPosition, playerPrice: prev[index].playerPrice, safety: prev[index].safety };
-      const targetFields = { playerName: prev[targetIndex].playerName, playerTeamCode: prev[targetIndex].playerTeamCode, playerPosition: prev[targetIndex].playerPosition, playerPrice: prev[targetIndex].playerPrice, safety: prev[targetIndex].safety };
-      next[index] = { ...prev[index], ...targetFields };
-      next[targetIndex] = { ...prev[targetIndex], ...sourceFields };
+      if (targetIndex === -1) {
+        next[index] = {
+          ...prev[index], positionId: presetId, role: preset.label,
+          broadPosition: preset.broadPosition, xPercent: preset.xPercent, yPercent: preset.yPercent,
+        };
+      } else {
+        const sourceFields = { playerName: prev[index].playerName, playerTeamCode: prev[index].playerTeamCode, playerPosition: prev[index].playerPosition, playerPrice: prev[index].playerPrice, safety: prev[index].safety };
+        const targetFields = { playerName: prev[targetIndex].playerName, playerTeamCode: prev[targetIndex].playerTeamCode, playerPosition: prev[targetIndex].playerPosition, playerPrice: prev[targetIndex].playerPrice, safety: prev[targetIndex].safety };
+        next[index] = { ...prev[index], ...targetFields };
+        next[targetIndex] = { ...prev[targetIndex], ...sourceFields };
+      }
       return next;
     });
     setPositionPickerIndex(null);
+  }
+
+  // Speler die niet in de databank zit — handmatig toegevoegd met enkel een naam. Neemt de brede
+  // positie over van het geselecteerde lege slot (indien er één actief is), anders MID als veilige
+  // fallback (zelfde conventie als elders bij een onbekende positie). Loopt verder via dezelfde
+  // handleSearchSelect als een databank-speler — geen aparte plaatsingslogica nodig.
+  function handleManualAdd(name) {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const broadPosition = activeSlotIndex != null ? slots[activeSlotIndex]?.broadPosition : null;
+    handleSearchSelect({ name: trimmed, teamCode: '', teamName: '', position: broadPosition ?? 'MID', price: null });
   }
 
   function handleDragStart(e, index) {
@@ -186,23 +215,24 @@ export default function PredictedXiBuilder() {
       if (openDraftId == null) {
         const id = createDraftId();
         setOpenDraftId(id);
-        next = [...prev, { id, clubCode, formationKey, slots, notes, label: '', createdAt: now, updatedAt: now }];
+        next = [...prev, { id, clubCode, opponentCode, formationKey, slots, notes, label: '', createdAt: now, updatedAt: now }];
       } else if (prev.some(d => d.id === openDraftId)) {
-        next = prev.map(d => (d.id === openDraftId ? { ...d, clubCode, formationKey, slots, notes, updatedAt: now } : d));
+        next = prev.map(d => (d.id === openDraftId ? { ...d, clubCode, opponentCode, formationKey, slots, notes, updatedAt: now } : d));
       } else {
-        next = [...prev, { id: openDraftId, clubCode, formationKey, slots, notes, label: '', createdAt: now, updatedAt: now }];
+        next = [...prev, { id: openDraftId, clubCode, opponentCode, formationKey, slots, notes, label: '', createdAt: now, updatedAt: now }];
       }
       saveDrafts(next);
       return next;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clubCode, formationKey, slots, notes]);
+  }, [clubCode, opponentCode, formationKey, slots, notes]);
 
   function handleOpenDraft(id) {
     const draft = drafts.find(d => d.id === id);
     if (!draft) return;
     setOpenDraftId(draft.id);
     setClubCode(draft.clubCode);
+    setOpponentCode(draft.opponentCode ?? '');
     setFormationKey(draft.formationKey);
     setSlots(draft.slots);
     setNotes(draft.notes);
@@ -219,6 +249,7 @@ export default function PredictedXiBuilder() {
     if (newDraft) {
       setOpenDraftId(newDraft.id);
       setClubCode(newDraft.clubCode);
+      setOpponentCode(newDraft.opponentCode ?? '');
       setFormationKey(newDraft.formationKey);
       setSlots(newDraft.slots);
       setNotes(newDraft.notes);
@@ -240,7 +271,7 @@ export default function PredictedXiBuilder() {
     setPositionPickerIndex(null);
     setIsExporting(true);
     try {
-      await exportLineupAsPng(pitchRef.current, { clubCode, formationKey });
+      await exportLineupAsPng(pitchRef.current, { clubCode, opponentCode, formationKey });
     } catch {
       // rendering mislukt — stil genegeerd, gebruiker kan handmatig een screenshot nemen
     } finally {
@@ -250,6 +281,7 @@ export default function PredictedXiBuilder() {
 
   const unassigned = slots.filter(s => s.positionId === '_unassigned');
   const activeSlotRole = activeSlotIndex != null ? slots[activeSlotIndex]?.role : null;
+  const opponent = opponentCode ? TEAMS.find(t => t.code === opponentCode) : null;
 
   return (
     <div style={{ minHeight: '100vh', background: '#1A0E2E', padding: '24px 16px', fontFamily: 'Archivo, Arial, sans-serif' }}>
@@ -270,6 +302,10 @@ export default function PredictedXiBuilder() {
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '20px' }}>
           <select value={clubCode} onChange={(e) => openClub(e.target.value)} style={selectStyle}>
             {TEAMS_ALPHA.map(t => <option key={t.code} value={t.code}>{t.name}</option>)}
+          </select>
+          <select value={opponentCode} onChange={(e) => setOpponentCode(e.target.value)} style={selectStyle}>
+            <option value="">Geen tegenstander</option>
+            {TEAMS_ALPHA.filter(t => t.code !== clubCode).map(t => <option key={t.code} value={t.code}>vs {t.name}</option>)}
           </select>
           <select value={formationKey} onChange={(e) => handleFormationChange(e.target.value)} style={selectStyle}>
             {Object.keys(FORMATIONS).map(key => <option key={key} value={key}>{FORMATIONS[key].label}</option>)}
@@ -313,6 +349,7 @@ export default function PredictedXiBuilder() {
             <PitchField
               ref={pitchRef}
               club={club}
+              opponent={opponent}
               formationLabel={FORMATIONS[formationKey].label}
               slots={slots}
               activeSlotIndex={activeSlotIndex}
@@ -366,6 +403,7 @@ export default function PredictedXiBuilder() {
               <PlayerSearchPanel
                 players={playerDatabase}
                 onSelect={handleSearchSelect}
+                onManualAdd={handleManualAdd}
                 activeSlotRole={activeSlotRole}
                 disabled={playerDatabaseLoading || !!playerDatabaseError}
               />

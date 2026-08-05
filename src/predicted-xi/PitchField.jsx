@@ -37,7 +37,7 @@ function PitchMarkings() {
 }
 
 const PitchField = forwardRef(function PitchField({
-  club, formationLabel, slots, activeSlotIndex,
+  club, opponent, formationLabel, slots, activeSlotIndex,
   onSlotClick, onRemove, onCycleSafety, onDragStart, onSlotDrop,
 }, ref) {
   const pitchSlots = slots.filter(s => s.positionId !== '_unassigned');
@@ -102,6 +102,18 @@ const PitchField = forwardRef(function PitchField({
         }}>
           {formationLabel}
         </div>
+        {opponent && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ color: '#8F79AD', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>vs</span>
+            <img
+              src={`/club-logos/${opponent.code}.png`}
+              alt=""
+              style={{ width: '18px', height: '18px', objectFit: 'contain' }}
+              onError={(e) => { e.target.style.display = 'none'; }}
+            />
+            <span style={{ color: '#C9B8E0', fontSize: '13px', fontWeight: 700 }}>{opponent.name}</span>
+          </div>
+        )}
       </div>
 
       <div
