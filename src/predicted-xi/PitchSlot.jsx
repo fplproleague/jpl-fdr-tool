@@ -1,7 +1,8 @@
 // Eén speler-kaartje (of lege plek) op het veld. Absoluut gepositioneerd door de aanroeper (PitchField)
-// via slot.xPercent/yPercent — dit component regelt enkel het kaartje zelf: kleuren/opmaak (gebaseerd
-// op PlayerPitchCard in TeamPlannerTab.jsx voor visuele consistentie met de rest van de app), de
-// safety-rand+cyclus-badge, de verwijder-knop, en drag/drop-/klik-handlers.
+// via slot.xPercent/yPercent — dit component regelt enkel het kaartje zelf: kleuren/opmaak, de
+// safety-rand+cyclus-badge, de verwijder-knop, en drag/drop-/klik-handlers. Bewust geen clublogo/
+// positielabel op gevulde kaarten (die zijn overbodig — elke kaart hoort al bij precies één club/lijn) —
+// enkel de naam (prominent) en de prijs (subtiel eronder, als label).
 import { Plus, X } from 'lucide-react';
 import { SAFETY_STYLE } from './theme';
 
@@ -55,40 +56,46 @@ export default function PitchSlot({
           draggable={!isEmpty}
           onDragStart={(e) => onDragStart(e, index)}
           onDragOver={onDragOver}
-          onDrop={(e) => onDrop(e, index)}
+          onDrop={(e) => { e.stopPropagation(); onDrop(e, index); }}
           onClick={() => onSlotClick(index)}
-          title={isEmpty ? `Klik om een ${slot.role}-speler te zoeken` : 'Sleep om te wisselen'}
+          title={isEmpty ? `Klik om een ${slot.role}-speler te zoeken` : 'Sleep om vrij te verplaatsen of te wisselen'}
           style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px',
-            background: isEmpty ? 'rgba(42,20,64,0.45)' : 'rgba(42,20,64,0.85)',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            gap: '2px',
+            background: isEmpty ? 'rgba(42,20,64,0.45)' : 'rgba(42,20,64,0.9)',
             border: isEmpty
               ? `2px dashed ${isActiveSearchTarget ? '#4ECDC4' : 'rgba(255,255,255,0.3)'}`
               : `2px solid ${safety.border}`,
-            borderRadius: '10px', padding: '6px 8px', minWidth: '70px',
+            borderRadius: '10px', padding: isEmpty ? '6px 8px' : '7px 12px',
+            minWidth: isEmpty ? '70px' : '84px',
             cursor: isEmpty ? 'pointer' : 'grab', boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
           }}
         >
           {isEmpty ? (
-            <Plus size={16} color={isActiveSearchTarget ? '#4ECDC4' : '#8F79AD'} />
+            <>
+              <Plus size={16} color={isActiveSearchTarget ? '#4ECDC4' : '#8F79AD'} />
+              <span style={{
+                color: '#8F79AD', fontSize: '10px', fontWeight: 700,
+                textAlign: 'center', lineHeight: 1.15,
+              }}>
+                {slot.role}
+              </span>
+            </>
           ) : (
-            <img
-              src={`/club-logos/${slot.playerTeamCode}.png`}
-              alt=""
-              style={{ width: '22px', height: '22px', objectFit: 'contain' }}
-              onError={(e) => { e.target.style.display = 'none'; }}
-            />
-          )}
-          <span style={{
-            color: isEmpty ? '#8F79AD' : '#FFF', fontSize: '10px', fontWeight: 700,
-            textAlign: 'center', lineHeight: 1.15, maxWidth: '80px',
-            overflowWrap: 'anywhere',
-          }}>
-            {isEmpty ? slot.role : slot.playerName}
-          </span>
-          {!isEmpty && (
-            <span style={{ color: '#8F79AD', fontSize: '8px', fontWeight: 700, textTransform: 'uppercase' }}>
-              {slot.role}
-            </span>
+            <>
+              <span style={{
+                color: '#FFF', fontSize: '13px', fontWeight: 800,
+                textAlign: 'center', lineHeight: 1.2, maxWidth: '110px',
+                overflowWrap: 'anywhere',
+              }}>
+                {slot.playerName}
+              </span>
+              {slot.playerPrice != null && (
+                <span style={{ color: '#8F79AD', fontSize: '9px', fontWeight: 700 }}>
+                  {slot.playerPrice.toFixed(1)}M
+                </span>
+              )}
+            </>
           )}
         </div>
       </div>

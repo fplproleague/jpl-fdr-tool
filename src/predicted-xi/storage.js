@@ -23,6 +23,7 @@ function sanitizeSlot(raw) {
     playerName: typeof raw.playerName === 'string' ? raw.playerName : '',
     playerTeamCode: typeof raw.playerTeamCode === 'string' ? raw.playerTeamCode : '',
     playerPosition: typeof raw.playerPosition === 'string' ? raw.playerPosition : '',
+    playerPrice: Number.isFinite(raw.playerPrice) ? raw.playerPrice : null,
     safety: ['green', 'orange', 'red'].includes(raw.safety) ? raw.safety : 'green',
   };
 }

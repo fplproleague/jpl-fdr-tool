@@ -1,9 +1,13 @@
 // De volledige exporteerbare oppervlakte: grasveld + belijning, club-header, formatielabel, en alle
 // speler-kaartjes. Dit is de ENIGE component die binnen de forwardRef zit die exportImage.js capture't
 // — niets anders (notities, drafts-lijst, zoekpaneel) mag hier ooit binnen komen te staan.
-import { forwardRef } from 'react';
+import { forwardRef, useRef } from 'react';
 import { PITCH_GRADIENT } from './theme';
 import PitchSlot from './PitchSlot';
+
+function clampPercent(value) {
+  return Math.min(96, Math.max(4, value));
+}
 
 // Echte veldverhoudingen (68m x 105m) als SVG-viewBox-eenheden — middencirkel/strafschopgebied/
 // doelgebied staan zo op hun letterlijke werkelijke proportie, wat het "realistisch" laat aanvoelen
@@ -37,42 +41,68 @@ function PitchMarkings() {
 
 const PitchField = forwardRef(function PitchField({
   club, formationLabel, slots, activeSlotIndex,
-  onSlotClick, onRemove, onCycleSafety, onDragStart, onDragOver, onDrop,
+  onSlotClick, onRemove, onCycleSafety, onDragStart, onDragOver, onDrop, onPitchDrop,
 }, ref) {
   const pitchSlots = slots.filter(s => s.line !== '_unassigned');
+  const pitchInnerRef = useRef(null);
+
+  // Vrij verslepen: loslaten ergens op het grasveld dat NIET al door een kaartje's eigen onDrop is
+  // afgehandeld (die stopt propagatie, zie PitchSlot.jsx) — berekent de exacte procentuele positie
+  // t.o.v. dit veld en geeft die door, los van de vaste formatie-rasterpositie van dat slot.
+  function handlePitchDrop(e) {
+    e.preventDefault();
+    const sourceIndex = Number(e.dataTransfer.getData('text/plain'));
+    if (Number.isNaN(sourceIndex) || !pitchInnerRef.current) return;
+    const rect = pitchInnerRef.current.getBoundingClientRect();
+    const xPercent = clampPercent(((e.clientX - rect.left) / rect.width) * 100);
+    const yPercent = clampPercent(((e.clientY - rect.top) / rect.height) * 100);
+    onPitchDrop(sourceIndex, xPercent, yPercent);
+  }
 
   return (
     <div
       ref={ref}
       style={{
         background: '#2A1440', borderRadius: '18px', padding: '18px',
-        display: 'flex', flexDirection: 'column', gap: '14px', maxWidth: '560px', width: '100%',
+        display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '560px', width: '100%',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+      {/* Verticaal gecentreerde stack (logo boven naam boven formatie-pil) i.p.v. een naast-elkaar-rij —
+          blijft symmetrisch gecentreerd ongeacht logobreedte, met een subtiele scheidingslijn naar het
+          veld toe voor een rustiger, "cleaner" export-header. */}
+      <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
+        paddingBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.08)',
+      }}>
         {club && (
           <img
             src={`/club-logos/${club.code}.png`}
             alt=""
-            style={{ width: '36px', height: '36px', objectFit: 'contain' }}
+            style={{ width: '44px', height: '44px', objectFit: 'contain', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.35))' }}
             onError={(e) => { e.target.style.display = 'none'; }}
           />
         )}
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ color: '#FFF', fontWeight: 900, fontSize: '18px', lineHeight: 1.1 }}>
-            {club?.name ?? 'Kies een club'}
-          </div>
-          <div style={{ color: '#4ECDC4', fontWeight: 700, fontSize: '12px', letterSpacing: '0.05em' }}>
-            {formationLabel}
-          </div>
+        <div style={{ color: '#FFF', fontWeight: 900, fontSize: '20px', lineHeight: 1.1, textAlign: 'center' }}>
+          {club?.name ?? 'Kies een club'}
+        </div>
+        <div style={{
+          color: '#4ECDC4', fontWeight: 800, fontSize: '11px', letterSpacing: '0.14em', textTransform: 'uppercase',
+          background: 'rgba(78,205,196,0.12)', border: '1px solid rgba(78,205,196,0.3)',
+          borderRadius: '999px', padding: '3px 12px',
+        }}>
+          {formationLabel}
         </div>
       </div>
 
-      <div style={{
-        position: 'relative', width: '100%', aspectRatio: '4 / 5',
-        borderRadius: '14px', overflow: 'hidden', background: PITCH_GRADIENT,
-        border: '1px solid rgba(255,255,255,0.15)',
-      }}>
+      <div
+        ref={pitchInnerRef}
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={handlePitchDrop}
+        style={{
+          position: 'relative', width: '100%', aspectRatio: '4 / 5',
+          borderRadius: '14px', overflow: 'hidden', background: PITCH_GRADIENT,
+          border: '1px solid rgba(255,255,255,0.15)',
+        }}>
         <PitchMarkings />
         {pitchSlots.map((slot) => {
           const index = slots.indexOf(slot);
