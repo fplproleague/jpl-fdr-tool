@@ -337,7 +337,7 @@ function TransferPanel({ gw, resolvedIndexedPlayers, playerDatabase, playerDatab
 
       {isOpen && (
         <div style={{
-          marginTop: '10px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+          marginTop: '20px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
           borderRadius: '10px', padding: '14px', display: 'grid', gap: '12px'
         }}>
           <div style={{ display: 'grid', gap: '10px', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
