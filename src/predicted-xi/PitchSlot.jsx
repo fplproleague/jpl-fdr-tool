@@ -1,16 +1,16 @@
 // Eén speler-kaartje (of lege plek) op het veld. Absoluut gepositioneerd door de aanroeper (PitchField)
 // via slot.xPercent/yPercent — dit component regelt enkel het kaartje zelf: kleuren/opmaak, de
-// safety-rand+cyclus-badge, de verwijder-knop, en klik-handlers. Bewust geen clublogo/positielabel op
-// gevulde kaarten (die zijn overbodig — elke kaart hoort al bij precies één club/lijn) — enkel de naam
-// (prominent) en de prijs (subtiel eronder, als label). Klikken op een gevulde kaart opent de
-// positiekiezer (zie PositionPicker.jsx via PredictedXiBuilder.jsx) i.p.v. te kunnen slepen — vrij
-// pixel-precies verslepen is bewust vervangen door klik-gebaseerde positiekeuze.
+// safety-rand+cyclus-badge, de verwijder-knop, en drag/klik-handlers. Bewust geen clublogo/positielabel
+// op gevulde kaarten (die zijn overbodig — elke kaart hoort al bij precies één club/lijn) — enkel de
+// naam (prominent) en de prijs (subtiel eronder, als label). Gevulde kaarten ondersteunen zowel klikken
+// (opent de positiekiezer, zie PositionPicker.jsx) als slepen (automatische settle naar de dichtstbije
+// positie, zie PitchField.jsx) — allebei komen uiteindelijk uit bij dezelfde toewijzingslogica.
 import { Plus, X } from 'lucide-react';
 import { SAFETY_STYLE } from './theme';
 
 export default function PitchSlot({
   slot, index, isActiveSearchTarget,
-  onSlotClick, onRemove, onCycleSafety,
+  onSlotClick, onRemove, onCycleSafety, onDragStart,
 }) {
   const isEmpty = !slot.playerName;
   const safety = SAFETY_STYLE[slot.safety] ?? SAFETY_STYLE.green;
@@ -55,8 +55,10 @@ export default function PitchSlot({
           </>
         )}
         <div
+          draggable={!isEmpty}
+          onDragStart={(e) => onDragStart(e, index)}
           onClick={() => onSlotClick(index)}
-          title={isEmpty ? `Klik om een ${slot.role}-speler te zoeken` : 'Klik om positie te wijzigen'}
+          title={isEmpty ? `Klik om een ${slot.role}-speler te zoeken` : 'Sleep om te verplaatsen, of klik om een positie te kiezen'}
           style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
             gap: '2px',
@@ -66,7 +68,7 @@ export default function PitchSlot({
               : `2px solid ${safety.border}`,
             borderRadius: '10px', padding: isEmpty ? '6px 8px' : '7px 12px',
             minWidth: isEmpty ? '70px' : '84px',
-            cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
+            cursor: isEmpty ? 'pointer' : 'grab', boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
           }}
         >
           {isEmpty ? (
