@@ -5,7 +5,7 @@
 import html2canvas from 'html2canvas';
 import { EXPORT_BACKGROUND, WATERMARK_TEXT, WATERMARK_FONT, WATERMARK_COLOR } from './theme';
 
-export async function exportLineupAsPng(pitchEl, { clubCode, formationKey }) {
+export async function exportLineupAsPng(pitchEl, { clubCode, opponentCode, formationKey }) {
   if (!pitchEl) return;
 
   // Zelfde goedkope wachttijd als het origineel — vangt een nog-ladend clublogo of een nog niet
@@ -35,8 +35,9 @@ export async function exportLineupAsPng(pitchEl, { clubCode, formationKey }) {
   ctx.fillText(WATERMARK_TEXT, finalCanvas.width / 2, canvas.height + watermarkHeight / 2);
 
   const date = new Date().toISOString().slice(0, 10);
+  const opponentSuffix = opponentCode ? `-vs-${opponentCode.toLowerCase()}` : '';
   const link = document.createElement('a');
-  link.download = `predicted-xi-${clubCode.toLowerCase()}-${formationKey}-${date}.png`;
+  link.download = `predicted-xi-${clubCode.toLowerCase()}${opponentSuffix}-${formationKey}-${date}.png`;
   link.href = finalCanvas.toDataURL('image/png');
   link.click();
 }

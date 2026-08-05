@@ -29,14 +29,14 @@ function sanitizeSlot(raw) {
   };
 }
 
-// Bepaalt of `slotsArray` een geldige set posities voor `formationKey` bevat — d.w.z. elke positionId
-// die de formatie vereist (bv. 'LCB','ST',...) komt minstens één keer voor. Dit dekt zowel écht
-// verouderde data (van vóór de klik-positiekiezer, die een grof 'line'-veld i.p.v. 'positionId'
-// opsloeg — 'FWD'/'MID'/... komt nooit voor als positionId) als data die door die vorige bug al
-// eenmalig herschreven werd naar allemaal positionId:'_unassigned'.
-function hasCompleteFormationSlots(slotsArray, formationKey) {
-  const present = new Set(slotsArray.map(s => s.positionId).filter(id => POSITION_PRESETS[id]));
-  return FORMATIONS[formationKey].positionIds.every(id => present.has(id));
+// Bepaalt of `slotsArray` uit herkenbare positionId's bestaat (elke waarde is '_unassigned' of een
+// geldige sleutel in POSITION_PRESETS). Controleert bewust NIET of elk slot exact overeenkomt met
+// FORMATIONS[formationKey].positionIds — de formatie is enkel een startlayout, geen dwingende
+// beperking, dus een individueel slot kan intussen vrij naar een andere positie omgezet zijn (bv. een
+// LW naar LST). Dit dekt nog steeds écht verouderde data (van vóór de klik-positiekiezer, die een grof
+// 'line'-veld i.p.v. 'positionId' opsloeg — 'FWD'/'MID'/... komt nooit voor als POSITION_PRESETS-sleutel).
+function hasRecognizedSlots(slotsArray) {
+  return slotsArray.every(s => s.positionId === '_unassigned' || POSITION_PRESETS[s.positionId]);
 }
 
 function sanitizeDraft(raw) {
@@ -48,7 +48,7 @@ function sanitizeDraft(raw) {
   let slots;
   if (rawSlotsArray.length === 0) {
     slots = generateEmptySlotsForFormation(formationKey);
-  } else if (hasCompleteFormationSlots(rawSlotsArray, formationKey)) {
+  } else if (hasRecognizedSlots(rawSlotsArray)) {
     slots = rawSlotsArray.map(sanitizeSlot).filter(Boolean);
   } else {
     // Migratie: herverdeel de spelers uit het oude/onvolledige formaat via dezelfde greedy-logica als
@@ -68,6 +68,9 @@ function sanitizeDraft(raw) {
   return {
     id: typeof raw.id === 'string' ? raw.id : createDraftId(),
     clubCode: raw.clubCode,
+    opponentCode: typeof raw.opponentCode === 'string' && (raw.opponentCode === '' || TEAMS.some(t => t.code === raw.opponentCode))
+      ? raw.opponentCode
+      : '',
     formationKey,
     slots,
     notes: typeof raw.notes === 'string' ? raw.notes : '',

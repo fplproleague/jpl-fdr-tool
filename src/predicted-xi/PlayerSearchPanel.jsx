@@ -4,7 +4,7 @@
 // terwijl deze feature "instant search, klik om toe te voegen" als een vast, doorlopend paneel vraagt.
 // Hergebruikt wel dezelfde filter-/rij-opmaaklogica voor visuele/gedragsconsistentie.
 import { useState } from 'react';
-import { Search } from 'lucide-react';
+import { Search, UserPlus } from 'lucide-react';
 
 function findMatches(players, query) {
   const trimmed = query.trim().toLowerCase();
@@ -15,9 +15,10 @@ function findMatches(players, query) {
     .slice(0, 20);
 }
 
-export default function PlayerSearchPanel({ players, onSelect, activeSlotRole, disabled, placeholder }) {
+export default function PlayerSearchPanel({ players, onSelect, onManualAdd, activeSlotRole, disabled, placeholder }) {
   const [query, setQuery] = useState('');
   const matches = findMatches(players, query);
+  const trimmedQuery = query.trim();
 
   return (
     <div>
@@ -42,37 +43,56 @@ export default function PlayerSearchPanel({ players, onSelect, activeSlotRole, d
         </p>
       )}
       <div style={{ maxHeight: '280px', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px' }}>
-        {query.trim() === '' ? (
+        {trimmedQuery === '' ? (
           <p style={{ color: '#6B5289', fontSize: '12px', padding: '10px' }}>Typ een naam om te zoeken.</p>
-        ) : matches.length === 0 ? (
-          <p style={{ color: '#6B5289', fontSize: '12px', padding: '10px' }}>Geen spelers gevonden.</p>
         ) : (
-          matches.map((p, i) => (
+          <>
+            {matches.length === 0 ? (
+              <p style={{ color: '#6B5289', fontSize: '12px', padding: '10px' }}>Geen spelers gevonden.</p>
+            ) : (
+              matches.map((p, i) => (
+                <button
+                  key={`${p.teamCode}-${p.name}-${i}`}
+                  onClick={() => onSelect(p)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '8px', width: '100%', textAlign: 'left',
+                    background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.06)',
+                    cursor: 'pointer', padding: '8px 10px', color: '#FFF', fontSize: '13px',
+                  }}
+                >
+                  <img
+                    src={`/club-logos/${p.teamCode}.png`}
+                    alt=""
+                    style={{ width: '18px', height: '18px', objectFit: 'contain', flexShrink: 0 }}
+                    onError={(e) => { e.target.style.display = 'none'; }}
+                  />
+                  <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 700 }}>
+                    {p.name}
+                  </span>
+                  <span style={{ color: '#8F79AD', fontSize: '11px', flexShrink: 0 }}>{p.teamName}</span>
+                  <span style={{ color: '#C9B8E0', fontSize: '11px', flexShrink: 0 }}>{p.position}</span>
+                  <span style={{ color: '#4ECDC4', fontSize: '11px', fontWeight: 700, flexShrink: 0 }}>
+                    {p.price != null ? `${p.price.toFixed(1)}M` : '—'}
+                  </span>
+                </button>
+              ))
+            )}
+            {/* Speler zit (nog) niet in de databank — handmatig toevoegen loopt via dezelfde
+                plaatsingslogica als een databank-speler (zie handleManualAdd in PredictedXiBuilder.jsx),
+                enkel zonder club/positie/prijs uit de sheet. */}
             <button
-              key={`${p.teamCode}-${p.name}-${i}`}
-              onClick={() => onSelect(p)}
+              onClick={() => onManualAdd(trimmedQuery)}
               style={{
                 display: 'flex', alignItems: 'center', gap: '8px', width: '100%', textAlign: 'left',
-                background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.06)',
-                cursor: 'pointer', padding: '8px 10px', color: '#FFF', fontSize: '13px',
+                background: 'rgba(78,205,196,0.08)', border: 'none',
+                borderTop: matches.length > 0 ? '1px solid rgba(255,255,255,0.08)' : 'none',
+                cursor: 'pointer', padding: '8px 10px', color: '#4ECDC4', fontSize: '12px', fontWeight: 700,
               }}
             >
-              <img
-                src={`/club-logos/${p.teamCode}.png`}
-                alt=""
-                style={{ width: '18px', height: '18px', objectFit: 'contain', flexShrink: 0 }}
-                onError={(e) => { e.target.style.display = 'none'; }}
-              />
-              <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 700 }}>
-                {p.name}
-              </span>
-              <span style={{ color: '#8F79AD', fontSize: '11px', flexShrink: 0 }}>{p.teamName}</span>
-              <span style={{ color: '#C9B8E0', fontSize: '11px', flexShrink: 0 }}>{p.position}</span>
-              <span style={{ color: '#4ECDC4', fontSize: '11px', fontWeight: 700, flexShrink: 0 }}>
-                {p.price != null ? `${p.price.toFixed(1)}M` : '—'}
-              </span>
+              <UserPlus size={13} style={{ flexShrink: 0 }} />
+              Voeg "{trimmedQuery}" handmatig toe (niet in databank)
             </button>
-          ))
+          </>
         )}
       </div>
     </div>
