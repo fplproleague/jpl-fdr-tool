@@ -61,7 +61,13 @@ export const PlayerSearchInput = memo(function PlayerSearchInput({
     const el = containerRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    setCoords({ left: rect.left, top: rect.bottom + 4, width: rect.width });
+    // De dropdown volgt normaal exact de breedte van het invoerveld, maar sommige plekken (bv. de
+    // "Mijn 15 spelers"-tabel in TeamPlannerTab.jsx) maken dat veld bewust smal — een dropdown-item
+    // toont club-logo + naam + team + positie + prijs naast elkaar, en dat past niet meer in zo'n
+    // smalle breedte. Een ondergrens van 240px houdt de dropdown zelf altijd leesbaar, ongeacht hoe
+    // smal het triggerveld is; bij een breder veld blijft het gedrag exact zoals voorheen (dan is
+    // rect.width toch al groter dan deze ondergrens).
+    setCoords({ left: rect.left, top: rect.bottom + 4, width: Math.max(rect.width, 240) });
   }, []);
 
   useEffect(() => {

@@ -844,6 +844,16 @@ export default function FDRTool() {
     setTeamPlannerBoosters({ benchBoost: null, tripleCaptain: null, recharge: null });
   };
 
+  // Wist enkel de transfer-tijdlijn (alle GW's) — voor de "Wis alle transfers"-knop naast de Transfers-
+  // sectiekop in TeamPlannerTab.jsx. Bank/kapitein/boosters blijven ongemoeid (in tegenstelling tot
+  // handleClearTeamPlanner hierboven, dat de volledige selectie wist); teamPlannerTransferBudget
+  // herberekent vanzelf naar de lege staat via zijn bestaande useMemo-afhankelijkheid op
+  // teamPlannerTransferHistory. Bevestiging via window.confirm, want dit is niet ongedaan te maken.
+  const handleClearTeamPlannerTransfers = () => {
+    if (!window.confirm('Weet je zeker dat je alle geplande transfers wilt wissen? Dit kan niet ongedaan gemaakt worden.')) return;
+    setTeamPlannerTransfersBySlot({});
+  };
+
   // Herschikt de bank-volgorde voor de bekeken GW: wisselt de array-posities van de twee gegeven
   // slots — bedoeld voor "klik 2 bankspelers om te wisselen" in TeamPlannerTab.jsx (handleSelectForSwap).
   // Een gebankte keeper telt niet mee in deze volgorde en blijft altijd vooraan staan (zie de bench-
@@ -1328,6 +1338,7 @@ export default function FDRTool() {
             teamPlannerBoosters={teamPlannerBoosters}
             toggleTeamPlannerBooster={toggleTeamPlannerBooster}
             handleClearTeamPlanner={handleClearTeamPlanner}
+            handleClearTeamPlannerTransfers={handleClearTeamPlannerTransfers}
             swapTeamPlannerBenchPlayers={swapTeamPlannerBenchPlayers}
           />
         )}
