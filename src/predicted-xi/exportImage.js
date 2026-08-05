@@ -18,7 +18,13 @@ export async function exportLineupAsPng(pitchEl, { clubCode, opponentCode, forma
     });
   });
 
-  const canvas = await html2canvas(pitchEl, { backgroundColor: EXPORT_BACKGROUND, scale: 2 });
+  // ignoreElements i.p.v. op React-rendertiming vertrouwen om browser-UI (de verwijder-"X" op elke
+  // kaart) uit te sluiten — deterministisch, ongeacht of een re-render al voltooid is op het moment
+  // van capture. De safety-badge blijft wél zichtbaar, dat is een bewust onderdeel van het ontwerp.
+  const canvas = await html2canvas(pitchEl, {
+    backgroundColor: EXPORT_BACKGROUND, scale: 2,
+    ignoreElements: (el) => el.classList?.contains('pxi-no-export'),
+  });
 
   const watermarkHeight = 44 * 2;
   const finalCanvas = document.createElement('canvas');
