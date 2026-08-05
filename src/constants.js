@@ -254,6 +254,69 @@ export const VALID_FORMATIONS = [
   [3, 4, 3], [3, 5, 2], [4, 3, 3], [4, 4, 2], [4, 5, 1], [5, 3, 2], [5, 4, 1],
 ];
 
+// --- Team Planner: transfer-budget (gratis transfers + puntenkost), FPL-stijl ---
+
+// Max. aantal gratis transfers dat tegelijk kan opgestapeld staan.
+export const TEAM_PLANNER_FREE_TRANSFER_CAP = 3;
+// Puntenkost per transfer die BOVEN het gratis aantal in een GW gemaakt wordt.
+export const TEAM_PLANNER_TRANSFER_PENALTY = 4;
+
+// Is Recharge actief op GW `gw`? Dit is de ENIGE plek waar deze regel bepaald wordt — zowel de UI
+// (bv. de Recharge-banner/het Recharge-icoontje in TeamPlannerTab.jsx) als de transfer-budget-
+// berekening hieronder roepen dit aan, in plaats van de voorwaarde los te herhalen. Zo kan de "wat
+// telt als een Recharge-GW"-regel nooit op twee plekken uit sync raken. GW_COUNT (de laatste GW)
+// krijgt altijd automatisch een gratis Recharge voor iedereen, ongeacht teamPlannerBoosters.recharge.
+export function isRechargeActiveForGw(boosters, gw) {
+  return boosters.recharge === gw || gw === GW_COUNT;
+}
+
+// Berekent, voor elke GW2..GW_COUNT, hoeveel gratis transfers de gebruiker had opgebouwd VOOR die GW
+// begon (freeAvailable), hoeveel transfers hij er effectief in gebruikte (used), en welke puntenkost
+// dat opleverde (pointsCost). Puur afgeleid van reeds bestaande state (transferHistory + boosters,
+// beide al elders de bron van waarheid) — geen eigen parallelle telling, dus dit kan nooit uit sync
+// raken met wat de Transfers-sectie of de Recharge-status effectief tonen. Herberekent vanzelf zodra
+// de aanroeper (useMemo in FDRTool.jsx) een gewijzigde transferHistory/boosters doorgeeft.
+//
+// Spelregels (FPL-stijl, bevestigd door de gebruiker — LET OP bij latere aanpassingen, dit is subtiel):
+// - GW1 is de initiële teamopbouw, geen "echte" transfers in de zin van dit systeem — volledig
+//   buiten dit budget gehouden (geen entry in de teruggegeven map, geen invloed op GW2's startsaldo).
+// - Vanaf GW2: elke GW +1 nieuwe gratis transfer, opstapelend tot een plafond van
+//   TEAM_PLANNER_FREE_TRANSFER_CAP. GW2 zelf start dus met exact 1 gratis transfer.
+// - Elke transfer BOVEN het op dat moment gratis aantal in een GW kost TEAM_PLANNER_TRANSFER_PENALTY
+//   punten per extra transfer.
+// - Een Recharge-GW (zie isRechargeActiveForGw hierboven) maakt transfers die GW volledig gratis
+//   (pointsCost altijd 0, ongeacht hoeveel transfers er gebeurden), MAAR "bespaar je geen transfer":
+//   het gratis-saldo waarmee je de Recharge-GW inging blijft ONGEWIJZIGD staan voor de GW erna — die
+//   Recharge-GW telt simpelweg niet mee in de opbouw-rekening, alsof hij was overgeslagen (net zoals
+//   een wildcard/free hit-chip in echte FPL geen extra vrije transfer oplevert of kost).
+export function computeTeamPlannerTransferBudget(transferHistory, boosters) {
+  // Aantal effectief geplande transfers per GW — geteld uit de bestaande, platte transfer-tijdlijn
+  // (teamPlannerTransferHistory in FDRTool.jsx, één entry per transfer met een .gw-veld), NIET los
+  // herteld, om nooit uit sync te kunnen raken met wat de Transfers-sectie zelf toont.
+  const transfersUsedByGw = {};
+  transferHistory.forEach(entry => {
+    transfersUsedByGw[entry.gw] = (transfersUsedByGw[entry.gw] ?? 0) + 1;
+  });
+
+  const budgetByGw = {};
+  let freeAvailable = 1; // startsaldo waarmee GW2 begint
+  for (let gw = 2; gw <= GW_COUNT; gw++) {
+    const isRecharge = isRechargeActiveForGw(boosters, gw);
+    const used = transfersUsedByGw[gw] ?? 0;
+    const pointsCost = isRecharge ? 0 : Math.max(0, used - freeAvailable) * TEAM_PLANNER_TRANSFER_PENALTY;
+    budgetByGw[gw] = { freeAvailable, used, pointsCost, isRecharge };
+
+    // Opbouw voor de VOLGENDE GW: een Recharge-GW bevriest het saldo (zie uitleg hierboven — deze GW
+    // telt niet mee). Anders normale FPL-opbouw: wat je effectief van je gratis transfers gebruikte
+    // (nooit meer dan wat er was) gaat eraf, +1 nieuwe, geplafonneerd op TEAM_PLANNER_FREE_TRANSFER_CAP.
+    if (!isRecharge) {
+      const consumed = Math.min(used, freeAvailable);
+      freeAvailable = Math.min(TEAM_PLANNER_FREE_TRANSFER_CAP, freeAvailable - consumed + 1);
+    }
+  }
+  return budgetByGw;
+}
+
 // --- Team Planner: transfers zijn tijdgebonden ---
 // Een transfer op een slot geldt vanaf zijn geplande GW en blijft van kracht voor alle latere GW's,
 // tot een nieuwe transfer op datzelfde slot het opnieuw wijzigt. Het team is dus geen vaste lijst

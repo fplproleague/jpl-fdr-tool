@@ -16,6 +16,7 @@ import {
   TEAMS, FIXTURES, GW_COUNT, GW_DEADLINES,
   TEAM_PLANNER_BUDGET, TEAM_PLANNER_MAX_PER_CLUB, TEAM_PLANNER_BENCH_SIZE, TEAM_PLANNER_SQUAD_SIZE,
   VALID_FORMATIONS, TEAM_PLANNER_SLOT_POSITIONS, sectionTitleStyle,
+  isRechargeActiveForGw as isRechargeActiveForGwRule,
 } from '../constants';
 import { MiniFixtureBadge } from '../components/MiniFixtureBadge';
 import { SectionHeader } from '../components/SectionHeader';
@@ -50,6 +51,16 @@ function countBadgeStyle(count, required) {
   if (count === required) return { background: '#4ECDC4', color: '#0B2E1B' };
   if (count > required) return { background: '#C2402C', color: '#FBEAE7' };
   return { background: 'rgba(255,255,255,0.08)', color: '#C9B8E0' };
+}
+
+// Kleurstaat voor de gratis-transfers-pill bij de GW-selector (zie teamPlannerTransferBudget,
+// FDRTool.jsx/constants.js): goud tijdens een Recharge-GW (transfers zijn dan sowieso onbeperkt
+// gratis, het aantal is niet relevant), teal zolang er nog minstens 1 gratis transfer over is voor
+// de bekeken GW, neutraal grijs zodra dat op is (géén rood — "0 over" is op zich geen fout/waarschuwing,
+// enkel de effectief gemaakte extra transfers die punten kosten krijgen de rode stijl, zie hieronder).
+function transferBudgetBadgeStyle(isRecharge, remainingFree) {
+  if (isRecharge) return { background: 'rgba(232,197,71,0.15)', color: '#E8C547' };
+  return remainingFree > 0 ? { background: '#4ECDC4', color: '#0B2E1B' } : { background: 'rgba(255,255,255,0.08)', color: '#C9B8E0' };
 }
 
 // Kleurstaat voor de formatie-pill: neutraal zolang de bank nog niet exact 4 spelers telt (de
@@ -427,7 +438,7 @@ export default function TeamPlannerTab({
   teamPlannerGw, handleTeamPlannerGwPrev, handleTeamPlannerGwNext,
   teamPlannerTotalPrice, teamPlannerClubCounts, teamPlannerFormationCounts,
   playerDatabase, playerDatabaseLoading, playerDatabaseError, fetchPlayerDatabase,
-  teamPlannerResolvedPlayers, teamPlannerTransferHistory, planTeamPlannerTransfer, removeTeamPlannerTransfer,
+  teamPlannerResolvedPlayers, teamPlannerTransferHistory, teamPlannerTransferBudget, planTeamPlannerTransfer, removeTeamPlannerTransfer,
   handleOptimizeTeamPlannerLineup, teamPlannerOptimized,
   teamPlannerBoosters, toggleTeamPlannerBooster,
   handleClearTeamPlanner, swapTeamPlannerBenchPlayers,
@@ -570,9 +581,11 @@ export default function TeamPlannerTab({
   const isBenchBoostActive = teamPlannerBoosters.benchBoost === teamPlannerGw;
   const isTripleCaptainActive = teamPlannerBoosters.tripleCaptain === teamPlannerGw;
   // GW8 (de laatste GW) krijgt automatisch een gratis Recharge voor iedereen — telt niet als
-  // "verbruikt" (teamPlannerBoosters.recharge blijft ongemoeid) en is niet uit te zetten, vandaar de
-  // los van teamPlannerBoosters staande OR hier.
-  const isRechargeActiveForGw = teamPlannerBoosters.recharge === teamPlannerGw || teamPlannerGw === GW_COUNT;
+  // "verbruikt" (teamPlannerBoosters.recharge blijft ongemoeid) en is niet uit te zetten. De regel
+  // zelf (isRechargeActiveForGwRule, constants.js) is de ENIGE bron van waarheid hiervoor — ook de
+  // transfer-budgetberekening (teamPlannerTransferBudget, FDRTool.jsx) roept 'm aan, dus deze twee
+  // kunnen nooit uit sync raken.
+  const isRechargeActiveForGw = isRechargeActiveForGwRule(teamPlannerBoosters, teamPlannerGw);
 
   // 'active' (loopt voor de bekeken GW), 'used-elsewhere' (al verbruikt op een andere GW, vergrendeld)
   // of 'available' (nog vrij) — zie BoosterIconButton en toggleTeamPlannerBooster (FDRTool.jsx).
@@ -873,6 +886,38 @@ export default function TeamPlannerTab({
             </button>
           </div>
 
+          {/* Gratis-transfersaldo vóór de GW-selector — zie teamPlannerTransferBudget (FDRTool.jsx/
+              constants.js). GW1 heeft geen entry (onbeperkte initiële teamopbouw, geen "echte"
+              transfers), vandaar de guard. Toont expliciet hoeveel van het gratis aantal nog OVER is
+              NA de transfers die al gepland zijn voor deze GW (freeAvailable - used), zodat de
+              gebruiker vooraf weet of zijn volgende transfer hier nog gratis is — precies het moment
+              waarop hij dat wil weten, vóór hij "Transfer plannen" hieronder gebruikt. */}
+          {teamPlannerGw > 1 && teamPlannerTransferBudget[teamPlannerGw] && (() => {
+            const budget = teamPlannerTransferBudget[teamPlannerGw];
+            const remainingFree = Math.max(0, budget.freeAvailable - budget.used);
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', marginBottom: '8px' }}>
+                <span style={{
+                  fontSize: '12px', fontWeight: 700, padding: '4px 10px', borderRadius: '999px',
+                  ...transferBudgetBadgeStyle(budget.isRecharge, remainingFree),
+                }}>
+                  {budget.isRecharge
+                    ? 'Recharge actief: transfers gratis'
+                    : `${remainingFree} gratis transfer${remainingFree === 1 ? '' : 's'} beschikbaar`}
+                </span>
+                {/* Enkel getoond zodra er effectief al puntenkost is opgelopen deze GW (dus niet bij elke
+                    GW met transfers — een GW binnen het gratis aantal blijft stil, zoals gevraagd:
+                    "toon de puntenkost... indien van toepassing"). Een Recharge-GW kan hier nooit
+                    komen: pointsCost is dan altijd 0 (zie computeTeamPlannerTransferBudget). */}
+                {budget.pointsCost > 0 && (
+                  <span style={{ color: '#C2402C', fontSize: '12px', fontWeight: 700 }}>
+                    -{budget.pointsCost} punten ({budget.used} transfers, {Math.min(budget.used, budget.freeAvailable)} gratis)
+                  </span>
+                )}
+              </div>
+            );
+          })()}
+
           {/* Handmatig bij te werken deadline-tekst per GW (zie GW_DEADLINES in constants.js) — klein en
               subtiel, enkel getoond als er voor deze GW iets is ingevuld. */}
           {GW_DEADLINES[teamPlannerGw] && (
@@ -1131,12 +1176,22 @@ export default function TeamPlannerTab({
                         color: '#C9B8E0', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.03em', margin: '0 0 8px',
                       }}>
                         GW{group.gw}
-                        {/* teamPlannerBoosters.recharge === group.gw: Recharge werd handmatig geactiveerd
-                            voor precies deze GW; group.gw === GW_COUNT: GW8's automatische Recharge voor
-                            iedereen (zie isRechargeActiveForGw hierboven) — in beide gevallen tonen we
-                            hetzelfde icoontje om aan te geven dat deze transfer(s) uit een recharge komen. */}
-                        {(teamPlannerBoosters.recharge === group.gw || group.gw === GW_COUNT) && (
+                        {/* isRechargeActiveForGwRule (constants.js, zelfde bron van waarheid als hierboven
+                            en als de transfer-budgetberekening) dekt zowel een handmatig geactiveerde
+                            Recharge op precies deze GW als GW8's automatische Recharge voor iedereen. */}
+                        {isRechargeActiveForGwRule(teamPlannerBoosters, group.gw) && (
                           <RefreshCw size={12} color="#E8C547" title="Recharge" />
+                        )}
+                        {teamPlannerTransferBudget[group.gw]?.pointsCost > 0 && (
+                          <span
+                            title={`${teamPlannerTransferBudget[group.gw].used} transfers, ${Math.min(teamPlannerTransferBudget[group.gw].used, teamPlannerTransferBudget[group.gw].freeAvailable)} gratis`}
+                            style={{
+                              background: 'rgba(194,64,44,0.15)', color: '#FF9E90', fontSize: '10px', fontWeight: 900,
+                              padding: '1px 6px', borderRadius: '999px', textTransform: 'none', letterSpacing: 'normal',
+                            }}
+                          >
+                            -{teamPlannerTransferBudget[group.gw].pointsCost} punten
+                          </span>
                         )}
                       </h3>
                       <div style={{ display: 'grid', gap: '6px' }}>

@@ -12,7 +12,7 @@ import {
   MINILEAGUE_CODE, LAST_UPDATED, GW_INDEXES, DEFAULT_RATINGS, DEFAULT_HOME_ADVANTAGE,
   TEAM_PLANNER_SQUAD_SIZE, TEAM_PLANNER_BENCH_SIZE, TEAM_PLANNER_SLOT_POSITIONS, VALID_FORMATIONS,
   resolveSlotPlayerAtGw, PLAYER_DATABASE_CSV_URL, parsePlayerDatabaseCsv, getFixtureScores, average,
-  POSTPONED,
+  POSTPONED, computeTeamPlannerTransferBudget,
 } from './constants';
 import FDRTab from './tabs/FDRTab';
 import WatchlistTab from './tabs/WatchlistTab';
@@ -574,6 +574,15 @@ export default function FDRTool() {
     entries.sort((a, b) => a.gw - b.gw || a.slotIndex - b.slotIndex);
     return entries;
   }, [teamPlannerPlayers, teamPlannerTransfersBySlot]);
+
+  // Gratis-transfersaldo + puntenkost per GW — zie computeTeamPlannerTransferBudget (constants.js) voor
+  // de volledige regeltoelichting (opbouw met plafond, Recharge-uitzondering). Puur afgeleid van
+  // teamPlannerTransferHistory/teamPlannerBoosters hierboven, dus herberekent vanzelf zodra de
+  // gebruiker een transfer toevoegt/verwijdert (in eender welke GW) of een booster aan-/uitzet.
+  const teamPlannerTransferBudget = useMemo(
+    () => computeTeamPlannerTransferBudget(teamPlannerTransferHistory, teamPlannerBoosters),
+    [teamPlannerTransferHistory, teamPlannerBoosters],
+  );
 
   // De first-time-uitleg over Thuisvoordeel verdwijnt vanzelf na een paar seconden.
   useEffect(() => {
@@ -1311,6 +1320,7 @@ export default function FDRTool() {
             fetchPlayerDatabase={fetchPlayerDatabase}
             teamPlannerResolvedPlayers={teamPlannerResolvedPlayers}
             teamPlannerTransferHistory={teamPlannerTransferHistory}
+            teamPlannerTransferBudget={teamPlannerTransferBudget}
             planTeamPlannerTransfer={planTeamPlannerTransfer}
             removeTeamPlannerTransfer={removeTeamPlannerTransfer}
             handleOptimizeTeamPlannerLineup={handleOptimizeTeamPlannerLineup}
