@@ -85,8 +85,7 @@ export default function PitchSlot({
             <>
               <span style={{
                 color: '#FFF', fontSize: '13px', fontWeight: 800,
-                textAlign: 'center', lineHeight: 1.2, maxWidth: '110px',
-                overflowWrap: 'anywhere',
+                textAlign: 'center', lineHeight: 1.2, whiteSpace: 'nowrap',
               }}>
                 {slot.playerName}
               </span>
