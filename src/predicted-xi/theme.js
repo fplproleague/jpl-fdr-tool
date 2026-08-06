@@ -6,13 +6,19 @@
 // door de gebruiker zelf ingesteld via een klik-cyclus op elke kaart.
 export const SAFETY_CYCLE = ['green', 'orange', 'red'];
 
+export const SAFETY_CYCLE = ['green', 'yellow', 'orange', 'red'];
+
+export const SAFETY_CYCLE = ['darkgreen', 'green', 'orange', 'red'];
+
 export const SAFETY_STYLE = {
-  // RATING_STYLE[1]/[2] uit constants.js
-  green: { border: '#1F7A4D', badgeBg: '#5BAE7A', badgeText: '#0B2E1B', label: 'Basisspeler (90-100%)' },
+  // RATING_STYLE[1]
+  darkgreen: { border: '#1F7A4D', badgeBg: '#1F7A4D', badgeText: '#EAFBF1', label: 'Zekere basisspeler (95-100%)' },
+  // RATING_STYLE[2]
+  green: { border: '#5BAE7A', badgeBg: '#5BAE7A', badgeText: '#0B2E1B', label: 'Basisspeler (80-94%)' },
   // RATING_STYLE[4]
-  orange: { border: '#E08A3E', badgeBg: '#E08A3E', badgeText: '#2E1500', label: 'Twijfelgeval (50-89%)' },
+  orange: { border: '#E08A3E', badgeBg: '#E08A3E', badgeText: '#2E1500', label: 'Twijfelgeval (30-79%)' },
   // RATING_STYLE[5]
-  red: { border: '#C2402C', badgeBg: '#C2402C', badgeText: '#FBEAE7', label: 'Onwaarschijnlijk (0-49%)' },
+  red: { border: '#C2402C', badgeBg: '#C2402C', badgeText: '#FBEAE7', label: 'Onwaarschijnlijk (0-29%)' },
 };
 
 export function nextSafety(current) {
