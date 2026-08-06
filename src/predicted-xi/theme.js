@@ -10,6 +10,10 @@
 // voor bestaande opgeslagen lineups; enkel 'darkgreen' is nieuw.
 export const SAFETY_CYCLE = ['darkgreen', 'green', 'orange', 'red'];
 
+export const SAFETY_CYCLE = ['green', 'yellow', 'orange', 'red'];
+
+export const SAFETY_CYCLE = ['darkgreen', 'green', 'orange', 'red'];
+
 export const SAFETY_STYLE = {
   // RATING_STYLE[1] — donkergroen
   darkgreen: { border: '#1F7A4D', badgeBg: '#1F7A4D', badgeText: '#EAFBF1', label: 'Zekere basisspeler (95-100%)' },
@@ -19,6 +23,7 @@ export const SAFETY_STYLE = {
   orange: { border: '#E08A3E', badgeBg: '#E08A3E', badgeText: '#2E1500', label: 'Twijfelgeval (40-79%)' },
   // RATING_STYLE[5]
   red: { border: '#C2402C', badgeBg: '#C2402C', badgeText: '#FBEAE7', label: 'Onwaarschijnlijk (0-39%)' },
+  // RATING_STYLE[1]
 };
 
 export function nextSafety(current) {
