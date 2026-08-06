@@ -101,7 +101,7 @@ export default function PitchSlot({
               ? `2px dashed ${isActiveSearchTarget ? '#4ECDC4' : 'rgba(255,255,255,0.3)'}`
               : `2px solid ${safety.border}`,
             borderRadius: '10px',
-            padding: isEmpty ? '8px 9px' : (compact ? '7px 6px' : '9px 8px'),
+            padding: isEmpty ? '8px 9px' : (compact ? '5px 5px' : '9px 8px'),
             boxSizing: 'border-box',
             // Gevulde kaarten krijgen hun exacte breedte van de ouder (widthPx, zie hierboven) — die is
             // al berekend om de naam op één regel volledig te tonen ZONDER een buurkaart te raken.
@@ -124,13 +124,13 @@ export default function PitchSlot({
           ) : (
             <>
               <span style={{
-                color: '#FFF', fontSize: compact ? '11px' : '13px', fontWeight: 800,
-                textAlign: 'center', lineHeight: 1.2, whiteSpace: 'nowrap',
+                color: '#FFF', fontSize: compact ? '10px' : '13px', fontWeight: 800,
+                textAlign: 'center', lineHeight: 1.15, whiteSpace: 'nowrap',
               }}>
                 {slot.playerName}
               </span>
               {slot.playerPrice != null && (
-                <span style={{ color: '#8F79AD', fontSize: compact ? '9px' : '10px', fontWeight: 700 }}>
+                <span style={{ color: '#8F79AD', fontSize: compact ? '8px' : '10px', fontWeight: 700 }}>
                   {slot.playerPrice.toFixed(1)}M
                 </span>
               )}
