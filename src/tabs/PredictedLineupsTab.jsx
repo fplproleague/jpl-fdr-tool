@@ -7,9 +7,21 @@ import { useState } from 'react';
 import { TEAMS } from '../constants';
 import { FORMATIONS } from '../predicted-xi/formations';
 import PitchField from '../predicted-xi/PitchField';
+import { SAFETY_STYLE } from '../predicted-xi/theme';
 import { PREDICTED_LINEUPS } from '../predictedLineupsData';
 
 const noop = () => {};
+
+// Legt uit wat de kaartrand-kleur op elke kaart betekent (zie SAFETY_STYLE in theme.js voor de
+// kleurwaarden zelf — hier enkel de korte, publieksvriendelijke labels, bewust anders/beknopter dan de
+// interne titels op de safety-badge in de privé-tool, die daar als hover-tooltip dienen i.p.v. een
+// permanent zichtbare legende).
+const SAFETY_LEGEND = [
+  { level: 'darkgreen', label: 'Zekerheid' },
+  { level: 'green', label: 'Starter' },
+  { level: 'orange', label: 'Twijfel' },
+  { level: 'red', label: 'Risico' },
+];
 
 // Filtert lineups zonder één enkele geplaatste speler eruit (bv. een club die nog niet af is) — zo
 // verschijnt zo'n club nooit als een lege, verwarrende kaart in de kiezer, ook niet als
@@ -85,6 +97,23 @@ export default function PredictedLineupsTab() {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+        {/* Kleurenlegende voor de kaartranden — zonder dit weten publieke bezoekers niet wat een rode
+            of oranje rand betekent (enkel de privé-tool toont de betekenis via een hover-tooltip op de
+            safety-badge, die hier bewust niet gerenderd wordt — zie PitchSlot.jsx's readOnly-prop). */}
+        <div style={{
+          display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center',
+          fontSize: '11px', fontWeight: 700, color: '#C9B8E0',
+        }}>
+          {SAFETY_LEGEND.map(({ level, label }) => (
+            <div key={level} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <span style={{
+                width: '10px', height: '10px', borderRadius: '50%',
+                background: SAFETY_STYLE[level].border, flexShrink: 0,
+              }} />
+              {label}
+            </div>
+          ))}
+        </div>
         <PitchField
           readOnly
           club={club}
