@@ -2,35 +2,44 @@
 // speler-kaartjes. Dit is de ENIGE component die binnen de forwardRef zit die exportImage.js capture't
 // — niets anders (notities, drafts-lijst, zoekpaneel) mag hier ooit binnen komen te staan.
 import { forwardRef, useRef } from 'react';
-import { PITCH_GRADIENT } from './theme';
+import { PITCH_GRADIENT, PITCH_ASPECT_RATIO } from './theme';
 import { POSITION_PRESETS } from './formations';
 import PitchSlot from './PitchSlot';
 
-// Echte veldverhoudingen (68m x 105m) als SVG-viewBox-eenheden — middencirkel/strafschopgebied/
-// doelgebied staan zo op hun letterlijke werkelijke proportie, wat het "realistisch" laat aanvoelen
-// i.p.v. een willekeurige rechthoek. preserveAspectRatio="none" laat de belijning licht meestrekken
-// naar de portret-aspect-ratio van de buitenste container (geschikt voor X) zonder zichtbare vervorming.
+// De viewBox-hoogte wordt afgeleid van PITCH_ASPECT_RATIO (breedte blijft 68 SVG-eenheden, dezelfde
+// orde-grootte als de echte veldbreedte in meters) zodat viewBox en container-aspectratio altijd exact
+// overeenkomen. preserveAspectRatio="none" rekt dan uniform (geen vervorming) i.p.v. de middencirkel
+// scheef te trekken zoals zou gebeuren als de viewBox-verhouding niet meer overeenkwam met de container
+// na het compacter maken van het veld. Strafschop-/doelgebied-diepte (Y-richting) wordt proportioneel
+// mee-verkleind zodat ze niet onrealistisch diep ogen op het kortere veld; hun breedte (X-richting,
+// zelfde eenheden als de echte 40.32m/18.32m) blijft ongewijzigd.
+const VIEWBOX_WIDTH = 68;
+const VIEWBOX_HEIGHT = VIEWBOX_WIDTH / PITCH_ASPECT_RATIO;
+const DEPTH_SCALE = VIEWBOX_HEIGHT / 105; // 105 = echte veldlengte in meters, referentie voor de originele diepte-maten
+
 function PitchMarkings() {
   const stripeCount = 8;
+  const penaltyDepth = 16.5 * DEPTH_SCALE;
+  const goalDepth = 5.5 * DEPTH_SCALE;
   return (
-    <svg viewBox="0 0 68 105" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`} preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
       {Array.from({ length: stripeCount }).map((_, i) => (
         <rect
-          key={i} x={0} y={i * (105 / stripeCount)} width={68} height={105 / stripeCount}
+          key={i} x={0} y={i * (VIEWBOX_HEIGHT / stripeCount)} width={VIEWBOX_WIDTH} height={VIEWBOX_HEIGHT / stripeCount}
           fill={i % 2 === 0 ? 'rgba(255,255,255,0.035)' : 'rgba(0,0,0,0.035)'}
         />
       ))}
       <g fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth="0.4">
-        <rect x="1" y="1" width="66" height="103" />
-        <line x1="1" y1="52.5" x2="67" y2="52.5" />
-        <circle cx="34" cy="52.5" r="9.15" />
-        <circle cx="34" cy="52.5" r="0.4" fill="rgba(255,255,255,0.55)" />
+        <rect x="1" y="1" width={VIEWBOX_WIDTH - 2} height={VIEWBOX_HEIGHT - 2} />
+        <line x1="1" y1={VIEWBOX_HEIGHT / 2} x2={VIEWBOX_WIDTH - 1} y2={VIEWBOX_HEIGHT / 2} />
+        <circle cx="34" cy={VIEWBOX_HEIGHT / 2} r="9.15" />
+        <circle cx="34" cy={VIEWBOX_HEIGHT / 2} r="0.4" fill="rgba(255,255,255,0.55)" />
         {/* strafschop-/doelgebied bovenaan (bij de aanvalslinie) */}
-        <rect x="13.84" y="1" width="40.32" height="16.5" />
-        <rect x="24.84" y="1" width="18.32" height="5.5" />
+        <rect x="13.84" y="1" width="40.32" height={penaltyDepth} />
+        <rect x="24.84" y="1" width="18.32" height={goalDepth} />
         {/* strafschop-/doelgebied onderaan (bij de doelman) */}
-        <rect x="13.84" y="87.5" width="40.32" height="16.5" />
-        <rect x="24.84" y="99.5" width="18.32" height="5.5" />
+        <rect x="13.84" y={VIEWBOX_HEIGHT - 1 - penaltyDepth} width="40.32" height={penaltyDepth} />
+        <rect x="24.84" y={VIEWBOX_HEIGHT - 1 - goalDepth} width="18.32" height={goalDepth} />
       </g>
     </svg>
   );
@@ -121,7 +130,7 @@ const PitchField = forwardRef(function PitchField({
         onDragOver={(e) => e.preventDefault()}
         onDrop={handleDrop}
         style={{
-          position: 'relative', width: '100%', aspectRatio: '4 / 5',
+          position: 'relative', width: '100%', aspectRatio: PITCH_ASPECT_RATIO,
           borderRadius: '14px', overflow: 'hidden', background: PITCH_GRADIENT,
           border: '1px solid rgba(255,255,255,0.15)',
         }}>

@@ -7,6 +7,12 @@
 // positie, zie PitchField.jsx) — allebei komen uiteindelijk uit bij dezelfde toewijzingslogica.
 import { Plus, X } from 'lucide-react';
 import { SAFETY_STYLE } from './theme';
+import { truncateToFit } from './textFit';
+
+// Beschikbare tekstbreedte voor de naam: kaartbreedte (78px) min horizontale padding (2x8px), met een
+// paar px veiligheidsmarge omdat canvas measureText() niet altijd pixel-exact overeenkomt met de
+// werkelijke DOM/html2canvas-rendering.
+const NAME_MAX_WIDTH_PX = 60;
 
 export default function PitchSlot({
   slot, index, isActiveSearchTarget,
@@ -14,6 +20,7 @@ export default function PitchSlot({
 }) {
   const isEmpty = !slot.playerName;
   const safety = SAFETY_STYLE[slot.safety] ?? SAFETY_STYLE.green;
+  const displayName = isEmpty ? '' : truncateToFit(slot.playerName, NAME_MAX_WIDTH_PX);
 
   return (
     <div
@@ -77,16 +84,30 @@ export default function PitchSlot({
             border: isEmpty
               ? `2px dashed ${isActiveSearchTarget ? '#4ECDC4' : 'rgba(255,255,255,0.3)'}`
               : `2px solid ${safety.border}`,
-            borderRadius: '10px', padding: isEmpty ? '6px 8px' : '7px 12px',
-            minWidth: isEmpty ? '70px' : '84px',
+            borderRadius: '10px', padding: isEmpty ? '8px 9px' : '9px 8px',
+            boxSizing: 'border-box',
+            // overflow:hidden op de gevulde kaart is een fysiek vangnet bovenop truncateToFit(): mocht
+            // canvas measureText() ooit net iets smaller inschatten dan de werkelijke rendering, dan
+            // wordt de tekst hier hard afgekapt i.p.v. zichtbaar over de kaartrand (en dus mogelijk over
+            // een buurkaart) heen te lopen.
+            overflow: isEmpty ? undefined : 'hidden',
+            // Vaste breedte i.p.v. minWidth voor gevulde kaarten: laat de breedte NIET met de
+            // spelersnaam meegroeien (zie formations.js-commentaar bij LCB/RCB/LCM/RCM) — dat is wat
+            // een wiskundig gegarandeerd overlapvrij venster voor de gedeelde xPercent-coördinaten
+            // mogelijk maakt. Lange namen worden afgekapt via truncateToFit() (zie textFit.js) i.p.v. de
+            // kaart breder te maken — bewust GEEN CSS text-overflow:ellipsis, want html2canvas
+            // rasterizeert dat niet betrouwbaar (zelf getest: tekst werd hard afgekapt zonder zichtbare
+            // "…" op de geëxporteerde PNG).
+            minWidth: isEmpty ? '70px' : undefined,
+            width: isEmpty ? undefined : '78px',
             cursor: isEmpty ? 'pointer' : 'grab', boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
           }}
         >
           {isEmpty ? (
             <>
-              <Plus size={16} color={isActiveSearchTarget ? '#4ECDC4' : '#8F79AD'} />
+              <Plus size={17} color={isActiveSearchTarget ? '#4ECDC4' : '#8F79AD'} />
               <span style={{
-                color: '#8F79AD', fontSize: '10px', fontWeight: 700,
+                color: '#8F79AD', fontSize: '11px', fontWeight: 700,
                 textAlign: 'center', lineHeight: 1.15,
               }}>
                 {slot.role}
@@ -94,14 +115,17 @@ export default function PitchSlot({
             </>
           ) : (
             <>
-              <span style={{
-                color: '#FFF', fontSize: '13px', fontWeight: 800,
-                textAlign: 'center', lineHeight: 1.2, whiteSpace: 'nowrap',
-              }}>
-                {slot.playerName}
+              <span
+                title={slot.playerName}
+                style={{
+                  color: '#FFF', fontSize: '13px', fontWeight: 800,
+                  textAlign: 'center', lineHeight: 1.2, whiteSpace: 'nowrap',
+                }}
+              >
+                {displayName}
               </span>
               {slot.playerPrice != null && (
-                <span style={{ color: '#8F79AD', fontSize: '9px', fontWeight: 700 }}>
+                <span style={{ color: '#8F79AD', fontSize: '10px', fontWeight: 700 }}>
                   {slot.playerPrice.toFixed(1)}M
                 </span>
               )}
