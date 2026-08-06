@@ -2,10 +2,10 @@
 // staan hier bewust BUITEN PitchField's forwardRef-boom (zie PredictedXiBuilder.jsx) — een JSX-sibling
 // van de geëxporteerde container, nooit een descendant, dus html2canvas kan dit structureel nooit
 // meenemen in de export, ongeacht timing.
-import { Copy, Trash2, FolderOpen } from 'lucide-react';
+import { Copy, Trash2, FolderOpen, Download } from 'lucide-react';
 import { draftDisplayLabel } from './storage';
 
-export default function DraftsPanel({ drafts, clubCode, openDraftId, onOpen, onDuplicate, onDelete, notes, onNotesChange }) {
+export default function DraftsPanel({ drafts, clubCode, openDraftId, onOpen, onDuplicate, onDelete, notes, onNotesChange, onExportAll }) {
   const clubDrafts = drafts
     .filter(d => d.clubCode === clubCode)
     .sort((a, b) => b.updatedAt - a.updatedAt);
@@ -13,9 +13,28 @@ export default function DraftsPanel({ drafts, clubCode, openDraftId, onOpen, onD
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <div>
-        <h3 style={{ color: '#C9B8E0', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.03em', margin: '0 0 8px' }}>
-          Opgeslagen lineups
-        </h3>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
+          <h3 style={{ color: '#C9B8E0', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.03em', margin: 0 }}>
+            Opgeslagen lineups
+          </h3>
+          {/* Werkt op ALLE opgeslagen lineups (alle clubs), niet enkel de hierboven getoonde lijst voor
+              de huidige club — eenmalig gebruik: exporteert de volledige inhoud (spelers, posities,
+              safety, club, tegenstander, formatie) als JSON zodra alle 18 club-lineups klaar zijn, om
+              als vaste data over te nemen in de publieke Predicted Lineups-tab. */}
+          <button
+            onClick={onExportAll}
+            disabled={drafts.length === 0}
+            title={`Exporteer alle ${drafts.length} opgeslagen lineups (alle clubs) als JSON`}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0,
+              background: 'transparent', color: drafts.length === 0 ? '#4A3563' : '#8F79AD',
+              border: '1px solid rgba(255,255,255,0.15)', borderRadius: '6px', padding: '4px 8px',
+              fontSize: '11px', fontWeight: 700, cursor: drafts.length === 0 ? 'default' : 'pointer',
+            }}
+          >
+            <Download size={12} /> Exporteer alle lineups
+          </button>
+        </div>
         {clubDrafts.length === 0 ? (
           <p style={{ color: '#6B5289', fontSize: '12px' }}>Nog geen opgeslagen lineup voor deze club — begin met spelers toe te voegen, dit wordt automatisch bewaard.</p>
         ) : (

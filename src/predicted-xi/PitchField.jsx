@@ -54,6 +54,11 @@ function PitchMarkings() {
 const PitchField = forwardRef(function PitchField({
   club, opponent, formationLabel, slots, activeSlotIndex,
   onSlotClick, onRemove, onCycleSafety, onDragStart, onSlotDrop,
+  // Puur-visuele weergave voor de publieke Predicted Lineups-tab (zie PredictedLineupsTab.jsx) — zie
+  // PitchSlot.jsx voor wat dit per kaartje uitschakelt. Hier laat het bovendien de sleep-naar-veld-
+  // afhandeling van de container zelf weg. Standaard false: de privé Predicted XI Builder (die deze
+  // prop nooit meegeeft) is hierdoor op geen enkele manier veranderd.
+  readOnly = false,
 }, ref) {
   const pitchSlots = slots.filter(s => s.positionId !== '_unassigned');
   const pitchInnerRef = useRef(null);
@@ -158,8 +163,8 @@ const PitchField = forwardRef(function PitchField({
 
       <div
         ref={pitchInnerRef}
-        onDragOver={(e) => e.preventDefault()}
-        onDrop={handleDrop}
+        onDragOver={readOnly ? undefined : (e) => e.preventDefault()}
+        onDrop={readOnly ? undefined : handleDrop}
         style={{
           position: 'relative', width: '100%', aspectRatio: PITCH_ASPECT_RATIO,
           borderRadius: '14px', overflow: 'hidden', background: PITCH_GRADIENT,
@@ -181,6 +186,7 @@ const PitchField = forwardRef(function PitchField({
               onRemove={onRemove}
               onCycleSafety={onCycleSafety}
               onDragStart={onDragStart}
+              readOnly={readOnly}
             />
           );
         })}
