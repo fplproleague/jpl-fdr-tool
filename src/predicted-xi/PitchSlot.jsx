@@ -19,7 +19,14 @@ export default function PitchSlot({
     <div
       style={{
         position: 'absolute',
-        left: `${slot.xPercent}%`, top: `${slot.yPercent}%`,
+        // Klemt het kaartje tussen 88px en (100% - 88px) van de linker-/rechterrand — een extra,
+        // CSS-niveau vangnet bovenop de al verbrede preset-marges (16%/84% in formations.js), voor élke
+        // positie op het veld, ook toekomstige of vrij-gekozen posities dicht bij de rand. 88px is
+        // empirisch bepaald (niet de nominale minWidth 84px/2=42px, want een echte spelersnaam rendert
+        // veel breder dan die minimumbreedte): geeft een realistische lange naam als "Christiaan
+        // Ambrose" (151px kaartbreedte) nog altijd >10px marge op de smalste flankposities (LB/LWB/LM/
+        // LW en hun R-tegenhangers) in de breedste formaties (5-3-2/3-5-2/4-4-2/4-3-3) — zelf getest.
+        left: `max(88px, min(${slot.xPercent}%, calc(100% - 88px)))`, top: `${slot.yPercent}%`,
         transform: 'translate(-50%, -50%)',
         zIndex: isActiveSearchTarget ? 3 : 2,
       }}
