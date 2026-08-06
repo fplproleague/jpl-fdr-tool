@@ -89,7 +89,29 @@ function computeRowGroups(pitchSlots) {
     lastY = slot.yPercent;
   }
   if (currentRow.length) rows.push(currentRow);
-  return rows;
+  return mergeAdjacentDefRows(rows);
+}
+
+// POSITION_PRESETS plaatst wing-backs (LWB/RWB, yPercent 61) merkbaar hoger dan center-backs (LCB/CCB/
+// RCB, yPercent 74-76) — een bewuste tactische nuance, maar met een gat (13-15 punten) groter dan
+// ROW_CLUSTER_THRESHOLD. Zonder correctie splitst de achterlinie daardoor altijd in twee rijen van 2,
+// zelfs bij een gewone back-vier — herkenbaar gemeld als "de 4 verdedigers passen niet allemaal" (ze
+// lijken niet te passen omdat ze nooit als één lijn naast elkaar getekend worden, niet omdat er
+// werkelijk te weinig breedte is). DEF is de enige brede positie waarbij dit voorkomt: MID heeft wél
+// bedoeld gescheiden lijnen (bv. CDM/RDM op 57 vs CAM op 30) die apart moeten blijven, dus dit mag geen
+// generieke regel worden — enkel opeenvolgende rijen die VOLLEDIG uit DEF-slots bestaan, worden
+// samengevoegd tot één rij (GK blijft altijd apart: andere broadPosition).
+function mergeAdjacentDefRows(rows) {
+  const merged = [];
+  for (const row of rows) {
+    const prev = merged[merged.length - 1];
+    if (prev && prev.every(s => s.broadPosition === 'DEF') && row.every(s => s.broadPosition === 'DEF')) {
+      merged[merged.length - 1] = [...prev, ...row];
+    } else {
+      merged.push(row);
+    }
+  }
+  return merged;
 }
 
 // Lost horizontale botsingen op binnen één rij op, in twee stappen:

@@ -96,7 +96,15 @@ export default function PredictedLineupsTab() {
         })}
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+      <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px',
+        // Kleine negatieve marge t.o.v. de paginapadding (fdr-content, zie FDRTool.jsx): geeft het veld
+        // op smalle/mobiele schermen wat extra breedte, precies waar de samengevoegde achterlinie (zie
+        // mergeAdjacentDefRows in cardLayout.js) die nodig heeft om b.v. 4 verdedigers als één lijn te
+        // tonen zonder overdreven samen te knijpen. Zonder effect op desktop: PitchField's eigen
+        // maxWidth (560px) blijft daar de echte begrenzing.
+        margin: '0 -10px',
+      }}>
         {/* Kleurenlegende voor de kaartranden — zonder dit weten publieke bezoekers niet wat een rode
             of oranje rand betekent (enkel de privé-tool toont de betekenis via een hover-tooltip op de
             safety-badge, die hier bewust niet gerenderd wordt — zie PitchSlot.jsx's readOnly-prop). */}
