@@ -121,32 +121,39 @@ const PitchField = forwardRef(function PitchField({
     <div
       ref={ref}
       style={{
-        background: '#2A1440', borderRadius: '18px', padding: '18px',
-        display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '560px', width: '100%',
+        background: '#2A1440', borderRadius: '18px', padding: isCompact ? '12px' : '18px',
+        display: 'flex', flexDirection: 'column', gap: isCompact ? '10px' : '16px', maxWidth: '560px', width: '100%',
       }}
     >
       {/* Verticaal gecentreerde stack (logo boven naam boven formatie-pil) i.p.v. een naast-elkaar-rij —
           blijft symmetrisch gecentreerd ongeacht logobreedte, met een subtiele scheidingslijn naar het
-          veld toe voor een rustiger, "cleaner" export-header. */}
+          veld toe voor een rustiger, "cleaner" export-header. Krimpt mee in compact-modus (zie
+          COMPACT_BREAKPOINT_PX hierboven) — op mobiel neemt deze header anders onevenredig veel ruimte
+          in t.o.v. het veld zelf, wat bijdraagt aan een "vol" ogende opstelling. */}
       <div style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
-        paddingBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.08)',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: isCompact ? '5px' : '8px',
+        paddingBottom: isCompact ? '10px' : '16px', borderBottom: '1px solid rgba(255,255,255,0.08)',
       }}>
         {club && (
           <img
             src={`/club-logos/${club.code}.png`}
             alt=""
-            style={{ width: '44px', height: '44px', objectFit: 'contain', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.35))' }}
+            style={{
+              width: isCompact ? '32px' : '44px', height: isCompact ? '32px' : '44px',
+              objectFit: 'contain', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.35))',
+            }}
             onError={(e) => { e.target.style.display = 'none'; }}
           />
         )}
-        <div style={{ color: '#FFF', fontWeight: 900, fontSize: '20px', lineHeight: 1.1, textAlign: 'center' }}>
+        <div style={{
+          color: '#FFF', fontWeight: 900, fontSize: isCompact ? '16px' : '20px', lineHeight: 1.1, textAlign: 'center',
+        }}>
           {club?.name ?? 'Kies een club'}
         </div>
         <div style={{
-          color: '#4ECDC4', fontWeight: 800, fontSize: '11px', letterSpacing: '0.14em', textTransform: 'uppercase',
+          color: '#4ECDC4', fontWeight: 800, fontSize: isCompact ? '10px' : '11px', letterSpacing: '0.14em', textTransform: 'uppercase',
           background: 'rgba(78,205,196,0.12)', border: '1px solid rgba(78,205,196,0.3)',
-          borderRadius: '999px', padding: '3px 12px',
+          borderRadius: '999px', padding: isCompact ? '2px 10px' : '3px 12px',
         }}>
           {formationLabel}
         </div>
@@ -156,10 +163,10 @@ const PitchField = forwardRef(function PitchField({
             <img
               src={`/club-logos/${opponent.code}.png`}
               alt=""
-              style={{ width: '18px', height: '18px', objectFit: 'contain' }}
+              style={{ width: isCompact ? '15px' : '18px', height: isCompact ? '15px' : '18px', objectFit: 'contain' }}
               onError={(e) => { e.target.style.display = 'none'; }}
             />
-            <span style={{ color: '#C9B8E0', fontSize: '13px', fontWeight: 700 }}>{opponent.name}</span>
+            <span style={{ color: '#C9B8E0', fontSize: isCompact ? '11px' : '13px', fontWeight: 700 }}>{opponent.name}</span>
           </div>
         )}
       </div>

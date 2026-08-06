@@ -39,22 +39,22 @@ const ROW_CLUSTER_THRESHOLD = 8;
 export const COMPACT_BREAKPOINT_PX = 400;
 
 const NAME_FONT = '800 13px sans-serif';
-const NAME_FONT_COMPACT = '800 11px sans-serif';
+const NAME_FONT_COMPACT = '800 10px sans-serif';
 // Kaart-padding is 2x8px (zie PitchSlot.jsx) = 16px; +8px veiligheidsmarge omdat canvas measureText()
 // niet altijd pixel-exact overeenkomt met de werkelijke DOM/html2canvas-rendering (zelf ondervonden bij
 // eerdere iteraties deze sessie) — zo blijft er altijd wat lucht rond de tekst i.p.v. een naam die net
 // tegen de kaartrand zou botsen.
 const NAME_HORIZONTAL_PADDING_PX = 24;
-const NAME_HORIZONTAL_PADDING_PX_COMPACT = 18; // padding compact 2x6px = 12 + 6px veiligheidsmarge
+const NAME_HORIZONTAL_PADDING_PX_COMPACT = 14; // padding compact 2x5px = 10 + 4px veiligheidsmarge
 const EMPTY_CARD_WIDTH_PX = 70; // ongewijzigd t.o.v. de bestaande lege-slot-breedte
-const EMPTY_CARD_WIDTH_PX_COMPACT = 58;
+const EMPTY_CARD_WIDTH_PX_COMPACT = 50;
 
 // Kaarthoogte in px, gemeten op de werkelijk gerenderde kaart (padding + naam-/prijsregel + rand) en
 // licht naar boven afgerond als veiligheidsmarge — zelfde geest als NAME_HORIZONTAL_PADDING_PX hierboven.
 // Nodig voor de verticale botsingsdetectie hieronder, wat bij de horizontale breedteberekening niet
 // speelde (die kent enkel de kaartbreedte, niet de hoogte).
 const CARD_HEIGHT_PX = 58;
-const CARD_HEIGHT_PX_COMPACT = 48;
+const CARD_HEIGHT_PX_COMPACT = 40;
 const MIN_VERTICAL_GAP_PX = 6;
 const VERTICAL_EDGE_MARGIN_PX = 4;
 
