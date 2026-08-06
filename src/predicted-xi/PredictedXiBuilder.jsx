@@ -11,6 +11,7 @@ import {
 import { nextSafety } from './theme';
 import { loadStoredDrafts, saveDrafts, createDraftId, duplicateDraft, deleteDraft } from './storage';
 import { exportLineupAsPng } from './exportImage';
+import { downloadDraftsAsJson } from './exportJson';
 import PitchField from './PitchField';
 import PlayerSearchPanel from './PlayerSearchPanel';
 import DraftsPanel from './DraftsPanel';
@@ -419,6 +420,7 @@ export default function PredictedXiBuilder() {
                 onDelete={handleDelete}
                 notes={notes}
                 onNotesChange={setNotes}
+                onExportAll={() => downloadDraftsAsJson(drafts)}
               />
             </div>
           </div>

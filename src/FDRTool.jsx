@@ -17,12 +17,14 @@ import {
 import FDRTab from './tabs/FDRTab';
 import WatchlistTab from './tabs/WatchlistTab';
 import TeamPlannerTab from './tabs/TeamPlannerTab';
+import PredictedLineupsTab from './tabs/PredictedLineupsTab';
 
 // Tab-navigatie bovenaan de pagina — array-gedreven zodat toekomstige onderdelen naast de FDR-tool
 // gewoon een extra entry kunnen worden.
 const TABS = [
   { key: 'fdr', label: 'FDR' },
   { key: 'teamplanner', label: 'Team Planner', isNew: true },
+  { key: 'predictedlineups', label: 'Predicted Lineups', isNew: true },
   { key: 'watchlist', label: 'Watchlist' },
   { key: 'pricechanges', label: 'Price Changes' },
 ];
@@ -1321,6 +1323,8 @@ export default function FDRTool() {
             swapTeamPlannerBenchPlayers={swapTeamPlannerBenchPlayers}
           />
         )}
+
+        {activeTab === 'predictedlineups' && <PredictedLineupsTab />}
 
         {activeTab === 'pricechanges' && (
           <div style={{ marginTop: '20px' }}>

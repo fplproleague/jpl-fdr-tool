@@ -21,6 +21,11 @@ const EMPTY_CARD_EDGE_CLAMP_PX = 47;
 export default function PitchSlot({
   slot, index, leftPx, widthPx, isActiveSearchTarget,
   onSlotClick, onRemove, onCycleSafety, onDragStart,
+  // Puur-visuele weergave voor de publieke Predicted Lineups-tab (zie PredictedLineupsTab.jsx): geen
+  // enkele interactie — geen klik/sleep, geen verwijder-knop, geen safety-badge (niet enkel
+  // non-functioneel, ook niet gerenderd). Standaard false, dus de privé Predicted XI Builder is
+  // hierdoor op geen enkele manier veranderd.
+  readOnly = false,
 }) {
   const isEmpty = !slot.playerName;
   const safety = SAFETY_STYLE[slot.safety] ?? SAFETY_STYLE.green;
@@ -41,7 +46,7 @@ export default function PitchSlot({
       }}
     >
       <div style={{ position: 'relative' }}>
-        {!isEmpty && (
+        {!isEmpty && !readOnly && (
           <>
             {/* Safety-cyclus: klik doorloopt de 4 niveaus (zie SAFETY_CYCLE in theme.js). Zelfde
                 cirkel-badge-offset als de bestaande kapitein-badge in PlayerPitchCard (top:-6px), maar
@@ -75,10 +80,10 @@ export default function PitchSlot({
           </>
         )}
         <div
-          draggable={!isEmpty}
-          onDragStart={(e) => onDragStart(e, index)}
-          onClick={() => onSlotClick(index)}
-          title={isEmpty ? `Klik om een ${slot.role}-speler te zoeken` : 'Sleep om te verplaatsen, of klik om een positie te kiezen'}
+          draggable={!isEmpty && !readOnly}
+          onDragStart={readOnly ? undefined : (e) => onDragStart(e, index)}
+          onClick={readOnly ? undefined : () => onSlotClick(index)}
+          title={readOnly ? undefined : (isEmpty ? `Klik om een ${slot.role}-speler te zoeken` : 'Sleep om te verplaatsen, of klik om een positie te kiezen')}
           data-player-name={isEmpty ? undefined : slot.playerName}
           style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -94,7 +99,7 @@ export default function PitchSlot({
             // Lege kaarten hebben geen naam-afhankelijke breedte, dus een simpele vaste minWidth volstaat.
             minWidth: isEmpty ? '70px' : undefined,
             width: hasComputedPosition ? `${widthPx}px` : undefined,
-            cursor: isEmpty ? 'pointer' : 'grab', boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
+            cursor: readOnly ? 'default' : (isEmpty ? 'pointer' : 'grab'), boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
           }}
         >
           {isEmpty ? (
