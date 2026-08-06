@@ -24,6 +24,16 @@ export function nextSafety(current) {
 // naar onder voor een subtiel 3D-effect.
 export const PITCH_GRADIENT = 'linear-gradient(180deg, #1F7A4D 0%, #16532F 100%)';
 
+// Breedte/hoogte-verhouding van het veld (CSS aspect-ratio: width/height). Enige bron van waarheid voor
+// zowel PitchField.jsx (de container zelf) als PitchMarkings' SVG-viewBox (zie PitchField.jsx) — zo
+// blijven belijning en container gegarandeerd synchroon, ongeacht toekomstige aanpassingen. Een hogere
+// waarde (dichter bij 1) = een minder langgerekt, compacter veld. 0.92 is bewust hoger dan de vorige
+// '4/5' (0.8): '3/4' (0.75) — de eerder gesuggereerde "compactere" waarde — zou wiskundig net een
+// LANGER veld hebben gegeven (aspect-ratio is width/height, dus een lagere waarde = hoger, niet
+// compacter), wat het tegenovergestelde van het gevraagde effect was. Empirisch bepaald i.c.m. de
+// verticale samendrukking in formations.js — zelf visueel getest.
+export const PITCH_ASPECT_RATIO = 0.92;
+
 // Watermerk-tekst, zelfde stijl als de bestaande FDR-export (handleDownloadImage, FDRTool.jsx) — deze
 // beelden worden publiek op het @fpl_proleague-account gepost, consistente branding is dus zinvol.
 export const WATERMARK_TEXT = 'Siebe x @fpl_proleague';

@@ -6,35 +6,50 @@
 // klik-gebaseerde positiekiezer (zie PositionPicker.jsx) — kies een positie uit deze lijst; is die al
 // bezet, dan wisselen de twee spelers van plek. Elke formatie is gewoon een geordende lijst van
 // preset-id's uit deze bibliotheek (11 stuks, telkens exact overeenkomend met de formatienaam).
+// yPercent-waarden zijn een lineaire herschaling van het oude bereik [5,92] naar het compactere [10,85]
+// (behoudt dezelfde relatieve volgorde/verhoudingen van de lijnen — GK onderaan, FWD bovenaan — maar
+// met minder ruimte tussen de linies). Zie PITCH_ASPECT_RATIO in theme.js voor de bijhorende
+// compactere veld-container.
+//
+// LCB/RCB (33/67) en LCM/RCM (33/67) zijn de enige xPercent-waarden die dit segment aanpaste t.o.v. de
+// oorspronkelijke 30/70: deze coördinaten worden hergebruikt in formaties met tegengestelde
+// buur-afstandseisen (bv. LCM staat naast LM=16 in 4-4-2/3-4-3, maar naast CM=50 in 4-3-3/3-5-2/5-3-2;
+// zelfde spanning voor LCB tussen LB=16 en CCB=50 in 5-3-2). Bij een kaartbreedte die met de naamlengte
+// meegroeit bestaat er wiskundig GEEN enkele waarde die beide buur-relaties tegelijk zonder overlap kan
+// garanderen zodra namen lang genoeg zijn (zelf geverifieerd via Playwright-metingen). PitchSlot.jsx
+// legt de kaartbreedte daarom vast op een vaste 78px (i.p.v. onbegrensd te laten meegroeien, met
+// ellipsis-afkapping voor uitzonderlijk lange namen) — dat maakt het venster van geldige xPercent-
+// waarden expliciet berekenbaar: [16 + 78/522*100, 50 - 78/522*100] ≈ [30.9, 35.1]; 33 is het midden van
+// dat venster, met ~9px marge aan weerszijden, ongeacht spelersnaam.
 export const POSITION_PRESETS = {
-  GK: { label: 'GK', broadPosition: 'GK', section: 'GK', xPercent: 50, yPercent: 92 },
+  GK: { label: 'GK', broadPosition: 'GK', section: 'GK', xPercent: 50, yPercent: 85 },
 
-  LB: { label: 'LB', broadPosition: 'DEF', section: 'DEF', xPercent: 16, yPercent: 76 },
-  LCB: { label: 'LCB', broadPosition: 'DEF', section: 'DEF', xPercent: 30, yPercent: 79 },
-  CCB: { label: 'CCB', broadPosition: 'DEF', section: 'DEF', xPercent: 50, yPercent: 81 },
-  RCB: { label: 'RCB', broadPosition: 'DEF', section: 'DEF', xPercent: 70, yPercent: 79 },
-  RB: { label: 'RB', broadPosition: 'DEF', section: 'DEF', xPercent: 84, yPercent: 76 },
-  LWB: { label: 'LWB', broadPosition: 'DEF', section: 'DEF', xPercent: 16, yPercent: 64 },
-  RWB: { label: 'RWB', broadPosition: 'DEF', section: 'DEF', xPercent: 84, yPercent: 64 },
+  LB: { label: 'LB', broadPosition: 'DEF', section: 'DEF', xPercent: 16, yPercent: 71 },
+  LCB: { label: 'LCB', broadPosition: 'DEF', section: 'DEF', xPercent: 33, yPercent: 74 },
+  CCB: { label: 'CCB', broadPosition: 'DEF', section: 'DEF', xPercent: 50, yPercent: 76 },
+  RCB: { label: 'RCB', broadPosition: 'DEF', section: 'DEF', xPercent: 67, yPercent: 74 },
+  RB: { label: 'RB', broadPosition: 'DEF', section: 'DEF', xPercent: 84, yPercent: 71 },
+  LWB: { label: 'LWB', broadPosition: 'DEF', section: 'DEF', xPercent: 16, yPercent: 61 },
+  RWB: { label: 'RWB', broadPosition: 'DEF', section: 'DEF', xPercent: 84, yPercent: 61 },
 
-  LDM: { label: 'LDM', broadPosition: 'MID', section: 'MID', xPercent: 28, yPercent: 60 },
-  CDM: { label: 'CDM', broadPosition: 'MID', section: 'MID', xPercent: 50, yPercent: 60 },
-  RDM: { label: 'RDM', broadPosition: 'MID', section: 'MID', xPercent: 72, yPercent: 60 },
-  LM: { label: 'LM', broadPosition: 'MID', section: 'MID', xPercent: 16, yPercent: 47 },
-  LCM: { label: 'LCM', broadPosition: 'MID', section: 'MID', xPercent: 35, yPercent: 47 },
-  CM: { label: 'CM', broadPosition: 'MID', section: 'MID', xPercent: 50, yPercent: 47 },
-  RCM: { label: 'RCM', broadPosition: 'MID', section: 'MID', xPercent: 65, yPercent: 47 },
-  RM: { label: 'RM', broadPosition: 'MID', section: 'MID', xPercent: 84, yPercent: 47 },
-  LAM: { label: 'LAM', broadPosition: 'MID', section: 'MID', xPercent: 28, yPercent: 32 },
-  CAM: { label: 'CAM', broadPosition: 'MID', section: 'MID', xPercent: 50, yPercent: 28 },
-  RAM: { label: 'RAM', broadPosition: 'MID', section: 'MID', xPercent: 72, yPercent: 32 },
+  LDM: { label: 'LDM', broadPosition: 'MID', section: 'MID', xPercent: 28, yPercent: 57 },
+  CDM: { label: 'CDM', broadPosition: 'MID', section: 'MID', xPercent: 50, yPercent: 57 },
+  RDM: { label: 'RDM', broadPosition: 'MID', section: 'MID', xPercent: 72, yPercent: 57 },
+  LM: { label: 'LM', broadPosition: 'MID', section: 'MID', xPercent: 16, yPercent: 46 },
+  LCM: { label: 'LCM', broadPosition: 'MID', section: 'MID', xPercent: 33, yPercent: 46 },
+  CM: { label: 'CM', broadPosition: 'MID', section: 'MID', xPercent: 50, yPercent: 46 },
+  RCM: { label: 'RCM', broadPosition: 'MID', section: 'MID', xPercent: 67, yPercent: 46 },
+  RM: { label: 'RM', broadPosition: 'MID', section: 'MID', xPercent: 84, yPercent: 46 },
+  LAM: { label: 'LAM', broadPosition: 'MID', section: 'MID', xPercent: 28, yPercent: 33 },
+  CAM: { label: 'CAM', broadPosition: 'MID', section: 'MID', xPercent: 50, yPercent: 30 },
+  RAM: { label: 'RAM', broadPosition: 'MID', section: 'MID', xPercent: 72, yPercent: 33 },
 
-  LW: { label: 'LW', broadPosition: 'FWD', section: 'FWD', xPercent: 16, yPercent: 18 },
-  LST: { label: 'LST', broadPosition: 'FWD', section: 'FWD', xPercent: 28, yPercent: 11 },
-  ST: { label: 'ST', broadPosition: 'FWD', section: 'FWD', xPercent: 50, yPercent: 5 },
-  RST: { label: 'RST', broadPosition: 'FWD', section: 'FWD', xPercent: 72, yPercent: 11 },
-  RW: { label: 'RW', broadPosition: 'FWD', section: 'FWD', xPercent: 84, yPercent: 18 },
-  CF: { label: 'CF', broadPosition: 'FWD', section: 'FWD', xPercent: 50, yPercent: 20 },
+  LW: { label: 'LW', broadPosition: 'FWD', section: 'FWD', xPercent: 16, yPercent: 21 },
+  LST: { label: 'LST', broadPosition: 'FWD', section: 'FWD', xPercent: 28, yPercent: 15 },
+  ST: { label: 'ST', broadPosition: 'FWD', section: 'FWD', xPercent: 50, yPercent: 10 },
+  RST: { label: 'RST', broadPosition: 'FWD', section: 'FWD', xPercent: 72, yPercent: 15 },
+  RW: { label: 'RW', broadPosition: 'FWD', section: 'FWD', xPercent: 84, yPercent: 21 },
+  CF: { label: 'CF', broadPosition: 'FWD', section: 'FWD', xPercent: 50, yPercent: 23 },
 };
 
 export const FORMATIONS = {
