@@ -132,11 +132,11 @@ export default function PredictedXiBuilder() {
           positionId: '_unassigned', role: player.position, broadPosition: player.position,
           xPercent: 0, yPercent: 0,
           playerName: player.name, playerTeamCode: player.teamCode, playerPosition: player.position,
-          playerPrice: player.price ?? null, safety: 'green',
+          playerPrice: player.price ?? null, safety: 'darkgreen',
         }];
       }
       return prev.map((s, i) => (i === targetIndex
-        ? { ...s, playerName: player.name, playerTeamCode: player.teamCode, playerPosition: player.position, playerPrice: player.price ?? null, safety: s.safety || 'green' }
+        ? { ...s, playerName: player.name, playerTeamCode: player.teamCode, playerPosition: player.position, playerPrice: player.price ?? null, safety: s.safety || 'darkgreen' }
         : s));
     });
     setActiveSlotIndex(null);
@@ -147,7 +147,7 @@ export default function PredictedXiBuilder() {
       const slot = prev[index];
       if (slot.positionId === '_unassigned') return prev.filter((_, i) => i !== index);
       return prev.map((s, i) => (i === index
-        ? { ...s, playerName: '', playerTeamCode: '', playerPosition: '', playerPrice: null, safety: 'green' }
+        ? { ...s, playerName: '', playerTeamCode: '', playerPosition: '', playerPrice: null, safety: 'darkgreen' }
         : s));
     });
   }

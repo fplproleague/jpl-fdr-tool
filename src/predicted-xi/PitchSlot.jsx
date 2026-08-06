@@ -1,55 +1,51 @@
-// Eén speler-kaartje (of lege plek) op het veld. Absoluut gepositioneerd door de aanroeper (PitchField)
-// via slot.xPercent/yPercent — dit component regelt enkel het kaartje zelf: kleuren/opmaak, de
-// safety-rand+cyclus-badge, de verwijder-knop, en drag/klik-handlers. Bewust geen clublogo/positielabel
-// op gevulde kaarten (die zijn overbodig — elke kaart hoort al bij precies één club/lijn) — enkel de
-// naam (prominent) en de prijs (subtiel eronder, als label). Gevulde kaarten ondersteunen zowel klikken
-// (opent de positiekiezer, zie PositionPicker.jsx) als slepen (automatische settle naar de dichtstbije
-// positie, zie PitchField.jsx) — allebei komen uiteindelijk uit bij dezelfde toewijzingslogica.
-import { useMemo } from 'react';
+// Eén speler-kaartje (of lege plek) op het veld. Absoluut gepositioneerd — gevulde kaarten krijgen hun
+// exacte leftPx/widthPx van de aanroeper (PitchField.jsx, zie cardLayout.js) omdat de kaartbreedte met
+// de spelersnaam meegroeit en de vaste xPercent-coördinaten dus niet langer garanderen dat kaarten
+// elkaar nooit raken — die botsingsvrije herberekening gebeurt één niveau hoger, dit component tekent
+// enkel het resultaat. Lege slots hebben een vaste breedte (geen naam om rekening mee te houden) en
+// gebruiken nog de eenvoudige percentage-positionering. Verder regelt dit component enkel het kaartje
+// zelf: kleuren/opmaak, de safety-rand+cyclus-badge, de verwijder-knop, en drag/klik-handlers. Bewust
+// geen clublogo/positielabel op gevulde kaarten (die zijn overbodig — elke kaart hoort al bij precies
+// één club/lijn) — enkel de naam (prominent) en de prijs (subtiel eronder, als label). Gevulde kaarten
+// ondersteunen zowel klikken (opent de positiekiezer, zie PositionPicker.jsx) als slepen (automatische
+// settle naar de dichtstbije positie, zie PitchField.jsx) — allebei komen uiteindelijk uit bij dezelfde
+// toewijzingslogica.
 import { Plus, X } from 'lucide-react';
 import { SAFETY_STYLE } from './theme';
-import { fitNameDisplay } from './textFit';
 
-// Beschikbare tekstbreedte voor de naam: kaartbreedte (78px) min horizontale padding (2x8px), met een
-// paar px veiligheidsmarge omdat canvas measureText() niet altijd pixel-exact overeenkomt met de
-// werkelijke DOM/html2canvas-rendering.
-const NAME_MAX_WIDTH_PX = 60;
+// Lege slots hebben een vaste breedte (70px, zie ook EMPTY_CARD_WIDTH_PX in cardLayout.js) — een
+// eenvoudige CSS-klem (helft van de breedte + kleine randmarge) volstaat hier, in dezelfde geest als de
+// pixel-nauwkeurige klem die cardLayout.js voor gevulde kaarten toepast.
+const EMPTY_CARD_EDGE_CLAMP_PX = 47;
 
 export default function PitchSlot({
-  slot, index, isActiveSearchTarget,
+  slot, index, leftPx, widthPx, isActiveSearchTarget,
   onSlotClick, onRemove, onCycleSafety, onDragStart,
 }) {
   const isEmpty = !slot.playerName;
   const safety = SAFETY_STYLE[slot.safety] ?? SAFETY_STYLE.green;
-  // Namen worden NOOIT afgekapt: fitNameDisplay() breekt over max. 2 regels en verkleint het lettertype
-  // pas als woordafbreking alleen niet volstaat (zie textFit.js) — de volledige naam blijft altijd
-  // zichtbaar, terwijl elke regel gegarandeerd binnen NAME_MAX_WIDTH_PX blijft.
-  const { lines: nameLines, fontPx: nameFontPx } = useMemo(
-    () => (isEmpty ? { lines: [], fontPx: 13 } : fitNameDisplay(slot.playerName, NAME_MAX_WIDTH_PX)),
-    [isEmpty, slot.playerName],
-  );
+  const hasComputedPosition = !isEmpty && leftPx != null;
 
   return (
     <div
       style={{
         position: 'absolute',
-        // Klemt het kaartje tussen 88px en (100% - 88px) van de linker-/rechterrand — een extra,
-        // CSS-niveau vangnet bovenop de al verbrede preset-marges (16%/84% in formations.js), voor élke
-        // positie op het veld, ook toekomstige of vrij-gekozen posities dicht bij de rand. 88px blijft
-        // ruim voldoende nu gevulde kaarten altijd een vaste breedte van 78px hebben (nooit meer breder,
-        // ongeacht de naamlengte — zie fitNameDisplay hierboven): zelf getest op de smalste flankposities
-        // (LB/LWB/LM/LW en hun R-tegenhangers) in de breedste formaties (5-3-2/3-5-2/4-4-2/4-3-3).
-        left: `max(88px, min(${slot.xPercent}%, calc(100% - 88px)))`, top: `${slot.yPercent}%`,
-        transform: 'translate(-50%, -50%)',
+        top: `${slot.yPercent}%`,
+        ...(hasComputedPosition
+          ? { left: `${leftPx}px`, transform: 'translateY(-50%)' }
+          : {
+            left: `max(${EMPTY_CARD_EDGE_CLAMP_PX}px, min(${slot.xPercent}%, calc(100% - ${EMPTY_CARD_EDGE_CLAMP_PX}px)))`,
+            transform: 'translate(-50%, -50%)',
+          }),
         zIndex: isActiveSearchTarget ? 3 : 2,
       }}
     >
       <div style={{ position: 'relative' }}>
         {!isEmpty && (
           <>
-            {/* Safety-cyclus: klik wisselt groen->oranje->rood->groen. Zelfde cirkel-badge-offset als
-                de bestaande kapitein-badge in PlayerPitchCard (top:-6px), maar rechtsboven i.p.v.
-                gecentreerd, met een spiegelbeeldige verwijder-knop linksboven. */}
+            {/* Safety-cyclus: klik doorloopt de 4 niveaus (zie SAFETY_CYCLE in theme.js). Zelfde
+                cirkel-badge-offset als de bestaande kapitein-badge in PlayerPitchCard (top:-6px), maar
+                rechtsboven i.p.v. gecentreerd, met een spiegelbeeldige verwijder-knop linksboven. */}
             <button
               onClick={(e) => { e.stopPropagation(); onCycleSafety(index); }}
               title={safety.label}
@@ -93,15 +89,11 @@ export default function PitchSlot({
               : `2px solid ${safety.border}`,
             borderRadius: '10px', padding: isEmpty ? '8px 9px' : '9px 8px',
             boxSizing: 'border-box',
-            // Vaste breedte i.p.v. minWidth voor gevulde kaarten: laat de breedte NIET met de
-            // spelersnaam meegroeien (zie formations.js-commentaar bij LCB/RCB/LCM/RCM) — dat is wat
-            // een wiskundig gegarandeerd overlapvrij venster voor de gedeelde xPercent-coördinaten
-            // mogelijk maakt. Lange namen worden nooit afgekapt: fitNameDisplay() (zie textFit.js) breekt
-            // ze i.p.v. dat over max. 2 regels en verkleint indien nodig het lettertype — de kaart groeit
-            // dus in HOOGTE (ruim voorradig na de linie-compactie), nooit in breedte (dat zou het
-            // overlapvrije venster doorbreken).
+            // Gevulde kaarten krijgen hun exacte breedte van de ouder (widthPx, zie hierboven) — die is
+            // al berekend om de naam op één regel volledig te tonen ZONDER een buurkaart te raken.
+            // Lege kaarten hebben geen naam-afhankelijke breedte, dus een simpele vaste minWidth volstaat.
             minWidth: isEmpty ? '70px' : undefined,
-            width: isEmpty ? undefined : '78px',
+            width: hasComputedPosition ? `${widthPx}px` : undefined,
             cursor: isEmpty ? 'pointer' : 'grab', boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
           }}
         >
@@ -117,13 +109,11 @@ export default function PitchSlot({
             </>
           ) : (
             <>
-              <span
-                style={{
-                  color: '#FFF', fontSize: `${nameFontPx}px`, fontWeight: 800,
-                  textAlign: 'center', lineHeight: 1.2, whiteSpace: 'pre-line',
-                }}
-              >
-                {nameLines.join('\n')}
+              <span style={{
+                color: '#FFF', fontSize: '13px', fontWeight: 800,
+                textAlign: 'center', lineHeight: 1.2, whiteSpace: 'nowrap',
+              }}>
+                {slot.playerName}
               </span>
               {slot.playerPrice != null && (
                 <span style={{ color: '#8F79AD', fontSize: '10px', fontWeight: 700 }}>

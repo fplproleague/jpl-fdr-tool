@@ -3,22 +3,27 @@
 // daar al klaar voor exact dit doel (moeilijkheidsgraad-kleuren, hier hergebruikt als safety-kleuren).
 
 // Safety-indicator per speler-slot: volledig lokale state (geen databron levert een "starter-kans"),
-// door de gebruiker zelf ingesteld via een klik-cyclus op elke kaart.
-export const SAFETY_CYCLE = ['green', 'orange', 'red'];
+// door de gebruiker zelf ingesteld via een klik-cyclus op elke kaart. Twee groentinten (RATING_STYLE[1]
+// donkergroen/[2] lichtgroen) i.p.v. één, voor fijnere nuance tussen "zeker" en "waarschijnlijk maar
+// niet zeker" — 'green' bestond al als opgeslagen waarde (betekende voorheen het volledige
+// groen-bereik), dus blijft ongewijzigd bestaan (nu specifiek lichtgroen) i.p.v. een migratie te vereisen
+// voor bestaande opgeslagen lineups; enkel 'darkgreen' is nieuw.
+export const SAFETY_CYCLE = ['darkgreen', 'green', 'orange', 'red'];
 
 export const SAFETY_CYCLE = ['green', 'yellow', 'orange', 'red'];
 
 export const SAFETY_CYCLE = ['darkgreen', 'green', 'orange', 'red'];
 
 export const SAFETY_STYLE = {
-  // RATING_STYLE[1]
+  // RATING_STYLE[1] — donkergroen
   darkgreen: { border: '#1F7A4D', badgeBg: '#1F7A4D', badgeText: '#EAFBF1', label: 'Zekere basisspeler (95-100%)' },
-  // RATING_STYLE[2]
+  // RATING_STYLE[2] — lichtgroen
   green: { border: '#5BAE7A', badgeBg: '#5BAE7A', badgeText: '#0B2E1B', label: 'Basisspeler (80-94%)' },
   // RATING_STYLE[4]
-  orange: { border: '#E08A3E', badgeBg: '#E08A3E', badgeText: '#2E1500', label: 'Twijfelgeval (30-79%)' },
+  orange: { border: '#E08A3E', badgeBg: '#E08A3E', badgeText: '#2E1500', label: 'Twijfelgeval (40-79%)' },
   // RATING_STYLE[5]
-  red: { border: '#C2402C', badgeBg: '#C2402C', badgeText: '#FBEAE7', label: 'Onwaarschijnlijk (0-29%)' },
+  red: { border: '#C2402C', badgeBg: '#C2402C', badgeText: '#FBEAE7', label: 'Onwaarschijnlijk (0-39%)' },
+  // RATING_STYLE[1]
 };
 
 export function nextSafety(current) {

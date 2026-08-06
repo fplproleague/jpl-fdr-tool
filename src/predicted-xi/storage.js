@@ -25,7 +25,7 @@ function sanitizeSlot(raw) {
     playerTeamCode: typeof raw.playerTeamCode === 'string' ? raw.playerTeamCode : '',
     playerPosition: typeof raw.playerPosition === 'string' ? raw.playerPosition : '',
     playerPrice: Number.isFinite(raw.playerPrice) ? raw.playerPrice : null,
-    safety: ['green', 'orange', 'red'].includes(raw.safety) ? raw.safety : 'green',
+    safety: ['darkgreen', 'green', 'orange', 'red'].includes(raw.safety) ? raw.safety : 'darkgreen',
   };
 }
 
@@ -60,7 +60,7 @@ function sanitizeDraft(raw) {
       playerPosition: typeof s.playerPosition === 'string' ? s.playerPosition : '',
       playerPrice: Number.isFinite(s.playerPrice) ? s.playerPrice : null,
       broadPosition: ['GK', 'DEF', 'MID', 'FWD'].includes(s.broadPosition) ? s.broadPosition : 'MID',
-      safety: ['green', 'orange', 'red'].includes(s.safety) ? s.safety : 'green',
+      safety: ['darkgreen', 'green', 'orange', 'red'].includes(s.safety) ? s.safety : 'darkgreen',
     }));
     slots = remapLineupToFormation(roughSlots, formationKey);
   }
