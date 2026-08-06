@@ -11,11 +11,16 @@ import { PREDICTED_LINEUPS } from '../predictedLineupsData';
 
 const noop = () => {};
 
+// Filtert lineups zonder één enkele geplaatste speler eruit (bv. een club die nog niet af is) — zo
+// verschijnt zo'n club nooit als een lege, verwarrende kaart in de kiezer, ook niet als
+// predictedLineupsData.js per ongeluk een halfafgewerkte entry bevat.
+const readyLineups = PREDICTED_LINEUPS.filter(l => l.slots.some(s => s.positionId !== '_unassigned' && s.playerName));
+
 export default function PredictedLineupsTab() {
-  const availableClubCodes = [...new Set(PREDICTED_LINEUPS.map(l => l.clubCode))];
+  const availableClubCodes = [...new Set(readyLineups.map(l => l.clubCode))];
   const [selectedClubCode, setSelectedClubCode] = useState(availableClubCodes[0] ?? '');
 
-  if (PREDICTED_LINEUPS.length === 0) {
+  if (readyLineups.length === 0) {
     return (
       <>
         <p style={{ color: '#8F79AD', fontSize: '13px', marginBottom: '16px' }}>
@@ -33,7 +38,7 @@ export default function PredictedLineupsTab() {
     );
   }
 
-  const lineup = PREDICTED_LINEUPS.find(l => l.clubCode === selectedClubCode) ?? PREDICTED_LINEUPS[0];
+  const lineup = readyLineups.find(l => l.clubCode === selectedClubCode) ?? readyLineups[0];
   const club = TEAMS.find(t => t.code === lineup.clubCode);
   const opponent = lineup.opponentCode ? TEAMS.find(t => t.code === lineup.opponentCode) : null;
   const formationLabel = lineup.formationLabelOverride?.trim() || FORMATIONS[lineup.formationKey]?.label || lineup.formationKey;
