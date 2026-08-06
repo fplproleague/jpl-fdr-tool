@@ -1,10 +1,16 @@
 // De volledige exporteerbare oppervlakte: grasveld + belijning, club-header, formatielabel, en alle
 // speler-kaartjes. Dit is de ENIGE component die binnen de forwardRef zit die exportImage.js capture't
 // — niets anders (notities, drafts-lijst, zoekpaneel) mag hier ooit binnen komen te staan.
-import { forwardRef, useRef } from 'react';
+import { forwardRef, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { PITCH_GRADIENT, PITCH_ASPECT_RATIO } from './theme';
 import { POSITION_PRESETS } from './formations';
+import { computeCardPositions } from './cardLayout';
 import PitchSlot from './PitchSlot';
+
+// Redelijke standaardbreedte vóór de eerste ResizeObserver-meting (zie hieronder) — voorkomt een
+// layout-flits waarbij kaarten heel even op hun ongecorrigeerde, mogelijk overlappende positie staan.
+// Komt overeen met de container's aanvankelijke maxWidth (560px) min padding.
+const DEFAULT_PITCH_WIDTH_PX = 520;
 
 // De viewBox-hoogte wordt afgeleid van PITCH_ASPECT_RATIO (breedte blijft 68 SVG-eenheden, dezelfde
 // orde-grootte als de echte veldbreedte in meters) zodat viewBox en container-aspectratio altijd exact
@@ -51,6 +57,31 @@ const PitchField = forwardRef(function PitchField({
 }, ref) {
   const pitchSlots = slots.filter(s => s.positionId !== '_unassigned');
   const pitchInnerRef = useRef(null);
+  const [pitchWidthPx, setPitchWidthPx] = useState(DEFAULT_PITCH_WIDTH_PX);
+
+  // Houdt de werkelijke, gerenderde veldbreedte bij (verandert bij window-resize of bv. het
+  // openen/sluiten van het zoekpaneel ernaast) — de botsingsvrije layout hieronder rekent in echte
+  // pixels, dus moet altijd de actuele breedte kennen, niet enkel de breedte bij eerste render.
+  useLayoutEffect(() => {
+    const el = pitchInnerRef.current;
+    if (!el) return undefined;
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect?.width;
+      if (width) setPitchWidthPx(width);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // Kaartbreedte groeit mee met de naam (zie PitchSlot.jsx), dus de vaste xPercent-coördinaten
+  // garanderen geen overlapvrije positie meer — computeCardPositions herberekent de werkelijke
+  // pixel-posities per "rij" (zie cardLayout.js) zodat kaarten elkaar nooit raken en nooit over de
+  // veldrand vallen, ongeacht naamlengte.
+  const cardPositions = useMemo(
+    () => computeCardPositions(pitchSlots, pitchWidthPx),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [slots, pitchWidthPx],
+  );
 
   // Automatische settle: bereken bij loslaten de dichtstbijzijnde vaste positie (in echte pixels,
   // niet ruwe procenten — het veld is geen vierkant, dus anders zou "dichtstbij" scheef getrokken
@@ -137,11 +168,14 @@ const PitchField = forwardRef(function PitchField({
         <PitchMarkings />
         {pitchSlots.map((slot) => {
           const index = slots.indexOf(slot);
+          const position = cardPositions.get(slot);
           return (
             <PitchSlot
               key={index}
               slot={slot}
               index={index}
+              leftPx={position?.leftPx}
+              widthPx={position?.widthPx}
               isActiveSearchTarget={activeSlotIndex === index}
               onSlotClick={onSlotClick}
               onRemove={onRemove}

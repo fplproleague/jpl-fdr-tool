@@ -11,16 +11,14 @@
 // met minder ruimte tussen de linies). Zie PITCH_ASPECT_RATIO in theme.js voor de bijhorende
 // compactere veld-container.
 //
-// LCB/RCB (33/67) en LCM/RCM (33/67) zijn de enige xPercent-waarden die dit segment aanpaste t.o.v. de
-// oorspronkelijke 30/70: deze coördinaten worden hergebruikt in formaties met tegengestelde
-// buur-afstandseisen (bv. LCM staat naast LM=16 in 4-4-2/3-4-3, maar naast CM=50 in 4-3-3/3-5-2/5-3-2;
-// zelfde spanning voor LCB tussen LB=16 en CCB=50 in 5-3-2). Bij een kaartbreedte die met de naamlengte
-// meegroeit bestaat er wiskundig GEEN enkele waarde die beide buur-relaties tegelijk zonder overlap kan
-// garanderen zodra namen lang genoeg zijn (zelf geverifieerd via Playwright-metingen). PitchSlot.jsx
-// legt de kaartbreedte daarom vast op een vaste 78px (i.p.v. onbegrensd te laten meegroeien, met
-// ellipsis-afkapping voor uitzonderlijk lange namen) — dat maakt het venster van geldige xPercent-
-// waarden expliciet berekenbaar: [16 + 78/522*100, 50 - 78/522*100] ≈ [30.9, 35.1]; 33 is het midden van
-// dat venster, met ~9px marge aan weerszijden, ongeacht spelersnaam.
+// LCB/RCB (33/67) en LCM/RCM (33/67) zijn xPercent-waarden die in meerdere formaties met tegengestelde
+// buur-afstandseisen hergebruikt worden (bv. LCM staat naast LM=16 in 4-4-2/3-4-3, maar naast CM=50 in
+// 4-3-3/3-5-2/5-3-2; zelfde spanning voor LCB tussen LB=16 en CCB=50 in 5-3-2). Deze xPercent-waarden
+// zijn enkel nog een IDEALE startpositie: de kaartbreedte groeit mee met de spelersnaam (zie
+// PitchSlot.jsx — namen staan altijd volledig op één regel), dus deze coördinaten garanderen op zichzelf
+// geen overlapvrije layout meer. Die garantie komt nu van een aparte, op de werkelijke gerenderde
+// naambreedte gebaseerde herberekening in cardLayout.js (aangeroepen vanuit PitchField.jsx) — die schuift
+// kaarten die te dicht bij een buur of de veldrand zouden komen net genoeg opzij.
 export const POSITION_PRESETS = {
   GK: { label: 'GK', broadPosition: 'GK', section: 'GK', xPercent: 50, yPercent: 85 },
 
@@ -66,7 +64,7 @@ export const DEFAULT_FORMATION_KEY = '4-3-3';
 // Slot dat nog geen speler bevat — playerName === '' is de "leeg"-conventie (zelfde patroon als
 // createEmptyTeamPlannerPlayers() in FDRTool.jsx), nooit null: elke array-index is altijd een object.
 function emptySlotFields() {
-  return { playerName: '', playerTeamCode: '', playerPosition: '', playerPrice: null, safety: 'green' };
+  return { playerName: '', playerTeamCode: '', playerPosition: '', playerPrice: null, safety: 'darkgreen' };
 }
 
 // Zet een formatie om in een platte, renderbare lijst — elke positieId levert zijn vaste coördinaat uit
