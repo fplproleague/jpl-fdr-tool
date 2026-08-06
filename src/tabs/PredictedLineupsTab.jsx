@@ -106,7 +106,7 @@ export default function PredictedLineupsTab() {
             href="https://x.com/5YSiebee"
             target="_blank"
             rel="noopener noreferrer"
-            style={{ color: '#4ECDC4', textDecoration: 'none' }}
+            style={{ color: '#4ECDC4', textDecoration: 'underline', textUnderlineOffset: '2px' }}
           >
             @5YSiebee
           </a>
@@ -114,7 +114,7 @@ export default function PredictedLineupsTab() {
             href="https://x.com/fpl_proleague"
             target="_blank"
             rel="noopener noreferrer"
-            style={{ color: '#4ECDC4', textDecoration: 'none' }}
+            style={{ color: '#4ECDC4', textDecoration: 'underline', textUnderlineOffset: '2px' }}
           >
             @fpl_proleague
           </a>

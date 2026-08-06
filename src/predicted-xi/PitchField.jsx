@@ -4,7 +4,7 @@
 import { forwardRef, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { PITCH_GRADIENT, PITCH_ASPECT_RATIO } from './theme';
 import { POSITION_PRESETS } from './formations';
-import { computeCardPositions } from './cardLayout';
+import { computeCardPositions, COMPACT_BREAKPOINT_PX } from './cardLayout';
 import PitchSlot from './PitchSlot';
 
 // Redelijke standaardbreedte vóór de eerste ResizeObserver-meting (zie hieronder) — voorkomt een
@@ -80,12 +80,15 @@ const PitchField = forwardRef(function PitchField({
 
   // Kaartbreedte groeit mee met de naam (zie PitchSlot.jsx), dus de vaste xPercent-coördinaten
   // garanderen geen overlapvrije positie meer — computeCardPositions herberekent de werkelijke
-  // pixel-posities per "rij" (zie cardLayout.js) zodat kaarten elkaar nooit raken en nooit over de
-  // veldrand vallen, ongeacht naamlengte.
+  // pixel-posities per "rij" (zie cardLayout.js), zowel horizontaal (kaarten raken elkaar nooit, vallen
+  // nooit over de veldrand) als verticaal (rijen die ongewoon dicht bij een buurlijn liggen — bv. een
+  // handmatig verplaatste CAM — schuiven net genoeg uit elkaar), ongeacht naamlengte of schermbreedte.
+  const pitchHeightPx = pitchWidthPx / PITCH_ASPECT_RATIO;
+  const isCompact = pitchWidthPx < COMPACT_BREAKPOINT_PX;
   const cardPositions = useMemo(
-    () => computeCardPositions(pitchSlots, pitchWidthPx),
+    () => computeCardPositions(pitchSlots, pitchWidthPx, pitchHeightPx),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [slots, pitchWidthPx],
+    [slots, pitchWidthPx, pitchHeightPx],
   );
 
   // Automatische settle: bereken bij loslaten de dichtstbijzijnde vaste positie (in echte pixels,
@@ -181,6 +184,8 @@ const PitchField = forwardRef(function PitchField({
               index={index}
               leftPx={position?.leftPx}
               widthPx={position?.widthPx}
+              topPx={position?.topPx}
+              compact={isCompact}
               isActiveSearchTarget={activeSlotIndex === index}
               onSlotClick={onSlotClick}
               onRemove={onRemove}

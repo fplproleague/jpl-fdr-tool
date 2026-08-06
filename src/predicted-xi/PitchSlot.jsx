@@ -19,8 +19,12 @@ import { SAFETY_STYLE } from './theme';
 const EMPTY_CARD_EDGE_CLAMP_PX = 47;
 
 export default function PitchSlot({
-  slot, index, leftPx, widthPx, isActiveSearchTarget,
+  slot, index, leftPx, widthPx, topPx, isActiveSearchTarget,
   onSlotClick, onRemove, onCycleSafety, onDragStart,
+  // Iets kleinere kaart (naam/prijs-tekst en padding) op smalle/mobiele schermen — zie
+  // COMPACT_BREAKPOINT_PX in cardLayout.js, dat dezelfde drempel gebruikt om de kaartbreedte/-hoogte te
+  // berekenen die hier ook effectief gerenderd wordt.
+  compact = false,
   // Puur-visuele weergave voor de publieke Predicted Lineups-tab (zie PredictedLineupsTab.jsx): geen
   // enkele interactie — geen klik/sleep, geen verwijder-knop, geen safety-badge (niet enkel
   // non-functioneel, ook niet gerenderd). Standaard false, dus de privé Predicted XI Builder is
@@ -30,12 +34,16 @@ export default function PitchSlot({
   const isEmpty = !slot.playerName;
   const safety = SAFETY_STYLE[slot.safety] ?? SAFETY_STYLE.green;
   const hasComputedPosition = !isEmpty && leftPx != null;
+  // Verticale positie komt, net als leftPx/widthPx, van cardLayout.js's botsingsvrije herberekening
+  // zodra die beschikbaar is (topPx) — enkel als terugval (bv. vóór de eerste layout-meting) valt dit
+  // terug op de ruwe, onaangepaste yPercent-positionering van vroeger.
+  const hasComputedTop = !isEmpty && topPx != null;
 
   return (
     <div
       style={{
         position: 'absolute',
-        top: `${slot.yPercent}%`,
+        ...(hasComputedTop ? { top: `${topPx}px` } : { top: `${slot.yPercent}%` }),
         ...(hasComputedPosition
           ? { left: `${leftPx}px`, transform: 'translateY(-50%)' }
           : {
@@ -92,7 +100,8 @@ export default function PitchSlot({
             border: isEmpty
               ? `2px dashed ${isActiveSearchTarget ? '#4ECDC4' : 'rgba(255,255,255,0.3)'}`
               : `2px solid ${safety.border}`,
-            borderRadius: '10px', padding: isEmpty ? '8px 9px' : '9px 8px',
+            borderRadius: '10px',
+            padding: isEmpty ? '8px 9px' : (compact ? '7px 6px' : '9px 8px'),
             boxSizing: 'border-box',
             // Gevulde kaarten krijgen hun exacte breedte van de ouder (widthPx, zie hierboven) — die is
             // al berekend om de naam op één regel volledig te tonen ZONDER een buurkaart te raken.
@@ -115,13 +124,13 @@ export default function PitchSlot({
           ) : (
             <>
               <span style={{
-                color: '#FFF', fontSize: '13px', fontWeight: 800,
+                color: '#FFF', fontSize: compact ? '11px' : '13px', fontWeight: 800,
                 textAlign: 'center', lineHeight: 1.2, whiteSpace: 'nowrap',
               }}>
                 {slot.playerName}
               </span>
               {slot.playerPrice != null && (
-                <span style={{ color: '#8F79AD', fontSize: '10px', fontWeight: 700 }}>
+                <span style={{ color: '#8F79AD', fontSize: compact ? '9px' : '10px', fontWeight: 700 }}>
                   {slot.playerPrice.toFixed(1)}M
                 </span>
               )}
