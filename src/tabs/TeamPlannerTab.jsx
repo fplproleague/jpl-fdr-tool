@@ -803,7 +803,7 @@ export default function TeamPlannerTab({
                             }}>
                               {index + 1}
                             </td>
-                            <td style={{ padding: '4px 6px', width: '110px', background: rowBg }}>
+                            <td style={{ padding: '4px 6px', width: '200px', background: rowBg }}>
                               {/* filterPosition beperkt de suggesties tot de vaste positie van dit slot
                                   (TEAM_PLANNER_SLOT_POSITIONS) — zo blijft de 2 GK/5 DEF/5 MID/3 FWD-
                                   structuur altijd kloppen, ook tijdens een Recharge-bewerking. Buiten
