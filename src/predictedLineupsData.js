@@ -741,7 +741,7 @@ export const PREDICTED_LINEUPS = [
         "positionId": "LW",
         "role": "LW",
         "broadPosition": "FWD",
-        "xPercent": -20,
+        "xPercent": 16,
         "yPercent": 18,
         "playerName": "Van Brederode",
         "playerTeamCode": "KVM",
@@ -765,7 +765,7 @@ export const PREDICTED_LINEUPS = [
         "positionId": "RW",
         "role": "RW",
         "broadPosition": "FWD",
-        "xPercent": 92,
+        "xPercent": 84,
         "yPercent": 18,
         "playerName": "Van Meirvenne",
         "playerTeamCode": "KVM",
@@ -2318,7 +2318,7 @@ export const PREDICTED_LINEUPS = [
         "playerName": "Schoofs",
         "playerTeamCode": "USG",
         "playerPosition": "MID",
-        "playerPrice": 9,
+        "playerPrice": 6.5,
         "safety": "darkgreen"
       },
       {
