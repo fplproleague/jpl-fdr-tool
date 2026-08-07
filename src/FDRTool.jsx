@@ -12,7 +12,7 @@ import {
   MINILEAGUE_CODE, LAST_UPDATED, GW_INDEXES, DEFAULT_RATINGS, DEFAULT_HOME_ADVANTAGE,
   TEAM_PLANNER_SQUAD_SIZE, TEAM_PLANNER_BENCH_SIZE, TEAM_PLANNER_SLOT_POSITIONS, VALID_FORMATIONS,
   resolveSlotPlayerAtGw, PLAYER_DATABASE_CSV_URL, parsePlayerDatabaseCsv, getFixtureScores, average,
-  POSTPONED,
+  POSTPONED, computeTeamPlannerTransferBudget,
 } from './constants';
 import FDRTab from './tabs/FDRTab';
 import WatchlistTab from './tabs/WatchlistTab';
@@ -577,6 +577,15 @@ export default function FDRTool() {
     return entries;
   }, [teamPlannerPlayers, teamPlannerTransfersBySlot]);
 
+  // Gratis-transfersaldo + puntenkost per GW — zie computeTeamPlannerTransferBudget (constants.js) voor
+  // de volledige regeltoelichting (opbouw met plafond, Recharge-uitzondering). Puur afgeleid van
+  // teamPlannerTransferHistory/teamPlannerBoosters hierboven, dus herberekent vanzelf zodra de
+  // gebruiker een transfer toevoegt/verwijdert (in eender welke GW) of een booster aan-/uitzet.
+  const teamPlannerTransferBudget = useMemo(
+    () => computeTeamPlannerTransferBudget(teamPlannerTransferHistory, teamPlannerBoosters),
+    [teamPlannerTransferHistory, teamPlannerBoosters],
+  );
+
   // De first-time-uitleg over Thuisvoordeel verdwijnt vanzelf na een paar seconden.
   useEffect(() => {
     if (!showHomeAdvantageIntro) return;
@@ -835,6 +844,16 @@ export default function FDRTool() {
     setTeamPlannerCaptainByGw({});
     setTeamPlannerTransfersBySlot({});
     setTeamPlannerBoosters({ benchBoost: null, tripleCaptain: null, recharge: null });
+  };
+
+  // Wist enkel de transfer-tijdlijn (alle GW's) — voor de "Wis alle transfers"-knop naast de Transfers-
+  // sectiekop in TeamPlannerTab.jsx. Bank/kapitein/boosters blijven ongemoeid (in tegenstelling tot
+  // handleClearTeamPlanner hierboven, dat de volledige selectie wist); teamPlannerTransferBudget
+  // herberekent vanzelf naar de lege staat via zijn bestaande useMemo-afhankelijkheid op
+  // teamPlannerTransferHistory. Bevestiging via window.confirm, want dit is niet ongedaan te maken.
+  const handleClearTeamPlannerTransfers = () => {
+    if (!window.confirm('Weet je zeker dat je alle geplande transfers wilt wissen? Dit kan niet ongedaan gemaakt worden.')) return;
+    setTeamPlannerTransfersBySlot({});
   };
 
   // Herschikt de bank-volgorde voor de bekeken GW: wisselt de array-posities van de twee gegeven
@@ -1313,6 +1332,7 @@ export default function FDRTool() {
             fetchPlayerDatabase={fetchPlayerDatabase}
             teamPlannerResolvedPlayers={teamPlannerResolvedPlayers}
             teamPlannerTransferHistory={teamPlannerTransferHistory}
+            teamPlannerTransferBudget={teamPlannerTransferBudget}
             planTeamPlannerTransfer={planTeamPlannerTransfer}
             removeTeamPlannerTransfer={removeTeamPlannerTransfer}
             handleOptimizeTeamPlannerLineup={handleOptimizeTeamPlannerLineup}
@@ -1320,6 +1340,7 @@ export default function FDRTool() {
             teamPlannerBoosters={teamPlannerBoosters}
             toggleTeamPlannerBooster={toggleTeamPlannerBooster}
             handleClearTeamPlanner={handleClearTeamPlanner}
+            handleClearTeamPlannerTransfers={handleClearTeamPlannerTransfers}
             swapTeamPlannerBenchPlayers={swapTeamPlannerBenchPlayers}
           />
         )}

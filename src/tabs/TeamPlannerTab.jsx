@@ -16,6 +16,7 @@ import {
   TEAMS, FIXTURES, GW_COUNT, GW_DEADLINES,
   TEAM_PLANNER_BUDGET, TEAM_PLANNER_MAX_PER_CLUB, TEAM_PLANNER_BENCH_SIZE, TEAM_PLANNER_SQUAD_SIZE,
   VALID_FORMATIONS, TEAM_PLANNER_SLOT_POSITIONS, sectionTitleStyle,
+  isRechargeActiveForGw as isRechargeActiveForGwRule,
 } from '../constants';
 import { MiniFixtureBadge } from '../components/MiniFixtureBadge';
 import { SectionHeader } from '../components/SectionHeader';
@@ -50,6 +51,16 @@ function countBadgeStyle(count, required) {
   if (count === required) return { background: '#4ECDC4', color: '#0B2E1B' };
   if (count > required) return { background: '#C2402C', color: '#FBEAE7' };
   return { background: 'rgba(255,255,255,0.08)', color: '#C9B8E0' };
+}
+
+// Kleurstaat voor de gratis-transfers-pill bij de GW-selector (zie teamPlannerTransferBudget,
+// FDRTool.jsx/constants.js): goud tijdens een Recharge-GW (transfers zijn dan sowieso onbeperkt
+// gratis, het aantal is niet relevant), teal zolang er nog minstens 1 gratis transfer over is voor
+// de bekeken GW, neutraal grijs zodra dat op is (géén rood — "0 over" is op zich geen fout/waarschuwing,
+// enkel de effectief gemaakte extra transfers die punten kosten krijgen de rode stijl, zie hieronder).
+function transferBudgetBadgeStyle(isRecharge, remainingFree) {
+  if (isRecharge) return { background: 'rgba(232,197,71,0.15)', color: '#E8C547' };
+  return remainingFree > 0 ? { background: '#4ECDC4', color: '#0B2E1B' } : { background: 'rgba(255,255,255,0.08)', color: '#C9B8E0' };
 }
 
 // Kleurstaat voor de formatie-pill: neutraal zolang de bank nog niet exact 4 spelers telt (de
@@ -427,10 +438,10 @@ export default function TeamPlannerTab({
   teamPlannerGw, handleTeamPlannerGwPrev, handleTeamPlannerGwNext,
   teamPlannerTotalPrice, teamPlannerClubCounts, teamPlannerFormationCounts,
   playerDatabase, playerDatabaseLoading, playerDatabaseError, fetchPlayerDatabase,
-  teamPlannerResolvedPlayers, teamPlannerTransferHistory, planTeamPlannerTransfer, removeTeamPlannerTransfer,
+  teamPlannerResolvedPlayers, teamPlannerTransferHistory, teamPlannerTransferBudget, planTeamPlannerTransfer, removeTeamPlannerTransfer,
   handleOptimizeTeamPlannerLineup, teamPlannerOptimized,
   teamPlannerBoosters, toggleTeamPlannerBooster,
-  handleClearTeamPlanner, swapTeamPlannerBenchPlayers,
+  handleClearTeamPlanner, handleClearTeamPlannerTransfers, swapTeamPlannerBenchPlayers,
 }) {
   // Enkel gebruikt om "Wis team" te disablen als er toch al niets ingevuld is — voorkomt een zinloze
   // bevestigingsdialoog. Gebaseerd op de echte basisploeg (teamPlannerPlayers), niet op een eventuele
@@ -570,9 +581,11 @@ export default function TeamPlannerTab({
   const isBenchBoostActive = teamPlannerBoosters.benchBoost === teamPlannerGw;
   const isTripleCaptainActive = teamPlannerBoosters.tripleCaptain === teamPlannerGw;
   // GW8 (de laatste GW) krijgt automatisch een gratis Recharge voor iedereen — telt niet als
-  // "verbruikt" (teamPlannerBoosters.recharge blijft ongemoeid) en is niet uit te zetten, vandaar de
-  // los van teamPlannerBoosters staande OR hier.
-  const isRechargeActiveForGw = teamPlannerBoosters.recharge === teamPlannerGw || teamPlannerGw === GW_COUNT;
+  // "verbruikt" (teamPlannerBoosters.recharge blijft ongemoeid) en is niet uit te zetten. De regel
+  // zelf (isRechargeActiveForGwRule, constants.js) is de ENIGE bron van waarheid hiervoor — ook de
+  // transfer-budgetberekening (teamPlannerTransferBudget, FDRTool.jsx) roept 'm aan, dus deze twee
+  // kunnen nooit uit sync raken.
+  const isRechargeActiveForGw = isRechargeActiveForGwRule(teamPlannerBoosters, teamPlannerGw);
 
   // 'active' (loopt voor de bekeken GW), 'used-elsewhere' (al verbruikt op een andere GW, vergrendeld)
   // of 'available' (nog vrij) — zie BoosterIconButton en toggleTeamPlannerBooster (FDRTool.jsx).
@@ -790,7 +803,7 @@ export default function TeamPlannerTab({
                             }}>
                               {index + 1}
                             </td>
-                            <td style={{ padding: '4px 6px', minWidth: '220px', background: rowBg }}>
+                            <td style={{ padding: '4px 6px', minWidth: '200px', background: rowBg }}>
                               {/* filterPosition beperkt de suggesties tot de vaste positie van dit slot
                                   (TEAM_PLANNER_SLOT_POSITIONS) — zo blijft de 2 GK/5 DEF/5 MID/3 FWD-
                                   structuur altijd kloppen, ook tijdens een Recharge-bewerking. Buiten
@@ -963,6 +976,38 @@ export default function TeamPlannerTab({
             background: 'linear-gradient(180deg, rgba(78,205,196,0.08), rgba(78,205,196,0.02))',
             border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '16px'
           }}>
+            {/* Gratis-transfersaldo linksboven IN het veld-kaartje — de overkant van de booster-stapel
+                rechtsboven hieronder. Zie teamPlannerTransferBudget (FDRTool.jsx/constants.js). GW1
+                heeft geen entry (onbeperkte initiële teamopbouw, geen "echte" transfers), vandaar de
+                guard. Toont hoeveel van het gratis aantal nog OVER is NA de transfers die al gepland
+                zijn voor deze GW (freeAvailable - used), zodat de gebruiker vooraf weet of zijn
+                volgende transfer hier nog gratis is — vóór hij "Transfer plannen" hierboven gebruikt. */}
+            {teamPlannerGw > 1 && teamPlannerTransferBudget[teamPlannerGw] && (() => {
+              const budget = teamPlannerTransferBudget[teamPlannerGw];
+              const remainingFree = Math.max(0, budget.freeAvailable - budget.used);
+              return (
+                <div style={{ position: 'absolute', top: '8px', left: '8px', display: 'flex', flexDirection: 'column', gap: '4px', zIndex: 2, maxWidth: '130px' }}>
+                  <span style={{
+                    fontSize: '11px', fontWeight: 700, padding: '3px 8px', borderRadius: '999px',
+                    ...transferBudgetBadgeStyle(budget.isRecharge, remainingFree),
+                  }}>
+                    {budget.isRecharge ? 'Recharge: gratis' : `${remainingFree} gratis transfer${remainingFree === 1 ? '' : 's'}`}
+                  </span>
+                  {/* Enkel getoond zodra er effectief al puntenkost is opgelopen deze GW — de volledige
+                      "X transfers, Y gratis"-uitleg staat al in de title-tooltip én, voluit, bij de
+                      Transfers-sectie verderop; hier blijft het compact voor de krappe hoek. */}
+                  {budget.pointsCost > 0 && (
+                    <span
+                      title={`${budget.used} transfers, ${Math.min(budget.used, budget.freeAvailable)} gratis`}
+                      style={{ color: '#C2402C', fontSize: '11px', fontWeight: 700 }}
+                    >
+                      -{budget.pointsCost} punten
+                    </span>
+                  )}
+                </div>
+              );
+            })()}
+
             {/* Booster-stapel: subtiele iconen rechtsboven IN het veld-kaartje zelf (niet erboven) — zie
                 toggleTeamPlannerBooster (FDRTool.jsx) voor de vergrendel-/vervang-logica. Enkel binnen
                 GW1-7 handmatig te activeren; GW8 krijgt automatisch (en gratis — telt niet als
@@ -1024,17 +1069,16 @@ export default function TeamPlannerTab({
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               flexWrap: 'wrap', gap: '10px', marginBottom: '10px',
             }}>
-              <h3 className="fdr-title" style={{ color: '#C9B8E0', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.03em', margin: 0 }}>
-                Bank — GW{teamPlannerGw}
-              </h3>
-              {/* Herbouwt de bank voor de bekeken GW op basis van de moeilijkste fixtures — zie
-                  optimizeTeamPlannerLineup in FDRTool.jsx. "Herschik bank" schakelt de betekenis van
-                  een klik op een bankkaartje om (zie isBenchReorderMode/PlayerPitchCard hierboven) —
-                  géén klein icoontje op de kaart zelf, want dat bleek op mobiel makkelijk mis te tikken
-                  naar de onderliggende "terug naar het veld"-knop. flexWrap op de ouder-rij hierboven
-                  zorgt dat deze knoppen op erg smalle schermen netjes onder de kop uitvallen i.p.v.
-                  iets af te knijpen. */}
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {/* "Herschik bank" staat bewust vlak naast het label (links), niet meer samen met
+                  "Optimaliseer opstelling" rechts — dat schakelt de betekenis van een klik op een
+                  bankkaartje om (zie isBenchReorderMode/PlayerPitchCard hierboven) en hoort daardoor
+                  qua betekenis dichter bij "wat toon/regel ik hier" dan een losstaande actie zoals
+                  optimaliseren. flexWrap zorgt dat dit linkerdeel op erg smalle schermen netjes
+                  onder elkaar/naast elkaar uitvalt i.p.v. iets af te knijpen. */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <h3 className="fdr-title" style={{ color: '#C9B8E0', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.03em', margin: 0 }}>
+                  Bank — GW{teamPlannerGw}
+                </h3>
                 <button
                   onClick={() => setIsBenchReorderMode(o => !o)}
                   disabled={benchOutfieldPlayers.length < 2}
@@ -1050,14 +1094,14 @@ export default function TeamPlannerTab({
                 >
                   <ArrowUpDown size={14} /> {isBenchReorderMode ? 'Klaar met herschikken' : 'Herschik bank'}
                 </button>
-                <button onClick={handleOptimizeTeamPlannerLineup} style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'transparent',
-                  color: '#4ECDC4', border: '1px solid #4ECDC4', borderRadius: '8px',
-                  padding: '6px 12px', fontWeight: 700, fontSize: '12px', cursor: 'pointer', flexShrink: 0,
-                }}>
-                  <Wand2 size={14} /> Optimaliseer opstelling
-                </button>
               </div>
+              <button onClick={handleOptimizeTeamPlannerLineup} style={{
+                display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'transparent',
+                color: '#4ECDC4', border: '1px solid #4ECDC4', borderRadius: '8px',
+                padding: '6px 12px', fontWeight: 700, fontSize: '12px', cursor: 'pointer', flexShrink: 0,
+              }}>
+                <Wand2 size={14} /> Optimaliseer opstelling
+              </button>
             </div>
             {teamPlannerOptimized && (
               <p style={{ color: '#4ECDC4', fontSize: '12px', margin: '0 0 10px' }}>
@@ -1116,7 +1160,29 @@ export default function TeamPlannerTab({
             background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
             borderRadius: '10px', padding: '16px'
           }}>
-            <SectionHeader icon={ArrowLeftRight} title="Transfers" sectionKey="teamPlannerTransfers" isOpen={openSections.teamPlannerTransfers} onToggle={toggleSection} />
+            {/* SectionHeader is zelf al een <button> (toggle voor in-/uitklappen) — "Wis alle transfers"
+                moet daarom een sibling zijn, geen kind (ongeldige geneste <button>'s), en blijft zo ook
+                zichtbaar/bruikbaar zonder de sectie eerst open te klikken — zelfde patroon als "Wis
+                team" bij "Mijn 15 spelers" hierboven. */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <SectionHeader icon={ArrowLeftRight} title="Transfers" sectionKey="teamPlannerTransfers" isOpen={openSections.teamPlannerTransfers} onToggle={toggleSection} />
+              </div>
+              <button
+                onClick={handleClearTeamPlannerTransfers}
+                disabled={transferGroups.length === 0}
+                title={transferGroups.length === 0 ? 'Nog geen transfers om te wissen' : 'Wis alle geplande transfers'}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0,
+                  background: 'transparent', color: transferGroups.length === 0 ? '#5A4A72' : '#C2402C',
+                  border: `1px solid ${transferGroups.length === 0 ? 'rgba(255,255,255,0.15)' : 'rgba(194,64,44,0.4)'}`,
+                  borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px',
+                  cursor: transferGroups.length === 0 ? 'not-allowed' : 'pointer', marginBottom: '12px',
+                }}
+              >
+                <Trash2 size={13} /> Wis alle transfers
+              </button>
+            </div>
             {openSections.teamPlannerTransfers && (
               transferGroups.length === 0 ? (
                 <p style={{ color: '#6B5289', fontSize: '13px' }}>
@@ -1131,12 +1197,22 @@ export default function TeamPlannerTab({
                         color: '#C9B8E0', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.03em', margin: '0 0 8px',
                       }}>
                         GW{group.gw}
-                        {/* teamPlannerBoosters.recharge === group.gw: Recharge werd handmatig geactiveerd
-                            voor precies deze GW; group.gw === GW_COUNT: GW8's automatische Recharge voor
-                            iedereen (zie isRechargeActiveForGw hierboven) — in beide gevallen tonen we
-                            hetzelfde icoontje om aan te geven dat deze transfer(s) uit een recharge komen. */}
-                        {(teamPlannerBoosters.recharge === group.gw || group.gw === GW_COUNT) && (
+                        {/* isRechargeActiveForGwRule (constants.js, zelfde bron van waarheid als hierboven
+                            en als de transfer-budgetberekening) dekt zowel een handmatig geactiveerde
+                            Recharge op precies deze GW als GW8's automatische Recharge voor iedereen. */}
+                        {isRechargeActiveForGwRule(teamPlannerBoosters, group.gw) && (
                           <RefreshCw size={12} color="#E8C547" title="Recharge" />
+                        )}
+                        {teamPlannerTransferBudget[group.gw]?.pointsCost > 0 && (
+                          <span
+                            title={`${teamPlannerTransferBudget[group.gw].used} transfers, ${Math.min(teamPlannerTransferBudget[group.gw].used, teamPlannerTransferBudget[group.gw].freeAvailable)} gratis`}
+                            style={{
+                              background: 'rgba(194,64,44,0.15)', color: '#FF9E90', fontSize: '10px', fontWeight: 900,
+                              padding: '1px 6px', borderRadius: '999px', textTransform: 'none', letterSpacing: 'normal',
+                            }}
+                          >
+                            -{teamPlannerTransferBudget[group.gw].pointsCost} punten
+                          </span>
                         )}
                       </h3>
                       <div style={{ display: 'grid', gap: '6px' }}>
