@@ -42,7 +42,7 @@ export const PITCH_ASPECT_RATIO = 0.92;
 
 // Watermerk-tekst, zelfde stijl als de bestaande FDR-export (handleDownloadImage, FDRTool.jsx) — deze
 // beelden worden publiek op het @fpl_proleague-account gepost, consistente branding is dus zinvol.
-export const WATERMARK_TEXT = 'Siebe x @fpl_proleague';
+export const WATERMARK_TEXT = '@5YSiebee x @fpl_proleague';
 export const WATERMARK_FONT = 'bold 26px Archivo, Arial, sans-serif';
 export const WATERMARK_COLOR = '#4ECDC4';
 export const EXPORT_BACKGROUND = '#2A1440';
