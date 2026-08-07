@@ -741,7 +741,7 @@ export const PREDICTED_LINEUPS = [
         "positionId": "LW",
         "role": "LW",
         "broadPosition": "FWD",
-        "xPercent": 8,
+        "xPercent": -20,
         "yPercent": 18,
         "playerName": "Van Brederode",
         "playerTeamCode": "KVM",
