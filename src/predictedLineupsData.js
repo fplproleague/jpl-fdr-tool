@@ -323,7 +323,7 @@ export const PREDICTED_LINEUPS = [
     "clubCode": "CER",
     "opponentCode": "STA",
     "formationKey": "5-3-2",
-    "lastUpdatedLabel": "donderdag 06 augustus 18:00",
+    "lastUpdatedLabel": "vrijdag 07 augustus 14:15",
     "slots": [
       {
         "positionId": "GK",
@@ -415,10 +415,10 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "MID",
         "xPercent": 50,
         "yPercent": 28,
-        "playerName": "Jurado",
+        "playerName": "Amani",
         "playerTeamCode": "CER",
         "playerPosition": "MID",
-        "playerPrice": 5.5,
+        "playerPrice": 6.5,
         "safety": "red"
       },
       {
@@ -492,7 +492,7 @@ export const PREDICTED_LINEUPS = [
     "clubCode": "CLU",
     "opponentCode": "KOR",
     "formationKey": "4-3-3",
-    "lastUpdatedLabel": "donderdag 06 augustus 18:00",
+    "lastUpdatedLabel": "vrijdag 07 augustus 14:10",
     "slots": [
       {
         "positionId": "GK",
@@ -536,10 +536,10 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "DEF",
         "xPercent": 70,
         "yPercent": 79,
-        "playerName": "Spileers",
+        "playerName": "Lee",
         "playerTeamCode": "CLU",
         "playerPosition": "DEF",
-        "playerPrice": 5.5,
+        "playerPrice": 6.5,
         "safety": "red"
       },
       {
@@ -584,10 +584,10 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "MID",
         "xPercent": 65,
         "yPercent": 47,
-        "playerName": "Tsawa",
+        "playerName": "Potts",
         "playerTeamCode": "CLU",
         "playerPosition": "MID",
-        "playerPrice": 6.5,
+        "playerPrice": 7,
         "safety": "orange"
       },
       {
@@ -830,7 +830,7 @@ export const PREDICTED_LINEUPS = [
     "clubCode": "BEV",
     "opponentCode": "ANT",
     "formationKey": "4-3-3",
-    "lastUpdatedLabel": "donderdag 06 augustus 18:00",
+    "lastUpdatedLabel": "vrijdag 07 augustus 14:10",
     "slots": [
       {
         "positionId": "GK",
@@ -1772,7 +1772,7 @@ export const PREDICTED_LINEUPS = [
     "clubCode": "CHA",
     "opponentCode": "OHL",
     "formationKey": "4-3-3",
-    "lastUpdatedLabel": "donderdag 06 augustus 18:00",
+    "lastUpdatedLabel": "vrijdag 07 augustus 14:15",
     "slots": [
       {
         "positionId": "GK",
@@ -1784,7 +1784,7 @@ export const PREDICTED_LINEUPS = [
         "playerTeamCode": "CHA",
         "playerPosition": "GK",
         "playerPrice": 5.5,
-        "safety": "red"
+        "safety": "darkgreen"
       },
       {
         "positionId": "LWB",
