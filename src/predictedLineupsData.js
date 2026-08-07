@@ -1011,7 +1011,7 @@ export const PREDICTED_LINEUPS = [
         "playerTeamCode": "ANT",
         "playerPosition": "DEF",
         "playerPrice": 4,
-        "safety": "orange"
+        "safety": "darkgreen"
       },
       {
         "positionId": "LCB",
