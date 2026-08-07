@@ -2818,10 +2818,10 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "MID",
         "xPercent": 33,
         "yPercent": 46,
-        "playerName": "Delorge",
+        "playerName": "De Vlieger",
         "playerTeamCode": "GNT",
         "playerPosition": "MID",
-        "playerPrice": 7,
+        "playerPrice": 6,
         "safety": "green"
       },
       {
