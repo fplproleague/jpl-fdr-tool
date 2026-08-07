@@ -588,7 +588,7 @@ export const PREDICTED_LINEUPS = [
         "playerTeamCode": "CLU",
         "playerPosition": "MID",
         "playerPrice": 7,
-        "safety": "orange"
+        "safety": "red"
       },
       {
         "positionId": "LW",
