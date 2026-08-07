@@ -2822,7 +2822,7 @@ export const PREDICTED_LINEUPS = [
         "playerTeamCode": "GNT",
         "playerPosition": "MID",
         "playerPrice": 6,
-        "safety": "green"
+        "safety": "red"
       },
       {
         "positionId": "CAM",
