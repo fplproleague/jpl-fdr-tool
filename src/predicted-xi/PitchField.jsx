@@ -2,9 +2,9 @@
 // speler-kaartjes. Dit is de ENIGE component die binnen de forwardRef zit die exportImage.js capture't
 // — niets anders (notities, drafts-lijst, zoekpaneel) mag hier ooit binnen komen te staan.
 import { forwardRef, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { PITCH_GRADIENT, PITCH_ASPECT_RATIO } from './theme';
+import { PITCH_GRADIENT, PITCH_ASPECT_RATIO, MOBILE_BREAKPOINT_PX } from './theme';
 import { POSITION_PRESETS } from './formations';
-import { computeCardPositions, COMPACT_BREAKPOINT_PX } from './cardLayout';
+import { computeCardPositions } from './cardLayout';
 import PitchSlot from './PitchSlot';
 
 // Redelijke standaardbreedte vóór de eerste ResizeObserver-meting (zie hieronder) — voorkomt een
@@ -51,6 +51,31 @@ function PitchMarkings() {
   );
 }
 
+// Mobiele stijl-overrides via de bestaande @media (max-width: 640px)-conventie (zie FDRTool.jsx) i.p.v.
+// een JS-berekende drempel op de gemeten veldbreedte — de klassen hieronder krijgen hun desktop-waarden
+// gewoon via de normale inline style (zie de JSX hieronder), en enkel de mobiele afwijkingen staan hier,
+// met !important om de inline basisstijl te overschrijven (dezelfde techniek als .fdr-tab-btn e.a. in
+// FDRTool.jsx). Kleinere buitenmarge/hoofding op mobiel geeft het veld zelf meer bruikbare breedte,
+// precies waar de kleinere kaarten (zie PitchSlot.jsx) die nodig hebben.
+const MOBILE_STYLE = `
+  @media (max-width: ${MOBILE_BREAKPOINT_PX}px) {
+    .pxi-field { padding: 8px !important; gap: 8px !important; }
+    .pxi-field-header { gap: 4px !important; padding-bottom: 8px !important; }
+    .pxi-field-logo { width: 26px !important; height: 26px !important; }
+    .pxi-field-clubname { font-size: 15px !important; }
+    .pxi-field-formation { font-size: 9px !important; padding: 2px 8px !important; }
+    .pxi-field-opp-logo { width: 13px !important; height: 13px !important; }
+    .pxi-field-opp-name { font-size: 10px !important; }
+    /* Speler-kaartjes (zie PitchSlot.jsx) — kleinere padding/tekst zodat de formatie leesbaar blijft
+       ondanks minder schermbreedte. widthPx zelf komt uit cardLayout.js (dat dezelfde mobiele drempel
+       via de isMobile-prop hierboven kent), dus die blijft altijd in lijn met deze CSS. */
+    .pxi-card--filled { padding: 4px 4px !important; }
+    .pxi-card-name { font-size: 9px !important; }
+    .pxi-card-price { font-size: 7px !important; }
+    .pxi-card--empty { min-width: 44px !important; padding: 5px 6px !important; }
+  }
+`;
+
 const PitchField = forwardRef(function PitchField({
   club, opponent, formationLabel, slots, activeSlotIndex,
   onSlotClick, onRemove, onCycleSafety, onDragStart, onSlotDrop,
@@ -63,6 +88,9 @@ const PitchField = forwardRef(function PitchField({
   const pitchSlots = slots.filter(s => s.positionId !== '_unassigned');
   const pitchInnerRef = useRef(null);
   const [pitchWidthPx, setPitchWidthPx] = useState(DEFAULT_PITCH_WIDTH_PX);
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== 'undefined' && window.innerWidth <= MOBILE_BREAKPOINT_PX,
+  );
 
   // Houdt de werkelijke, gerenderde veldbreedte bij (verandert bij window-resize of bv. het
   // openen/sluiten van het zoekpaneel ernaast) — de botsingsvrije layout hieronder rekent in echte
@@ -78,17 +106,27 @@ const PitchField = forwardRef(function PitchField({
     return () => observer.disconnect();
   }, []);
 
+  // Volgt dezelfde @media (max-width: 640px)-drempel als de CSS hierboven en in PitchSlot.jsx — bepaalt
+  // welke kaartmaten cardLayout.js voor zijn botsingsvrije herberekening moet aannemen, zodat de
+  // pixel-wiskunde altijd overeenkomt met wat er werkelijk gerenderd wordt.
+  useLayoutEffect(() => {
+    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT_PX}px)`);
+    const handleChange = () => setIsMobile(mql.matches);
+    handleChange();
+    mql.addEventListener('change', handleChange);
+    return () => mql.removeEventListener('change', handleChange);
+  }, []);
+
   // Kaartbreedte groeit mee met de naam (zie PitchSlot.jsx), dus de vaste xPercent-coördinaten
   // garanderen geen overlapvrije positie meer — computeCardPositions herberekent de werkelijke
   // pixel-posities per "rij" (zie cardLayout.js), zowel horizontaal (kaarten raken elkaar nooit, vallen
   // nooit over de veldrand) als verticaal (rijen die ongewoon dicht bij een buurlijn liggen — bv. een
   // handmatig verplaatste CAM — schuiven net genoeg uit elkaar), ongeacht naamlengte of schermbreedte.
   const pitchHeightPx = pitchWidthPx / PITCH_ASPECT_RATIO;
-  const isCompact = pitchWidthPx < COMPACT_BREAKPOINT_PX;
   const cardPositions = useMemo(
-    () => computeCardPositions(pitchSlots, pitchWidthPx, pitchHeightPx),
+    () => computeCardPositions(pitchSlots, pitchWidthPx, pitchHeightPx, isMobile),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [slots, pitchWidthPx, pitchHeightPx],
+    [slots, pitchWidthPx, pitchHeightPx, isMobile],
   );
 
   // Automatische settle: bereken bij loslaten de dichtstbijzijnde vaste positie (in echte pixels,
@@ -118,92 +156,99 @@ const PitchField = forwardRef(function PitchField({
   }
 
   return (
-    <div
-      ref={ref}
-      style={{
-        background: '#2A1440', borderRadius: '18px', padding: isCompact ? '12px' : '18px',
-        display: 'flex', flexDirection: 'column', gap: isCompact ? '10px' : '16px', maxWidth: '560px', width: '100%',
-      }}
-    >
-      {/* Verticaal gecentreerde stack (logo boven naam boven formatie-pil) i.p.v. een naast-elkaar-rij —
-          blijft symmetrisch gecentreerd ongeacht logobreedte, met een subtiele scheidingslijn naar het
-          veld toe voor een rustiger, "cleaner" export-header. Krimpt mee in compact-modus (zie
-          COMPACT_BREAKPOINT_PX hierboven) — op mobiel neemt deze header anders onevenredig veel ruimte
-          in t.o.v. het veld zelf, wat bijdraagt aan een "vol" ogende opstelling. */}
-      <div style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: isCompact ? '5px' : '8px',
-        paddingBottom: isCompact ? '10px' : '16px', borderBottom: '1px solid rgba(255,255,255,0.08)',
-      }}>
-        {club && (
-          <img
-            src={`/club-logos/${club.code}.png`}
-            alt=""
-            style={{
-              width: isCompact ? '32px' : '44px', height: isCompact ? '32px' : '44px',
-              objectFit: 'contain', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.35))',
-            }}
-            onError={(e) => { e.target.style.display = 'none'; }}
-          />
-        )}
-        <div style={{
-          color: '#FFF', fontWeight: 900, fontSize: isCompact ? '16px' : '20px', lineHeight: 1.1, textAlign: 'center',
+    <>
+      {/* Buiten de forwardRef-div (zie hierboven) zodat exportImage.js's html2canvas-capture nooit per
+          ongeluk dit <style>-element als onderdeel van de kaart zou behandelen. */}
+      <style>{MOBILE_STYLE}</style>
+      <div
+        ref={ref}
+        className="pxi-field"
+        style={{
+          background: '#2A1440', borderRadius: '18px', padding: '18px',
+          display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '560px', width: '100%',
+        }}
+      >
+        {/* Verticaal gecentreerde stack (logo boven naam boven formatie-pil) i.p.v. een naast-elkaar-rij —
+            blijft symmetrisch gecentreerd ongeacht logobreedte, met een subtiele scheidingslijn naar het
+            veld toe voor een rustiger, "cleaner" export-header. Krimpt mee op mobiel (zie MOBILE_STYLE
+            hierboven) — op mobiel neemt deze header anders onevenredig veel ruimte in t.o.v. het veld
+            zelf, wat bijdraagt aan een "vol" ogende opstelling. */}
+        <div className="pxi-field-header" style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
+          paddingBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.08)',
         }}>
-          {club?.name ?? 'Kies een club'}
-        </div>
-        <div style={{
-          color: '#4ECDC4', fontWeight: 800, fontSize: isCompact ? '10px' : '11px', letterSpacing: '0.14em', textTransform: 'uppercase',
-          background: 'rgba(78,205,196,0.12)', border: '1px solid rgba(78,205,196,0.3)',
-          borderRadius: '999px', padding: isCompact ? '2px 10px' : '3px 12px',
-        }}>
-          {formationLabel}
-        </div>
-        {opponent && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ color: '#8F79AD', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>vs</span>
+          {club && (
             <img
-              src={`/club-logos/${opponent.code}.png`}
+              src={`/club-logos/${club.code}.png`}
               alt=""
-              style={{ width: isCompact ? '15px' : '18px', height: isCompact ? '15px' : '18px', objectFit: 'contain' }}
+              className="pxi-field-logo"
+              style={{
+                width: '44px', height: '44px',
+                objectFit: 'contain', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.35))',
+              }}
               onError={(e) => { e.target.style.display = 'none'; }}
             />
-            <span style={{ color: '#C9B8E0', fontSize: isCompact ? '11px' : '13px', fontWeight: 700 }}>{opponent.name}</span>
+          )}
+          <div className="pxi-field-clubname" style={{
+            color: '#FFF', fontWeight: 900, fontSize: '20px', lineHeight: 1.1, textAlign: 'center',
+          }}>
+            {club?.name ?? 'Kies een club'}
           </div>
-        )}
-      </div>
+          <div className="pxi-field-formation" style={{
+            color: '#4ECDC4', fontWeight: 800, fontSize: '11px', letterSpacing: '0.14em', textTransform: 'uppercase',
+            background: 'rgba(78,205,196,0.12)', border: '1px solid rgba(78,205,196,0.3)',
+            borderRadius: '999px', padding: '3px 12px',
+          }}>
+            {formationLabel}
+          </div>
+          {opponent && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ color: '#8F79AD', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>vs</span>
+              <img
+                src={`/club-logos/${opponent.code}.png`}
+                alt=""
+                className="pxi-field-opp-logo"
+                style={{ width: '18px', height: '18px', objectFit: 'contain' }}
+                onError={(e) => { e.target.style.display = 'none'; }}
+              />
+              <span className="pxi-field-opp-name" style={{ color: '#C9B8E0', fontSize: '13px', fontWeight: 700 }}>{opponent.name}</span>
+            </div>
+          )}
+        </div>
 
-      <div
-        ref={pitchInnerRef}
-        onDragOver={readOnly ? undefined : (e) => e.preventDefault()}
-        onDrop={readOnly ? undefined : handleDrop}
-        style={{
-          position: 'relative', width: '100%', aspectRatio: PITCH_ASPECT_RATIO,
-          borderRadius: '14px', overflow: 'hidden', background: PITCH_GRADIENT,
-          border: '1px solid rgba(255,255,255,0.15)',
-        }}>
-        <PitchMarkings />
-        {pitchSlots.map((slot) => {
-          const index = slots.indexOf(slot);
-          const position = cardPositions.get(slot);
-          return (
-            <PitchSlot
-              key={index}
-              slot={slot}
-              index={index}
-              leftPx={position?.leftPx}
-              widthPx={position?.widthPx}
-              topPx={position?.topPx}
-              compact={isCompact}
-              isActiveSearchTarget={activeSlotIndex === index}
-              onSlotClick={onSlotClick}
-              onRemove={onRemove}
-              onCycleSafety={onCycleSafety}
-              onDragStart={onDragStart}
-              readOnly={readOnly}
-            />
-          );
-        })}
+        <div
+          ref={pitchInnerRef}
+          onDragOver={readOnly ? undefined : (e) => e.preventDefault()}
+          onDrop={readOnly ? undefined : handleDrop}
+          style={{
+            position: 'relative', width: '100%', aspectRatio: PITCH_ASPECT_RATIO,
+            borderRadius: '14px', overflow: 'hidden', background: PITCH_GRADIENT,
+            border: '1px solid rgba(255,255,255,0.15)',
+          }}>
+          <PitchMarkings />
+          {pitchSlots.map((slot) => {
+            const index = slots.indexOf(slot);
+            const position = cardPositions.get(slot);
+            return (
+              <PitchSlot
+                key={index}
+                slot={slot}
+                index={index}
+                leftPx={position?.leftPx}
+                widthPx={position?.widthPx}
+                topPx={position?.topPx}
+                isActiveSearchTarget={activeSlotIndex === index}
+                onSlotClick={onSlotClick}
+                onRemove={onRemove}
+                onCycleSafety={onCycleSafety}
+                onDragStart={onDragStart}
+                readOnly={readOnly}
+              />
+            );
+          })}
+        </div>
       </div>
-    </div>
+    </>
   );
 });
 

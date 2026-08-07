@@ -21,10 +21,6 @@ const EMPTY_CARD_EDGE_CLAMP_PX = 47;
 export default function PitchSlot({
   slot, index, leftPx, widthPx, topPx, isActiveSearchTarget,
   onSlotClick, onRemove, onCycleSafety, onDragStart,
-  // Iets kleinere kaart (naam/prijs-tekst en padding) op smalle/mobiele schermen — zie
-  // COMPACT_BREAKPOINT_PX in cardLayout.js, dat dezelfde drempel gebruikt om de kaartbreedte/-hoogte te
-  // berekenen die hier ook effectief gerenderd wordt.
-  compact = false,
   // Puur-visuele weergave voor de publieke Predicted Lineups-tab (zie PredictedLineupsTab.jsx): geen
   // enkele interactie — geen klik/sleep, geen verwijder-knop, geen safety-badge (niet enkel
   // non-functioneel, ook niet gerenderd). Standaard false, dus de privé Predicted XI Builder is
@@ -93,6 +89,10 @@ export default function PitchSlot({
           onClick={readOnly ? undefined : () => onSlotClick(index)}
           title={readOnly ? undefined : (isEmpty ? `Klik om een ${slot.role}-speler te zoeken` : 'Sleep om te verplaatsen, of klik om een positie te kiezen')}
           data-player-name={isEmpty ? undefined : slot.playerName}
+          // pxi-card--empty/--filled: mobiele padding-overrides staan in PitchField.jsx's MOBILE_STYLE
+          // (@media max-width: 640px, dezelfde conventie als elders in de codebase) i.p.v. hier een JS-
+          // berekende drempel — de basisstijl (desktop) hieronder blijft ongewijzigd.
+          className={isEmpty ? 'pxi-card--empty' : 'pxi-card--filled'}
           style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
             gap: '2px',
@@ -101,7 +101,7 @@ export default function PitchSlot({
               ? `2px dashed ${isActiveSearchTarget ? '#4ECDC4' : 'rgba(255,255,255,0.3)'}`
               : `2px solid ${safety.border}`,
             borderRadius: '10px',
-            padding: isEmpty ? '8px 9px' : (compact ? '5px 5px' : '9px 8px'),
+            padding: isEmpty ? '8px 9px' : '9px 8px',
             boxSizing: 'border-box',
             // Gevulde kaarten krijgen hun exacte breedte van de ouder (widthPx, zie hierboven) — die is
             // al berekend om de naam op één regel volledig te tonen ZONDER een buurkaart te raken.
@@ -123,14 +123,14 @@ export default function PitchSlot({
             </>
           ) : (
             <>
-              <span style={{
-                color: '#FFF', fontSize: compact ? '10px' : '13px', fontWeight: 800,
+              <span className="pxi-card-name" style={{
+                color: '#FFF', fontSize: '13px', fontWeight: 800,
                 textAlign: 'center', lineHeight: 1.15, whiteSpace: 'nowrap',
               }}>
                 {slot.playerName}
               </span>
               {slot.playerPrice != null && (
-                <span style={{ color: '#8F79AD', fontSize: compact ? '8px' : '10px', fontWeight: 700 }}>
+                <span className="pxi-card-price" style={{ color: '#8F79AD', fontSize: '10px', fontWeight: 700 }}>
                   {slot.playerPrice.toFixed(1)}M
                 </span>
               )}
