@@ -7,9 +7,10 @@
 // opponentCode, formationKey, formationLabelOverride, slots (met per slot playerName/playerTeamCode/
 // playerPosition/playerPrice/safety/positionId/xPercent/yPercent), notes.
 //
-// 16 van de 18 clubs (aangeleverd 6 augustus 2026) — Anderlecht en Gent volgen nog. Ontbrekende/nog
-// niet-afgewerkte clubs tonen vanzelf geen kaart in de kiezer (PredictedLineupsTab.jsx filtert lineups
-// zonder geplaatste spelers eruit), dus deze lijst kan gewoon aangevuld worden zodra de rest klaar is.
+// Alle 18 clubs (aangeleverd 6-7 augustus 2026, Anderlecht en Gent op 7 augustus aangevuld).
+// Ontbrekende/nog niet-afgewerkte clubs tonen vanzelf geen kaart in de kiezer (PredictedLineupsTab.jsx
+// filtert lineups zonder geplaatste spelers eruit), dus deze lijst kan gewoon aangevuld/bijgewerkt
+// worden zonder verdere codewijzigingen.
 export const PREDICTED_LINEUPS = [
   {
     "id": "d70878df-a617-47fd-bbe7-1ddccda6c5e4",
@@ -2566,5 +2567,293 @@ export const PREDICTED_LINEUPS = [
     "label": "",
     "createdAt": 1786015252180,
     "updatedAt": 1786020316286
+  },
+  {
+    "id": "70557fad-4070-4254-92e1-713f2fffcee8",
+    "clubCode": "AND",
+    "opponentCode": "LLV",
+    "formationKey": "4-3-3",
+    "slots": [
+      {
+        "positionId": "GK",
+        "role": "GK",
+        "broadPosition": "GK",
+        "xPercent": 50,
+        "yPercent": 85,
+        "playerName": "Coosemans",
+        "playerTeamCode": "AND",
+        "playerPosition": "GK",
+        "playerPrice": 6.5,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "LWB",
+        "role": "LWB",
+        "broadPosition": "DEF",
+        "xPercent": 16,
+        "yPercent": 61,
+        "playerName": "Augustinsson",
+        "playerTeamCode": "AND",
+        "playerPosition": "DEF",
+        "playerPrice": 6,
+        "safety": "red"
+      },
+      {
+        "positionId": "LCB",
+        "role": "LCB",
+        "broadPosition": "DEF",
+        "xPercent": 33,
+        "yPercent": 74,
+        "playerName": "Petrot",
+        "playerTeamCode": "AND",
+        "playerPosition": "DEF",
+        "playerPrice": 6,
+        "safety": "green"
+      },
+      {
+        "positionId": "RCB",
+        "role": "RCB",
+        "broadPosition": "DEF",
+        "xPercent": 67,
+        "yPercent": 74,
+        "playerName": "Biancone",
+        "playerTeamCode": "AND",
+        "playerPosition": "DEF",
+        "playerPrice": 6,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "RWB",
+        "role": "RWB",
+        "broadPosition": "DEF",
+        "xPercent": 84,
+        "yPercent": 61,
+        "playerName": "Maamar",
+        "playerTeamCode": "AND",
+        "playerPosition": "DEF",
+        "playerPrice": 5,
+        "safety": "green"
+      },
+      {
+        "positionId": "LCM",
+        "role": "LCM",
+        "broadPosition": "MID",
+        "xPercent": 33,
+        "yPercent": 46,
+        "playerName": "Saliba",
+        "playerTeamCode": "AND",
+        "playerPosition": "MID",
+        "playerPrice": 8,
+        "safety": "green"
+      },
+      {
+        "positionId": "CAM",
+        "role": "CAM",
+        "broadPosition": "MID",
+        "xPercent": 50,
+        "yPercent": 30,
+        "playerName": "Ambros",
+        "playerTeamCode": "AND",
+        "playerPosition": "MID",
+        "playerPrice": 6,
+        "safety": "green"
+      },
+      {
+        "positionId": "RCM",
+        "role": "RCM",
+        "broadPosition": "MID",
+        "xPercent": 67,
+        "yPercent": 46,
+        "playerName": "Llansana",
+        "playerTeamCode": "AND",
+        "playerPosition": "MID",
+        "playerPrice": 7,
+        "safety": "orange"
+      },
+      {
+        "positionId": "LW",
+        "role": "LW",
+        "broadPosition": "FWD",
+        "xPercent": 16,
+        "yPercent": 21,
+        "playerName": "Cvetkovic",
+        "playerTeamCode": "AND",
+        "playerPosition": "FWD",
+        "playerPrice": 8.5,
+        "safety": "orange"
+      },
+      {
+        "positionId": "ST",
+        "role": "ST",
+        "broadPosition": "FWD",
+        "xPercent": 50,
+        "yPercent": 10,
+        "playerName": "Sikan",
+        "playerTeamCode": "AND",
+        "playerPosition": "FWD",
+        "playerPrice": 6.5,
+        "safety": "red"
+      },
+      {
+        "positionId": "RW",
+        "role": "RW",
+        "broadPosition": "FWD",
+        "xPercent": 84,
+        "yPercent": 21,
+        "playerName": "Antman",
+        "playerTeamCode": "AND",
+        "playerPosition": "MID",
+        "playerPrice": 6,
+        "safety": "orange"
+      }
+    ],
+    "notes": "",
+    "label": "",
+    "createdAt": 1786097247576,
+    "updatedAt": 1786098037558
+  },
+  {
+    "id": "0b13b947-6c92-4adf-afa6-f9a12170e160",
+    "clubCode": "GNT",
+    "opponentCode": "KVM",
+    "formationKey": "5-3-2",
+    "slots": [
+      {
+        "positionId": "GK",
+        "role": "GK",
+        "broadPosition": "GK",
+        "xPercent": 50,
+        "yPercent": 85,
+        "playerName": "Roef",
+        "playerTeamCode": "GNT",
+        "playerPosition": "GK",
+        "playerPrice": 7,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "LWB",
+        "role": "LWB",
+        "broadPosition": "DEF",
+        "xPercent": 16,
+        "yPercent": 61,
+        "playerName": "Araujo",
+        "playerTeamCode": "GNT",
+        "playerPosition": "DEF",
+        "playerPrice": 5.5,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "LCB",
+        "role": "LCB",
+        "broadPosition": "DEF",
+        "xPercent": 33,
+        "yPercent": 74,
+        "playerName": "Van der Heyden",
+        "playerTeamCode": "GNT",
+        "playerPosition": "DEF",
+        "playerPrice": 5.5,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "CCB",
+        "role": "CCB",
+        "broadPosition": "DEF",
+        "xPercent": 50,
+        "yPercent": 76,
+        "playerName": "Burgess",
+        "playerTeamCode": "GNT",
+        "playerPosition": "DEF",
+        "playerPrice": 7,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "RCB",
+        "role": "RCB",
+        "broadPosition": "DEF",
+        "xPercent": 67,
+        "yPercent": 74,
+        "playerName": "Ngom",
+        "playerTeamCode": "GNT",
+        "playerPosition": "DEF",
+        "playerPrice": 5,
+        "safety": "orange"
+      },
+      {
+        "positionId": "RWB",
+        "role": "RWB",
+        "broadPosition": "DEF",
+        "xPercent": 84,
+        "yPercent": 61,
+        "playerName": "Volckaert",
+        "playerTeamCode": "GNT",
+        "playerPosition": "DEF",
+        "playerPrice": 5,
+        "safety": "red"
+      },
+      {
+        "positionId": "LCM",
+        "role": "LCM",
+        "broadPosition": "MID",
+        "xPercent": 33,
+        "yPercent": 46,
+        "playerName": "Delorge",
+        "playerTeamCode": "GNT",
+        "playerPosition": "MID",
+        "playerPrice": 7,
+        "safety": "green"
+      },
+      {
+        "positionId": "CAM",
+        "role": "CAM",
+        "broadPosition": "MID",
+        "xPercent": 50,
+        "yPercent": 30,
+        "playerName": "Benes",
+        "playerTeamCode": "GNT",
+        "playerPosition": "MID",
+        "playerPrice": 6,
+        "safety": "red"
+      },
+      {
+        "positionId": "RCM",
+        "role": "RCM",
+        "broadPosition": "MID",
+        "xPercent": 67,
+        "yPercent": 46,
+        "playerName": "Lopes",
+        "playerTeamCode": "GNT",
+        "playerPosition": "MID",
+        "playerPrice": 6.5,
+        "safety": "red"
+      },
+      {
+        "positionId": "LST",
+        "role": "LST",
+        "broadPosition": "FWD",
+        "xPercent": 28,
+        "yPercent": 15,
+        "playerName": "Goore",
+        "playerTeamCode": "GNT",
+        "playerPosition": "FWD",
+        "playerPrice": 6.5,
+        "safety": "red"
+      },
+      {
+        "positionId": "RST",
+        "role": "RST",
+        "broadPosition": "FWD",
+        "xPercent": 72,
+        "yPercent": 15,
+        "playerName": "Vergara",
+        "playerTeamCode": "GNT",
+        "playerPosition": "FWD",
+        "playerPrice": 5.5,
+        "safety": "red"
+      }
+    ],
+    "notes": "",
+    "label": "",
+    "createdAt": 1786097520119,
+    "updatedAt": 1786098091367
   }
 ];
