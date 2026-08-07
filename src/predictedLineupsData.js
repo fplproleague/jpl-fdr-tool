@@ -1345,10 +1345,10 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "DEF",
         "xPercent": 70,
         "yPercent": 79,
-        "playerName": "Sattlberger",
+        "playerName": "Smets",
         "playerTeamCode": "GNK",
         "playerPosition": "MID",
-        "playerPrice": 7,
+        "playerPrice": 7.5,
         "safety": "red"
       },
       {
@@ -1357,10 +1357,10 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "DEF",
         "xPercent": 84,
         "yPercent": 64,
-        "playerName": "Sarfo",
+        "playerName": "El Ouahdi",
         "playerTeamCode": "",
         "playerPosition": "DEF",
-        "playerPrice": null,
+        "playerPrice": 8,
         "safety": "red"
       },
       {
@@ -1453,11 +1453,11 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "MID",
         "xPercent": 0,
         "yPercent": 0,
-        "playerName": "Sarfo",
+        "playerName": "El Ouahdi",
         "playerTeamCode": "",
         "playerPosition": "MID",
-        "playerPrice": null,
-        "safety": "green"
+        "playerPrice": "8",
+        "safety": "red"
       }
     ],
     "notes": "",
@@ -2738,7 +2738,7 @@ export const PREDICTED_LINEUPS = [
     "clubCode": "GNT",
     "opponentCode": "KVM",
     "formationKey": "5-3-2",
-    "lastUpdatedLabel": "vrijdag 07 augustus 12:00",
+    "lastUpdatedLabel": "vrijdag 07 augustus 14:46",
     "slots": [
       {
         "positionId": "GK",
@@ -2854,11 +2854,11 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "FWD",
         "xPercent": 28,
         "yPercent": 15,
-        "playerName": "Goore",
+        "playerName": "Dean",
         "playerTeamCode": "GNT",
         "playerPosition": "FWD",
-        "playerPrice": 6.5,
-        "safety": "red"
+        "playerPrice": 7.5,
+        "safety": "orange"
       },
       {
         "positionId": "RST",
