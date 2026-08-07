@@ -131,7 +131,7 @@ export const CURRENT_GW = 1;
 // object, zelfde precedent als LAST_UPDATED (vermijdt tijdzone-gedoe). Lege/ontbrekende GW-waarden
 // tonen simpelweg niks.
 export const GW_DEADLINES = {
-  1: 'vrijdag 07 augustus 20:45', 2: '', 3: '', 4: '', 5: '', 6: '', 7: '', 8: '',
+  1: 'vrijdag 07 augustus 20:45', 2: 'vrijdag 14 augustus 20:45', 3: 'vrijdag 21 augustus 20:45', 4: 'vrijdag 28 augustus 20:45', 5: 'vrijdag 4 september 20:45', 6: 'vrijdag 11 september 20:45', 7: 'vrijdag 18 september 20:45', 8: '',
 };
 
 // TEAMS is al alfabetisch op code — eenmalig gesorteerde kopie voor UI-lijsten die dat expliciet willen.
