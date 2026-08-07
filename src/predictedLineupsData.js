@@ -987,7 +987,7 @@ export const PREDICTED_LINEUPS = [
     "clubCode": "ANT",
     "opponentCode": "BEV",
     "formationKey": "4-3-3",
-    "lastUpdatedLabel": "donderdag 06 augustus 18:00",
+    "lastUpdatedLabel": "vrijdag 07 augustus 15:00",
     "slots": [
       {
         "positionId": "GK",
@@ -1019,10 +1019,10 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "DEF",
         "xPercent": 30,
         "yPercent": 79,
-        "playerName": "Verstraeten",
+        "playerName": "Tsunashima",
         "playerTeamCode": "ANT",
         "playerPosition": "MID",
-        "playerPrice": 5.5,
+        "playerPrice": 6,
         "safety": "red"
       },
       {
@@ -1091,10 +1091,10 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "FWD",
         "xPercent": 16,
         "yPercent": 18,
-        "playerName": "Valencia",
+        "playerName": "Salah",
         "playerTeamCode": "ANT",
         "playerPosition": "MID",
-        "playerPrice": 5,
+        "playerPrice": 6,
         "safety": "red"
       },
       {
@@ -1301,7 +1301,7 @@ export const PREDICTED_LINEUPS = [
     "clubCode": "GNK",
     "opponentCode": "ZWA",
     "formationKey": "4-3-3",
-    "lastUpdatedLabel": "donderdag 06 augustus 18:00",
+    "lastUpdatedLabel": "vrijdag 07 augustus 15:00",
     "slots": [
       {
         "positionId": "GK",
