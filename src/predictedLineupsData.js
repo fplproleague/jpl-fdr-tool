@@ -2,10 +2,14 @@
 // conventie als TEAMS/FIXTURES in constants.js: gewoon een statische constante, geen fetch, geen
 // bewerkbare state.
 //
-// Elke entry heeft exact dezelfde vorm als een record uit de privé Predicted XI Builder's opgeslagen
-// lineups (zie loadStoredDrafts()/sanitizeDraft() in src/predicted-xi/storage.js): clubCode,
+// Elke entry heeft grotendeels dezelfde vorm als een record uit de privé Predicted XI Builder's
+// opgeslagen lineups (zie loadStoredDrafts()/sanitizeDraft() in src/predicted-xi/storage.js): clubCode,
 // opponentCode, formationKey, formationLabelOverride, slots (met per slot playerName/playerTeamCode/
-// playerPosition/playerPrice/safety/positionId/xPercent/yPercent), notes.
+// playerPosition/playerPrice/safety/positionId/xPercent/yPercent), notes. Eén extra veld bestaat enkel
+// hier: lastUpdatedLabel — een vrije, handmatig ingevulde tekst (bv. "donderdag 06 augustus 18:00"),
+// getoond als subtiel "laatst geüpdatet"-tekstje op de publieke tab (zie PredictedLineupsTab.jsx). Geen
+// automatisch berekende datum, want elke lineup wordt apart en onregelmatig bijgewerkt — pas dit veld
+// per club gewoon rechtstreeks hier aan wanneer die lineup opnieuw nagekeken is.
 //
 // Alle 18 clubs (aangeleverd 6-7 augustus 2026, Anderlecht en Gent op 7 augustus aangevuld).
 // Ontbrekende/nog niet-afgewerkte clubs tonen vanzelf geen kaart in de kiezer (PredictedLineupsTab.jsx
@@ -17,6 +21,7 @@ export const PREDICTED_LINEUPS = [
     "clubCode": "KOR",
     "opponentCode": "CLU",
     "formationKey": "5-3-2",
+    "lastUpdatedLabel": "donderdag 06 augustus 18:00",
     "slots": [
       {
         "positionId": "GK",
@@ -173,6 +178,7 @@ export const PREDICTED_LINEUPS = [
     "clubCode": "STA",
     "opponentCode": "CER",
     "formationKey": "4-3-3",
+    "lastUpdatedLabel": "donderdag 06 augustus 18:00",
     "slots": [
       {
         "positionId": "GK",
@@ -317,6 +323,7 @@ export const PREDICTED_LINEUPS = [
     "clubCode": "CER",
     "opponentCode": "STA",
     "formationKey": "5-3-2",
+    "lastUpdatedLabel": "donderdag 06 augustus 18:00",
     "slots": [
       {
         "positionId": "GK",
@@ -485,6 +492,7 @@ export const PREDICTED_LINEUPS = [
     "clubCode": "CLU",
     "opponentCode": "KOR",
     "formationKey": "4-3-3",
+    "lastUpdatedLabel": "donderdag 06 augustus 18:00",
     "slots": [
       {
         "positionId": "GK",
@@ -641,6 +649,7 @@ export const PREDICTED_LINEUPS = [
     "clubCode": "KVM",
     "opponentCode": "GNT",
     "formationKey": "4-3-3",
+    "lastUpdatedLabel": "donderdag 06 augustus 18:00",
     "slots": [
       {
         "positionId": "GK",
@@ -821,6 +830,7 @@ export const PREDICTED_LINEUPS = [
     "clubCode": "BEV",
     "opponentCode": "ANT",
     "formationKey": "4-3-3",
+    "lastUpdatedLabel": "donderdag 06 augustus 18:00",
     "slots": [
       {
         "positionId": "GK",
@@ -977,6 +987,7 @@ export const PREDICTED_LINEUPS = [
     "clubCode": "ANT",
     "opponentCode": "BEV",
     "formationKey": "4-3-3",
+    "lastUpdatedLabel": "donderdag 06 augustus 18:00",
     "slots": [
       {
         "positionId": "GK",
@@ -1145,6 +1156,7 @@ export const PREDICTED_LINEUPS = [
     "clubCode": "LLV",
     "opponentCode": "AND",
     "formationKey": "5-3-2",
+    "lastUpdatedLabel": "donderdag 06 augustus 18:00",
     "slots": [
       {
         "positionId": "GK",
@@ -1289,6 +1301,7 @@ export const PREDICTED_LINEUPS = [
     "clubCode": "GNK",
     "opponentCode": "ZWA",
     "formationKey": "4-3-3",
+    "lastUpdatedLabel": "donderdag 06 augustus 18:00",
     "slots": [
       {
         "positionId": "GK",
@@ -1457,6 +1470,7 @@ export const PREDICTED_LINEUPS = [
     "clubCode": "ZWA",
     "opponentCode": "GNK",
     "formationKey": "4-4-2",
+    "lastUpdatedLabel": "donderdag 06 augustus 18:00",
     "slots": [
       {
         "positionId": "GK",
@@ -1601,6 +1615,7 @@ export const PREDICTED_LINEUPS = [
     "clubCode": "OHL",
     "opponentCode": "CHA",
     "formationKey": "5-3-2",
+    "lastUpdatedLabel": "donderdag 06 augustus 18:00",
     "slots": [
       {
         "positionId": "GK",
@@ -1757,6 +1772,7 @@ export const PREDICTED_LINEUPS = [
     "clubCode": "CHA",
     "opponentCode": "OHL",
     "formationKey": "4-3-3",
+    "lastUpdatedLabel": "donderdag 06 augustus 18:00",
     "slots": [
       {
         "positionId": "GK",
@@ -1913,6 +1929,7 @@ export const PREDICTED_LINEUPS = [
     "clubCode": "USG",
     "opponentCode": "WES",
     "formationKey": "3-5-2",
+    "lastUpdatedLabel": "donderdag 06 augustus 18:00",
     "slots": [
       {
         "positionId": "GK",
@@ -2081,6 +2098,7 @@ export const PREDICTED_LINEUPS = [
     "clubCode": "WES",
     "opponentCode": "USG",
     "formationKey": "4-3-3",
+    "lastUpdatedLabel": "donderdag 06 augustus 18:00",
     "slots": [
       {
         "positionId": "GK",
@@ -2237,6 +2255,7 @@ export const PREDICTED_LINEUPS = [
     "clubCode": "LOM",
     "opponentCode": "STV",
     "formationKey": "4-3-3",
+    "lastUpdatedLabel": "donderdag 06 augustus 18:00",
     "slots": [
       {
         "positionId": "GK",
@@ -2429,6 +2448,7 @@ export const PREDICTED_LINEUPS = [
     "clubCode": "STV",
     "opponentCode": "LOM",
     "formationKey": "4-3-3",
+    "lastUpdatedLabel": "donderdag 06 augustus 18:00",
     "slots": [
       {
         "positionId": "GK",
@@ -2573,6 +2593,7 @@ export const PREDICTED_LINEUPS = [
     "clubCode": "AND",
     "opponentCode": "LLV",
     "formationKey": "4-3-3",
+    "lastUpdatedLabel": "vrijdag 07 augustus 12:00",
     "slots": [
       {
         "positionId": "GK",
@@ -2717,6 +2738,7 @@ export const PREDICTED_LINEUPS = [
     "clubCode": "GNT",
     "opponentCode": "KVM",
     "formationKey": "5-3-2",
+    "lastUpdatedLabel": "vrijdag 07 augustus 12:00",
     "slots": [
       {
         "positionId": "GK",

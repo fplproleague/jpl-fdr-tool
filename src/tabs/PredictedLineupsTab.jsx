@@ -127,6 +127,15 @@ export default function PredictedLineupsTab() {
           onDragStart={noop}
           onSlotDrop={noop}
         />
+        {/* Per-lineup "laatst geüpdatet" — een handmatig ingevuld tekstveld in predictedLineupsData.js
+            (lastUpdatedLabel), bewust géén afgeleide/berekende datum: elke lineup wordt onregelmatig en
+            los van elkaar bijgewerkt, dus enkel de samensteller weet wanneer een specifieke opstelling
+            voor het laatst nagekeken is. */}
+        {lineup.lastUpdatedLabel && (
+          <p style={{ color: '#8F79AD', fontSize: '10px', margin: 0 }}>
+            Laatst geüpdatet: {lineup.lastUpdatedLabel}
+          </p>
+        )}
         {/* Publiek watermerk, specifiek voor deze read-only weergave — geen downloadknop (bewuste
             keuze, enkel bekijken). Zit bewust hier en niet in PitchField.jsx zelf: dat blijft ook door
             de privé-tool gebruikt, waar dit watermerk niet hoort. */}
