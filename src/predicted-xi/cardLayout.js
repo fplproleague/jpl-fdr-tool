@@ -44,14 +44,28 @@ const ROW_CLUSTER_THRESHOLD = 8;
 // breedtes/hoogtes altijd overeenkomen met wat er werkelijk gerenderd wordt.
 const NAME_FONT = '800 13px sans-serif';
 const NAME_FONT_COMPACT = '800 9px sans-serif';
+// De prijs staat op een eigen regel ONDER de naam (zie PitchSlot.jsx) — bij een korte naam ("Flo",
+// "Ilic", "Ito") kan de prijstekst ("12.5M") net breder zijn dan de naam zelf. estimateCardWidth houdt
+// daarom rekening met BEIDE regels (zie hieronder), niet enkel de naam — anders zou de kaart precies
+// rond de korte naam passen terwijl de prijs eronder net buiten die smalle kaart zou uitsteken.
+const PRICE_FONT = '700 10px sans-serif';
+const PRICE_FONT_COMPACT = '700 7px sans-serif';
 // Kaart-padding is 2x8px (zie PitchSlot.jsx) = 16px; +8px veiligheidsmarge omdat canvas measureText()
 // niet altijd pixel-exact overeenkomt met de werkelijke DOM/html2canvas-rendering (zelf ondervonden bij
 // eerdere iteraties deze sessie) — zo blijft er altijd wat lucht rond de tekst i.p.v. een naam die net
-// tegen de kaartrand zou botsen.
+// tegen de kaartrand zou botsen. Zelfde padding geldt voor de prijsregel (beide regels zitten in dezelfde
+// kaart-box).
 const NAME_HORIZONTAL_PADDING_PX = 24;
 const NAME_HORIZONTAL_PADDING_PX_COMPACT = 10; // padding compact 2x4px = 8 + 2px veiligheidsmarge
 const EMPTY_CARD_WIDTH_PX = 70; // ongewijzigd t.o.v. de bestaande lege-slot-breedte
 const EMPTY_CARD_WIDTH_PX_COMPACT = 42;
+// Minimumbreedte voor een GEVULDE kaart, ongeacht hoe kort de naam is — zonder deze ondergrens zou een
+// kaart met een heel korte naam ("Flo", "Ilic", "Ito") zo smal berekend worden dat de naam/prijs er
+// optisch "in een te klein kadertje" in staan, terwijl elke andere kaart in dezelfde rij merkbaar breder
+// is. Iets kleiner dan de lege-slot-breedte hierboven (een gevulde kaart met echte inhoud mag optisch
+// iets strakker zijn dan een lege plaatshouder).
+const MIN_CARD_WIDTH_PX = 58;
+const MIN_CARD_WIDTH_PX_COMPACT = 34;
 
 // Kaarthoogte in px, gemeten op de werkelijk gerenderde kaart (padding + naam-/prijsregel + rand) en
 // licht naar boven afgerond als veiligheidsmarge — zelfde geest als NAME_HORIZONTAL_PADDING_PX hierboven.
@@ -77,11 +91,16 @@ export function measureTextWidth(text, font) {
   return ctx.measureText(text).width;
 }
 
-export function estimateCardWidth(playerName, compact = false) {
+export function estimateCardWidth(playerName, playerPrice, compact = false) {
   if (!playerName) return compact ? EMPTY_CARD_WIDTH_PX_COMPACT : EMPTY_CARD_WIDTH_PX;
-  const font = compact ? NAME_FONT_COMPACT : NAME_FONT;
+  const nameFont = compact ? NAME_FONT_COMPACT : NAME_FONT;
+  const priceFont = compact ? PRICE_FONT_COMPACT : PRICE_FONT;
   const padding = compact ? NAME_HORIZONTAL_PADDING_PX_COMPACT : NAME_HORIZONTAL_PADDING_PX;
-  return Math.ceil(measureTextWidth(playerName, font)) + padding;
+  const minWidth = compact ? MIN_CARD_WIDTH_PX_COMPACT : MIN_CARD_WIDTH_PX;
+  const nameWidth = measureTextWidth(playerName, nameFont);
+  const priceWidth = playerPrice != null ? measureTextWidth(`${playerPrice.toFixed(1)}M`, priceFont) : 0;
+  const contentWidth = Math.max(nameWidth, priceWidth);
+  return Math.max(Math.ceil(contentWidth) + padding, minWidth);
 }
 
 // Groepeert slots in rijen op basis van Y-nabijheid: sorteert op yPercent en start een nieuwe rij
@@ -121,7 +140,7 @@ function resolveRow(rowSlots, pitchWidthPx, positions, compact) {
   const minEdgeMargin = compact ? MIN_EDGE_MARGIN_PX_COMPACT : MIN_EDGE_MARGIN_PX;
   const items = [...rowSlots]
     .sort((a, b) => a.xPercent - b.xPercent)
-    .map(slot => ({ slot, widthPx: estimateCardWidth(slot.playerName, compact) }));
+    .map(slot => ({ slot, widthPx: estimateCardWidth(slot.playerName, slot.playerPrice, compact) }));
   const totalCardWidth = items.reduce((sum, item) => sum + item.widthPx, 0);
   const gapCount = Math.max(items.length - 1, 0);
   const availableWidth = pitchWidthPx - 2 * minEdgeMargin;
