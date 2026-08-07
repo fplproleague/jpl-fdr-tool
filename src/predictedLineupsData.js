@@ -987,7 +987,7 @@ export const PREDICTED_LINEUPS = [
     "clubCode": "ANT",
     "opponentCode": "BEV",
     "formationKey": "4-3-3",
-    "lastUpdatedLabel": "vrijdag 07 augustus 15:00",
+    "lastUpdatedLabel": "vrijdag 07 augustus 15:40",
     "slots": [
       {
         "positionId": "GK",
@@ -1115,10 +1115,10 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "FWD",
         "xPercent": 84,
         "yPercent": 18,
-        "playerName": "Hairemans",
+        "playerName": "Valencia",
         "playerTeamCode": "ANT",
         "playerPosition": "MID",
-        "playerPrice": 6.5,
+        "playerPrice": 5,
         "safety": "red"
       },
       {
