@@ -132,7 +132,7 @@ export default function PredictedLineupsTab() {
             de privé-tool gebruikt, waar dit watermerk niet hoort. */}
         <div style={{ display: 'flex', gap: '16px', fontSize: '11px', fontWeight: 700 }}>
           <a
-            href="https://x.com/5YSiebee"
+            href="https://discord.gg/6dqWVDkvf"
             target="_blank"
             rel="noopener noreferrer"
             style={{ color: '#4ECDC4', textDecoration: 'underline', textUnderlineOffset: '2px' }}
