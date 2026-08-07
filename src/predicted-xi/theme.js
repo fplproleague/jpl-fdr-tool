@@ -40,6 +40,13 @@ export const PITCH_GRADIENT = 'linear-gradient(180deg, #1F7A4D 0%, #16532F 100%)
 // verticale samendrukking in formations.js — zelf visueel getest.
 export const PITCH_ASPECT_RATIO = 0.92;
 
+// Mobiele drempel voor PitchField.jsx/PitchSlot.jsx — zelfde waarde als de bestaande @media
+// (max-width: 640px)-conventie elders in de codebase (zie de <style>-blok in FDRTool.jsx). Eén bron van
+// waarheid, gebruikt zowel in de geïnjecteerde CSS (@media (max-width: ${MOBILE_BREAKPOINT_PX}px)) als in
+// de JS matchMedia-check die bepaalt welke kaartmaten cardLayout.js voor zijn botsingsvrije herberekening
+// moet aannemen — zo blijft de pixel-wiskunde altijd exact overeenkomen met wat de CSS werkelijk rendert.
+export const MOBILE_BREAKPOINT_PX = 640;
+
 // Watermerk-tekst, zelfde stijl als de bestaande FDR-export (handleDownloadImage, FDRTool.jsx) — deze
 // beelden worden publiek op het @fpl_proleague-account gepost, consistente branding is dus zinvol.
 export const WATERMARK_TEXT = '@5YSiebee x @fpl_proleague';
