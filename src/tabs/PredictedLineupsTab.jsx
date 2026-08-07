@@ -36,7 +36,7 @@ export default function PredictedLineupsTab() {
     return (
       <>
         <p style={{ color: '#8F79AD', fontSize: '13px', marginBottom: '16px' }}>
-          Voorspelde basiselven voor elke Belgische Pro League-club, samengesteld door @5YSiebee.
+          Voorspelde opstellingen voor GW1, samengesteld door @5YSiebee.
         </p>
         <div style={{
           background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
@@ -58,7 +58,7 @@ export default function PredictedLineupsTab() {
   return (
     <>
       <p style={{ color: '#8F79AD', fontSize: '13px', marginBottom: '16px' }}>
-        Voorspelde basiselven voor elke Belgische Pro League-club, samengesteld door @5YSiebee. Kies een club om de opstelling te bekijken.
+        Voorspelde opstellingen voor GW1, samengesteld door @5YSiebee. Kies een club om de opstelling te bekijken.
       </p>
 
       <div style={{
