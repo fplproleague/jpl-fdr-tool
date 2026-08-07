@@ -1929,7 +1929,7 @@ export const PREDICTED_LINEUPS = [
     "clubCode": "USG",
     "opponentCode": "WES",
     "formationKey": "3-5-2",
-    "lastUpdatedLabel": "donderdag 06 augustus 18:00",
+    "lastUpdatedLabel": "vrijdag 07 augustus 15:30",
     "slots": [
       {
         "positionId": "GK",
@@ -1937,11 +1937,11 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "GK",
         "xPercent": 50,
         "yPercent": 92,
-        "playerName": "Koffi",
+        "playerName": "Chambaere",
         "playerTeamCode": "USG",
         "playerPosition": "GK",
-        "playerPrice": 6.5,
-        "safety": "orange"
+        "playerPrice": 5,
+        "safety": "darkgreen"
       },
       {
         "positionId": "LCB",
