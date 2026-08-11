@@ -35,7 +35,14 @@ function normalizeClubText(text) {
 }
 
 function resolveClubCode(rawClubText) {
-  const normalized = normalizeClubText(rawClubText);
+  const trimmed = (rawClubText ?? '').trim();
+  // Eerst de rauwe 3-letter clubcode zelf proberen (bv. "KOR", "AND", "GNT") — dat is exact de conventie
+  // die de bestaande spelersdatabank-sheet al gebruikt in zijn "Team"-kolom (zie parsePlayerDatabaseCsv
+  // in constants.js: teamCode = row[teamCol].trim().toUpperCase()), dus zeer waarschijnlijk ook hier
+  // gebruikt. Pas daarna de leesbare-naam-varianten (alias-tabel, volledige TEAMS-naam) proberen.
+  const byCode = TEAMS.find(t => t.code === trimmed.toUpperCase());
+  if (byCode) return byCode.code;
+  const normalized = normalizeClubText(trimmed);
   if (CLUB_ALIASES[normalized]) return CLUB_ALIASES[normalized];
   const byFullName = TEAMS.find(t => normalizeClubText(t.name) === normalized);
   return byFullName?.code ?? null;
