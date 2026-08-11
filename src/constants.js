@@ -355,10 +355,8 @@ export const PLAYER_DATABASE_CSV_URL = 'https://docs.google.com/spreadsheets/d/e
 // Bonuspunten-tab (zie src/tabs/BonuspuntenTab.jsx, src/bonuspunten.js): een APARTE, apart gepubliceerde
 // CSV-export van een NIEUW werkblad/tabblad binnen dezelfde Google Sheet als hierboven (andere gid — een
 // aparte "Publish to web"-link per werkblad). Kolommen: Player | Team | Duels gewonnen | Duels verloren |
-// Verdedigende kopballen | Recoveries | Grote kansen | Bonuspunten. TODO: vervang deze placeholder door de
-// echte publish-link zodra dat werkblad aangemaakt en gepubliceerd is (Bestand → Delen → Publiceren op
-// internet → dat werkblad kiezen → CSV).
-export const BONUSPUNTEN_CSV_URL = 'REPLACE_WITH_PUBLISHED_BONUSPUNTEN_SHEET_CSV_URL';
+// Verdedigende kopballen | Recoveries | Grote kansen | Bonuspunten.
+export const BONUSPUNTEN_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS_PSoy3cpm-nckncN8C8lmxg0PfxYpANthYfLFccxft2UuBbmCvOa8SXrlwyJkBWUu0ek3QMBsIknU/pub?gid=1606593077&single=true&output=csv';
 
 // Eenvoudige RFC4180-achtige CSV-tokenizer (i.p.v. text.split(',')): velden tussen aanhalingstekens
 // kunnen komma's en regeleindes bevatten, en "" binnen zo'n veld is een ontsnapt aanhalingsteken.
