@@ -9,6 +9,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Loader2, AlertCircle, RotateCcw, Swords, Shield, RefreshCw, Target, Award } from 'lucide-react';
 import { BONUSPUNTEN_CSV_URL } from '../constants';
 import { SectionHeader } from '../components/SectionHeader';
+import { RankingRow } from '../components/RankingRow';
 import {
   parseBonuspuntenCsv, rankByDuels, rankByDefensiveHeaders, rankByRecoveries, rankByBigChances,
   rankByBonusPoints, BONUS_CRITERIA,
@@ -19,47 +20,6 @@ const retryButtonStyle = {
   background: 'transparent', color: '#FBEAE7', border: '1px solid rgba(251,234,231,0.4)',
   borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px', cursor: 'pointer',
 };
-
-// Eén rij in een rangschikking — zelfde visuele opbouw als de "Beste fixture runs"-lijst in FDRTab.jsx
-// (rangnummer, logo, naam + subtekst, waarde rechts) zodat deze pagina meteen als een bestaand onderdeel
-// van de site aanvoelt. `qualifies` kleurt de waarde turquoise (haalt het bonuscriterium) of gedempt
-// lavendel (haalt het niet) — de Top 15 toont altijd alle 15 spelers, ongeacht of ze het criterium halen.
-function RankingRow({ rank, clubCode, player, subtitle, value, qualifies }) {
-  return (
-    <div style={{
-      background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-      borderRadius: '10px', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '12px',
-    }}>
-      <span className="fdr-title" style={{
-        color: rank === 1 ? '#4ECDC4' : '#C9B8E0', fontWeight: 900, fontSize: '18px', width: '22px', flexShrink: 0,
-      }}>
-        {rank}
-      </span>
-      {clubCode && (
-        <img
-          src={`/club-logos/${clubCode}.png`}
-          alt=""
-          style={{ width: '22px', height: '22px', objectFit: 'contain', flexShrink: 0 }}
-          onError={(e) => { e.target.style.display = 'none'; }}
-        />
-      )}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{
-          color: '#FFF', fontWeight: 700, fontSize: '14px',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>
-          {player}
-        </div>
-        {subtitle && <div style={{ color: '#8F79AD', fontSize: '11px', marginTop: '1px' }}>{subtitle}</div>}
-      </div>
-      <div style={{
-        color: qualifies ? '#4ECDC4' : '#C9B8E0', fontWeight: 900, fontSize: '16px', flexShrink: 0, textAlign: 'right',
-      }}>
-        {value}
-      </div>
-    </div>
-  );
-}
 
 function RankingSection({ icon, title, sectionKey, isOpen, onToggle, children }) {
   return (
