@@ -768,7 +768,7 @@ export default function TeamPlannerTab({
                   {/* Bij overschrijding volstaat het negatieve bedrag zelf (bv. "-3.0M") als signaal — geen
                       aparte "X.XM te veel"-herhaling van hetzelfde getal. Budget- en club-overschrijding
                       delen bewust dezelfde tekststijl (rood, vet, 15px), zodat beide even prominent ogen. */}
-                  <div style={{ color: isOverBudget ? '#C2402C' : '#4ECDC4', fontWeight: 700, fontSize: '15px', marginTop: '10px' }}>
+                  <div style={{ color: isOverBudget ? '#C2402C' : '#4ECDC4', fontWeight: 700, fontSize: '15px'}}>
                     Resterend budget: {remainingBudget.toFixed(1)}M
                   </div>
                   {overCapClubs.length > 0 && (
