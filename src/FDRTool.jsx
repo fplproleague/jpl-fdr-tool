@@ -8,7 +8,7 @@ import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { Info, X, Check, Copy } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import {
-  TEAMS, FIXTURES, GW_COUNT, DEFAULT_GW_HORIZON_END, MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS,
+  TEAMS, FIXTURES, GW_COUNT, CURRENT_GW, DEFAULT_GW_HORIZON_END, MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS,
   MINILEAGUE_CODE, LAST_UPDATED, GW_INDEXES, DEFAULT_RATINGS, DEFAULT_HOME_ADVANTAGE,
   TEAM_PLANNER_SQUAD_SIZE, TEAM_PLANNER_BENCH_SIZE, TEAM_PLANNER_SLOT_POSITIONS, VALID_FORMATIONS,
   resolveSlotPlayerAtGw, PLAYER_DATABASE_CSV_URL, parsePlayerDatabaseCsv, getFixtureScores, average,
@@ -39,9 +39,9 @@ const HOME_ADVANTAGE_INTRO_SEEN_KEY = 'fpl_proleague_ha_intro_seen_v1';
 const TEAM_PLANNER_STORAGE_KEY = 'fpl_proleague_teamplanner_v1';
 
 // Statische GW-headers, eenmalig opgebouwd — nodig voor visibleGwHeaderCells (hoofdtabel-horizon,
-// zie hieronder) en doorgegeven aan FDRTab voor de vergelijk-tabel (die altijd alle GW's toont).
-// Blijft hier i.p.v. in constants.js: dat is een .js-bestand en Vite/esbuild parsen JSX-syntax
-// enkel in .jsx-bestanden.
+// zie hieronder) en, geslicet vanaf CURRENT_GW, voor de vergelijk-tabel in FDRTab (compareGwHeaderCells
+// hieronder). Blijft hier i.p.v. in constants.js: dat is een .js-bestand en Vite/esbuild parsen
+// JSX-syntax enkel in .jsx-bestanden.
 const gwHeaderCells = GW_INDEXES.map(i => (
   <th key={i} style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', padding: '6px 4px', minWidth: '58px' }}>
     GW{i + 1}
@@ -232,13 +232,18 @@ export default function FDRTool() {
   const [activeTab, setActiveTab] = useState('fdr');
   const [ratings, setRatings] = useState(() => loadRatingsFromURL() || loadStoredRatings() || DEFAULT_RATINGS);
   const [homeAdvantage, setHomeAdvantage] = useState(() => loadHomeAdvantageFromURL() || loadStoredHomeAdvantage() || DEFAULT_HOME_ADVANTAGE);
-  const [rangeStart, setRangeStart] = useState(1);
-  const [rangeEnd, setRangeEnd] = useState(5);
+  // Beide starten standaard op CURRENT_GW (i.p.v. hardcoded GW1) zodat de default range vanzelf
+  // meeschuift bij het wekelijks bijwerken van CURRENT_GW in constants.js — geen aparte aanpassing
+  // hier nodig. Math.min met GW_COUNT voorkomt een out-of-range eind mocht CURRENT_GW ooit dicht bij
+  // GW_COUNT liggen.
+  const [rangeStart, setRangeStart] = useState(CURRENT_GW);
+  const [rangeEnd, setRangeEnd] = useState(Math.min(CURRENT_GW + 4, GW_COUNT));
   // GW-horizon van de hoofdtabel (Fixture Difficulty Rating) — los van rangeStart/rangeEnd hierboven,
-  // die enkel "Beste fixture runs" sturen. Start standaard op GW1-DEFAULT_GW_HORIZON_END; de
-  // gebruiker kan dit zelf nog verruimen tot GW_COUNT via de selector. Bewust NIET opgeslagen
-  // (localStorage/deelbare link) — een tijdelijke weergave-instelling per sessie, geen permanente voorkeur.
-  const [gwHorizonStart, setGwHorizonStart] = useState(1);
+  // die enkel "Beste fixture runs" sturen. Start standaard op CURRENT_GW-DEFAULT_GW_HORIZON_END (schuift
+  // vanzelf mee met CURRENT_GW, zelfde redenering als rangeStart hierboven); de gebruiker kan dit zelf
+  // nog verruimen tot GW_COUNT via de selector. Bewust NIET opgeslagen (localStorage/deelbare link) —
+  // een tijdelijke weergave-instelling per sessie, geen permanente voorkeur.
+  const [gwHorizonStart, setGwHorizonStart] = useState(CURRENT_GW);
   const [gwHorizonEnd, setGwHorizonEnd] = useState(DEFAULT_GW_HORIZON_END);
   const [saved, setSaved] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
@@ -283,8 +288,11 @@ export default function FDRTool() {
   // waarop 'm gebruikt is — zie toggleTeamPlannerBooster hieronder voor de vergrendel-/vervang-logica.
   const [teamPlannerBoosters, setTeamPlannerBoosters] = useState(() => loadStoredTeamPlanner().boosters);
   // Geselecteerde gameweek voor de veld-weergave — bewust NIET opgeslagen (localStorage), start
-  // altijd op GW1 bij het (her)laden van de pagina, zelfde patroon als gwHorizonStart/End in de FDR-tab.
-  const [teamPlannerGw, setTeamPlannerGw] = useState(1);
+  // altijd op CURRENT_GW bij het (her)laden van de pagina (schuift vanzelf mee met CURRENT_GW, zelfde
+  // patroon als gwHorizonStart/End in de FDR-tab). Boosters/transfers uit eerdere GW's blijven gewoon
+  // meetellen: resolveSlotPlayerAtGw/computeTeamPlannerTransferBudget herleiden de weergave altijd
+  // cumulatief vanaf GW1, ongeacht welke GW hier als startwaarde gekozen is.
+  const [teamPlannerGw, setTeamPlannerGw] = useState(CURRENT_GW);
 
   // Spelersdatabank (Google Sheet CSV) voor de zoek/autocomplete bij teaminvoer — en straks transfers
   // — in Team Planner. Los van teamPlannerPlayers hierboven: dit is de externe, gedeelde spelerslijst
@@ -463,11 +471,21 @@ export default function FDRTool() {
     end: Math.max(gwHorizonStart, gwHorizonEnd),
   }), [gwHorizonStart, gwHorizonEnd]);
 
-  // Enkel de GW-headers binnen de gekozen horizon — gwHeaderCells zelf blijft ongewijzigd (de
-  // vergelijk-tabel verderop toont nog altijd alle GW1-GW_COUNT, los van deze instelling).
+  // Enkel de GW-headers binnen de gekozen horizon — gwHeaderCells zelf blijft ongewijzigd (ook
+  // gebruikt door compareGwHeaderCells hieronder, met een eigen, vaste startpunt).
   const visibleGwHeaderCells = useMemo(
     () => gwHeaderCells.slice(gwHorizonRange.start - 1, gwHorizonRange.end),
     [gwHorizonRange]
+  );
+
+  // "Vergelijk teams" heeft geen eigen horizon-selector: die begint gewoon altijd bij CURRENT_GW en
+  // loopt door tot GW_COUNT (afgelopen GW's zijn daar nooit relevant) — schuift dus vanzelf mee zodra
+  // CURRENT_GW wekelijks bijgewerkt wordt in constants.js. Math.min voorkomt een out-of-range start
+  // mocht CURRENT_GW ooit GW_COUNT overschrijden.
+  const compareGwStart = Math.min(CURRENT_GW, GW_COUNT);
+  const compareGwHeaderCells = useMemo(
+    () => gwHeaderCells.slice(compareGwStart - 1),
+    [compareGwStart]
   );
 
   // MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS (760px) is gekalibreerd voor de Team-kolom + alle GW_COUNT
@@ -1274,7 +1292,8 @@ export default function FDRTool() {
             setGwHorizonEnd={setGwHorizonEnd}
             gwHorizonRange={gwHorizonRange}
             visibleGwHeaderCells={visibleGwHeaderCells}
-            gwHeaderCells={gwHeaderCells}
+            compareGwHeaderCells={compareGwHeaderCells}
+            compareGwStart={compareGwStart}
             mainTableMinWidth={mainTableMinWidth}
             displayedTeams={displayedTeams}
             tableRef={tableRef}
