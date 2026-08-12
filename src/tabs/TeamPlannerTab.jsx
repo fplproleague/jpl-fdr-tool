@@ -15,7 +15,7 @@ import {
 import {
   TEAMS, FIXTURES, GW_COUNT, GW_DEADLINES,
   TEAM_PLANNER_BUDGET, TEAM_PLANNER_MAX_PER_CLUB, TEAM_PLANNER_BENCH_SIZE, TEAM_PLANNER_SQUAD_SIZE,
-  VALID_FORMATIONS, TEAM_PLANNER_SLOT_POSITIONS, sectionTitleStyle,
+  VALID_FORMATIONS, TEAM_PLANNER_SLOT_POSITIONS, sectionTitleStyle, sectionTitleTextStyle,
   isRechargeActiveForGw as isRechargeActiveForGwRule,
 } from '../constants';
 import { MiniFixtureBadge } from '../components/MiniFixtureBadge';
@@ -851,7 +851,8 @@ export default function TeamPlannerTab({
 
         <section>
           <h2 className="fdr-title fdr-section-title" style={{ ...sectionTitleStyle, marginBottom: '12px' }}>
-            <Shirt size={18} color="#4ECDC4" /> Veld
+            <Shirt size={18} color="#4ECDC4" style={{ flexShrink: 0 }} />
+            <span style={sectionTitleTextStyle}>Veld</span>
           </h2>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '14px', marginBottom: '4px' }}>
@@ -1013,7 +1014,11 @@ export default function TeamPlannerTab({
                 GW1-7 handmatig te activeren; GW8 krijgt automatisch (en gratis — telt niet als
                 "verbruikt") een Recharge voor iedereen, dus daar tonen we enkel dat ene, niet-klikbare,
                 actief-gemarkeerde icoon i.p.v. de volledige 3-stapel (zie isRechargeActiveForGw). */}
-            <div style={{ position: 'absolute', top: '8px', right: '8px', display: 'flex', flexDirection: 'column', gap: '4px', zIndex: 2 }}>
+            {/* className i.p.v. enkel inline style: laat de mobile media query (FDRTool.jsx) de kolom
+                hieronder omzetten naar een rij — op smalle schermen is de rijhoogte van een kaart vaak
+                kleiner dan de hoogte van 3 gestapelde iconen, waardoor die anders over de kaartenrij
+                eronder heen kunnen vallen (zie .fdr-pitch-boosters). */}
+            <div className="fdr-pitch-boosters" style={{ position: 'absolute', top: '8px', right: '8px', display: 'flex', flexDirection: 'column', gap: '4px', zIndex: 2 }}>
               {teamPlannerGw <= 7 ? (
                 <>
                   <BoosterIconButton icon={Armchair} title="Bankzitters" state={boosterState('benchBoost')} onClick={() => toggleTeamPlannerBooster('benchBoost', teamPlannerGw)} />

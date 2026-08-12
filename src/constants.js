@@ -222,9 +222,20 @@ export function getFixtureInfo(teamCode, fixture, gwNumber, ratings, homeAdvanta
 
 // Gedeeld tussen components/SectionHeader.jsx en tabs/WatchlistTab.jsx (dat laatste spreadt het
 // rechtstreeks op zijn eigen h2's), vandaar hier i.p.v. lokaal bij SectionHeader.
+// minWidth: 0 (i.p.v. het vroegere whiteSpace: 'nowrap' zonder shrink-mogelijkheid) laat de titel
+// binnen een flex-rij naast een sibling-knop (bv. "Wis team"/"Wis alle transfers" in TeamPlannerTab.jsx)
+// altijd echt krimpen i.p.v. eroverheen te overlappen op smalle schermen — de eigenlijke afkapping
+// (ellipsis) gebeurt op de tekst zelf via sectionTitleTextStyle hieronder, niet op dit hele blok, zodat
+// het icoon nooit mee afgekapt wordt.
 export const sectionTitleStyle = {
   color: '#FFFFFF', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.03em', margin: 0,
-  display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap'
+  display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0,
+};
+
+// Enkel voor de tekst ván de titel (niet het icoon ervoor) — one-line met ellipsis zodra de titel niet
+// meer past, i.p.v. te overlappen met een eventuele sibling-knop of de pagina breder te maken.
+export const sectionTitleTextStyle = {
+  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0,
 };
 
 // --- Team Planner: spelregels voor de 15-koppige selectie (Fase 1, handmatige invoer) ---
