@@ -1127,6 +1127,26 @@ export default function FDRTool() {
              leesbaar, voor zowel korte als lange spelersnamen. */
           .fdr-pitch-container {
             padding: 6px !important;
+            /* Extra ruimte boven de rijen (los van de 6px rondom) — reserveert verticale plaats voor de
+               booster-rij hieronder zodat GEEN enkele kaart, ongeacht rijbreedte (bv. bij 2 gevulde
+               keeper-slots i.p.v. 1, wat de GK-rij breder maakt dan gebruikelijk), ooit onder de
+               absoluut gepositioneerde iconen kan komen. De iconen zelf blijven op hun eigen top/right
+               staan (position: absolute negeert padding van de ouder), enkel de normale rij-inhoud
+               schuift hierdoor naar beneden. */
+            padding-top: 40px !important;
+          }
+          /* Booster-stapel (Bankzitters/Driedubbele kapitein/Recharge): op desktop een verticale
+             kolom van 3 ronde knoppen (~86px hoog) die in de lege ruimte rechtsboven de smalle GK-rij
+             past. Op mobiel is de container krapper (padding 6px i.p.v. 16px) en kan die hoogte
+             overlappen met de bredere DEF/MID/FWD-rij eronder — vandaar hier omgezet naar een
+             horizontale rij (~26px hoog). Samen met de padding-top hierboven (die de rijen zelf naar
+             beneden duwt) overlapt dit nooit meer met de veldweergave, ongeacht formatie of het aantal
+             spelers per rij. */
+          .fdr-pitch-boosters {
+            flex-direction: row !important;
+            top: 6px !important;
+            right: 6px !important;
+            gap: 3px !important;
           }
           .fdr-pitch-row {
             gap: 3px !important;

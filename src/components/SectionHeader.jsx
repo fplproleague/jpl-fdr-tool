@@ -3,7 +3,7 @@
 
 import { memo } from 'react';
 import { ChevronDown } from 'lucide-react';
-import { sectionTitleStyle } from '../constants';
+import { sectionTitleStyle, sectionTitleTextStyle } from '../constants';
 
 const sectionToggleButtonStyle = {
   display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
@@ -18,7 +18,8 @@ export const SectionHeader = memo(function SectionHeader({ icon: Icon, title, se
   return (
     <button onClick={() => onToggle(sectionKey)} style={sectionToggleButtonStyle}>
       <h2 className="fdr-title fdr-section-title" style={sectionTitleStyle}>
-        <Icon size={18} color="#4ECDC4" /> {title}
+        <Icon size={18} color="#4ECDC4" style={{ flexShrink: 0 }} />
+        <span style={sectionTitleTextStyle}>{title}</span>
       </h2>
       {/* Vult de ruimte tussen titel en chevron; flex: 1 laat 'm meekrimpen/groeien met de knopbreedte. */}
       <span aria-hidden="true" style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)', margin: '0 8px' }} />
