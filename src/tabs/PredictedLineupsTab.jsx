@@ -58,7 +58,7 @@ export default function PredictedLineupsTab() {
   return (
     <>
       <p style={{ color: '#8F79AD', fontSize: '13px', marginBottom: '16px' }}>
-        Voorspelde opstellingen voor GW1, samengesteld door @5YSiebee. Kies een club om de opstelling te bekijken.
+        Voorspelde opstellingen voor GW2, samengesteld door @5YSiebee. Kies een club om de opstelling te bekijken.
       </p>
 
       <div style={{
