@@ -67,12 +67,12 @@ const EMPTY_CARD_WIDTH_PX_COMPACT = 42;
 const MIN_CARD_WIDTH_PX = 58;
 const MIN_CARD_WIDTH_PX_COMPACT = 34;
 
-// Kaarthoogte in px, gemeten op de werkelijk gerenderde kaart (padding + naam-/prijsregel + rand) en
-// licht naar boven afgerond als veiligheidsmarge — zelfde geest als NAME_HORIZONTAL_PADDING_PX hierboven.
-// Nodig voor de verticale botsingsdetectie hieronder, wat bij de horizontale breedteberekening niet
-// speelde (die kent enkel de kaartbreedte, niet de hoogte).
-const CARD_HEIGHT_PX = 58;
-const CARD_HEIGHT_PX_COMPACT = 32;
+// Kaarthoogte in px, gemeten op de werkelijk gerenderde kaart (padding + shirt-icoon + gap + naam-/
+// prijsregel + rand) en licht naar boven afgerond als veiligheidsmarge — zelfde geest als
+// NAME_HORIZONTAL_PADDING_PX hierboven. Nodig voor de verticale botsingsdetectie hieronder, wat bij de
+// horizontale breedteberekening niet speelde (die kent enkel de kaartbreedte, niet de hoogte).
+const CARD_HEIGHT_PX = 86;
+const CARD_HEIGHT_PX_COMPACT = 54;
 const MIN_VERTICAL_GAP_PX = 6;
 const MIN_VERTICAL_GAP_PX_COMPACT = 4;
 const VERTICAL_EDGE_MARGIN_PX = 4;

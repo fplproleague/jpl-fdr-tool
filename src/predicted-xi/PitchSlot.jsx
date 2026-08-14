@@ -4,12 +4,11 @@
 // elkaar nooit raken — die botsingsvrije herberekening gebeurt één niveau hoger, dit component tekent
 // enkel het resultaat. Lege slots hebben een vaste breedte (geen naam om rekening mee te houden) en
 // gebruiken nog de eenvoudige percentage-positionering. Verder regelt dit component enkel het kaartje
-// zelf: kleuren/opmaak, de safety-rand+cyclus-badge, de verwijder-knop, en drag/klik-handlers. Bewust
-// geen clublogo/positielabel op gevulde kaarten (die zijn overbodig — elke kaart hoort al bij precies
-// één club/lijn) — enkel de naam (prominent) en de prijs (subtiel eronder, als label). Gevulde kaarten
-// ondersteunen zowel klikken (opent de positiekiezer, zie PositionPicker.jsx) als slepen (automatische
-// settle naar de dichtstbije positie, zie PitchField.jsx) — allebei komen uiteindelijk uit bij dezelfde
-// toewijzingslogica.
+// zelf: kleuren/opmaak, de safety-rand+cyclus-badge, de verwijder-knop, en drag/klik-handlers. Gevulde
+// kaarten tonen een shirt-icoon bovenaan, gecentreerd boven de naam/prijs — zelfde kaart-`<div>`, géén
+// apart doosje, dus altijd één visueel doorlopend blok. Gevulde kaarten ondersteunen zowel klikken
+// (opent de positiekiezer, zie PositionPicker.jsx) als slepen (automatische settle naar de dichtstbije
+// positie, zie PitchField.jsx) — allebei komen uiteindelijk uit bij dezelfde toewijzingslogica.
 import { Plus, X } from 'lucide-react';
 import { SAFETY_STYLE } from './theme';
 
@@ -26,9 +25,15 @@ export default function PitchSlot({
   // non-functioneel, ook niet gerenderd). Standaard false, dus de privé Predicted XI Builder is
   // hierdoor op geen enkele manier veranderd.
   readOnly = false,
+  // Fallback-teamcode voor het shirt-icoon (zie effectiveTeamCode hieronder) — de club waarvan dit veld
+  // de opstelling toont, doorgegeven vanuit PitchField.jsx. Enkel nodig als slot.playerTeamCode leeg is
+  // (bv. een handmatig ingevoerde speler die niet uit de spelersdatabank kwam, zie handleManualAdd in
+  // PredictedXiBuilder.jsx) — in de praktijk hoort een speler bijna altijd bij dezelfde club als het veld.
+  teamCode,
 }) {
   const isEmpty = !slot.playerName;
   const safety = SAFETY_STYLE[slot.safety] ?? SAFETY_STYLE.green;
+  const effectiveTeamCode = slot.playerTeamCode || teamCode || '';
   const hasComputedPosition = !isEmpty && leftPx != null;
   // Verticale positie komt, net als leftPx/widthPx, van cardLayout.js's botsingsvrije herberekening
   // zodra die beschikbaar is (topPx) — enkel als terugval (bv. vóór de eerste layout-meting) valt dit
@@ -95,7 +100,10 @@ export default function PitchSlot({
           className={isEmpty ? 'pxi-card--empty' : 'pxi-card--filled'}
           style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            gap: '2px',
+            // Grotere gap voor gevulde kaarten: ruimte tussen het shirt-icoon en de naam/prijs-groep
+            // eronder (zie pxi-card-shirt hieronder), zonder harde scheidingslijn. Lege kaarten (Plus-
+            // icoon + rol-label) behouden hun bestaande, krappere gap — geen shirt, dus ongewijzigd.
+            gap: isEmpty ? '2px' : '6px',
             background: isEmpty ? 'rgba(42,20,64,0.45)' : 'rgba(42,20,64,0.9)',
             border: isEmpty
               ? `2px dashed ${isActiveSearchTarget ? '#4ECDC4' : 'rgba(255,255,255,0.3)'}`
@@ -123,17 +131,31 @@ export default function PitchSlot({
             </>
           ) : (
             <>
-              <span className="pxi-card-name" style={{
-                color: '#FFF', fontSize: '13px', fontWeight: 800,
-                textAlign: 'center', lineHeight: 1.15, whiteSpace: 'nowrap',
-              }}>
-                {slot.playerName}
-              </span>
-              {slot.playerPrice != null && (
-                <span className="pxi-card-price" style={{ color: '#8F79AD', fontSize: '10px', fontWeight: 700 }}>
-                  {slot.playerPrice.toFixed(1)}M
-                </span>
+              {effectiveTeamCode && (
+                <img
+                  src={`/club-shirts/${effectiveTeamCode}.png`}
+                  alt=""
+                  // Standaard native-draggable <img>'s zouden anders de eigen "sleep om te verplaatsen"-
+                  // handler van de kaart (draggable hierboven, op de ouder-div) kunnen kapen.
+                  draggable={false}
+                  className="pxi-card-shirt"
+                  style={{ width: '28px', height: '28px', objectFit: 'contain', flexShrink: 0 }}
+                  onError={(e) => { e.target.style.display = 'none'; }}
+                />
               )}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                <span className="pxi-card-name" style={{
+                  color: '#FFF', fontSize: '13px', fontWeight: 800,
+                  textAlign: 'center', lineHeight: 1.15, whiteSpace: 'nowrap',
+                }}>
+                  {slot.playerName}
+                </span>
+                {slot.playerPrice != null && (
+                  <span className="pxi-card-price" style={{ color: '#8F79AD', fontSize: '10px', fontWeight: 700 }}>
+                    {slot.playerPrice.toFixed(1)}M
+                  </span>
+                )}
+              </div>
             </>
           )}
         </div>

@@ -67,11 +67,13 @@ const MOBILE_STYLE = `
     .pxi-field-opp-logo { width: 13px !important; height: 13px !important; }
     .pxi-field-opp-name { font-size: 10px !important; }
     /* Speler-kaartjes (zie PitchSlot.jsx) — kleinere padding/tekst zodat de formatie leesbaar blijft
-       ondanks minder schermbreedte. widthPx zelf komt uit cardLayout.js (dat dezelfde mobiele drempel
-       via de isMobile-prop hierboven kent), dus die blijft altijd in lijn met deze CSS. */
-    .pxi-card--filled { padding: 4px 4px !important; }
+       ondanks minder schermbreedte. widthPx/CARD_HEIGHT_PX_COMPACT zelf komen uit cardLayout.js (dat
+       dezelfde mobiele drempel via de isMobile-prop hierboven kent), dus die blijven altijd in lijn met
+       deze CSS. */
+    .pxi-card--filled { padding: 4px 4px !important; gap: 3px !important; }
     .pxi-card-name { font-size: 9px !important; }
     .pxi-card-price { font-size: 7px !important; }
+    .pxi-card-shirt { width: 18px !important; height: 18px !important; }
     .pxi-card--empty { min-width: 44px !important; padding: 5px 6px !important; }
   }
 `;
@@ -243,6 +245,7 @@ const PitchField = forwardRef(function PitchField({
                 onCycleSafety={onCycleSafety}
                 onDragStart={onDragStart}
                 readOnly={readOnly}
+                teamCode={club?.code}
               />
             );
           })}
