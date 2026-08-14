@@ -2,7 +2,7 @@
 // speler-kaartjes. Dit is de ENIGE component die binnen de forwardRef zit die exportImage.js capture't
 // — niets anders (notities, drafts-lijst, zoekpaneel) mag hier ooit binnen komen te staan.
 import { forwardRef, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { PITCH_GRADIENT, PITCH_ASPECT_RATIO, MOBILE_BREAKPOINT_PX } from './theme';
+import { PITCH_GRADIENT, PITCH_ASPECT_RATIO, MOBILE_BREAKPOINT_PX, NARROW_BREAKPOINT_PX } from './theme';
 import { POSITION_PRESETS } from './formations';
 import { computeCardPositions } from './cardLayout';
 import PitchSlot from './PitchSlot';
@@ -66,10 +66,14 @@ const MOBILE_STYLE = `
     .pxi-field-formation { font-size: 9px !important; padding: 2px 8px !important; }
     .pxi-field-opp-logo { width: 13px !important; height: 13px !important; }
     .pxi-field-opp-name { font-size: 10px !important; }
-    /* Speler-kaartjes (zie PitchSlot.jsx) — kleinere padding/tekst zodat de formatie leesbaar blijft
-       ondanks minder schermbreedte. widthPx zelf komt uit cardLayout.js (dat dezelfde mobiele drempel
-       via de isMobile-prop hierboven kent), dus die blijft altijd in lijn met deze CSS. */
-    .pxi-card--filled { padding: 4px 4px !important; }
+    /* Speler-kaartjes (zie PitchSlot.jsx) — kleinere tekst/padding zodat de formatie leesbaar blijft
+       ondanks minder schermbreedte. De shirt-breedte zelf staat hier bewust NIET meer als CSS-override:
+       die is nu per render adaptief berekend (zie shirtWidthPx/computeAdaptiveShirtWidth in
+       cardLayout.js, afhankelijk van het werkelijke aantal rijen in DEZE opstelling, niet enkel het
+       viewport) en komt als expliciete inline-stijl op elke <PitchSlot> terecht — een CSS !important-regel
+       zou die per-render waarde altijd overschrijven, ongeacht specificiteit. */
+    .pxi-card--filled { gap: 3px !important; }
+    .pxi-card-label { padding: 3px 6px !important; border-radius: 6px !important; }
     .pxi-card-name { font-size: 9px !important; }
     .pxi-card-price { font-size: 7px !important; }
     .pxi-card--empty { min-width: 44px !important; padding: 5px 6px !important; }
@@ -90,6 +94,11 @@ const PitchField = forwardRef(function PitchField({
   const [pitchWidthPx, setPitchWidthPx] = useState(DEFAULT_PITCH_WIDTH_PX);
   const [isMobile, setIsMobile] = useState(
     () => typeof window !== 'undefined' && window.innerWidth <= MOBILE_BREAKPOINT_PX,
+  );
+  // Extra-smal segment binnen "mobiel" (zie NARROW_BREAKPOINT_PX in theme.js) — enkel betekenisvol als
+  // isMobile ook true is, zie computeAdaptiveShirtWidth in cardLayout.js.
+  const [isNarrow, setIsNarrow] = useState(
+    () => typeof window !== 'undefined' && window.innerWidth <= NARROW_BREAKPOINT_PX,
   );
 
   // Houdt de werkelijke, gerenderde veldbreedte bij (verandert bij window-resize of bv. het
@@ -117,16 +126,25 @@ const PitchField = forwardRef(function PitchField({
     return () => mql.removeEventListener('change', handleChange);
   }, []);
 
+  // Zelfde patroon als hierboven, voor het extra-smalle segment.
+  useLayoutEffect(() => {
+    const mql = window.matchMedia(`(max-width: ${NARROW_BREAKPOINT_PX}px)`);
+    const handleChange = () => setIsNarrow(mql.matches);
+    handleChange();
+    mql.addEventListener('change', handleChange);
+    return () => mql.removeEventListener('change', handleChange);
+  }, []);
+
   // Kaartbreedte groeit mee met de naam (zie PitchSlot.jsx), dus de vaste xPercent-coördinaten
   // garanderen geen overlapvrije positie meer — computeCardPositions herberekent de werkelijke
   // pixel-posities per "rij" (zie cardLayout.js), zowel horizontaal (kaarten raken elkaar nooit, vallen
   // nooit over de veldrand) als verticaal (rijen die ongewoon dicht bij een buurlijn liggen — bv. een
   // handmatig verplaatste CAM — schuiven net genoeg uit elkaar), ongeacht naamlengte of schermbreedte.
   const pitchHeightPx = pitchWidthPx / PITCH_ASPECT_RATIO;
-  const cardPositions = useMemo(
-    () => computeCardPositions(pitchSlots, pitchWidthPx, pitchHeightPx, isMobile),
+  const { positions: cardPositions, shirtWidthPx } = useMemo(
+    () => computeCardPositions(pitchSlots, pitchWidthPx, pitchHeightPx, isMobile, isNarrow),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [slots, pitchWidthPx, pitchHeightPx, isMobile],
+    [slots, pitchWidthPx, pitchHeightPx, isMobile, isNarrow],
   );
 
   // Automatische settle: bereken bij loslaten de dichtstbijzijnde vaste positie (in echte pixels,
@@ -243,6 +261,8 @@ const PitchField = forwardRef(function PitchField({
                 onCycleSafety={onCycleSafety}
                 onDragStart={onDragStart}
                 readOnly={readOnly}
+                teamCode={club?.code}
+                shirtWidthPx={shirtWidthPx}
               />
             );
           })}
