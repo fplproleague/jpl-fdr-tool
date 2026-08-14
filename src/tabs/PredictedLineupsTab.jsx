@@ -36,7 +36,7 @@ export default function PredictedLineupsTab() {
     return (
       <>
         <p style={{ color: '#8F79AD', fontSize: '13px', marginBottom: '16px' }}>
-          Voorspelde opstellingen voor GW1, samengesteld door @5YSiebee.
+          Voorspelde opstellingen voor GW2, samengesteld door @5YSiebee.
         </p>
         <div style={{
           background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
