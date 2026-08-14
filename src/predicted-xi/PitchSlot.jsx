@@ -23,12 +23,28 @@ import { SHIRT_WIDTH_PX_IDEAL } from './cardLayout';
 // pixel-nauwkeurige klem die cardLayout.js voor gevulde kaarten toepast.
 const EMPTY_CARD_EDGE_CLAMP_PX = 47;
 
+// Tekst-schaduw voor de kale naam-/prijstekst (zie de spans hieronder — geen kaartachtergrond meer om de
+// leesbaarheid te garanderen). Een enkele blur-schaduw bleek onvoldoende tegen LICHTE achtergronden zoals
+// de witte veldlijnen (bv. de GK-kaart, die vaak op de doelgebiedlijn staat) — daar smelt een simpele
+// schaduw grotendeels weg. Dit stapelt vier kleine, tegenovergestelde offsets + een bredere blur-halo, een
+// gekende CSS-truc om een pseudo-outline te simuleren (`text-stroke` zelf heeft geen betrouwbare
+// cross-browser ondersteuning) — dat houdt de tekst leesbaar tegen zowel donker gras, felle shirtkleuren
+// als witte lijnen.
+const TEXT_SHADOW = [
+  '1px 1px 2px rgba(0,0,0,0.9)',
+  '-1px -1px 2px rgba(0,0,0,0.9)',
+  '1px -1px 2px rgba(0,0,0,0.9)',
+  '-1px 1px 2px rgba(0,0,0,0.9)',
+  '0 0 4px rgba(0,0,0,0.75)',
+].join(', ');
+
 export default function PitchSlot({
   slot, index, leftPx, widthPx, topPx, isActiveSearchTarget,
   onSlotClick, onRemove, onCycleSafety, onDragStart,
   // Puur-visuele weergave voor de publieke Predicted Lineups-tab (zie PredictedLineupsTab.jsx): geen
-  // enkele interactie — geen klik/sleep, geen verwijder-knop, geen safety-badge (niet enkel
-  // non-functioneel, ook niet gerenderd). Standaard false, dus de privé Predicted XI Builder is
+  // enkele interactie — geen klik/sleep, geen verwijder-knop. De safety-badge blijft wél zichtbaar (enkel
+  // niet-klikbaar) — die toont voor bezoekers relevante informatie (starterskans), in tegenstelling tot de
+  // verwijder-knop die enkel een bewerk-actie is. Standaard false, dus de privé Predicted XI Builder is
   // hierdoor op geen enkele manier veranderd.
   readOnly = false,
   // Fallback-teamcode voor het shirt-icoon (zie effectiveTeamCode hieronder) — de club waarvan dit veld
@@ -118,37 +134,40 @@ export default function PitchSlot({
               // verwijderknop hieronder landen automatisch op de hoeken van het SHIRT, niet van de
               // hele (nu veel bredere/hogere) kaart.
               <div style={{ position: 'relative' }}>
+                {/* Safety-cyclus: klik doorloopt de 4 niveaus (zie SAFETY_CYCLE in theme.js) — enkel
+                    klikbaar buiten readOnly, maar het bolletje zelf blijft altijd zichtbaar (ook op de
+                    publieke Predicted Lineups-tab): het toont relevante info (starterskans) voor
+                    bezoekers, in tegenstelling tot de verwijder-knop hieronder. */}
+                <button
+                  onClick={readOnly ? undefined : (e) => { e.stopPropagation(); onCycleSafety(index); }}
+                  title={safety.label}
+                  disabled={readOnly}
+                  style={{
+                    position: 'absolute', top: '-6px', right: '-6px', zIndex: 1,
+                    width: '18px', height: '18px', borderRadius: '50%',
+                    background: safety.badgeBg, border: '1px solid rgba(255,255,255,0.5)',
+                    cursor: readOnly ? 'default' : 'pointer', padding: 0,
+                  }}
+                />
                 {!readOnly && (
-                  <>
-                    {/* Safety-cyclus: klik doorloopt de 4 niveaus (zie SAFETY_CYCLE in theme.js). */}
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onCycleSafety(index); }}
-                      title={safety.label}
-                      style={{
-                        position: 'absolute', top: '-6px', right: '-6px', zIndex: 1,
-                        width: '18px', height: '18px', borderRadius: '50%',
-                        background: safety.badgeBg, border: '1px solid rgba(255,255,255,0.5)', cursor: 'pointer',
-                      }}
-                    />
-                    {/* pxi-no-export: enkel een bewerk-knop, mag nooit op de geëxporteerde afbeelding
-                        staan — exportImage.js sluit dit element expliciet uit via html2canvas's
-                        ignoreElements, dus dit blijft onafhankelijk van React-rendertiming gegarandeerd
-                        verborgen op de export. */}
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onRemove(index); }}
-                      title="Verwijder speler"
-                      className="pxi-no-export"
-                      style={{
-                        position: 'absolute', top: '-6px', left: '-6px', zIndex: 1,
-                        width: '18px', height: '18px', borderRadius: '50%', display: 'flex',
-                        alignItems: 'center', justifyContent: 'center', padding: 0,
-                        background: 'rgba(42,20,64,0.9)', color: '#C9B8E0',
-                        border: '1px solid rgba(255,255,255,0.3)', cursor: 'pointer',
-                      }}
-                    >
-                      <X size={11} />
-                    </button>
-                  </>
+                  // pxi-no-export: enkel een bewerk-knop, mag nooit op de geëxporteerde afbeelding staan
+                  // — exportImage.js sluit dit element expliciet uit via html2canvas's ignoreElements,
+                  // dus dit blijft onafhankelijk van React-rendertiming gegarandeerd verborgen op de
+                  // export.
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onRemove(index); }}
+                    title="Verwijder speler"
+                    className="pxi-no-export"
+                    style={{
+                      position: 'absolute', top: '-6px', left: '-6px', zIndex: 1,
+                      width: '18px', height: '18px', borderRadius: '50%', display: 'flex',
+                      alignItems: 'center', justifyContent: 'center', padding: 0,
+                      background: 'rgba(42,20,64,0.9)', color: '#C9B8E0',
+                      border: '1px solid rgba(255,255,255,0.3)', cursor: 'pointer',
+                    }}
+                  >
+                    <X size={11} />
+                  </button>
                 )}
                 <img
                   src={`/club-shirts/${effectiveTeamCode}.png`}
@@ -183,18 +202,14 @@ export default function PitchSlot({
               <span className="pxi-card-name" style={{
                 color: '#FFF', fontSize: '13px', fontWeight: 800,
                 textAlign: 'center', lineHeight: 1.15, whiteSpace: 'nowrap',
-                // Vervangt de vroegere kaartachtergrond als leesbaarheidsgarantie — nodig omdat de tekst nu
-                // rechtstreeks tegen het (wisselende) grasveld/shirt staat i.p.v. tegen een effen donkere
-                // achtergrond. Getest tegen zowel donkere als felgele shirts (Union SG, Sint-Truiden) —
-                // deze waarde geeft in beide gevallen voldoende contrast (zie PR-beschrijving).
-                textShadow: '0 1px 3px rgba(0,0,0,0.85), 0 0 2px rgba(0,0,0,0.6)',
+                textShadow: TEXT_SHADOW,
               }}>
                 {slot.playerName}
               </span>
               {slot.playerPrice != null && (
                 <span className="pxi-card-price" style={{
                   color: '#8F79AD', fontSize: '10px', fontWeight: 700,
-                  textShadow: '0 1px 3px rgba(0,0,0,0.85), 0 0 2px rgba(0,0,0,0.6)',
+                  textShadow: TEXT_SHADOW,
                 }}>
                   {slot.playerPrice.toFixed(1)}M
                 </span>
