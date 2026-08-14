@@ -73,7 +73,6 @@ const MOBILE_STYLE = `
        viewport) en komt als expliciete inline-stijl op elke <PitchSlot> terecht — een CSS !important-regel
        zou die per-render waarde altijd overschrijven, ongeacht specificiteit. */
     .pxi-card--filled { gap: 3px !important; }
-    .pxi-card-label { padding: 3px 6px !important; border-radius: 6px !important; }
     .pxi-card-name { font-size: 9px !important; }
     .pxi-card-price { font-size: 7px !important; }
     .pxi-card--empty { min-width: 44px !important; padding: 5px 6px !important; }

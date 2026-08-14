@@ -50,14 +50,14 @@ const NAME_FONT_COMPACT = '800 9px sans-serif';
 // rond de korte naam passen terwijl de prijs eronder net buiten die smalle kaart zou uitsteken.
 const PRICE_FONT = '700 10px sans-serif';
 const PRICE_FONT_COMPACT = '700 7px sans-serif';
-// Padding van het LABEL (naam/prijs-doosje, zie PitchSlot.jsx — niet meer van de hele kaart: het shirt
-// erboven heeft geen eigen padding, dat zweeft los op het gras). Label-padding is 2x8px = 16px; +8px
-// veiligheidsmarge omdat canvas measureText() niet altijd pixel-exact overeenkomt met de werkelijke
-// DOM/html2canvas-rendering (zelf ondervonden bij eerdere iteraties) — zo blijft er altijd wat lucht rond
-// de tekst i.p.v. een naam die net tegen de labelrand zou botsen. Zelfde padding geldt voor de prijsregel
-// (beide regels zitten in dezelfde label-box).
-const NAME_HORIZONTAL_PADDING_PX = 24;
-const NAME_HORIZONTAL_PADDING_PX_COMPACT = 10; // padding compact 2x4px = 8 + 2px veiligheidsmarge
+// Horizontale veiligheidsmarge rond de kale naam-/prijstekst (zie PitchSlot.jsx — géén kaartje/padding
+// meer eromheen sinds de tekst rechtstreeks op het veld staat, enkel met een text-shadow voor
+// leesbaarheid). Puur een meetbuffer: canvas measureText() komt niet altijd pixel-exact overeen met de
+// werkelijke DOM/html2canvas-rendering (zelf ondervonden bij eerdere iteraties), dus deze marge voorkomt
+// dat een naam net tegen een buurkaart zou botsen. Veel kleiner dan vroeger nu er geen echte padding meer
+// achter dit getal schuilt.
+const NAME_HORIZONTAL_PADDING_PX = 8;
+const NAME_HORIZONTAL_PADDING_PX_COMPACT = 4;
 const EMPTY_CARD_WIDTH_PX = 70; // ongewijzigd t.o.v. de bestaande lege-slot-breedte
 const EMPTY_CARD_WIDTH_PX_COMPACT = 42;
 
@@ -87,23 +87,17 @@ export const SHIRT_WIDTH_PX_IDEAL_NARROW = 20;
 const SHIRT_WIDTH_PX_ABS_MIN = 4;
 
 // Vaste "overhead" bovenop de shirt-breedte om de totale kaarthoogte te bepalen: shirt→label-gap (zie
-// PitchSlot.jsx) + labelhoogte (padding + naam-/prijsregel) — onafhankelijk van de shirt-grootte zelf,
-// dus geen apart getal per tier nodig.
+// PitchSlot.jsx) + hoogte van de kale naam-/prijstekst (geen padding/rand meer sinds het label-kaartje
+// verwijderd is) — onafhankelijk van de shirt-grootte zelf, dus geen apart getal per tier nodig.
 //
-// Empirisch herbevestigd via Playwright (`getBoundingClientRect()` op de werkelijk gerenderde `<img>` en
-// `.pxi-card-label`): 45.94px desktop, 32.34px compact/narrow (identieke label-stijl in beide tiers), plus
-// een kleine veiligheidsmarge hierboven. Een eerdere meting had hier `display:block` op het shirt-`<img>`
-// nog niet toegepast (zie PitchSlot.jsx) — zonder die regel kreeg de `position:relative`-wrapper er "fantoom-
-// ruimte" bij van de omringende line-height/font-metrics (het gekende CSS-euvel "gap onder een inline
-// image"), tot 10px extra hoogte die niets met de werkelijke shirt/label-afmetingen te maken had. Dat
-// zorgde voor een dubbele fout: de eerste (te hoge) overhead-schatting hier maskeerde het probleem soms,
-// maar bij een zeer klein adaptief shirt (bv. 8px op een 7-rijen-opstelling) woog die fantoomruimte relatief
-// zwaar genoeg om alsnog daadwerkelijke rij-overlap te veroorzaken (zelf gemeten: 38px overloop bij Club
-// Brugge/Genk op 375px). Met `display:block` gefixt EN deze overhead-waarden opnieuw op de echte (nu
-// betrouwbare) meting gebaseerd, in plaats van indirect afgeleid uit een oudere, met een andere shirt-
-// grootte gemeten totaalhoogte.
-const CARD_OVERHEAD_PX = 48;
-const CARD_OVERHEAD_PX_COMPACT = 34; // geldt voor zowel compact als narrow (identieke label-stijl)
+// Empirisch bepaald via Playwright (`getBoundingClientRect()` op de werkelijk gerenderde `<img>` en
+// `.pxi-card-label`, zelfde meetmethode als steeds in deze module — nooit enkel hand-berekend), plus een
+// kleine veiligheidsmarge. Belangrijk: `display:block` op het shirt-`<img>` (zie PitchSlot.jsx) blijft
+// nodig — zonder die regel krijgt de `position:relative`-wrapper eromheen "fantoomruimte" van de
+// omringende line-height/font-metrics (het CSS-euvel "gap onder een inline image"), wat deze
+// overhead-waarden zou ondermijnen (eerder al één keer ontdekt en gefixt, zie git-historie).
+const CARD_OVERHEAD_PX = 35;
+const CARD_OVERHEAD_PX_COMPACT = 23; // geldt voor zowel compact als narrow (identieke tekst-stijl)
 
 const MIN_VERTICAL_GAP_PX = 6;
 const MIN_VERTICAL_GAP_PX_COMPACT = 4;
@@ -155,8 +149,8 @@ export function measureTextWidth(text, font) {
 
 // `minWidthPx` komt van de aanroeper (computeCardPositions) — afgeleid van de per-render adaptieve
 // shirt-breedte (zie computeAdaptiveShirtWidth hierboven), want het shirt is vrijwel altijd de bindende
-// breedte-eis, niet de naamtekst. Lettertype/label-padding blijven wél gewoon per `compact`-tier vast
-// (die zijn al krap genoeg, en onafhankelijk van de shirt-grootte).
+// breedte-eis, niet de naamtekst. Lettertype/meetbuffer blijven wél gewoon per `compact`-tier vast (die
+// zijn al krap genoeg, en onafhankelijk van de shirt-grootte).
 export function estimateCardWidth(playerName, playerPrice, compact = false, minWidthPx = 0) {
   if (!playerName) return compact ? EMPTY_CARD_WIDTH_PX_COMPACT : EMPTY_CARD_WIDTH_PX;
   const nameFont = compact ? NAME_FONT_COMPACT : NAME_FONT;
