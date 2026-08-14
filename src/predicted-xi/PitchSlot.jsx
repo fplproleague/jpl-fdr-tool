@@ -38,6 +38,20 @@ const TEXT_SHADOW = [
   '0 0 4px rgba(0,0,0,0.75)',
 ].join(', ');
 
+// Safety-badge en verwijderknop schaalden voorheen niet mee met de adaptieve shirt-breedte (shirtWidthPx,
+// zie computeAdaptiveShirtWidth in cardLayout.js) — een vaste 18px bleef even groot ongeacht hoe klein het
+// shirt zelf werd (bv. mobiel, of een opstelling met veel rijen), en kon het shirt daardoor grotendeels
+// verbergen. BADGE_SIZE_RATIO houdt dezelfde verhouding aan als het oorspronkelijke 18px-bij-56px-ideaal-
+// shirt (18/56 ≈ 0.32); BADGE_MAX_PX plafonneert op die oorspronkelijke 18px (nooit groter dan voorheen),
+// BADGE_MIN_PX voorkomt dat het bolletje bij een extreem klein shirt onleesbaar/ontappable klein wordt.
+const BADGE_SIZE_RATIO = 0.32;
+const BADGE_MIN_PX = 8;
+const BADGE_MAX_PX = 18;
+
+function computeBadgeSizePx(shirtWidthPx) {
+  return Math.min(BADGE_MAX_PX, Math.max(BADGE_MIN_PX, shirtWidthPx * BADGE_SIZE_RATIO));
+}
+
 export default function PitchSlot({
   slot, index, leftPx, widthPx, topPx, isActiveSearchTarget,
   onSlotClick, onRemove, onCycleSafety, onDragStart,
@@ -67,6 +81,10 @@ export default function PitchSlot({
   // zodra die beschikbaar is (topPx) — enkel als terugval (bv. vóór de eerste layout-meting) valt dit
   // terug op de ruwe, onaangepaste yPercent-positionering van vroeger.
   const hasComputedTop = !isEmpty && topPx != null;
+  // Badge/verwijderknop-grootte volgt de adaptieve shirt-breedte (zie computeBadgeSizePx hierboven) —
+  // enkel relevant voor gevulde kaarten, maar goedkoop genoeg om altijd te berekenen.
+  const badgeSizePx = computeBadgeSizePx(shirtWidthPx);
+  const badgeOffsetPx = -(badgeSizePx / 3);
 
   return (
     <div
@@ -143,8 +161,8 @@ export default function PitchSlot({
                   title={safety.label}
                   disabled={readOnly}
                   style={{
-                    position: 'absolute', top: '-6px', right: '-6px', zIndex: 1,
-                    width: '18px', height: '18px', borderRadius: '50%',
+                    position: 'absolute', top: `${badgeOffsetPx}px`, right: `${badgeOffsetPx}px`, zIndex: 1,
+                    width: `${badgeSizePx}px`, height: `${badgeSizePx}px`, borderRadius: '50%',
                     background: safety.badgeBg, border: '1px solid rgba(255,255,255,0.5)',
                     cursor: readOnly ? 'default' : 'pointer', padding: 0,
                   }}
@@ -159,14 +177,14 @@ export default function PitchSlot({
                     title="Verwijder speler"
                     className="pxi-no-export"
                     style={{
-                      position: 'absolute', top: '-6px', left: '-6px', zIndex: 1,
-                      width: '18px', height: '18px', borderRadius: '50%', display: 'flex',
+                      position: 'absolute', top: `${badgeOffsetPx}px`, left: `${badgeOffsetPx}px`, zIndex: 1,
+                      width: `${badgeSizePx}px`, height: `${badgeSizePx}px`, borderRadius: '50%', display: 'flex',
                       alignItems: 'center', justifyContent: 'center', padding: 0,
                       background: 'rgba(42,20,64,0.9)', color: '#C9B8E0',
                       border: '1px solid rgba(255,255,255,0.3)', cursor: 'pointer',
                     }}
                   >
-                    <X size={11} />
+                    <X size={Math.max(7, badgeSizePx * 0.6)} />
                   </button>
                 )}
                 <img
