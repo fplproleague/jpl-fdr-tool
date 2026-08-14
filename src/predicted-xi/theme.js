@@ -47,6 +47,14 @@ export const PITCH_ASPECT_RATIO = 0.92;
 // moet aannemen — zo blijft de pixel-wiskunde altijd exact overeenkomen met wat de CSS werkelijk rendert.
 export const MOBILE_BREAKPOINT_PX = 640;
 
+// Extra-smalle drempel, enkel voor het shirt-icoon op speler-kaartjes (zie SHIRT_WIDTH_PX_NARROW in
+// cardLayout.js) — bij de smalste ondersteunde telefoons (bv. iPhone SE, ~320-360px) is er fysiek te
+// weinig veldhoogte voor een 5-rijen-formatie (bv. 4-2-3-1) om zowel het normale mobiele shirt (28px) als
+// een gegarandeerd overlapvrije rij-afstand te combineren — zelf doorgerekend en met Playwright bevestigd.
+// Vanaf 375px (alle courante telefoons) is er wél genoeg ruimte, dus enkel dit smalste segment krijgt een
+// extra verkleind shirt. Zelfde eén-bron-van-waarheid-opzet als MOBILE_BREAKPOINT_PX hierboven.
+export const NARROW_BREAKPOINT_PX = 360;
+
 // Watermerk-tekst, zelfde stijl als de bestaande FDR-export (handleDownloadImage, FDRTool.jsx) — deze
 // beelden worden publiek op het @fpl_proleague-account gepost, consistente branding is dus zinvol.
 export const WATERMARK_TEXT = '@5YSiebee x @fpl_proleague';
