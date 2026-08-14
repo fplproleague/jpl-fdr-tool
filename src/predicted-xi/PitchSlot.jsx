@@ -5,12 +5,13 @@
 // enkel het resultaat. Lege slots hebben een vaste breedte (geen naam om rekening mee te houden) en
 // gebruiken nog de eenvoudige percentage-positionering. Verder regelt dit component enkel het kaartje
 // zelf: kleuren/opmaak, de safety-rand+cyclus-badge, de verwijder-knop, en drag/klik-handlers. Gevulde
-// kaarten bestaan uit TWEE los ogende stukken (bewust géén gedeelde kader): een groot, kaal shirt dat
-// rechtstreeks "op het gras" zweeft (slagschaduw i.p.v. een eigen achtergrond/rand — het shirt is de
-// dominante marker, vergelijkbaar met een echte opstellingsgrafiek), en daaronder een klein label met
-// naam+prijs dat wél de bestaande kaart-look behoudt (donkere achtergrond, safety-gekleurde rand,
-// afgeronde hoeken) — beide zitten in dezelfde onzichtbare flex-kolom, die alle interactie draagt, dus
-// functioneel blijft dit één geheel. Gevulde kaarten ondersteunen zowel klikken (opent de positiekiezer,
+// kaarten bestaan uit TWEE los ogende stukken (bewust géén gedeelde kader, GEEN van beide heeft een eigen
+// achtergrond/rand): een groot, kaal shirt dat rechtstreeks "op het gras" zweeft (slagschaduw — het shirt
+// is de dominante marker, vergelijkbaar met een echte opstellingsgrafiek), en daaronder kale naam-/
+// prijstekst (géén kaartje eromheen — enkel een tekst-schaduw houdt de tekst leesbaar tegen het
+// wisselende groene veld/shirtkleuren, zie de spans hieronder) — beide zitten in dezelfde onzichtbare
+// flex-kolom, die alle interactie draagt, dus functioneel blijft dit één geheel. Gevulde kaarten
+// ondersteunen zowel klikken (opent de positiekiezer,
 // zie PositionPicker.jsx) als slepen (automatische settle naar de dichtstbije positie, zie
 // PitchField.jsx) — allebei komen uiteindelijk uit bij dezelfde toewijzingslogica.
 import { Plus, X } from 'lucide-react';
@@ -77,9 +78,9 @@ export default function PitchSlot({
         className={isEmpty ? 'pxi-card--empty' : 'pxi-card--filled'}
         style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          // Gap = shirt→label-afstand voor gevulde kaarten (zie pxi-card-shirt/pxi-card-label
-          // hieronder) — die twee stukken dragen zelf hun eigen achtergrond/rand, deze rij-container
-          // niet meer. Lege kaarten (Plus-icoon + rol-label) behouden hun bestaande, krappere gap en
+          // Gap = shirt→naam/prijs-afstand voor gevulde kaarten (zie pxi-card-shirt/pxi-card-label
+          // hieronder) — geen van beide stukken heeft een eigen achtergrond/rand, deze rij-container
+          // ook niet. Lege kaarten (Plus-icoon + rol-label) behouden hun bestaande, krappere gap en
           // eigen achtergrond/rand — geen shirt, dus die kaart is verder volledig ongewijzigd.
           gap: isEmpty ? '2px' : '6px',
           background: isEmpty ? 'rgba(42,20,64,0.45)' : 'transparent',
@@ -173,20 +174,28 @@ export default function PitchSlot({
                 />
               </div>
             )}
+            {/* Kaal (geen achtergrond/rand/padding meer, zie bestandscommentaar hierboven) — enkel de
+                flex-kolom zelf, puur voor de layout-groepering van naam+prijs. De text-shadow op de
+                spans hieronder draagt nu alleen de leesbaarheid, i.p.v. een achtergrondvlak. */}
             <div className="pxi-card-label" style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px',
-              background: 'rgba(42,20,64,0.9)', border: `2px solid ${safety.border}`,
-              borderRadius: '8px', padding: '4px 8px', boxSizing: 'border-box',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
             }}>
               <span className="pxi-card-name" style={{
                 color: '#FFF', fontSize: '13px', fontWeight: 800,
                 textAlign: 'center', lineHeight: 1.15, whiteSpace: 'nowrap',
+                // Vervangt de vroegere kaartachtergrond als leesbaarheidsgarantie — nodig omdat de tekst nu
+                // rechtstreeks tegen het (wisselende) grasveld/shirt staat i.p.v. tegen een effen donkere
+                // achtergrond. Getest tegen zowel donkere als felgele shirts (Union SG, Sint-Truiden) —
+                // deze waarde geeft in beide gevallen voldoende contrast (zie PR-beschrijving).
+                textShadow: '0 1px 3px rgba(0,0,0,0.85), 0 0 2px rgba(0,0,0,0.6)',
               }}>
                 {slot.playerName}
               </span>
               {slot.playerPrice != null && (
-                <span className="pxi-card-price" style={{ color: '#8F79AD', fontSize: '10px', fontWeight: 700 }}>
+                <span className="pxi-card-price" style={{
+                  color: '#8F79AD', fontSize: '10px', fontWeight: 700,
+                  textShadow: '0 1px 3px rgba(0,0,0,0.85), 0 0 2px rgba(0,0,0,0.6)',
+                }}>
                   {slot.playerPrice.toFixed(1)}M
                 </span>
               )}
