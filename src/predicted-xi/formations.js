@@ -11,7 +11,7 @@
 // met minder ruimte tussen de linies). Zie PITCH_ASPECT_RATIO in theme.js voor de bijhorende
 // compactere veld-container.
 //
-// LCB/RCB (33/67) en LCM/RCM (33/67) zijn xPercent-waarden die in meerdere formaties met tegengestelde
+// LCB/RCB (36/64) en LCM/RCM (33/67) zijn xPercent-waarden die in meerdere formaties met tegengestelde
 // buur-afstandseisen hergebruikt worden (bv. LCM staat naast LM=16 in 4-4-2/3-4-3, maar naast CM=50 in
 // 4-3-3/3-5-2/5-3-2; zelfde spanning voor LCB tussen LB=16 en CCB=50 in 5-3-2). Deze xPercent-waarden
 // zijn enkel nog een IDEALE startpositie: de kaartbreedte groeit mee met de spelersnaam (zie
@@ -19,13 +19,22 @@
 // geen overlapvrije layout meer. Die garantie komt nu van een aparte, op de werkelijke gerenderde
 // naambreedte gebaseerde herberekening in cardLayout.js (aangeroepen vanuit PitchField.jsx) — die schuift
 // kaarten die te dicht bij een buur of de veldrand zouden komen net genoeg opzij.
+//
+// LCB/RCB was 33/67 (LB-LCB/RCB-RB-gap 17, LCB-RCB-gap 34 — exact het dubbele): in een zuivere 4-mans
+// achterlijn (4-3-3/4-2-3-1/4-4-2, LB+LCB+RCB+RB, geen CCB) oogde dat te ongelijk verdeeld, met de twee
+// centrale verdedigers ver uit elkaar t.o.v. de backs. Verschoven naar 36/64 (gaps 20/28/20) — merkbaar
+// evenwichtiger voor de 4-mans lijn, maar bewust niet verder verkleind: LCB/RCB zit ook in de 5-mans
+// achterlijn (5-3-2, LB+LCB+CCB+RCB+RB), waar de vorige 33/67 exact symmetrisch was met LB=16/CCB=50/RB=84
+// (elke 17 punten). Bij 36/64 wordt die 5-mans-lijn iets minder gelijkmatig (gaps 20/14/14/20 i.p.v.
+// 17/17/17/17), maar blijft ruim behapbaar — een bewuste, kleine afweging tussen de twee formaties die
+// deze preset delen.
 export const POSITION_PRESETS = {
   GK: { label: 'GK', broadPosition: 'GK', section: 'GK', xPercent: 50, yPercent: 85 },
 
   LB: { label: 'LB', broadPosition: 'DEF', section: 'DEF', xPercent: 16, yPercent: 71 },
-  LCB: { label: 'LCB', broadPosition: 'DEF', section: 'DEF', xPercent: 33, yPercent: 74 },
+  LCB: { label: 'LCB', broadPosition: 'DEF', section: 'DEF', xPercent: 36, yPercent: 74 },
   CCB: { label: 'CCB', broadPosition: 'DEF', section: 'DEF', xPercent: 50, yPercent: 76 },
-  RCB: { label: 'RCB', broadPosition: 'DEF', section: 'DEF', xPercent: 67, yPercent: 74 },
+  RCB: { label: 'RCB', broadPosition: 'DEF', section: 'DEF', xPercent: 64, yPercent: 74 },
   RB: { label: 'RB', broadPosition: 'DEF', section: 'DEF', xPercent: 84, yPercent: 71 },
   LWB: { label: 'LWB', broadPosition: 'DEF', section: 'DEF', xPercent: 16, yPercent: 61 },
   RWB: { label: 'RWB', broadPosition: 'DEF', section: 'DEF', xPercent: 84, yPercent: 61 },
