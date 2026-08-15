@@ -410,12 +410,27 @@ function parsePriceValue(raw) {
   return Number.isFinite(value) ? value : null;
 }
 
+// Zet een statistiek-cel (Gele kaarten/Duels gewonnen/.../Bonuspunten) om naar een getal. Anders dan
+// parsePriceValue hierboven (die null teruggeeft bij een lege/onbruikbare cel, zodat de UI zelf een
+// "—"-weergave kan kiezen) valt dit terug op 0 — deze velden worden rechtstreeks in tellingen/sortering
+// gebruikt (Kaarten-/Bonuspunten-tab), waar een NaN of null silent een hele rij/som zou laten verdwijnen.
+// Een lege cel betekent hier gewoon "nog geen [statistiek] voor deze speler", niet "onbekend".
+function parseStatValue(raw) {
+  const cleaned = (raw ?? '').replace(/[^0-9.-]/g, '');
+  if (!cleaned) return 0;
+  const value = parseFloat(cleaned);
+  return Number.isFinite(value) ? value : 0;
+}
+
 // Zet de ruwe CSV-tekst van de spelersdatabank om naar een array van genormaliseerde speler-
-// objecten ({ name, teamCode, teamName, position, price }). Kolommen worden op hun EXACTE headertekst
-// opgezocht (Name/Team/Position/Price) i.p.v. blind op vaste index, met een index-fallback (0-3) voor
-// het geval een header onverhoopt ontbreekt — zo blijft de parsing ook werken als de kolomvolgorde in
-// de sheet ooit verandert, zolang de 4 headers zelf niet hernoemd worden. Rijen zonder naam (lege of
-// malformed rijen, of de header-rij zelf) worden stilzwijgend genegeerd i.p.v. te crashen.
+// objecten ({ name, teamCode, teamName, position, price, yellowCards, duelsWon, duelsLost, headers,
+// recoveries, bigChances, bonusPoints }). Kolommen worden op hun EXACTE headertekst opgezocht i.p.v.
+// blind op vaste index, met een index-fallback voor het geval een header onverhoopt ontbreekt — zo
+// blijft de parsing ook werken als de kolomvolgorde in de sheet ooit verandert, zolang de headers zelf
+// niet hernoemd worden. De 7 statistiek-kolommen (Gele kaarten/Duels gewonnen/Duels verloren/Kopballen/
+// Recoveries/Grote kansen/Bonuspunten) staan in die exacte volgorde na de bestaande Name/Team/Position/
+// Price-kolommen, vandaar hun fallback-index 4-10. Rijen zonder naam (lege of malformed rijen, of de
+// header-rij zelf) worden stilzwijgend genegeerd i.p.v. te crashen.
 export function parsePlayerDatabaseCsv(text) {
   const rows = parseCsvRows(text).filter(row => row.some(cell => (cell ?? '').trim() !== ''));
   if (rows.length === 0) return [];
@@ -429,6 +444,13 @@ export function parsePlayerDatabaseCsv(text) {
   const teamCol = columnIndex('Team', 1);
   const positionCol = columnIndex('Position', 2);
   const priceCol = columnIndex('Price', 3);
+  const yellowCardsCol = columnIndex('Gele kaarten', 4);
+  const duelsWonCol = columnIndex('Duels gewonnen', 5);
+  const duelsLostCol = columnIndex('Duels verloren', 6);
+  const headersCol = columnIndex('Kopballen', 7);
+  const recoveriesCol = columnIndex('Recoveries', 8);
+  const bigChancesCol = columnIndex('Grote kansen', 9);
+  const bonusPointsCol = columnIndex('Bonuspunten', 10);
 
   return dataRows
     .map(row => {
@@ -436,7 +458,16 @@ export function parsePlayerDatabaseCsv(text) {
       const teamCode = (row[teamCol] ?? '').trim().toUpperCase();
       const position = (row[positionCol] ?? '').trim().toUpperCase();
       const team = TEAMS.find(t => t.code === teamCode);
-      return { name, teamCode, teamName: team?.name ?? teamCode, position, price: parsePriceValue(row[priceCol]) };
+      return {
+        name, teamCode, teamName: team?.name ?? teamCode, position, price: parsePriceValue(row[priceCol]),
+        yellowCards: parseStatValue(row[yellowCardsCol]),
+        duelsWon: parseStatValue(row[duelsWonCol]),
+        duelsLost: parseStatValue(row[duelsLostCol]),
+        headers: parseStatValue(row[headersCol]),
+        recoveries: parseStatValue(row[recoveriesCol]),
+        bigChances: parseStatValue(row[bigChancesCol]),
+        bonusPoints: parseStatValue(row[bonusPointsCol]),
+      };
     })
     .filter(p => p.name);
 }
