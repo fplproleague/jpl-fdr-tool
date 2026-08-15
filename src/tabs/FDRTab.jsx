@@ -23,7 +23,9 @@ const secondaryToolbarBtnStyle = {
   fontWeight: 700, fontSize: '13px', cursor: 'pointer'
 };
 
-// FDR-tab-only: gebruikt voor de GW-horizon-selector en de "Beste fixture runs"-range-selectors.
+// FDR-tab-only: gebruikt voor de GW-horizon-selector, de "Beste fixture runs"-range-selectors en als
+// bron voor compareGwHeaderCells (zie FDRTool.jsx) — laatstgenoemde slicet dit vanaf CURRENT_GW, want
+// "Vergelijk teams" toont geen afgelopen GW's meer.
 const gwOptionElements = GW_INDEXES.map(i => (
   <option key={i} value={i + 1}>{i + 1}</option>
 ));
@@ -121,7 +123,7 @@ export default function FDRTab({
   openSections, toggleSection,
   sortByDifficulty, setSortByDifficulty,
   gwHorizonStart, setGwHorizonStart, gwHorizonEnd, setGwHorizonEnd, gwHorizonRange,
-  visibleGwHeaderCells, gwHeaderCells, mainTableMinWidth,
+  visibleGwHeaderCells, compareGwHeaderCells, compareGwStart, mainTableMinWidth,
   displayedTeams, tableRef,
   rangeStart, setRangeStart, rangeEnd, setRangeEnd, bestRuns,
   compareTeams, toggleCompareTeam,
@@ -421,7 +423,7 @@ export default function FDRTab({
         {openSections.compare && (
         <>
         <p style={{ color: '#8F79AD', fontSize: '12px', marginBottom: '10px' }}>
-          Kies tot 5 teams om hun fixtures onder elkaar te zien.
+          Kies tot 5 teams om hun fixtures onder elkaar te zien (vanaf GW{compareGwStart}).
         </p>
         <div style={{
           display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(70px, 1fr))', gap: '6px', marginBottom: '16px'
@@ -459,7 +461,7 @@ export default function FDRTab({
               <thead>
                 <tr>
                   <th style={{ textAlign: 'left', color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', padding: '6px 8px' }}>Team</th>
-                  {gwHeaderCells}
+                  {compareGwHeaderCells}
                 </tr>
               </thead>
               <tbody>
@@ -479,9 +481,10 @@ export default function FDRTab({
                           {team.code}
                         </span>
                       </td>
-                      {FIXTURES[code].map((f, i) => {
+                      {FIXTURES[code].slice(compareGwStart - 1).map((f, i) => {
+                        const gwNumber = compareGwStart + i;
                         const { opp, venue, isPostponed, isPossiblyPostponed, style, postponedText, possiblyPostponedText, isDoubleGameweek, legs } =
-                          getFixtureInfo(code, f, i + 1, ratings, homeAdvantage);
+                          getFixtureInfo(code, f, gwNumber, ratings, homeAdvantage);
                         return (
                           <FixtureCell
                             key={i}

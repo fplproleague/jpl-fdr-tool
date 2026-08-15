@@ -4,7 +4,7 @@
 // resetten telkens de gebruiker weg- en terugnavigeert.
 
 import { X, Plus, Eye, UserPlus, Loader2, AlertCircle, RotateCcw } from 'lucide-react';
-import { TEAMS, CURRENT_GW, FIXTURES, sectionTitleStyle } from '../constants';
+import { TEAMS, CURRENT_GW, FIXTURES, sectionTitleStyle, sectionTitleTextStyle } from '../constants';
 import { MiniFixtureBadge } from '../components/MiniFixtureBadge';
 import { PlayerSearchInput } from '../components/PlayerSearchInput';
 
@@ -37,7 +37,8 @@ export default function WatchlistTab({
             borderRadius: '10px', padding: '16px', marginBottom: '20px'
           }}>
           <h2 className="fdr-title fdr-section-title" style={{ ...sectionTitleStyle, marginBottom: '12px' }}>
-            <UserPlus size={18} color="#4ECDC4" /> Speler toevoegen
+            <UserPlus size={18} color="#4ECDC4" style={{ flexShrink: 0 }} />
+            <span style={sectionTitleTextStyle}>Speler toevoegen</span>
           </h2>
 
           {/* Laad-/foutstatus van de spelersdatabank (Google Sheet CSV, zie fetchPlayerDatabase in
@@ -102,7 +103,8 @@ export default function WatchlistTab({
 
         <section>
           <h2 className="fdr-title fdr-section-title" style={{ ...sectionTitleStyle, marginBottom: '12px' }}>
-            <Eye size={18} color="#4ECDC4" /> Mijn watchlist
+            <Eye size={18} color="#4ECDC4" style={{ flexShrink: 0 }} />
+            <span style={sectionTitleTextStyle}>Mijn watchlist</span>
           </h2>
           {watchlist.length === 0 ? (
             <p style={{ color: '#6B5289', fontSize: '13px' }}>

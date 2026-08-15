@@ -202,7 +202,7 @@ export function TeamScreenshotUpload({
         Team herkennen via screenshot
       </h3>
       <p style={{ color: '#8F79AD', fontSize: '12px', margin: '0 0 12px' }}>
-        Upload een screenshot van je team (Transfers-weergave). We stellen een selectie voor die je kan nakijken en corrigeren — er wordt pas iets ingevuld nadat je dat bevestigt.
+        
       </p>
 
       <input

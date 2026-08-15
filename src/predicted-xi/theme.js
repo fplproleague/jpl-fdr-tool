@@ -10,11 +10,14 @@
 // voor bestaande opgeslagen lineups; enkel 'darkgreen' is nieuw.
 export const SAFETY_CYCLE = ['darkgreen', 'green', 'orange', 'red'];
 
+// darkgreen/green zijn bewust NIET meer RATING_STYLE[1]/[2] (die waren te dicht bij elkaar EN te dicht bij
+// PITCH_GRADIENT hieronder — RATING_STYLE[1] (#1F7A4D) is zelfs identiek aan de bovenkant van het
+// grasverloop, dus die badge verdween daar bijna volledig in de achtergrond). Vervangen door een diep,
+// bijna-zwart bosgroen en een helder, verzadigd mintgroen — een veel groter helderheidsverschil, zodat het
+// onderscheid "zeker" vs. "waarschijnlijk" in één oogopslag duidelijk is, ook tegen het veld zelf.
 export const SAFETY_STYLE = {
-  // RATING_STYLE[1] — donkergroen
-  darkgreen: { border: '#1F7A4D', badgeBg: '#1F7A4D', badgeText: '#EAFBF1', label: 'Zekere basisspeler (95-100%)' },
-  // RATING_STYLE[2] — lichtgroen
-  green: { border: '#5BAE7A', badgeBg: '#5BAE7A', badgeText: '#0B2E1B', label: 'Basisspeler (80-94%)' },
+  darkgreen: { border: '#065F46', badgeBg: '#065F46', badgeText: '#EAFBF1', label: 'Zekere basisspeler (95-100%)' },
+  green: { border: '#34D399', badgeBg: '#34D399', badgeText: '#0B2E1B', label: 'Basisspeler (80-94%)' },
   // RATING_STYLE[4]
   orange: { border: '#E08A3E', badgeBg: '#E08A3E', badgeText: '#2E1500', label: 'Twijfelgeval (40-79%)' },
   // RATING_STYLE[5]
@@ -46,6 +49,14 @@ export const PITCH_ASPECT_RATIO = 0.92;
 // de JS matchMedia-check die bepaalt welke kaartmaten cardLayout.js voor zijn botsingsvrije herberekening
 // moet aannemen — zo blijft de pixel-wiskunde altijd exact overeenkomen met wat de CSS werkelijk rendert.
 export const MOBILE_BREAKPOINT_PX = 640;
+
+// Extra-smalle drempel, enkel voor het shirt-icoon op speler-kaartjes (zie SHIRT_WIDTH_PX_NARROW in
+// cardLayout.js) — bij de smalste ondersteunde telefoons (bv. iPhone SE, ~320-360px) is er fysiek te
+// weinig veldhoogte voor een 5-rijen-formatie (bv. 4-2-3-1) om zowel het normale mobiele shirt (28px) als
+// een gegarandeerd overlapvrije rij-afstand te combineren — zelf doorgerekend en met Playwright bevestigd.
+// Vanaf 375px (alle courante telefoons) is er wél genoeg ruimte, dus enkel dit smalste segment krijgt een
+// extra verkleind shirt. Zelfde eén-bron-van-waarheid-opzet als MOBILE_BREAKPOINT_PX hierboven.
+export const NARROW_BREAKPOINT_PX = 360;
 
 // Watermerk-tekst, zelfde stijl als de bestaande FDR-export (handleDownloadImage, FDRTool.jsx) — deze
 // beelden worden publiek op het @fpl_proleague-account gepost, consistente branding is dus zinvol.

@@ -109,7 +109,11 @@ export const PlayerSearchInput = memo(function PlayerSearchInput({
   };
 
   return (
-    <div ref={containerRef} style={{ position: 'relative' }}>
+    // maxWidth begrenst het veld zelf in élke ouder-context (tabelcel, grid-kolom, ...) — zonder deze
+    // cap laat een auto-layout tabelkolom of een brede grid-track (bv. de "Speler"-kolom in de 15-
+    // koppige teamtabel, of de 2-koloms-span in Watchlist's "Speler toevoegen") dit veld onbegrensd
+    // meegroeien met de resterende ruimte, wat er op brede schermen absurd lang uitziet.
+    <div ref={containerRef} style={{ position: 'relative', width: '100%', maxWidth: '320px' }}>
       <Search size={13} color="#8F79AD" style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
       <input
         type="text"
