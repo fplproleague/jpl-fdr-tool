@@ -1,13 +1,12 @@
 // Inhoud van de Kaarten-tab: rangschikking van gele kaarten per speler, met twee sorteermodi ("Meeste
-// gele kaarten" en "Dichtst bij schorsing"). Zelfstandige tab (geen props vanuit FDRTool.jsx, zelfde
-// opzet als BonuspuntenTab/PredictedLineupsTab/SetPiecesTab) met een eigen live fetch — zelfde fetch-/
-// foutafhandelingspatroon als fetchPlayerDatabase in FDRTool.jsx (cache: 'no-store' + HTML-sniff op een
-// ingetrokken publish-link).
-import { useCallback, useEffect, useMemo, useState } from 'react';
+// gele kaarten" en "Dichtst bij schorsing"). Bron van de gele-kaarten-telling is de gedeelde
+// spelersdatabank (playerDatabase.yellowCards, zie parsePlayerDatabaseCsv in constants.js) — die is al
+// elders in FDRTool.jsx opgehaald/geparset (zelfde props als WatchlistTab/TeamPlannerTab), dus geen eigen
+// CSV-fetch/parsing meer hier (voorheen een aparte, nooit ingevulde KAARTEN_CSV_URL-sheet).
+import { useMemo, useState } from 'react';
 import { Loader2, AlertCircle, RotateCcw, Square } from 'lucide-react';
-import { KAARTEN_CSV_URL } from '../constants';
 import { RankingRow } from '../components/RankingRow';
-import { parseKaartenCsv, rankByMostCards, rankByClosestToSuspension, isOneCardFromSuspension } from '../kaarten';
+import { buildKaartenEntries, rankByMostCards, rankByClosestToSuspension, isOneCardFromSuspension } from '../kaarten';
 
 const retryButtonStyle = {
   display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0,
@@ -20,32 +19,10 @@ const SORT_MODES = [
   { key: 'closestToSuspension', label: 'Dichtst bij schorsing' },
 ];
 
-export default function KaartenTab() {
-  const [entries, setEntries] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+export default function KaartenTab({ playerDatabase, playerDatabaseLoading, playerDatabaseError, fetchPlayerDatabase }) {
   const [sortMode, setSortMode] = useState('mostCards');
 
-  const fetchKaarten = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await fetch(KAARTEN_CSV_URL, { cache: 'no-store' });
-      if (!response.ok) throw new Error('Netwerkfout');
-      const text = await response.text();
-      if (/^\s*<(!doctype|html)/i.test(text)) throw new Error('Onverwacht antwoord');
-      setEntries(parseKaartenCsv(text));
-    } catch {
-      setError('Kon kaarten-gegevens niet laden, probeer opnieuw.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchKaarten();
-  }, [fetchKaarten]);
-
+  const entries = useMemo(() => buildKaartenEntries(playerDatabase), [playerDatabase]);
   const ranking = useMemo(
     () => (sortMode === 'closestToSuspension' ? rankByClosestToSuspension(entries) : rankByMostCards(entries)),
     [entries, sortMode],
@@ -82,27 +59,27 @@ export default function KaartenTab() {
         })}
       </div>
 
-      {loading && (
+      {playerDatabaseLoading && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#C9B8E0', fontSize: '13px', marginBottom: '12px' }}>
           <Loader2 size={16} className="fdr-spin" /> Kaarten-gegevens laden...
         </div>
       )}
 
-      {!loading && error && (
+      {!playerDatabaseLoading && playerDatabaseError && (
         <div style={{
           display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
           background: 'rgba(194,64,44,0.12)', border: '1px solid rgba(194,64,44,0.4)',
           borderRadius: '10px', padding: '12px 14px', marginBottom: '12px',
         }}>
           <AlertCircle size={16} color="#C2402C" style={{ flexShrink: 0 }} />
-          <span style={{ color: '#FBEAE7', fontSize: '13px', flex: 1 }}>{error}</span>
-          <button onClick={fetchKaarten} style={retryButtonStyle}>
+          <span style={{ color: '#FBEAE7', fontSize: '13px', flex: 1 }}>{playerDatabaseError}</span>
+          <button onClick={fetchPlayerDatabase} style={retryButtonStyle}>
             <RotateCcw size={14} /> Probeer opnieuw
           </button>
         </div>
       )}
 
-      {!loading && !error && entries.length === 0 && (
+      {!playerDatabaseLoading && !playerDatabaseError && entries.length === 0 && (
         <div style={{
           background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
           borderRadius: '10px', padding: '16px',
@@ -113,7 +90,7 @@ export default function KaartenTab() {
         </div>
       )}
 
-      {!loading && !error && entries.length > 0 && (
+      {!playerDatabaseLoading && !playerDatabaseError && entries.length > 0 && (
         <div style={{ display: 'grid', gap: '8px' }}>
           {ranking.map((entry, idx) => {
             const warning = isOneCardFromSuspension(entry);

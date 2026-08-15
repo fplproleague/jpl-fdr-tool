@@ -1,8 +1,5 @@
-// Parsing + schorsingslogica + sorteerfuncties voor de "Kaarten"-tab (zie src/tabs/KaartenTab.jsx). Losse
-// module, niet in constants.js: functionaliteit specifiek voor deze ene tab (zelfde opzet als
-// bonuspunten.js).
-import { parseCsvRows, TEAMS } from './constants';
-import { resolveClubCode } from './clubMatching';
+// Schorsingslogica + sorteerfuncties voor de "Kaarten"-tab (zie src/tabs/KaartenTab.jsx). Losse module,
+// niet in constants.js: functionaliteit specifiek voor deze ene tab (zelfde opzet als bonuspunten.js).
 
 // --- Schorsingsdrempels: aparte configuratielaag, los van de parsing/sorteerlogica hieronder ---
 //
@@ -30,50 +27,27 @@ export function cardsUntilSuspension(cards, phase = 'regular') {
   return nextSuspensionThreshold(cards, phase) - cards;
 }
 
-// Haalt uit een cel een veilig geheel getal — een lege, tekstuele of anderszins onbruikbare waarde wordt
-// 0 i.p.v. NaN/undefined, zodat een ontbrekende waarde de pagina nooit breekt.
-function parseStatNumber(raw) {
-  const cleaned = (raw ?? '').replace(/[^0-9.-]/g, '');
-  if (!cleaned) return 0;
-  const value = parseFloat(cleaned);
-  return Number.isFinite(value) ? Math.round(value) : 0;
-}
-
-// Zet de ruwe CSV-tekst van de Kaarten-sheet (Player | Team | Gele kaarten) om naar genormaliseerde
-// spelersrijen, met de schorsingsberekening er meteen bij (nextThreshold/cardsRemaining) — de sheet zelf
-// bevat enkel het rauwe aantal kaarten, nooit de drempel/resterend-kolommen zelf; die worden hier altijd
-// herberekend. Rijen zonder spelersnaam (lege rijen, of de header-rij zelf) worden genegeerd.
-export function parseKaartenCsv(text) {
-  const rows = parseCsvRows(text).filter(row => row.some(cell => (cell ?? '').trim() !== ''));
-  if (rows.length === 0) return [];
-  const [headerRow, ...dataRows] = rows;
-  const trimmedHeaders = headerRow.map(h => (h ?? '').trim().toLowerCase());
-  const columnIndex = (matchers, fallbackIndex) => {
-    const found = trimmedHeaders.findIndex(h => matchers.some(m => h.includes(m)));
-    return found === -1 ? fallbackIndex : found;
-  };
-  const playerCol = columnIndex(['player'], 0);
-  const teamCol = columnIndex(['team'], 1);
-  const cardsCol = columnIndex(['geel', 'kaart', 'card'], 2);
-
-  return dataRows
-    .map(row => {
-      const player = (row[playerCol] ?? '').trim();
-      const rawTeam = (row[teamCol] ?? '').trim();
-      const clubCode = resolveClubCode(rawTeam);
-      const team = TEAMS.find(t => t.code === clubCode);
-      const cards = parseStatNumber(row[cardsCol]);
+// Zet de gedeelde spelersdatabank (playerDatabase, zie parsePlayerDatabaseCsv in constants.js — al
+// elders in FDRTool.jsx opgehaald/geparset, geen eigen fetch/parsing meer nodig hier) om naar
+// genormaliseerde Kaarten-rijen, met de schorsingsberekening er meteen bij (nextThreshold/cardsRemaining)
+// — playerDatabase bevat enkel het rauwe aantal kaarten (yellowCards), nooit de drempel/resterend-
+// kolommen zelf; die worden hier altijd herberekend. Spelers zonder naam (zou niet moeten voorkomen na
+// parsePlayerDatabaseCsv's eigen filter, maar defensief) worden genegeerd.
+export function buildKaartenEntries(playerDatabase) {
+  return playerDatabase
+    .filter(p => p.name)
+    .map(p => {
+      const cards = p.yellowCards ?? 0;
       const nextThreshold = nextSuspensionThreshold(cards);
       return {
-        player,
-        clubCode,
-        clubName: team?.name ?? rawTeam,
+        player: p.name,
+        clubCode: p.teamCode,
+        clubName: p.teamName,
         cards,
         nextThreshold,
         cardsRemaining: nextThreshold - cards,
       };
-    })
-    .filter(p => p.player);
+    });
 }
 
 const byName = (a, b) => a.player.localeCompare(b.player);

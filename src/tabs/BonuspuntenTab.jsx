@@ -1,17 +1,16 @@
 // Inhoud van de Bonuspunten-tab: rangschikkingen van de vier statistieken die een Fantasy Pro League-
 // bonuspunt kunnen opleveren (meer duels gewonnen dan verloren, >3 verdedigende kopballen, >5 recoveries,
-// >1 grote kans), plus een kleinere algemene "meeste bonuspunten"-rangschikking. Zelfstandige tab (geen
-// props vanuit FDRTool.jsx, zelfde opzet als PredictedLineupsTab/SetPiecesTab) met een eigen live fetch
-// — zelfde fetch-/foutafhandelingspatroon als fetchPlayerDatabase in FDRTool.jsx (cache: 'no-store' +
-// HTML-sniff op een ingetrokken publish-link), hier lokaal herhaald omdat deze tab zijn eigen, aparte
-// Google Sheet-werkblad als databron heeft.
-import { useCallback, useEffect, useMemo, useState } from 'react';
+// >1 grote kans), plus een kleinere algemene "meeste bonuspunten"-rangschikking. Bron van deze
+// statistieken is de gedeelde spelersdatabank (playerDatabase.duelsWon/.../.bonusPoints, zie
+// parsePlayerDatabaseCsv in constants.js) — die is al elders in FDRTool.jsx opgehaald/geparset (zelfde
+// props als WatchlistTab/TeamPlannerTab), dus geen eigen CSV-fetch/parsing meer hier (voorheen een
+// aparte BONUSPUNTEN_CSV_URL-werkblad-fetch).
+import { useCallback, useMemo, useState } from 'react';
 import { Loader2, AlertCircle, RotateCcw, Swords, Shield, RefreshCw, Target, Award } from 'lucide-react';
-import { BONUSPUNTEN_CSV_URL } from '../constants';
 import { SectionHeader } from '../components/SectionHeader';
 import { RankingRow } from '../components/RankingRow';
 import {
-  parseBonuspuntenCsv, rankByDuels, rankByDefensiveHeaders, rankByRecoveries, rankByBigChances,
+  buildBonuspuntenEntries, rankByDuels, rankByDefensiveHeaders, rankByRecoveries, rankByBigChances,
   rankByBonusPoints, BONUS_CRITERIA,
 } from '../bonuspunten';
 
@@ -30,10 +29,7 @@ function RankingSection({ icon, title, sectionKey, isOpen, onToggle, children })
   );
 }
 
-export default function BonuspuntenTab() {
-  const [entries, setEntries] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+export default function BonuspuntenTab({ playerDatabase, playerDatabaseLoading, playerDatabaseError, fetchPlayerDatabase }) {
   const [openSections, setOpenSections] = useState({
     duels: true, defensiveHeaders: true, recoveries: true, bigChances: true, bonusPoints: true,
   });
@@ -42,26 +38,7 @@ export default function BonuspuntenTab() {
     setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
   }, []);
 
-  const fetchBonuspunten = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await fetch(BONUSPUNTEN_CSV_URL, { cache: 'no-store' });
-      if (!response.ok) throw new Error('Netwerkfout');
-      const text = await response.text();
-      if (/^\s*<(!doctype|html)/i.test(text)) throw new Error('Onverwacht antwoord');
-      setEntries(parseBonuspuntenCsv(text));
-    } catch {
-      setError('Kon bonuspunten-gegevens niet laden, probeer opnieuw.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchBonuspunten();
-  }, [fetchBonuspunten]);
-
+  const entries = useMemo(() => buildBonuspuntenEntries(playerDatabase), [playerDatabase]);
   const duelsRanking = useMemo(() => rankByDuels(entries), [entries]);
   const headersRanking = useMemo(() => rankByDefensiveHeaders(entries), [entries]);
   const recoveriesRanking = useMemo(() => rankByRecoveries(entries), [entries]);
@@ -79,27 +56,27 @@ export default function BonuspuntenTab() {
         meer dan 1 grote kans.
       </p>
 
-      {loading && (
+      {playerDatabaseLoading && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#C9B8E0', fontSize: '13px', marginBottom: '12px' }}>
           <Loader2 size={16} className="fdr-spin" /> Bonuspunten-gegevens laden...
         </div>
       )}
 
-      {!loading && error && (
+      {!playerDatabaseLoading && playerDatabaseError && (
         <div style={{
           display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
           background: 'rgba(194,64,44,0.12)', border: '1px solid rgba(194,64,44,0.4)',
           borderRadius: '10px', padding: '12px 14px', marginBottom: '12px',
         }}>
           <AlertCircle size={16} color="#C2402C" style={{ flexShrink: 0 }} />
-          <span style={{ color: '#FBEAE7', fontSize: '13px', flex: 1 }}>{error}</span>
-          <button onClick={fetchBonuspunten} style={retryButtonStyle}>
+          <span style={{ color: '#FBEAE7', fontSize: '13px', flex: 1 }}>{playerDatabaseError}</span>
+          <button onClick={fetchPlayerDatabase} style={retryButtonStyle}>
             <RotateCcw size={14} /> Probeer opnieuw
           </button>
         </div>
       )}
 
-      {!loading && !error && entries.length === 0 && (
+      {!playerDatabaseLoading && !playerDatabaseError && entries.length === 0 && (
         <div style={{
           background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
           borderRadius: '10px', padding: '16px',
@@ -110,7 +87,7 @@ export default function BonuspuntenTab() {
         </div>
       )}
 
-      {!loading && !error && entries.length > 0 && (
+      {!playerDatabaseLoading && !playerDatabaseError && entries.length > 0 && (
         <>
           <RankingSection
             icon={Swords} title="Duels (gewonnen > verloren)" sectionKey="duels"

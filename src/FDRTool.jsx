@@ -1390,9 +1390,23 @@ export default function FDRTool() {
 
         {activeTab === 'predictedlineups' && <PredictedLineupsTab />}
 
-        {activeTab === 'bonuspunten' && <BonuspuntenTab />}
+        {activeTab === 'bonuspunten' && (
+          <BonuspuntenTab
+            playerDatabase={playerDatabase}
+            playerDatabaseLoading={playerDatabaseLoading}
+            playerDatabaseError={playerDatabaseError}
+            fetchPlayerDatabase={fetchPlayerDatabase}
+          />
+        )}
 
-        {activeTab === 'kaarten' && <KaartenTab />}
+        {activeTab === 'kaarten' && (
+          <KaartenTab
+            playerDatabase={playerDatabase}
+            playerDatabaseLoading={playerDatabaseLoading}
+            playerDatabaseError={playerDatabaseError}
+            fetchPlayerDatabase={fetchPlayerDatabase}
+          />
+        )}
 
         {activeTab === 'pricechanges' && (
           <div style={{ marginTop: '20px' }}>
