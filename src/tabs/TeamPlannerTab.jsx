@@ -9,14 +9,14 @@
 
 import { useState, useRef, useEffect } from 'react';
 import {
-  Users, Shirt, ChevronLeft, ChevronRight, Loader2, AlertCircle, RotateCcw,
+  Users, Shirt, ChevronLeft, ChevronRight, Loader2, AlertCircle, AlertTriangle, RotateCcw,
   ArrowLeftRight, ArrowRight, X, Wand2, Armchair, Zap, Star, RefreshCw, Trash2, ArrowUpDown,
 } from 'lucide-react';
 import {
   TEAMS, FIXTURES, GW_COUNT, GW_DEADLINES,
   TEAM_PLANNER_BUDGET, TEAM_PLANNER_MAX_PER_CLUB, TEAM_PLANNER_BENCH_SIZE, TEAM_PLANNER_SQUAD_SIZE,
   VALID_FORMATIONS, TEAM_PLANNER_SLOT_POSITIONS, sectionTitleStyle, sectionTitleTextStyle,
-  isRechargeActiveForGw as isRechargeActiveForGwRule,
+  isRechargeActiveForGw as isRechargeActiveForGwRule, findLivePlayerDatabaseEntry,
 } from '../constants';
 import { MiniFixtureBadge } from '../components/MiniFixtureBadge';
 import { SectionHeader } from '../components/SectionHeader';
@@ -103,6 +103,24 @@ function BoosterIconButton({ icon: Icon, label, title, state, onClick }) {
 
 function formatPrice(price) {
   return price != null && price !== '' && Number.isFinite(Number(price)) ? `${Number(price).toFixed(1)}M` : '—';
+}
+
+// Toont ofwel de prijs, ofwel — als priceMissing meegegeven is — een expliciet waarschuwingsicoon met
+// tooltip i.p.v. gewoon een prijs of een stil "—". Gedeeld door de spelerslijst-tabel en
+// TransferPlayerCard, de twee plekken die een individuele speler-prijs tonen (zie findLivePlayerDatabaseEntry
+// in constants.js voor waar priceMissing vandaan komt).
+function PriceOrWarning({ price, priceMissing, size = 13 }) {
+  if (priceMissing) {
+    return (
+      <span
+        title="Speler niet gevonden in actuele database, prijs kan verouderd zijn"
+        style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#F5A623' }}
+      >
+        <AlertTriangle size={size} /> onbekend
+      </span>
+    );
+  }
+  return formatPrice(price);
 }
 
 function teamNameFor(teamCode) {
@@ -257,7 +275,9 @@ function TransferPlayerCard({ player, highlight }) {
       )}
       <span style={{ color: '#FFF', fontSize: '12px', fontWeight: 700, textAlign: 'center' }}>{player.name || '—'}</span>
       <span style={{ color: '#8F79AD', fontSize: '10px' }}>{teamNameFor(player.teamCode)} · {player.position}</span>
-      <span style={{ color: '#4ECDC4', fontSize: '11px', fontWeight: 700 }}>{formatPrice(player.price)}</span>
+      <span style={{ color: '#4ECDC4', fontSize: '11px', fontWeight: 700 }}>
+        <PriceOrWarning price={player.price} priceMissing={player.priceMissing} size={11} />
+      </span>
     </div>
   );
 }
@@ -362,7 +382,8 @@ function TransferPanel({ gw, resolvedIndexedPlayers, playerDatabase, playerDatab
                 <option value="">Kies speler...</option>
                 {outOptions.map(p => (
                   <option key={p.index} value={p.index}>
-                    {p.position} — {p.name || `Speler ${p.index + 1}`} ({formatPrice(p.price)})
+                    {/* native <option>-tekst kan geen icoon bevatten, dus tekstuele fallback voor priceMissing */}
+                    {p.position} — {p.name || `Speler ${p.index + 1}`} ({p.priceMissing ? 'prijs onbekend' : formatPrice(p.price)})
                   </option>
                 ))}
               </select>
@@ -518,10 +539,19 @@ export default function TeamPlannerTab({
   // (rechargeDraft === null) is effectiveRosterList gewoon teamPlannerPlayers, dus dit gedraagt zich
   // dan identiek aan voorheen.
   const effectiveRosterList = rechargeDraft ?? teamPlannerPlayers;
+  // Live prijs i.p.v. bevroren draft-prijs, zelfde logica als teamPlannerTotalPrice (FDRTool.jsx) —
+  // ook tijdens een Recharge-bewerking moet het budget de actuele databank-prijs tonen, niet de prijs
+  // van het moment waarop de draft geseed werd.
+  const hasLivePlayerData = playerDatabase.length > 0;
   const effectiveTotalPrice = rechargeDraft
     ? rechargeDraft.reduce((sum, p) => {
-        const price = parseFloat(p.price);
-        return Number.isFinite(price) ? sum + price : sum;
+        if (!p.name) return sum;
+        if (!hasLivePlayerData) {
+          const price = parseFloat(p.price);
+          return Number.isFinite(price) ? sum + price : sum;
+        }
+        const live = findLivePlayerDatabaseEntry(p, playerDatabase);
+        return live && Number.isFinite(live.price) ? sum + live.price : sum;
       }, 0)
     : teamPlannerTotalPrice;
   const effectiveClubCounts = rechargeDraft
@@ -532,6 +562,12 @@ export default function TeamPlannerTab({
     : teamPlannerClubCounts;
   const remainingBudget = TEAM_PLANNER_BUDGET - effectiveTotalPrice;
   const isOverBudget = effectiveTotalPrice > TEAM_PLANNER_BUDGET;
+  // Aantal ingevulde spelers die niet (meer) matchen in de live databank — deze tellen niet mee in
+  // effectiveTotalPrice hierboven; expliciet getoond naast het budget zodat dat "niet meetellen" nooit
+  // stilzwijgend gebeurt (zie ook de per-rij waarschuwing in de spelerslijst-tabel hieronder).
+  const missingPriceCount = hasLivePlayerData
+    ? effectiveRosterList.filter(p => p.name && !findLivePlayerDatabaseEntry(p, playerDatabase)).length
+    : 0;
   // Clubs met te veel spelers — gebruikt voor zowel de waarschuwingstekst als het subtiel aanduiden
   // van de betrokken spelersrijen in de tabel hieronder (overCapClubCodes).
   const overCapClubs = Object.entries(effectiveClubCounts).filter(([, count]) => count > TEAM_PLANNER_MAX_PER_CLUB);
@@ -776,6 +812,12 @@ export default function TeamPlannerTab({
                       Max {TEAM_PLANNER_MAX_PER_CLUB} per club: {overCapClubs.map(([code, count]) => `${teamNameFor(code)} (${count})`).join(', ')}
                     </div>
                   )}
+                  {missingPriceCount > 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#F5A623', fontWeight: 700, fontSize: '13px' }}>
+                      <AlertTriangle size={14} />
+                      {missingPriceCount} speler{missingPriceCount > 1 ? 's' : ''} niet gevonden in databank — niet meegeteld
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ overflowX: 'auto' }}>
@@ -795,6 +837,10 @@ export default function TeamPlannerTab({
                         // hierboven, maar zonder de tabel drukker te maken dan nodig.
                         const isOverCapClub = player.teamCode && overCapClubCodes.has(player.teamCode);
                         const rowBg = isOverCapClub ? 'rgba(194,64,44,0.08)' : 'transparent';
+                        // Live prijs i.p.v. het bevroren player.price-veld — zie findLivePlayerDatabaseEntry
+                        // (constants.js) en teamPlannerTotalPrice (FDRTool.jsx) voor de volledige toelichting.
+                        const livePlayer = player.name && hasLivePlayerData ? findLivePlayerDatabaseEntry(player, playerDatabase) : null;
+                        const priceMissing = player.name && hasLivePlayerData && !livePlayer;
                         return (
                           <tr key={index}>
                             <td style={{
@@ -835,8 +881,8 @@ export default function TeamPlannerTab({
                             <td style={{ padding: '4px 6px', color: '#C9B8E0', fontSize: '13px', fontWeight: 700, background: rowBg }}>
                               {TEAM_PLANNER_SLOT_POSITIONS[index]}
                             </td>
-                            <td style={{ padding: '4px 6px', width: '80px', color: '#FFF', fontSize: '13px', fontWeight: 700, background: rowBg }}>
-                              {formatPrice(player.price)}
+                            <td style={{ padding: '4px 6px', width: '90px', color: '#FFF', fontSize: '13px', fontWeight: 700, background: rowBg }}>
+                              <PriceOrWarning price={livePlayer ? livePlayer.price : player.price} priceMissing={priceMissing} />
                             </td>
                           </tr>
                         );
