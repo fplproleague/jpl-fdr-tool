@@ -468,3 +468,13 @@ export function parsePlayerDatabaseCsv(text) {
     })
     .filter(p => p.name);
 }
+
+// Zoekt de LIVE databank-rij op voor een opgeslagen speler-referentie ({name, teamCode}), via
+// dezelfde naam+team-sleutel die de rest van de app als uniek beschouwt (zie isSamePlayer in
+// TeamPlannerTab.jsx). Geen fuzzy match: null betekent expliciet "niet gevonden", nooit een geraden
+// prijs. Gebruikt door Team Planner om altijd de actuele Price-kolom te tonen i.p.v. een ooit-
+// opgeslagen (bevroren) prijs.
+export function findLivePlayerDatabaseEntry(player, playerDatabase) {
+  if (!player?.name) return null;
+  return playerDatabase.find(p => p.name === player.name && p.teamCode === player.teamCode) ?? null;
+}

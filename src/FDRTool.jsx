@@ -12,7 +12,7 @@ import {
   MINILEAGUE_CODE, LAST_UPDATED, GW_INDEXES, DEFAULT_RATINGS, DEFAULT_HOME_ADVANTAGE,
   TEAM_PLANNER_SQUAD_SIZE, TEAM_PLANNER_BENCH_SIZE, TEAM_PLANNER_SLOT_POSITIONS, VALID_FORMATIONS,
   resolveSlotPlayerAtGw, PLAYER_DATABASE_CSV_URL, parsePlayerDatabaseCsv, getFixtureScores, average,
-  POSTPONED, computeTeamPlannerTransferBudget,
+  POSTPONED, computeTeamPlannerTransferBudget, findLivePlayerDatabaseEntry,
 } from './constants';
 import FDRTab from './tabs/FDRTab';
 import WatchlistTab from './tabs/WatchlistTab';
@@ -526,14 +526,25 @@ export default function FDRTool() {
     });
   };
 
-  // Som van alle ingevulde prijzen — lege/ongeldige velden tellen niet mee, zodat je tijdens het
-  // invullen nooit een NaN of onverwacht sprongetje in het budget ziet.
+  // Som van de ACTUELE prijzen (uit de live spelersdatabank), niet de ooit-opgeslagen/bevroren prijs
+  // per speler — zie findLivePlayerDatabaseEntry (constants.js). Een speler die niet meer matcht in de
+  // databank (naam gewijzigd, of niet meer in de sheet) telt bewust NIET mee met een geraden/verouderd
+  // bedrag; dat wordt expliciet zichtbaar gemaakt via priceMissing in de UI (TeamPlannerTab.jsx), niet
+  // stilzwijgend weggelaten zonder uitleg. Zolang de databank nog niet (succesvol) geladen is, valt dit
+  // terug op elke speler zijn laatst-bekende (bevroren) prijs, zodat het budget niet even naar 0
+  // springt tijdens de allereerste fetch.
   const teamPlannerTotalPrice = useMemo(() => {
+    const hasLiveData = playerDatabase.length > 0;
     return teamPlannerPlayers.reduce((sum, p) => {
-      const price = parseFloat(p.price);
-      return Number.isFinite(price) ? sum + price : sum;
+      if (!p.name) return sum;
+      if (!hasLiveData) {
+        const price = parseFloat(p.price);
+        return Number.isFinite(price) ? sum + price : sum;
+      }
+      const live = findLivePlayerDatabaseEntry(p, playerDatabase);
+      return live && Number.isFinite(live.price) ? sum + live.price : sum;
     }, 0);
-  }, [teamPlannerPlayers]);
+  }, [teamPlannerPlayers, playerDatabase]);
 
   // Telt hoeveel spelers per club gekozen zijn, voor de "max 3 per club"-waarschuwing in de tab.
   const teamPlannerClubCounts = useMemo(() => {
@@ -567,12 +578,26 @@ export default function FDRTool() {
   // ook als een transfer een speler met een andere echte positie inbracht (dat mag, met waarschuwing in
   // de transfer-UI) — anders zou de veld-indeling/formatie-telling hierboven door de war raken.
   const teamPlannerResolvedPlayers = useMemo(() => {
+    const hasLiveData = playerDatabase.length > 0;
     return teamPlannerPlayers.map((basePlayer, index) => {
       const transfersForSlot = teamPlannerTransfersBySlot[index] ?? [];
       const resolved = resolveSlotPlayerAtGw(basePlayer, transfersForSlot, teamPlannerGw);
-      return { ...resolved, position: basePlayer.position };
+      if (!resolved.name || !hasLiveData) {
+        return { ...resolved, position: basePlayer.position, priceMissing: false };
+      }
+      // Live prijs i.p.v. de bevroren prijs uit resolveSlotPlayerAtGw (zie teamPlannerTotalPrice
+      // hierboven voor de volledige toelichting) — dit ene punt voedt de veld-/bank-/transfer-UI
+      // (resolvedIndexedPlayers in TeamPlannerTab.jsx), dus priceMissing/price hier propageert
+      // vanzelf overal waar die array vandaan gebruikt wordt.
+      const live = findLivePlayerDatabaseEntry(resolved, playerDatabase);
+      return {
+        ...resolved,
+        position: basePlayer.position,
+        price: live ? live.price : null,
+        priceMissing: !live,
+      };
     });
-  }, [teamPlannerPlayers, teamPlannerTransfersBySlot, teamPlannerGw]);
+  }, [teamPlannerPlayers, teamPlannerTransfersBySlot, teamPlannerGw, playerDatabase]);
 
   // Platte, gesorteerde lijst van ALLE geplande transfers (over alle slots en GW's heen), elk verrijkt
   // met de uitgaande speler — voor de transfer-tijdlijn in TeamPlannerTab.jsx (die ze zelf per GW
