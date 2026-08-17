@@ -242,16 +242,25 @@ export default function FDRTab({
                   }}
                 >
                   <span style={{ color: COLORS.textBody, fontSize: '10px' }}>Thuisvoordeel</span>
+                  {/* De knop verschoof voorheen via justifyContent (flex-start/flex-end) — dat is geen
+                      animeerbare CSS-property, dus de knop "sprong" abrupt naar de overkant terwijl
+                      enkel de achtergrondkleur vloeiend overging, wat als een flits oogde. Nu blijft
+                      justifyContent weg en schuift de knop zelf via een getransitionde transform. */}
                   <span
                     aria-hidden="true"
                     style={{
-                      display: 'inline-flex', alignItems: 'center', width: '34px', height: '18px',
-                      borderRadius: '999px', padding: '2px', flexShrink: 0,
+                      position: 'relative', display: 'inline-flex', alignItems: 'center',
+                      width: '34px', height: '18px', borderRadius: '999px', flexShrink: 0,
                       background: homeAdvantageOn ? '#4ECDC4' : 'rgba(255,255,255,0.15)',
-                      justifyContent: homeAdvantageOn ? 'flex-end' : 'flex-start', transition: 'background 0.15s ease'
+                      transition: 'background 0.15s ease',
                     }}
                   >
-                    <span style={{ width: '14px', height: '14px', borderRadius: '50%', background: '#FFFFFF', display: 'block' }} />
+                    <span style={{
+                      position: 'absolute', top: '2px', left: '2px',
+                      width: '14px', height: '14px', borderRadius: '50%', background: '#FFFFFF', display: 'block',
+                      transform: homeAdvantageOn ? 'translateX(16px)' : 'translateX(0)',
+                      transition: 'transform 0.15s ease',
+                    }} />
                   </span>
                 </button>
               </div>

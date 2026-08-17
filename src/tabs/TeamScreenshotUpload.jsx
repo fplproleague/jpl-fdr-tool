@@ -207,7 +207,7 @@ export function TeamScreenshotUpload({
         display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap',
       }}>
         <Upload size={15} aria-hidden="true" />
-        Start snel: team herkennen via screenshot
+        Team herkennen via screenshot
         {isRosterEmpty && (
           <span style={{
             background: '#4ECDC4', color: '#0B2E1B', fontSize: '10px', fontWeight: 900,
@@ -217,11 +217,9 @@ export function TeamScreenshotUpload({
           </span>
         )}
       </h3>
-      {/* Deze paragraaf stond vroeger volledig leeg in de code — een zichtbaar gat waar uitleg hoorde. */}
       <p style={{ color: COLORS.textMuted, fontSize: '12px', margin: '0 0 12px', lineHeight: 1.55 }}>
-        Upload een screenshot van je team uit de Fantasy Pro League-app en we vullen je vijftien
-        spelers automatisch in — een stuk sneller dan ze één voor één opzoeken. Je krijgt eerst een
-        voorstel te zien dat je zelf kan corrigeren; er wordt niets ingevuld tot je op
+        Upload een screenshot van je team en we vullen je vijftien spelers automatisch in. Je krijgt
+        eerst een voorstel te zien dat je zelf kan corrigeren; er wordt niets ingevuld tot je op
         &ldquo;Toepassen&rdquo; klikt.
       </p>
 

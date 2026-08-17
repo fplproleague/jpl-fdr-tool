@@ -13,7 +13,7 @@ import {
   ArrowLeftRight, ArrowRight, X, Wand2, Armchair, Zap, Star, RefreshCw, Trash2, ArrowUpDown,
 } from 'lucide-react';
 import {
-  TEAMS, FIXTURES, GW_COUNT, GW_DEADLINES,
+  TEAMS, FIXTURES, GW_COUNT, GW_DEADLINES, CURRENT_GW,
   TEAM_PLANNER_BUDGET, TEAM_PLANNER_MAX_PER_CLUB, TEAM_PLANNER_BENCH_SIZE, TEAM_PLANNER_SQUAD_SIZE,
   VALID_FORMATIONS, TEAM_PLANNER_SLOT_POSITIONS, sectionTitleStyle, sectionTitleTextStyle,
   isRechargeActiveForGw as isRechargeActiveForGwRule,
@@ -678,9 +678,18 @@ export default function TeamPlannerTab({
       />
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '24px' }}>
         <section>
+          {/* SectionHeader's eigen knop (en de "Wis..."-knop ernaast) dragen intern altijd een
+              marginBottom van 12px — bedoeld als opening naar de inhoud eronder wanneer de sectie open
+              staat. Dichtgeklapt is er geen inhoud om naar toe te openen, dus die 12px werd onverklaard
+              extra witruimte ónder de rij, terwijl er niets vergelijkbaars boven staat. De onderste
+              padding hier compenseert dat: 4px i.p.v. 16px wanneer dicht (4 + de ingebakken 12px ≈ de
+              16px padding-top erboven), zodat boven/onder weer gelijk ogen én er dichtgeklapt minder
+              verticale ruimte overblijft. */}
           <div ref={rosterSectionRef} style={{
             background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: '10px', padding: '16px', marginBottom: '20px'
+            borderRadius: '10px',
+            padding: openSections.teamPlannerRoster ? '16px' : '16px 16px 4px',
+            marginBottom: '20px'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               {/* SectionHeader is zelf al een <button> (toggle voor in-/uitklappen) — "Wis team" moet
@@ -811,10 +820,13 @@ export default function TeamPlannerTab({
                 </div>
 
                 <div style={{ overflowX: 'auto' }}>
-                  {/* minWidth 520px = deze tabel scrolt horizontaal op een telefoon. De eerste kolom
-                      staat daarom sticky (zelfde patroon als de FDR-hoofdtabel), zodat je bij het
-                      scrollen altijd blijft zien over welke speler/positie een rij gaat. */}
-                  <table style={{ borderCollapse: 'separate', borderSpacing: '0 4px', width: '100%', minWidth: '520px' }}>
+                  {/* minWidth verlaagd van 520px naar 400px nu de zoekbalk hieronder een pak smaller is
+                      (maxWidth 190px i.p.v. 320px) — bij de meeste telefoonbreedtes (360px+) past de
+                      volledige tabel nu zonder horizontaal te moeten scrollen. Op een écht smal scherm
+                      blijft de sticky eerste kolom (zelfde patroon als de FDR-hoofdtabel) als vangnet
+                      staan, zodat je bij het scrollen altijd blijft zien over welke speler/positie een
+                      rij gaat. */}
+                  <table style={{ borderCollapse: 'separate', borderSpacing: '0 4px', width: '100%', minWidth: '400px' }}>
                     <thead>
                       <tr>
                         <th style={thStyle}>#</th>
@@ -838,7 +850,7 @@ export default function TeamPlannerTab({
                             }}>
                               {index + 1}
                             </td>
-                            <td style={{ padding: '4px 6px', minWidth: '200px', background: rowBg, position: 'sticky', left: 0, zIndex: 2 }}>
+                            <td style={{ padding: '4px 6px', minWidth: '150px', background: rowBg, position: 'sticky', left: 0, zIndex: 2 }}>
                               {/* filterPosition beperkt de suggesties tot de vaste positie van dit slot
                                   (TEAM_PLANNER_SLOT_POSITIONS) — zo blijft de 2 GK/5 DEF/5 MID/3 FWD-
                                   structuur altijd kloppen, ook tijdens een Recharge-bewerking. Buiten
@@ -847,13 +859,16 @@ export default function TeamPlannerTab({
                                   draft, pas "Bevestig recharge" zet gewijzigde rijen om in transfers.
                                   excludeUsedPlayers verwijdert spelers die al in een ANDER slot zitten van
                                   dezelfde lijst (rosterRowsData) — zo kan dezelfde speler nooit twee keer
-                                  in de 15 voorkomen, in beide modi. */}
+                                  in de 15 voorkomen, in beide modi. maxWidth 190px (~25 tekens) i.p.v. de
+                                  standaard 320px: dit veld staat hier 15× onder elkaar, en was op brede
+                                  schermen absurd lang voor een naam van een paar woorden. */}
                               <PlayerSearchInput
                                 value={player.name}
                                 players={excludeUsedPlayers(playerDatabase, rosterRowsData.filter((_, i) => i !== index))}
                                 filterPosition={TEAM_PLANNER_SLOT_POSITIONS[index]}
                                 disabled={playerDatabaseLoading || !!playerDatabaseError}
                                 placeholder={playerDatabaseLoading ? 'Databank laden...' : `Zoek ${TEAM_PLANNER_SLOT_POSITIONS[index]}...`}
+                                maxWidth="190px"
                                 onSelect={(selected) => {
                                   if (rechargeDraft) {
                                     setRechargeDraft(prev => prev.map((p, i) => (
@@ -924,9 +939,12 @@ export default function TeamPlannerTab({
             </button>
           </div>
 
-          {/* Handmatig bij te werken deadline-tekst per GW (zie GW_DEADLINES in constants.js) — klein en
-              subtiel, enkel getoond als er voor deze GW iets is ingevuld. */}
-          {GW_DEADLINES[teamPlannerGw] && (
+          {/* Handmatig bij te werken deadline-tekst per GW (zie GW_DEADLINES in constants.js) — enkel
+              getoond zolang teamPlannerGw (de GW die je hier aan het bekijken bent, via de pijltjes
+              hierboven) AFWIJKT van CURRENT_GW: de header bovenaan de pagina toont voor CURRENT_GW al
+              een levende aftelklok op elke tab, dus deze regel zou daar dan enkel dezelfde info
+              herhalen. Blader je naar een andere GW, dan is dit weer de enige plek die dát antwoord geeft. */}
+          {teamPlannerGw !== CURRENT_GW && GW_DEADLINES[teamPlannerGw] && (
             <p style={{ textAlign: 'center', color: COLORS.textMuted, fontSize: '12px', margin: '0 0 12px' }}>
               Deadline: {GW_DEADLINES[teamPlannerGw]}
             </p>
@@ -946,9 +964,11 @@ export default function TeamPlannerTab({
             onOpenChange={setIsTransferPanelOpen}
           />
 
-          {/* Bank-, formatie- en kapiteinsstatus voor de bekeken GW — klik op een speler op het veld/
-              de bank hieronder om de bank aan te passen; de kapitein wordt expliciet gekozen via de
-              dropdown (i.p.v. een knop per kaart, wat 11 grotendeels inactieve "C"-badges zou geven). */}
+          {/* Bank- en formatiestatus voor de bekeken GW — klik op een speler op het veld/de bank
+              hieronder om de bank aan te passen. De kapitein-keuze staat niet meer in deze rij, maar
+              rechtsboven IN het veld-kader hieronder (zie fdr-pitch-container) — de overkant van de
+              gratis-transfers-badge linksboven daar. Dat hield deze rij korter en minder druk, vooral
+              op mobiel waar er toch al veel onder elkaar staat vóór je effectief het veld ziet. */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center', justifyContent: 'center', marginBottom: '6px' }}>
             <span style={{
               fontSize: '12px', fontWeight: 700, padding: '4px 10px', borderRadius: '999px',
@@ -962,19 +982,6 @@ export default function TeamPlannerTab({
             }}>
               Formatie: {defCount}-{midCount}-{fwdCount}
             </span>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ color: COLORS.textMuted, fontSize: '12px' }}>Kapitein</span>
-              <select
-                value={captainForGw ?? ''}
-                onChange={e => setTeamPlannerCaptain(e.target.value === '' ? null : Number(e.target.value))}
-                style={{ ...teamPlannerInputStyle, width: 'auto', padding: '4px 8px', fontSize: '12px' }}
-              >
-                <option value="">Geen kapitein</option>
-                {captainOptions.map(p => (
-                  <option key={p.index} value={p.index}>{p.name || `Speler ${p.index + 1}`}</option>
-                ))}
-              </select>
-            </label>
           </div>
           {!isBenchComplete && (
             <p style={{ textAlign: 'center', color: COLORS.textMuted, fontSize: '12px', margin: '0 0 12px' }}>
@@ -1103,11 +1110,31 @@ export default function TeamPlannerTab({
               );
             })()}
 
-            {/* Booster-stapel: subtiele iconen rechtsboven IN het veld-kaartje zelf (niet erboven) — zie
-                toggleTeamPlannerBooster (FDRTool.jsx) voor de vergrendel-/vervang-logica. Enkel binnen
-                GW1-7 handmatig te activeren; GW8 krijgt automatisch (en gratis — telt niet als
-                "verbruikt") een Recharge voor iedereen, dus daar tonen we enkel dat ene, niet-klikbare,
-                actief-gemarkeerde icoon i.p.v. de volledige 3-stapel (zie isRechargeActiveForGw). */}
+            {/* Kapitein-keuze rechtsboven IN het veld-kaartje — de overkant van de gratis-transfers-
+                badge linksboven hierboven. Stond voorheen als losse dropdown in de Bank/Formatie/
+                Kapitein-rij erboven; die rij was op mobiel de drukste plek vóór je het veld zelf zag,
+                en de kapitein hoort inhoudelijk toch al bij de veld-weergave. */}
+            <div style={{ position: 'absolute', top: '8px', right: '8px', zIndex: 2, maxWidth: '140px' }}>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'flex-end' }}>
+                <span style={{
+                  color: COLORS.textMuted, fontSize: '10px', textTransform: 'uppercase',
+                  letterSpacing: '0.03em', fontWeight: 700,
+                }}>
+                  Kapitein
+                </span>
+                <select
+                  value={captainForGw ?? ''}
+                  onChange={e => setTeamPlannerCaptain(e.target.value === '' ? null : Number(e.target.value))}
+                  style={{ ...teamPlannerInputStyle, width: 'auto', maxWidth: '140px', padding: '3px 6px', fontSize: '11px' }}
+                >
+                  <option value="">Geen kapitein</option>
+                  {captainOptions.map(p => (
+                    <option key={p.index} value={p.index}>{p.name || `Speler ${p.index + 1}`}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
             {PITCH_ROW_ORDER.map(pos => {
               const rowPlayers = resolvedIndexedPlayers.filter(p => p.position === pos && !benchForGw.includes(p.index));
               return (
@@ -1262,9 +1289,13 @@ export default function TeamPlannerTab({
         </section>
 
         <section>
+          {/* Zelfde padding-truc als bij "Mijn 15 spelers" hierboven — zie de comment daar voor de
+              volledige uitleg (SectionHeader/"Wis..."-knop dragen intern een marginBottom van 12px die
+              dichtgeklapt onverklaarde extra witruimte onderaan gaf). */}
           <div style={{
             background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: '10px', padding: '16px'
+            borderRadius: '10px',
+            padding: openSections.teamPlannerTransfers ? '16px' : '16px 16px 4px',
           }}>
             {/* SectionHeader is zelf al een <button> (toggle voor in-/uitklappen) — "Wis alle transfers"
                 moet daarom een sibling zijn, geen kind (ongeldige geneste <button>'s), en blijft zo ook

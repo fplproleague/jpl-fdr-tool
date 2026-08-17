@@ -52,11 +52,7 @@ function StaleWarning() {
     >
       <AlertTriangle size={18} color={COLORS.warning} style={{ flexShrink: 0, marginTop: '1px' }} aria-hidden="true" />
       <p style={{ margin: 0, color: COLORS.warning, fontSize: '13px', lineHeight: 1.55, fontWeight: 700 }}>
-        Let op: dit zijn de opstellingen van GW{PREDICTED_LINEUPS_GW}, niet van de huidige GW{CURRENT_GW}.
-        <span style={{ display: 'block', color: COLORS.textBody, fontWeight: 400, marginTop: '4px' }}>
-          Gebruik ze dus niet om je team voor GW{CURRENT_GW} te zetten — de opstellingen voor de komende
-          speeldag worden later bijgewerkt.
-        </span>
+        Let op: dit zijn de opstellingen van GW{PREDICTED_LINEUPS_GW}, niet van de komende GW{CURRENT_GW}.
       </p>
     </div>
   );

@@ -33,7 +33,7 @@ function findMatches(players, query, filterPosition) {
 }
 
 export const PlayerSearchInput = memo(function PlayerSearchInput({
-  value, onSelect, players, filterPosition, placeholder, disabled,
+  value, onSelect, players, filterPosition, placeholder, disabled, maxWidth = '320px',
 }) {
   // Lokale state (getypte tekst, dropdown open/dicht) is hier bewust wél toegestaan ondanks de regel
   // "alle state blijft in FDRTool.jsx" — dat gaat over domein-state die tab-wissels moet overleven
@@ -113,8 +113,11 @@ export const PlayerSearchInput = memo(function PlayerSearchInput({
     // maxWidth begrenst het veld zelf in élke ouder-context (tabelcel, grid-kolom, ...) — zonder deze
     // cap laat een auto-layout tabelkolom of een brede grid-track (bv. de "Speler"-kolom in de 15-
     // koppige teamtabel, of de 2-koloms-span in Watchlist's "Speler toevoegen") dit veld onbegrensd
-    // meegroeien met de resterende ruimte, wat er op brede schermen absurd lang uitziet.
-    <div ref={containerRef} style={{ position: 'relative', width: '100%', maxWidth: '320px' }}>
+    // meegroeien met de resterende ruimte, wat er op brede schermen absurd lang uitziet. Optioneel
+    // overschrijfbaar via de maxWidth-prop (default 320px) — de 15-koppige roster-tabel in
+    // TeamPlannerTab.jsx geeft een kleinere waarde door, want dat veld staat daar 15× onder elkaar en
+    // hoefde niet zo breed als de eenmalige zoekvelden in Watchlist/TransferPanel.
+    <div ref={containerRef} style={{ position: 'relative', width: '100%', maxWidth }}>
       <Search size={13} color={COLORS.textMuted} style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
       <input
         type="text"

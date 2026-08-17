@@ -1414,64 +1414,71 @@ export default function FDRTool() {
             </div>
           </div>
 
-          {/* Deadline-aftelklok. Staat bewust in de header en dus op ELKE tab: het is de meest
-              tijdkritische informatie die de site heeft, en ze stond vroeger enkel in de Team
-              Planner, in 10px lichtpaarse tekst. De datum komt uit GW_DEADLINE_ISO (constants.js),
-              waaruit ook CURRENT_GW afgeleid wordt — één bron, dus ze kunnen niet meer uiteenlopen. */}
-          {deadlineRemaining && (
-            <div
-              className="fdr-deadline"
-              // aria-live="off": de klok verandert elke 30 seconden en zou anders eindeloos
-              // voorgelezen worden. De volledige tekst staat in het label hieronder.
-              aria-live="off"
-              style={{
-                display: 'flex', flexDirection: 'column', gap: '2px', flexShrink: 0,
-                background: 'rgba(255,255,255,0.04)', border: `1px solid ${COLORS.borderSubtle}`,
-                borderRadius: '10px', padding: '8px 14px',
-              }}
-            >
-              <span style={{
-                color: COLORS.textMuted, fontSize: '11px', textTransform: 'uppercase',
-                letterSpacing: '0.05em', fontWeight: 700,
-              }}>
-                Deadline GW{CURRENT_GW}
-              </span>
-              <span className="fdr-title" style={{
-                color: deadlineRemaining.totalMinutes <= 180 ? COLORS.warning : '#4ECDC4',
-                fontSize: '18px', fontWeight: 900, lineHeight: 1,
-              }}>
-                {formatCountdown(deadlineRemaining)}
-              </span>
-            </div>
-          )}
-        </header>
+          {/* Deadline-aftelklok + minileague-code samen in één groep rechts van de titel — voorheen
+              stond de minileague-chip als aparte volle rij ONDER de header, wat op mobiel een extra
+              verticale regel kostte voor iets dat maar promotionele info is, geen tool. Nu staat hij
+              naast de deadline (flexWrap zorgt dat ze bij plaatsgebrek alsnog nette losse regels
+              worden i.p.v. overlappen), op zowel desktop als mobiel. */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+            {/* Deadline-aftelklok. Staat bewust in de header en dus op ELKE tab: het is de meest
+                tijdkritische informatie die de site heeft, en ze stond vroeger enkel in de Team
+                Planner, in 10px lichtpaarse tekst. De datum komt uit GW_DEADLINE_ISO (constants.js),
+                waaruit ook CURRENT_GW afgeleid wordt — één bron, dus ze kunnen niet meer uiteenlopen. */}
+            {deadlineRemaining && (
+              <div
+                className="fdr-deadline"
+                // aria-live="off": de klok verandert elke 30 seconden en zou anders eindeloos
+                // voorgelezen worden. De volledige tekst staat in het label hieronder.
+                aria-live="off"
+                style={{
+                  display: 'flex', flexDirection: 'column', gap: '2px', flexShrink: 0,
+                  background: 'rgba(255,255,255,0.04)', border: `1px solid ${COLORS.borderSubtle}`,
+                  borderRadius: '10px', padding: '8px 14px',
+                }}
+              >
+                <span style={{
+                  color: COLORS.textMuted, fontSize: '11px', textTransform: 'uppercase',
+                  letterSpacing: '0.05em', fontWeight: 700,
+                }}>
+                  Deadline GW{CURRENT_GW}
+                </span>
+                <span className="fdr-title" style={{
+                  color: deadlineRemaining.totalMinutes <= 180 ? COLORS.warning : '#4ECDC4',
+                  fontSize: '18px', fontWeight: 900, lineHeight: 1,
+                }}>
+                  {formatCountdown(deadlineRemaining)}
+                </span>
+              </div>
+            )}
 
-        {/* Minileague-code: compacte, inline chip i.p.v. het vroegere aparte blok dat met een
-            negatieve marge boven de tabbalk hing. Het is promotionele info, geen tool — ze hoort
-            niet de eerste schermvullende rij te zijn op een telefoon. */}
-        <div style={{
-          display: 'inline-flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap',
-          marginBottom: '14px', padding: '5px 6px 5px 12px', width: 'fit-content', maxWidth: '100%',
-          background: 'rgba(255,255,255,0.04)', border: `1px solid ${COLORS.borderSubtle}`, borderRadius: '999px'
-        }}>
-          <span style={{ color: COLORS.textMuted, fontSize: '12px' }}>
-            Minileague: <strong style={{ color: '#4ECDC4', fontWeight: 700, letterSpacing: '0.05em' }}>{MINILEAGUE_CODE}</strong>
-          </span>
-          <button
-            onClick={handleCopyMinileagueCode}
-            className="fdr-touch-target"
-            aria-label={`Minileague-code ${MINILEAGUE_CODE} kopiëren`}
-            style={{
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-              background: 'transparent', color: COLORS.textBody, border: `1px solid ${COLORS.border}`,
-              borderRadius: '999px', padding: '5px 12px', fontWeight: 700, fontSize: '12px',
-              fontFamily: 'inherit', cursor: 'pointer'
-            }}
-          >
-            {minileagueCodeCopied ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
-            {minileagueCodeCopied ? 'Gekopieerd!' : 'Kopieer'}
-          </button>
-        </div>
+            {/* Minileague-code: compacte, inline chip, verder verkleind (padding) t.o.v. de vorige
+                versie — het is één regel promotionele info en hoeft niet evenveel gewicht als de
+                deadline-klok ernaast te dragen. */}
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap',
+              padding: '3px 3px 3px 10px', width: 'fit-content', maxWidth: '100%',
+              background: 'rgba(255,255,255,0.04)', border: `1px solid ${COLORS.borderSubtle}`, borderRadius: '999px'
+            }}>
+              <span style={{ color: COLORS.textMuted, fontSize: '12px' }}>
+                Minileague: <strong style={{ color: '#4ECDC4', fontWeight: 700, letterSpacing: '0.05em' }}>{MINILEAGUE_CODE}</strong>
+              </span>
+              <button
+                onClick={handleCopyMinileagueCode}
+                className="fdr-touch-target"
+                aria-label={`Minileague-code ${MINILEAGUE_CODE} kopiëren`}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                  background: 'transparent', color: COLORS.textBody, border: `1px solid ${COLORS.border}`,
+                  borderRadius: '999px', padding: '3px 10px', fontWeight: 700, fontSize: '12px',
+                  fontFamily: 'inherit', cursor: 'pointer'
+                }}
+              >
+                {minileagueCodeCopied ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
+                {minileagueCodeCopied ? 'Gekopieerd!' : 'Kopieer'}
+              </button>
+            </div>
+          </div>
+        </header>
 
         {/* role="tablist" is bewust NIET gebruikt: dit zijn echte links naar echte URL's, geen
             ARIA-tabs. Een <nav> met aria-current geeft schermlezers de juiste boodschap. */}
