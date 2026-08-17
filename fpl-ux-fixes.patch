@@ -1,0 +1,2410 @@
+From 3c146509cd04db8b56630cc76514f4921cd0194d Mon Sep 17 00:00:00 2001
+From: fplproleague <kobedeschepper39@gmail.com>
+Date: Mon, 17 Aug 2026 20:39:29 +0000
+Subject: [PATCH] UX/UI audit fixes: routing, code splitting, touch targets,
+ contrast, stale-data warning
+
+Implements the prioritised findings from the UX/UI audit (C1-C4, H1-H7,
+M2/M4/M5/M6/M7/M9/M10, L2/L3/L4/L5/L6/L9).
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01GzHzYCjfDS18MshKmo5u6c
+---
+ index.html                              |  10 +
+ predicted-xi.html                       |   5 +
+ public/sitemap.xml                      |  28 ++
+ src/FDRTool.jsx                         | 433 +++++++++++++++++++-----
+ src/components/PlayerSearchInput.jsx    |   7 +-
+ src/components/SectionHeader.jsx        |  11 +-
+ src/constants.js                        |  97 +++++-
+ src/predicted-xi/PitchField.jsx         |   2 +-
+ src/predicted-xi/PitchSlot.jsx          |   6 +-
+ src/predicted-xi/PredictedXiBuilder.jsx |   4 +-
+ src/predicted-xi/exportImage.js         |   4 +-
+ src/routes.js                           |  72 ++++
+ src/tabs/FDRTab.jsx                     | 118 ++++---
+ src/tabs/PredictedLineupsTab.jsx        |  78 ++++-
+ src/tabs/TeamPlannerTab.jsx             | 253 +++++++++-----
+ src/tabs/TeamScreenshotUpload.jsx       |  62 ++--
+ src/tabs/WatchlistTab.jsx               |  47 ++-
+ src/theme.js                            |  95 ++++++
+ vercel.json                             |  10 +
+ 19 files changed, 1052 insertions(+), 290 deletions(-)
+ create mode 100644 src/routes.js
+ create mode 100644 src/theme.js
+ create mode 100644 vercel.json
+
+diff --git a/index.html b/index.html
+index ed6abef..7d11830 100644
+--- a/index.html
++++ b/index.html
+@@ -10,6 +10,16 @@
+     <meta name="google-site-verification" content="ZW1zdNXLVFyGjHTXykx1VYgon6m1XMDTyJLTYGO20cg" />
+     <link rel="canonical" href="https://fplproleague.vercel.app/" />
+ 
++    <!-- Lettertypes: bewust hier in de <head> i.p.v. via een @import in de door React geïnjecteerde
++         <style> (zoals vroeger in FDRTool.jsx). Dat @import kon pas ontdekt worden nádat de volledige
++         JS-bundle gedownload en uitgevoerd was en React de <style> in de DOM had gezet — het
++         lettertype stond dus helemaal achteraan de kritieke keten, met een zichtbare flits van het
++         fallback-font bij élk bezoek. Een <link> hier start de aanvraag meteen bij het parsen van de
++         HTML, parallel met de JS, en preconnect zet de verbinding met Google Fonts al klaar. -->
++    <link rel="preconnect" href="https://fonts.googleapis.com" />
++    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
++    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Inter:wght@400;500;600&display=swap" />
++
+     <!-- Open Graph / social sharing (Facebook, LinkedIn, etc.) -->
+     <meta property="og:type" content="website" />
+     <meta property="og:url" content="https://fplproleague.vercel.app/" />
+diff --git a/predicted-xi.html b/predicted-xi.html
+index 6d9cb45..42703ee 100644
+--- a/predicted-xi.html
++++ b/predicted-xi.html
+@@ -9,6 +9,11 @@
+     <meta name="robots" content="noindex, nofollow" />
+     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+     <meta name="theme-color" content="#2A1440" />
++    <!-- Zelfde reden als in index.html: lettertype via <link> in de <head> i.p.v. een @import in een
++         door React geïnjecteerde <style>, zodat het niet achteraan de kritieke keten hangt. -->
++    <link rel="preconnect" href="https://fonts.googleapis.com" />
++    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
++    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;700;900&display=swap" />
+   </head>
+   <body>
+     <div id="root"></div>
+diff --git a/public/sitemap.xml b/public/sitemap.xml
+index 68d3826..d0bbd2e 100644
+--- a/public/sitemap.xml
++++ b/public/sitemap.xml
+@@ -1,8 +1,36 @@
+ <?xml version="1.0" encoding="UTF-8"?>
++<!-- Elke tool heeft sinds de introductie van echte routes (zie src/routes.js en vercel.json) een
++     eigen URL. Vroeger stond hier enkel "/" en kon Google dus maar één pagina indexeren, hoe veel
++     tools er ook achter zaten. -->
+ <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+   <url>
+     <loc>https://fplproleague.vercel.app/</loc>
+     <changefreq>weekly</changefreq>
+     <priority>1.0</priority>
+   </url>
++  <url>
++    <loc>https://fplproleague.vercel.app/fdr</loc>
++    <changefreq>weekly</changefreq>
++    <priority>0.9</priority>
++  </url>
++  <url>
++    <loc>https://fplproleague.vercel.app/team-planner</loc>
++    <changefreq>weekly</changefreq>
++    <priority>0.8</priority>
++  </url>
++  <url>
++    <loc>https://fplproleague.vercel.app/predicted-lineups</loc>
++    <changefreq>weekly</changefreq>
++    <priority>0.8</priority>
++  </url>
++  <url>
++    <loc>https://fplproleague.vercel.app/watchlist</loc>
++    <changefreq>weekly</changefreq>
++    <priority>0.7</priority>
++  </url>
++  <url>
++    <loc>https://fplproleague.vercel.app/price-changes</loc>
++    <changefreq>monthly</changefreq>
++    <priority>0.4</priority>
++  </url>
+ </urlset>
+diff --git a/src/FDRTool.jsx b/src/FDRTool.jsx
+index 6411f9a..d3e9acd 100644
+--- a/src/FDRTool.jsx
++++ b/src/FDRTool.jsx
+@@ -4,30 +4,47 @@
+ // die state + handlers als props — geen lokale state daar, want die tabs worden conditioneel
+ // gemount/unmount bij het wisselen van tab.
+ 
+-import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+-import { Info, X, Check, Copy } from 'lucide-react';
+-import html2canvas from 'html2canvas';
++import { useState, useMemo, useRef, useCallback, useEffect, lazy, Suspense } from 'react';
++import { Info, X, Check, Copy, Undo2, Loader2 } from 'lucide-react';
+ import {
+   TEAMS, FIXTURES, GW_COUNT, CURRENT_GW, DEFAULT_GW_HORIZON_END, MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS,
+   MINILEAGUE_CODE, LAST_UPDATED, GW_INDEXES, DEFAULT_RATINGS, DEFAULT_HOME_ADVANTAGE,
+   TEAM_PLANNER_SQUAD_SIZE, TEAM_PLANNER_BENCH_SIZE, TEAM_PLANNER_SLOT_POSITIONS, VALID_FORMATIONS,
+   resolveSlotPlayerAtGw, PLAYER_DATABASE_CSV_URL, parsePlayerDatabaseCsv, getFixtureScores, average,
+-  POSTPONED, computeTeamPlannerTransferBudget,
++  POSTPONED, computeTeamPlannerTransferBudget, getGwDeadlineDate,
+ } from './constants';
++import { COLORS } from './theme';
++import { ROUTES, routeKeyFromPath, routeByKey, urlForRoute } from './routes';
+ import FDRTab from './tabs/FDRTab';
+-import WatchlistTab from './tabs/WatchlistTab';
+-import TeamPlannerTab from './tabs/TeamPlannerTab';
+-import PredictedLineupsTab from './tabs/PredictedLineupsTab';
+-
+-// Tab-navigatie bovenaan de pagina — array-gedreven zodat toekomstige onderdelen naast de FDR-tool
+-// gewoon een extra entry kunnen worden.
+-const TABS = [
+-  { key: 'fdr', label: 'FDR' },
+-  { key: 'teamplanner', label: 'Team Planner', isNew: true },
+-  { key: 'predictedlineups', label: 'Predicted Lineups', isNew: true },
+-  { key: 'watchlist', label: 'Watchlist' },
+-  { key: 'pricechanges', label: 'Price Changes' },
+-];
++
++// Enkel de FDR-tab (de standaardweergave) zit in de hoofdbundle. De vier andere tabs worden pas
++// opgehaald wanneer iemand er effectief naartoe navigeert.
++//
++// Waarom dit uitmaakt: PredictedLineupsTab trekt via PitchField de volledige veld-renderer én
++// html2canvas mee — samen goed voor ~372 kB. Die stond vroeger als `modulepreload` in index.html,
++// dus élke bezoeker downloadde dat vóór de pagina bruikbaar was, ook wie enkel de FDR-tabel kwam
++// bekijken. Voor een tool die vaak vlak vóór de deadline op mobiele data geopend wordt, is dat
++// precies de verkeerde afweging.
++const WatchlistTab = lazy(() => import('./tabs/WatchlistTab'));
++const TeamPlannerTab = lazy(() => import('./tabs/TeamPlannerTab'));
++const PredictedLineupsTab = lazy(() => import('./tabs/PredictedLineupsTab'));
++
++// Tab-navigatie bovenaan de pagina. De lijst zelf (labels, paden, per-tab titel/omschrijving) staat
++// in src/routes.js, zodat de URL-afhandeling en de zichtbare tabs nooit uit elkaar kunnen lopen.
++const TABS = ROUTES;
++
++// Getoond terwijl een lui geladen tab binnenkomt. Bewust minimaal en even hoog als een gemiddelde
++// sectie, zodat de pagina niet zichtbaar springt.
++function TabLoading() {
++  return (
++    <div role="status" aria-live="polite" style={{
++      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
++      minHeight: '240px', color: COLORS.textMuted, fontSize: '13px',
++    }}>
++      <Loader2 size={18} className="fdr-spin" aria-hidden="true" /> Laden...
++    </div>
++  );
++}
+ 
+ const STORAGE_KEY = 'fpl_proleague_fdr_ratings_v1';
+ const HOME_ADVANTAGE_STORAGE_KEY = 'fpl_proleague_fdr_home_advantage_v1';
+@@ -228,8 +245,95 @@ function loadStoredTeamPlanner() {
+   }
+ }
+ 
++// Rekent de resterende tijd tot een deadline om naar losse eenheden. null zodra de deadline voorbij
++// is (of onbekend), zodat de aanroeper zelf beslist wat er dan getoond wordt.
++function getTimeRemaining(deadline, now) {
++  if (!deadline) return null;
++  const ms = deadline.getTime() - now.getTime();
++  if (ms <= 0) return null;
++  const totalMinutes = Math.floor(ms / 60000);
++  return {
++    days: Math.floor(totalMinutes / 1440),
++    hours: Math.floor((totalMinutes % 1440) / 60),
++    minutes: totalMinutes % 60,
++    totalMinutes,
++  };
++}
++
++// Compacte, voorleesbare weergave: "3d 4u", "4u 12m", "12m". Bewust kort — dit staat in de header.
++function formatCountdown(remaining) {
++  if (!remaining) return null;
++  if (remaining.days > 0) return `${remaining.days}d ${remaining.hours}u`;
++  if (remaining.hours > 0) return `${remaining.hours}u ${remaining.minutes}m`;
++  return `${remaining.minutes}m`;
++}
++
+ export default function FDRTool() {
+-  const [activeTab, setActiveTab] = useState('fdr');
++  // Actieve tab komt uit de URL (zie src/routes.js) i.p.v. uit losse component-state, zodat elke tool
++  // een deelbare link heeft en de terugknop van de browser tussen tabs navigeert.
++  const [activeTab, setActiveTab] = useState(() =>
++    typeof window === 'undefined' ? 'fdr' : routeKeyFromPath(window.location.pathname)
++  );
++
++  // Tab wisselen = een echte navigatie. De query-string blijft bewust behouden: de FDR-tab codeert
++  // aangepaste ratings in ?r= en thuisvoordeel in ?ha=, en die mogen niet sneuvelen bij het wisselen.
++  const navigateToTab = useCallback((key) => {
++    setActiveTab(key);
++    if (typeof window === 'undefined') return;
++    const url = urlForRoute(key, window.location.search);
++    if (url !== window.location.pathname + window.location.search) {
++      window.history.pushState({ tab: key }, '', url);
++    }
++  }, []);
++
++  // Terug-/vooruitknop van de browser.
++  useEffect(() => {
++    const handlePopState = () => setActiveTab(routeKeyFromPath(window.location.pathname));
++    window.addEventListener('popstate', handlePopState);
++    return () => window.removeEventListener('popstate', handlePopState);
++  }, []);
++
++  // Documenttitel en meta-description volgen de actieve tab, zodat een gedeelde link niet langer
++  // altijd "FDR Tool" als preview toont en elke tool apart indexeerbaar is.
++  useEffect(() => {
++    const route = routeByKey(activeTab);
++    document.title = route.title;
++    const meta = document.querySelector('meta[name="description"]');
++    if (meta) meta.setAttribute('content', route.description);
++    const canonical = document.querySelector('link[rel="canonical"]');
++    if (canonical) canonical.setAttribute('href', `https://fplproleague.vercel.app${route.path}`);
++  }, [activeTab]);
++
++  // --- Deadline-aftelklok in de header ---
++  // Tikt elke 30 seconden. De minuutweergave is daarmee hooguit een halve minuut oud, en we vermijden
++  // een timer die elke seconde een re-render van de volledige app veroorzaakt.
++  const [now, setNow] = useState(() => new Date());
++  useEffect(() => {
++    const id = setInterval(() => setNow(new Date()), 30000);
++    return () => clearInterval(id);
++  }, []);
++  const currentDeadline = useMemo(() => getGwDeadlineDate(CURRENT_GW), []);
++  const deadlineRemaining = useMemo(() => getTimeRemaining(currentDeadline, now), [currentDeadline, now]);
++
++  // Laatst verwijderde watch-list-speler, bewaard om "ongedaan maken" mogelijk te maken (zie
++  // handleRemoveWatchlistPlayer verderop). null = geen actieve undo-melding.
++  const [recentlyRemovedPlayer, setRecentlyRemovedPlayer] = useState(null);
++
++  // Houdt bij of de tabbalk helemaal naar rechts gescrold staat, zodat de uitfade-mask (zie de
++  // .fdr-tabs-regels in de <style> hieronder) verdwijnt zodra er niets meer te ontdekken valt.
++  const tabsRef = useRef(null);
++  const [tabsAtEnd, setTabsAtEnd] = useState(false);
++  const updateTabsScrollState = useCallback(() => {
++    const el = tabsRef.current;
++    if (!el) return;
++    // 2px speling: sub-pixel-afrondingen zorgen anders voor een mask die nooit helemaal uit gaat.
++    setTabsAtEnd(el.scrollLeft + el.clientWidth >= el.scrollWidth - 2);
++  }, []);
++  useEffect(() => {
++    updateTabsScrollState();
++    window.addEventListener('resize', updateTabsScrollState);
++    return () => window.removeEventListener('resize', updateTabsScrollState);
++  }, [updateTabsScrollState]);
+   const [ratings, setRatings] = useState(() => loadRatingsFromURL() || loadStoredRatings() || DEFAULT_RATINGS);
+   const [homeAdvantage, setHomeAdvantage] = useState(() => loadHomeAdvantageFromURL() || loadStoredHomeAdvantage() || DEFAULT_HOME_ADVANTAGE);
+   // Beide starten standaard op CURRENT_GW (i.p.v. hardcoded GW1) zodat de default range vanzelf
+@@ -409,6 +513,10 @@ export default function FDRTool() {
+     }
+ 
+     try {
++      // Dynamisch geïmporteerd i.p.v. bovenaan het bestand: html2canvas is ~199 kB en enkel nodig
++      // wanneer iemand effectief op "Download als afbeelding" klikt. Statisch geïmporteerd zat het
++      // in de bundle die élke bezoeker bij het openen van de site binnenhaalt.
++      const { default: html2canvas } = await import('html2canvas');
+       const canvas = await html2canvas(el, {
+         backgroundColor: '#2A1440',
+         scale: 2,
+@@ -679,10 +787,35 @@ export default function FDRTool() {
+     setNewPlayerPrice('');
+   };
+ 
++  // Verwijderen uit de watch list is nu terugdraaibaar i.p.v. definitief bij één tik. Bewust "undo"
++  // en geen bevestigingsdialoog: een dialoog onderbreekt élke verwijdering (ook de bedoelde), terwijl
++  // undo enkel de zeldzame vergissing opvangt. De verwijderde speler wordt mét zijn oorspronkelijke
++  // positie bewaard, zodat herstellen 'm terugzet waar hij stond i.p.v. onderaan de lijst.
++  const undoTimerRef = useRef(null);
+   const handleRemoveWatchlistPlayer = (id) => {
+-    setWatchlist(prev => prev.filter(p => p.id !== id));
++    setWatchlist(prev => {
++      const index = prev.findIndex(p => p.id === id);
++      if (index === -1) return prev;
++      setRecentlyRemovedPlayer({ player: prev[index], index });
++      return prev.filter(p => p.id !== id);
++    });
++    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
++    undoTimerRef.current = setTimeout(() => setRecentlyRemovedPlayer(null), 8000);
++  };
++
++  const handleUndoRemoveWatchlistPlayer = () => {
++    if (!recentlyRemovedPlayer) return;
++    setWatchlist(prev => {
++      const restored = [...prev];
++      restored.splice(Math.min(recentlyRemovedPlayer.index, restored.length), 0, recentlyRemovedPlayer.player);
++      return restored;
++    });
++    setRecentlyRemovedPlayer(null);
++    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+   };
+ 
++  useEffect(() => () => { if (undoTimerRef.current) clearTimeout(undoTimerRef.current); }, []);
++
+   // --- Team Planner-handlers: updaten van één speler/veld, bank/kapitein per GW, en GW-navigatie ---
+   const updateTeamPlannerPlayer = (index, field, value) => {
+     setTeamPlannerPlayers(prev => prev.map((p, i) => i === index ? { ...p, [field]: value } : p));
+@@ -896,7 +1029,9 @@ export default function FDRTool() {
+   return (
+     <div style={{ minHeight: '100vh', background: '#2A1440', fontFamily: "'Archivo', 'Arial Black', sans-serif", position: 'relative' }}>
+       <style>{`
+-        @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Inter:wght@400;500;600&display=swap');
++        /* De lettertypes worden geladen via <link rel="stylesheet"> in index.html. Vroeger stond hier
++           een @import: die kon pas ontdekt worden nadat de hele JS-bundle was uitgevoerd en React deze
++           <style> had geïnjecteerd, waardoor het merklettertype altijd als laatste binnenkwam. */
+         * { box-sizing: border-box; }
+         html, body { background: #2A1440; margin: 0; padding: 0; }
+         body { font-family: 'Inter', sans-serif; }
+@@ -949,6 +1084,43 @@ export default function FDRTool() {
+         @keyframes fdr-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+         .fdr-tabs { scrollbar-width: none; -ms-overflow-style: none; }
+         .fdr-tabs::-webkit-scrollbar { display: none; }
++        /* De tabbalk scrollt horizontaal en de scrollbar is verborgen, dus zonder extra signaal is er
++           niets dat verraadt dat er nog tabs rechts staan. Deze mask laat de laatste 28px subtiel
++           uitfaden; zodra er niet meer te scrollen valt zet de JS-klasse .fdr-tabs--end de mask uit,
++           zodat de laatste tab nooit onnodig vervaagd oogt. */
++        .fdr-tabs {
++          -webkit-mask-image: linear-gradient(to right, black calc(100% - 28px), transparent 100%);
++          mask-image: linear-gradient(to right, black calc(100% - 28px), transparent 100%);
++        }
++        .fdr-tabs.fdr-tabs--end {
++          -webkit-mask-image: none;
++          mask-image: none;
++        }
++
++        /* Zichtbare toetsenbord-focus. De browserstandaard is op deze donkerpaarse achtergrond
++           nauwelijks te zien; :focus-visible raakt enkel toetsenbordgebruikers, nooit muisklikken. */
++        :focus-visible {
++          outline: 2px solid #4ECDC4;
++          outline-offset: 2px;
++          border-radius: 4px;
++        }
++
++        /* Touch-doelen. Bewust gekoppeld aan het INVOERAPPARAAT (pointer: coarse) en niet aan de
++           schermbreedte: een iPad is 820-1024px breed en kreeg daardoor de volledige desktoplay-out
++           mét muisformaat-knopjes, terwijl het wel degelijk een aanraakscherm is. Alles wat als
++           .fdr-icon-btn gemarkeerd staat groeit hier naar de aanbevolen 44x44px. */
++        @media (pointer: coarse) {
++          .fdr-icon-btn {
++            min-width: 44px !important;
++            min-height: 44px !important;
++          }
++          .fdr-tab-btn {
++            min-height: 44px;
++          }
++          .fdr-touch-target {
++            min-height: 44px;
++          }
++        }
+         .fdr-footer-link {
+           color: inherit;
+           text-decoration: underline;
+@@ -1142,12 +1314,10 @@ export default function FDRTool() {
+              horizontale rij (~26px hoog). Samen met de padding-top hierboven (die de rijen zelf naar
+              beneden duwt) overlapt dit nooit meer met de veldweergave, ongeacht formatie of het aantal
+              spelers per rij. */
+-          .fdr-pitch-boosters {
+-            flex-direction: row !important;
+-            top: 6px !important;
+-            right: 6px !important;
+-            gap: 3px !important;
+-          }
++          /* .fdr-pitch-boosters is weggevallen: de boosters staan niet langer absoluut gepositioneerd
++             in de hoek van het veld, maar als gelabelde knoppen in een eigen rij erboven (zie
++             BoosterButton in TeamPlannerTab.jsx). Daarmee vervalt ook de reden voor deze
++             mobiel-specifieke herpositionering. */
+           .fdr-pitch-row {
+             gap: 3px !important;
+             padding: 0 !important;
+@@ -1216,76 +1386,131 @@ export default function FDRTool() {
+ 
+       <div className="fdr-content" style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 20px 32px', position: 'relative' }}>
+ 
+-        <header className="fdr-header" style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+-          <img
+-            src="/app-icon-mark.png"
+-            alt=""
+-            style={{ width: '44px', height: '44px', borderRadius: '2px', flexShrink: 0, marginTop: '-36px'}}
+-            onError={(e) => { e.target.style.display = 'none'; }}
+-          />
+-          <div>
+-            <h1 className="fdr-title" style={{
+-              color: '#FFFFFF', fontSize: 'clamp(28px, 5vw, 44px)', fontWeight: 900,
+-              textTransform: 'uppercase', lineHeight: 1.05, margin: 0, letterSpacing: '-0.01em'
+-            }}>
+-              FPL Pro League <span style={{ color: '#4ECDC4' }}>Tools</span>
+-            </h1>
+-            <p style={{ color: '#C9B8E0', fontSize: '15px', marginTop: '6px', maxWidth: '640px' }}>
+-              Interactieve tools voor Fantasy Pro League — gemaakt door @fpl_proleague.
+-            </p>
++        {/* De koptekst gebruikt gewone flex-uitlijning i.p.v. de vroegere negatieve marges
++            (marginTop: -36px op het logo, -18px op het minileague-blok). Die trokken elementen
++            handmatig omhoog en werden maar deels teruggezet in de mobiele media query, wat de
++            verticale ritmiek afhankelijk maakte van de schermbreedte. */}
++        <header className="fdr-header" style={{
++          marginBottom: '18px', display: 'flex', alignItems: 'flex-start',
++          justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap',
++        }}>
++          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', minWidth: 0 }}>
++            <img
++              src="/app-icon-mark.png"
++              alt=""
++              style={{ width: '44px', height: '44px', borderRadius: '2px', flexShrink: 0 }}
++              onError={(e) => { e.target.style.display = 'none'; }}
++            />
++            <div style={{ minWidth: 0 }}>
++              <h1 className="fdr-title" style={{
++                color: '#FFFFFF', fontSize: 'clamp(28px, 5vw, 44px)', fontWeight: 900,
++                textTransform: 'uppercase', lineHeight: 1.05, margin: 0, letterSpacing: '-0.01em'
++              }}>
++                FPL Pro League <span style={{ color: '#4ECDC4' }}>Tools</span>
++              </h1>
++              <p style={{ color: '#C9B8E0', fontSize: '15px', marginTop: '6px', maxWidth: '640px' }}>
++                Interactieve tools voor Fantasy Pro League — gemaakt door @fpl_proleague.
++              </p>
++            </div>
+           </div>
++
++          {/* Deadline-aftelklok. Staat bewust in de header en dus op ELKE tab: het is de meest
++              tijdkritische informatie die de site heeft, en ze stond vroeger enkel in de Team
++              Planner, in 10px lichtpaarse tekst. De datum komt uit GW_DEADLINE_ISO (constants.js),
++              waaruit ook CURRENT_GW afgeleid wordt — één bron, dus ze kunnen niet meer uiteenlopen. */}
++          {deadlineRemaining && (
++            <div
++              className="fdr-deadline"
++              // aria-live="off": de klok verandert elke 30 seconden en zou anders eindeloos
++              // voorgelezen worden. De volledige tekst staat in het label hieronder.
++              aria-live="off"
++              style={{
++                display: 'flex', flexDirection: 'column', gap: '2px', flexShrink: 0,
++                background: 'rgba(255,255,255,0.04)', border: `1px solid ${COLORS.borderSubtle}`,
++                borderRadius: '10px', padding: '8px 14px',
++              }}
++            >
++              <span style={{
++                color: COLORS.textMuted, fontSize: '11px', textTransform: 'uppercase',
++                letterSpacing: '0.05em', fontWeight: 700,
++              }}>
++                Deadline GW{CURRENT_GW}
++              </span>
++              <span className="fdr-title" style={{
++                color: deadlineRemaining.totalMinutes <= 180 ? COLORS.warning : '#4ECDC4',
++                fontSize: '18px', fontWeight: 900, lineHeight: 1,
++              }}>
++                {formatCountdown(deadlineRemaining)}
++              </span>
++            </div>
++          )}
+         </header>
+ 
++        {/* Minileague-code: compacte, inline chip i.p.v. het vroegere aparte blok dat met een
++            negatieve marge boven de tabbalk hing. Het is promotionele info, geen tool — ze hoort
++            niet de eerste schermvullende rij te zijn op een telefoon. */}
+         <div style={{
+-          display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginTop: "-18px",
+-          marginBottom: '10px', padding: '8px 8px 8px 14px', width: 'fit-content',
+-          background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px'
++          display: 'inline-flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap',
++          marginBottom: '14px', padding: '5px 6px 5px 12px', width: 'fit-content', maxWidth: '100%',
++          background: 'rgba(255,255,255,0.04)', border: `1px solid ${COLORS.borderSubtle}`, borderRadius: '999px'
+         }}>
+-          <span style={{ color: '#8F79AD', fontSize: '12px' }}>
+-            Minileague Code: <strong style={{ color: '#4ECDC4', fontWeight: 700, letterSpacing: '0.05em' }}>{MINILEAGUE_CODE}</strong>
++          <span style={{ color: COLORS.textMuted, fontSize: '12px' }}>
++            Minileague: <strong style={{ color: '#4ECDC4', fontWeight: 700, letterSpacing: '0.05em' }}>{MINILEAGUE_CODE}</strong>
+           </span>
+-          <button onClick={handleCopyMinileagueCode} style={{
+-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+-            background: 'transparent', color: '#C9B8E0', border: '1px solid rgba(255,255,255,0.2)',
+-            borderRadius: '6px', padding: '5px 10px', fontWeight: 700, fontSize: '12px', cursor: 'pointer'
+-          }}>
+-            {minileagueCodeCopied ? <Check size={13} /> : <Copy size={13} />}
++          <button
++            onClick={handleCopyMinileagueCode}
++            className="fdr-touch-target"
++            aria-label={`Minileague-code ${MINILEAGUE_CODE} kopiëren`}
++            style={{
++              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
++              background: 'transparent', color: COLORS.textBody, border: `1px solid ${COLORS.border}`,
++              borderRadius: '999px', padding: '5px 12px', fontWeight: 700, fontSize: '12px',
++              fontFamily: 'inherit', cursor: 'pointer'
++            }}
++          >
++            {minileagueCodeCopied ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
+             {minileagueCodeCopied ? 'Gekopieerd!' : 'Kopieer'}
+           </button>
+         </div>
+ 
+-        <div className="fdr-tabs" style={{
+-          display: 'flex', gap: '4px', marginBottom: '18px', borderBottom: '1px solid rgba(255,255,255,0.08)',
+-          overflowX: 'auto', flexWrap: 'nowrap'
+-        }}>
++        {/* role="tablist" is bewust NIET gebruikt: dit zijn echte links naar echte URL's, geen
++            ARIA-tabs. Een <nav> met aria-current geeft schermlezers de juiste boodschap. */}
++        <nav
++          ref={tabsRef}
++          className={`fdr-tabs${tabsAtEnd ? ' fdr-tabs--end' : ''}`}
++          aria-label="Tools"
++          onScroll={updateTabsScrollState}
++          style={{
++            display: 'flex', gap: '4px', marginBottom: '18px', borderBottom: `1px solid ${COLORS.borderSubtle}`,
++            overflowX: 'auto', flexWrap: 'nowrap'
++          }}
++        >
+           {TABS.map(tab => {
+             const isActive = activeTab === tab.key;
+             return (
+-              <button
++              <a
+                 key={tab.key}
+-                onClick={() => setActiveTab(tab.key)}
++                href={tab.path}
++                // Echte href zodat midden-klik / "open in nieuw tabblad" / delen gewoon werken, maar
++                // een gewone klik wordt onderschept zodat de app niet volledig herlaadt.
++                onClick={(e) => {
++                  if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
++                  e.preventDefault();
++                  navigateToTab(tab.key);
++                }}
+                 className="fdr-title fdr-tab-btn"
+                 aria-current={isActive ? 'page' : undefined}
+                 style={{
+-                  color: isActive ? '#4ECDC4' : '#C9B8E0',
++                  color: isActive ? '#4ECDC4' : COLORS.textBody,
+                   borderBottom: isActive ? '2px solid #4ECDC4' : '2px solid transparent',
+-                  display: 'inline-flex', alignItems: 'center', gap: '5px',
++                  display: 'inline-flex', alignItems: 'center', gap: '5px', textDecoration: 'none',
+                 }}
+               >
+                 {tab.label}
+-                {tab.isNew && (
+-                  <span
+-                    title="Nieuw"
+-                    style={{
+-                      width: '6px', height: '6px', borderRadius: '50%',
+-                      background: '#4ECDC4', flexShrink: 0,
+-                    }}
+-                  />
+-                )}
+-              </button>
++              </a>
+             );
+           })}
+-        </div>
++        </nav>
+ 
+         {activeTab === 'fdr' && (
+           <FDRTab
+@@ -1328,6 +1553,7 @@ export default function FDRTool() {
+         )}
+ 
+         {activeTab === 'watchlist' && (
++          <Suspense fallback={<TabLoading />}>
+           <WatchlistTab
+             ratings={ratings}
+             homeAdvantage={homeAdvantage}
+@@ -1345,9 +1571,11 @@ export default function FDRTool() {
+             playerDatabaseError={playerDatabaseError}
+             fetchPlayerDatabase={fetchPlayerDatabase}
+           />
++          </Suspense>
+         )}
+ 
+         {activeTab === 'teamplanner' && (
++          <Suspense fallback={<TabLoading />}>
+           <TeamPlannerTab
+             ratings={ratings}
+             homeAdvantage={homeAdvantage}
+@@ -1382,24 +1610,36 @@ export default function FDRTool() {
+             handleClearTeamPlannerTransfers={handleClearTeamPlannerTransfers}
+             swapTeamPlannerBenchPlayers={swapTeamPlannerBenchPlayers}
+           />
++          </Suspense>
+         )}
+ 
+-        {activeTab === 'predictedlineups' && <PredictedLineupsTab />}
++        {activeTab === 'predictedlineups' && (
++          <Suspense fallback={<TabLoading />}>
++            <PredictedLineupsTab />
++          </Suspense>
++        )}
+ 
+         {activeTab === 'pricechanges' && (
+           <div style={{ marginTop: '20px' }}>
+             <div style={{
+-              background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
++              background: 'rgba(255,255,255,0.04)', border: `1px solid ${COLORS.borderSubtle}`,
+               borderRadius: '10px', padding: '16px'
+             }}>
+-              <p style={{ color: '#C9B8E0', fontSize: '13px', margin: 0 }}>
+-                Hier worden binnenkort alle prijswijzigingen gedocumenteerd.
++              {/* Expliciet vermelden wanneer prijzen überhaupt beginnen te bewegen: zonder die
++                  context lijkt een lege tab op een onafgewerkte tool, terwijl er in het spel simpelweg
++                  nog niets te tonen valt. */}
++              <p style={{ color: COLORS.textBody, fontSize: '13px', margin: 0, lineHeight: 1.6 }}>
++                In Fantasy Pro League veranderen spelersprijzen pas <strong>vanaf gameweek 7</strong>.
++                Tot dan blijft elke prijs gelijk aan de startprijs, dus valt er nog niets te melden.
++              </p>
++              <p style={{ color: COLORS.textSubtle, fontSize: '13px', margin: '8px 0 0', lineHeight: 1.6 }}>
++                Vanaf GW7 documenteren we hier alle stijgers en dalers.
+               </p>
+             </div>
+           </div>
+         )}
+ 
+-        <footer style={{ marginTop: '28px', textAlign: 'center', color: '#6B5289', fontSize: '12px', lineHeight: 1.5 }}>
++        <footer style={{ marginTop: '28px', textAlign: 'center', color: COLORS.textSubtle, fontSize: '12px', lineHeight: 1.5 }}>
+           Gemaakt door{' '}
+           <a href="https://x.com/fpl_proleague" target="_blank" rel="noopener noreferrer" className="fdr-footer-link">
+             <img src="/x-logo.png" alt="" style={{ width: '12px', height: '12px', verticalAlign:'-2px' }} />
+@@ -1438,6 +1678,43 @@ export default function FDRTool() {
+         </div>
+       )}
+ 
++      {/* Undo-melding na het verwijderen van een watch-list-speler. Verschijnt onderaan (binnen
++          duimbereik op mobiel) en verdwijnt vanzelf na 8 seconden. */}
++      {recentlyRemovedPlayer && (
++        <div role="status" aria-live="polite" style={{
++          position: 'fixed', left: '50%', bottom: '20px', transform: 'translateX(-50%)',
++          zIndex: 60, width: 'calc(100% - 40px)', maxWidth: '360px',
++          display: 'flex', alignItems: 'center', gap: '10px',
++          background: COLORS.surface, color: '#EDE4F5', border: '1px solid rgba(255,255,255,0.15)',
++          borderRadius: '10px', padding: '10px 12px', boxShadow: '0 8px 20px rgba(0,0,0,0.4)',
++          fontFamily: "'Inter', sans-serif"
++        }}>
++          <span style={{ margin: 0, fontSize: '13px', lineHeight: 1.4, flex: 1, minWidth: 0 }}>
++            <strong style={{ color: '#FFFFFF' }}>{recentlyRemovedPlayer.player.name}</strong> verwijderd.
++          </span>
++          <button
++            onClick={handleUndoRemoveWatchlistPlayer}
++            className="fdr-touch-target"
++            style={{
++              display: 'inline-flex', alignItems: 'center', gap: '6px', flexShrink: 0,
++              background: 'transparent', color: '#4ECDC4', border: '1px solid #4ECDC4',
++              borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px',
++              fontFamily: 'inherit', cursor: 'pointer'
++            }}
++          >
++            <Undo2 size={14} aria-hidden="true" /> Ongedaan maken
++          </button>
++          <button
++            onClick={() => setRecentlyRemovedPlayer(null)}
++            aria-label="Melding sluiten"
++            className="fdr-icon-btn"
++            style={{ background: 'transparent', border: 'none', color: COLORS.textBody, cursor: 'pointer', flexShrink: 0, padding: 0, display: 'inline-flex' }}
++          >
++            <X size={14} aria-hidden="true" />
++          </button>
++        </div>
++      )}
++
+       {showHomeAdvantageIntro && (
+         <div role="status" style={{
+           position: 'fixed', left: '50%', bottom: '20px', transform: 'translateX(-50%)',
+diff --git a/src/components/PlayerSearchInput.jsx b/src/components/PlayerSearchInput.jsx
+index 9ada199..d796c06 100644
+--- a/src/components/PlayerSearchInput.jsx
++++ b/src/components/PlayerSearchInput.jsx
+@@ -8,6 +8,7 @@
+ import { useState, useRef, useEffect, useCallback, memo } from 'react';
+ import { createPortal } from 'react-dom';
+ import { Search } from 'lucide-react';
++import { COLORS } from '../theme';
+ 
+ const dropdownItemStyle = {
+   display: 'flex', alignItems: 'center', gap: '8px', width: '100%', textAlign: 'left',
+@@ -114,7 +115,7 @@ export const PlayerSearchInput = memo(function PlayerSearchInput({
+     // koppige teamtabel, of de 2-koloms-span in Watchlist's "Speler toevoegen") dit veld onbegrensd
+     // meegroeien met de resterende ruimte, wat er op brede schermen absurd lang uitziet.
+     <div ref={containerRef} style={{ position: 'relative', width: '100%', maxWidth: '320px' }}>
+-      <Search size={13} color="#8F79AD" style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
++      <Search size={13} color={COLORS.textMuted} style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+       <input
+         type="text"
+         value={query}
+@@ -154,14 +155,14 @@ export const PlayerSearchInput = memo(function PlayerSearchInput({
+               <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 700 }}>
+                 {p.name}
+               </span>
+-              <span style={{ color: '#8F79AD', fontSize: '11px', flexShrink: 0 }}>{p.teamName}</span>
++              <span style={{ color: COLORS.textMuted, fontSize: '11px', flexShrink: 0 }}>{p.teamName}</span>
+               <span style={{ color: '#C9B8E0', fontSize: '11px', flexShrink: 0 }}>{p.position}</span>
+               <span style={{ color: '#4ECDC4', fontSize: '11px', fontWeight: 700, flexShrink: 0 }}>
+                 {p.price != null ? `${p.price.toFixed(1)}M` : '—'}
+               </span>
+             </button>
+           )) : (
+-            <div style={{ padding: '10px', color: '#8F79AD', fontSize: '12px' }}>
++            <div style={{ padding: '10px', color: COLORS.textMuted, fontSize: '12px' }}>
+               Geen spelers gevonden.
+             </div>
+           )}
+diff --git a/src/components/SectionHeader.jsx b/src/components/SectionHeader.jsx
+index eb0b85b..585c1d5 100644
+--- a/src/components/SectionHeader.jsx
++++ b/src/components/SectionHeader.jsx
+@@ -16,7 +16,16 @@ function chevronStyle(isOpen) {
+ 
+ export const SectionHeader = memo(function SectionHeader({ icon: Icon, title, sectionKey, isOpen, onToggle }) {
+   return (
+-    <button onClick={() => onToggle(sectionKey)} style={sectionToggleButtonStyle}>
++    <button
++      onClick={() => onToggle(sectionKey)}
++      // aria-expanded vertelt schermlezers of de sectie open of dicht staat — zonder dit is de knop
++      // enkel "Mijn 15 spelers", zonder enige indicatie dat er iets in-/uitklapt. aria-controls
++      // koppelt 'm aan het paneel dat hij bestuurt (zie de id op de inhoud in de tabs).
++      aria-expanded={isOpen}
++      aria-controls={`fdr-section-${sectionKey}`}
++      className="fdr-touch-target"
++      style={sectionToggleButtonStyle}
++    >
+       <h2 className="fdr-title fdr-section-title" style={sectionTitleStyle}>
+         <Icon size={18} color="#4ECDC4" style={{ flexShrink: 0 }} />
+         <span style={sectionTitleTextStyle}>{title}</span>
+diff --git a/src/constants.js b/src/constants.js
+index 3cdd1b4..c4df3ce 100644
+--- a/src/constants.js
++++ b/src/constants.js
+@@ -110,7 +110,9 @@ export const RATING_STYLE = {
+   2: { bg: '#5BAE7A', text: '#0B2E1B', label: 'Makkelijk' },
+   3: { bg: '#E8C547', text: '#3D2E00', label: 'Gemiddeld' },
+   4: { bg: '#E08A3E', text: '#2E1500', label: 'Moeilijk' },
+-  5: { bg: '#C2402C', text: '#FBEAE7', label: 'Moeilijkst' },
++  // Wit i.p.v. het vroegere #FBEAE7: dat haalde maar 4.44:1 op deze rode achtergrond en zakte
++  // daarmee net onder de WCAG AA-drempel (4.5:1) voor de kleine celtekst. #FFFFFF geeft 5.17:1.
++  5: { bg: '#C2402C', text: '#FFFFFF', label: 'Moeilijkst' },
+ };
+ 
+ export const GW_COUNT = 8;
+@@ -123,18 +125,91 @@ export const DEFAULT_GW_HORIZON_END = 7;
+ export const MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS = 760;
+ export const MINILEAGUE_CODE = '19WN75';
+ export const LAST_UPDATED = '17 augustus 2026';
+-// Handmatig wekelijks bij te werken, net als LAST_UPDATED — markeert de "huidige" gameweek in de
+-// hoofdtabel en bepaalt vanaf waar de mini-fixture-strip in de watch list start.
+-export const CURRENT_GW = 3;
+-
+-// Handmatig wekelijks bij te werken (net als LAST_UPDATED/CURRENT_GW) — deadline-tekst per GW, getoond
+-// klein/subtiel onder de GW-navigator in Team Planner. Kant-en-klare weergavestring i.p.v. een Date-
+-// object, zelfde precedent als LAST_UPDATED (vermijdt tijdzone-gedoe). Lege/ontbrekende GW-waarden
+-// tonen simpelweg niks.
+-export const GW_DEADLINES = {
+-  1: 'vrijdag 07 augustus 20:45', 2: 'vrijdag 14 augustus 20:45', 3: 'vrijdag 21 augustus 20:45', 4: 'vrijdag 28 augustus 20:45', 5: 'vrijdag 4 september 20:45', 6: 'vrijdag 11 september 20:45', 7: 'vrijdag 18 september 20:45', 8: '',
++
++// --- Gameweek-deadlines (enige handmatig bij te werken bron van waarheid voor "waar staan we") ---
++//
++// ISO-8601 mét expliciete offset (+02:00 = CEST, geldig voor augustus/september 2026). Eén échte
++// datum per GW i.p.v. een kant-en-klare tekst: daaruit leiden we nu zowel de weergavestring
++// (formatGwDeadline) als de "huidige" gameweek (CURRENT_GW) én de aftelklok in de header af. Vroeger
++// stonden CURRENT_GW en de deadline-teksten als aparte, handmatig te synchroniseren constanten —
++// precies daardoor kon de site "GW3" tonen terwijl een ander onderdeel nog op GW2 stond. Werk enkel
++// dit object bij; al de rest volgt vanzelf.
++//
++// GW8 heeft (nog) geen bekende deadline: null i.p.v. een lege string, zodat "onbekend" expliciet is.
++export const GW_DEADLINE_ISO = {
++  1: '2026-08-07T20:45:00+02:00',
++  2: '2026-08-14T20:45:00+02:00',
++  3: '2026-08-21T20:45:00+02:00',
++  4: '2026-08-28T20:45:00+02:00',
++  5: '2026-09-04T20:45:00+02:00',
++  6: '2026-09-11T20:45:00+02:00',
++  7: '2026-09-18T20:45:00+02:00',
++  8: null,
+ };
+ 
++// Deadlines worden ALTIJD in Belgische tijd getoond, ongeacht waar de bezoeker zit. Een Fantasy Pro
++// League-deadline is nu eenmaal een Belgisch tijdstip; iemand die vanuit een andere tijdzone kijkt
++// heeft niets aan een omgerekende klok en zou een afwijkende tijd als een fout lezen. De aftelklok
++// zelf is een tijdsduur en dus sowieso tijdzone-onafhankelijk.
++const BELGIAN_TIME_ZONE = 'Europe/Brussels';
++
++const deadlineFormatter = new Intl.DateTimeFormat('nl-BE', {
++  timeZone: BELGIAN_TIME_ZONE,
++  weekday: 'long', day: '2-digit', month: 'long',
++  hour: '2-digit', minute: '2-digit', hour12: false,
++});
++
++// Geeft de Date van een GW-deadline, of null als die niet gekend is (GW8).
++export function getGwDeadlineDate(gw) {
++  const iso = GW_DEADLINE_ISO[gw];
++  if (!iso) return null;
++  const date = new Date(iso);
++  return Number.isNaN(date.getTime()) ? null : date;
++}
++
++// Nederlandse weergavestring ("vrijdag 21 augustus 20:45"), afgeleid uit de echte datum i.p.v.
++// handmatig getypt. formatToParts i.p.v. format(): de exacte volgorde en scheidingstekens van de
++// nl-BE-locale liggen niet vast tussen browsers/versies, en we willen precies dezelfde tekst als
++// vroeger — niet "vrijdag 21 augustus om 20:45" of een variant met komma's.
++export function formatGwDeadline(gw) {
++  const date = getGwDeadlineDate(gw);
++  if (!date) return '';
++  const parts = Object.fromEntries(
++    deadlineFormatter.formatToParts(date)
++      .filter(p => p.type !== 'literal')
++      .map(p => [p.type, p.value])
++  );
++  return `${parts.weekday} ${parts.day} ${parts.month} ${parts.hour}:${parts.minute}`;
++}
++
++// De eerste GW waarvan de deadline nog niet verstreken is — dát is de gameweek waar een bezoeker mee
++// bezig is. Valt terug op GW_COUNT zodra alle gekende deadlines voorbij zijn. `now` is injecteerbaar
++// zodat dit testbaar is en niet stiekem van de systeemklok afhangt.
++export function resolveCurrentGw(now = new Date()) {
++  for (let gw = 1; gw <= GW_COUNT; gw++) {
++    const deadline = getGwDeadlineDate(gw);
++    if (deadline && deadline.getTime() > now.getTime()) return gw;
++  }
++  return GW_COUNT;
++}
++
++// Afgeleid i.p.v. handmatig ingesteld (zie resolveCurrentGw hierboven). Wordt één keer bij het laden
++// van de module berekend — ruim genoeg voor een sessie, en de aftelklok in de header hertelt sowieso
++// elke seconde zelf.
++export const CURRENT_GW = resolveCurrentGw();
++
++// Behouden voor bestaande aanroepers (Team Planner toont dit onder de GW-navigator): nu volledig
++// afgeleid uit GW_DEADLINE_ISO i.p.v. een tweede, apart bij te werken lijst.
++export const GW_DEADLINES = Object.fromEntries(
++  Array.from({ length: GW_COUNT }, (_, i) => [i + 1, formatGwDeadline(i + 1)])
++);
++
++// De gameweek waarvoor de voorspelde opstellingen in predictedLineupsData.js gelden. Handmatig bij te
++// werken samen met die data. Zolang deze waarde ACHTERLOOPT op CURRENT_GW toont de Predicted
++// Lineups-tab een expliciete waarschuwing dat de opstellingen van een vorige speeldag zijn — zo kan
++// verouderde team-info nooit meer stilzwijgend als actueel gepresenteerd worden.
++export const PREDICTED_LINEUPS_GW = 2;
++
+ // TEAMS is al alfabetisch op code — eenmalig gesorteerde kopie voor UI-lijsten die dat expliciet willen.
+ export const TEAMS_ALPHA = [...TEAMS].sort((a, b) => a.code.localeCompare(b.code));
+ export const GW_INDEXES = Array.from({ length: GW_COUNT }, (_, i) => i);
+diff --git a/src/predicted-xi/PitchField.jsx b/src/predicted-xi/PitchField.jsx
+index c61ab03..315809a 100644
+--- a/src/predicted-xi/PitchField.jsx
++++ b/src/predicted-xi/PitchField.jsx
+@@ -220,7 +220,7 @@ const PitchField = forwardRef(function PitchField({
+           </div>
+           {opponent && (
+             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+-              <span style={{ color: '#8F79AD', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>vs</span>
++              <span style={{ color: '#A794C2', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>vs</span>
+               <img
+                 src={`/club-logos/${opponent.code}.png`}
+                 alt=""
+diff --git a/src/predicted-xi/PitchSlot.jsx b/src/predicted-xi/PitchSlot.jsx
+index 2363c82..b7495d2 100644
+--- a/src/predicted-xi/PitchSlot.jsx
++++ b/src/predicted-xi/PitchSlot.jsx
+@@ -136,9 +136,9 @@ export default function PitchSlot({
+       >
+         {isEmpty ? (
+           <>
+-            <Plus size={17} color={isActiveSearchTarget ? '#4ECDC4' : '#8F79AD'} />
++            <Plus size={17} color={isActiveSearchTarget ? '#4ECDC4' : '#A794C2'} />
+             <span style={{
+-              color: '#8F79AD', fontSize: '11px', fontWeight: 700,
++              color: '#A794C2', fontSize: '11px', fontWeight: 700,
+               textAlign: 'center', lineHeight: 1.15,
+             }}>
+               {slot.role}
+@@ -226,7 +226,7 @@ export default function PitchSlot({
+               </span>
+               {slot.playerPrice != null && (
+                 <span className="pxi-card-price" style={{
+-                  color: '#8F79AD', fontSize: '10px', fontWeight: 700,
++                  color: '#A794C2', fontSize: '10px', fontWeight: 700,
+                   textShadow: TEXT_SHADOW,
+                 }}>
+                   {slot.playerPrice.toFixed(1)}M
+diff --git a/src/predicted-xi/PredictedXiBuilder.jsx b/src/predicted-xi/PredictedXiBuilder.jsx
+index 67611ae..195c7cc 100644
+--- a/src/predicted-xi/PredictedXiBuilder.jsx
++++ b/src/predicted-xi/PredictedXiBuilder.jsx
+@@ -287,7 +287,9 @@ export default function PredictedXiBuilder() {
+   return (
+     <div style={{ minHeight: '100vh', background: '#1A0E2E', padding: '24px 16px', fontFamily: 'Archivo, Arial, sans-serif' }}>
+       <style>{`
+-        @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;700;900&display=swap');
++        /* Het Archivo-lettertype wordt geladen via een <link> in predicted-xi.html (zie daar) —
++           bewust niet meer via een @import hier, want dat kon pas starten nadat React deze <style>
++           had geïnjecteerd. */
+         * { box-sizing: border-box; }
+         body { margin: 0; }
+         @keyframes pxi-spin { to { transform: rotate(360deg); } }
+diff --git a/src/predicted-xi/exportImage.js b/src/predicted-xi/exportImage.js
+index de63b2b..bc9e1b3 100644
+--- a/src/predicted-xi/exportImage.js
++++ b/src/predicted-xi/exportImage.js
+@@ -2,7 +2,8 @@
+ // zelfde html2canvas-techniek en watermerk-truc. De scroll-width-forceer-stap uit het origineel is
+ // weggelaten: die was specifiek nodig voor FDR's horizontaal scrollbare tabel, terwijl het veldkaartje
+ // hier een vaste aspect-ratio heeft en nooit intern scrolt.
+-import html2canvas from 'html2canvas';
++// html2canvas wordt hieronder dynamisch geïmporteerd (~199 kB, enkel nodig bij een effectieve export)
++// — zo belandt het niet in de chunk die de publieke site meelaadt via PredictedLineupsTab/PitchField.
+ import { EXPORT_BACKGROUND, WATERMARK_TEXT, WATERMARK_FONT, WATERMARK_COLOR } from './theme';
+ 
+ export async function exportLineupAsPng(pitchEl, { clubCode, opponentCode, formationKey }) {
+@@ -21,6 +22,7 @@ export async function exportLineupAsPng(pitchEl, { clubCode, opponentCode, forma
+   // ignoreElements i.p.v. op React-rendertiming vertrouwen om browser-UI (de verwijder-"X" op elke
+   // kaart) uit te sluiten — deterministisch, ongeacht of een re-render al voltooid is op het moment
+   // van capture. De safety-badge blijft wél zichtbaar, dat is een bewust onderdeel van het ontwerp.
++  const { default: html2canvas } = await import('html2canvas');
+   const canvas = await html2canvas(pitchEl, {
+     backgroundColor: EXPORT_BACKGROUND, scale: 2,
+     ignoreElements: (el) => el.classList?.contains('pxi-no-export'),
+diff --git a/src/routes.js b/src/routes.js
+new file mode 100644
+index 0000000..a542c46
+--- /dev/null
++++ b/src/routes.js
+@@ -0,0 +1,72 @@
++// Eén bron van waarheid voor de tabs én hun URL's.
++//
++// Waarom: vroeger was de actieve tab enkel `useState('fdr')` in FDRTool.jsx. Daardoor had elk
++// onderdeel van de site dezelfde URL ("/"), wat drie concrete problemen gaf:
++//   1. Je kon geen link naar een specifieke tool delen — elke link opende de FDR-tab.
++//   2. De terugknop van de browser verliet de site i.p.v. naar de vorige tab te gaan (op mobiel is
++//      dat de belangrijkste navigatiehandeling die er is).
++//   3. Zoekmachines konden maar één pagina indexeren, en élke gedeelde link toonde de FDR-titel als
++//      social preview.
++//
++// Elke tab heeft nu een echt pad (/fdr, /team-planner, ...). Vercel serveert index.html voor die
++// paden via de rewrites in vercel.json; de client leest het pad hieronder terug uit.
++
++export const ROUTES = [
++  {
++    key: 'fdr',
++    path: '/fdr',
++    label: 'FDR',
++    title: 'FDR — Fixture Difficulty Rating | Fantasy Pro League Tools',
++    description: 'Interactieve Fixture Difficulty Rating voor alle 18 clubs van de Jupiler Pro League. Pas de ratings aan naar jouw eigen inschatting.',
++  },
++  {
++    key: 'teamplanner',
++    path: '/team-planner',
++    label: 'Team Planner',
++    title: 'Team Planner — plan je transfers | Fantasy Pro League Tools',
++    description: 'Stel je 15-koppige selectie samen, plan transfers per gameweek en beheer bank, kapitein en boosters.',
++  },
++  {
++    key: 'predictedlineups',
++    path: '/predicted-lineups',
++    label: 'Predicted Lineups',
++    title: 'Predicted Lineups — verwachte opstellingen | Fantasy Pro League Tools',
++    description: 'Verwachte basiselftallen voor alle 18 clubs van de Jupiler Pro League, met een duidelijke inschatting van de startkans per speler.',
++  },
++  {
++    key: 'watchlist',
++    path: '/watchlist',
++    label: 'Watchlist',
++    title: 'Watchlist — volg je spelers | Fantasy Pro League Tools',
++    description: 'Houd je favoriete Fantasy Pro League-spelers in de gaten, met hun eerstvolgende fixtures en moeilijkheidsgraad.',
++  },
++  {
++    key: 'pricechanges',
++    path: '/price-changes',
++    label: 'Price Changes',
++    title: 'Price Changes — prijswijzigingen | Fantasy Pro League Tools',
++    description: 'Prijswijzigingen in Fantasy Pro League. In het spel veranderen prijzen pas vanaf gameweek 7.',
++  },
++];
++
++export const DEFAULT_ROUTE_KEY = 'fdr';
++
++// Pad -> tabsleutel. "/" valt terug op de FDR-tab, zodat de bestaande homepage-URL (en alle links die
++// daar al naar verwijzen) blijft werken zoals voorheen.
++export function routeKeyFromPath(pathname) {
++  const normalized = (pathname || '/').replace(/\/+$/, '') || '/';
++  if (normalized === '/') return DEFAULT_ROUTE_KEY;
++  const match = ROUTES.find(r => r.path === normalized);
++  return match ? match.key : DEFAULT_ROUTE_KEY;
++}
++
++export function routeByKey(key) {
++  return ROUTES.find(r => r.key === key) ?? ROUTES[0];
++}
++
++// Bouwt de volledige URL voor een tab, mét behoud van de bestaande query-parameters. Dat laatste is
++// essentieel: de FDR-tab codeert aangepaste ratings in ?r= en thuisvoordeel in ?ha=, en die mogen
++// niet verloren gaan wanneer iemand van tab wisselt.
++export function urlForRoute(key, search = '') {
++  return `${routeByKey(key).path}${search || ''}`;
++}
+diff --git a/src/tabs/FDRTab.jsx b/src/tabs/FDRTab.jsx
+index 70d6ab3..0612404 100644
+--- a/src/tabs/FDRTab.jsx
++++ b/src/tabs/FDRTab.jsx
+@@ -8,19 +8,23 @@
+ import { memo } from 'react';
+ import { RotateCcw, TrendingUp, Info, Link2, Download, Check, ArrowUpDown, Settings2, Grid2x2, Scale } from 'lucide-react';
+ import { TEAMS, TEAMS_ALPHA, FIXTURES, RATING_STYLE, GW_INDEXES, getFixtureInfo } from '../constants';
++import { COLORS, selectStyle, secondaryButtonStyle, primaryButtonStyle, iconButtonStyle } from '../theme';
+ import { SectionHeader } from '../components/SectionHeader';
+ import { MiniFixtureBadge } from '../components/MiniFixtureBadge';
+ import { PostponedIndicator, TooltipTrigger } from '../components/Tooltip';
+ 
+-const selectStyle = {
+-  background: '#3D1E5C', color: '#FFF', border: '1px solid rgba(255,255,255,0.15)',
+-  borderRadius: '6px', padding: '4px 8px', fontSize: '12px'
+-};
++// Gedeelde knop-/veldstijlen komen uit ../theme (zie daar waarom). Vroeger stonden selectStyle en
++// secondaryToolbarBtnStyle hier lokaal, met net iets andere waarden dan de equivalenten in de andere
++// tabs.
++const secondaryToolbarBtnStyle = secondaryButtonStyle;
+ 
+-const secondaryToolbarBtnStyle = {
+-  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: 'transparent', color: '#C9B8E0',
+-  border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', padding: '8px 14px',
+-  fontWeight: 700, fontSize: '13px', cursor: 'pointer'
++// Sticky eerste kolom voor brede, horizontaal scrollbare tabellen. De hoofdtabel gebruikte dit al;
++// nu ook de vergelijk-tabel, die anders bij het naar rechts scrollen geen enkel houvast bood over
++// welke rij bij welk team hoort. De dubbele box-shadow maskeert de border-spacing-opening links en
++// rechts van de cel, zodat er niets onder de sticky kolom doorschijnt.
++const stickyTeamCellStyle = {
++  position: 'sticky', left: 0, background: '#2A1440', zIndex: 3,
++  boxShadow: '-4px 0 0 0 #2A1440, 4px 0 0 0 #2A1440',
+ };
+ 
+ // FDR-tab-only: gebruikt voor de GW-horizon-selector, de "Beste fixture runs"-range-selectors en als
+@@ -43,7 +47,9 @@ const FixtureCell = memo(function FixtureCell({
+         className="fdr-cell"
+         text={postponedText}
+         style={{
+-          background: '#4A4560', color: '#9B93AD', textAlign: 'center',
++          // #C2BBD1 i.p.v. het vroegere #9B93AD: dat haalde maar 3.10:1 op deze grijze achtergrond,
++          // nu 4.90:1 (WCAG AA).
++          background: '#4A4560', color: '#C2BBD1', textAlign: 'center',
+           fontSize: '14px', fontWeight: 700, borderRadius: '6px', padding: '8px 2px',
+           cursor: 'pointer',
+           ...stackingStyle
+@@ -130,7 +136,7 @@ export default function FDRTab({
+ }) {
+   return (
+     <>
+-    <p style={{ color: '#8F79AD', fontSize: '13px', marginBottom: '18px' }}>
++    <p style={{ color: COLORS.textMuted, fontSize: '13px', marginBottom: '18px' }}>
+       Mijn eigen fixture difficulty ratings — pas ze aan naar jouw mening en ontdek meteen welke teams de beste runs hebben.
+     </p>
+     <div className="fpl-toolbar" style={{
+@@ -166,21 +172,13 @@ export default function FDRTab({
+         <span className="fdr-btn-label-full">Reset FDR</span>
+         <span className="fdr-btn-label-short">Reset</span>
+       </button>
+-      <button onClick={handleSave} className="fdr-toolbar-btn" style={{
+-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: '#4ECDC4', color: '#0B2E1B',
+-        border: 'none', borderRadius: '8px', padding: '8px 14px', fontWeight: 700, fontSize: '13px',
+-        cursor: 'pointer'
+-      }}>
++      <button onClick={handleSave} className="fdr-toolbar-btn" style={primaryButtonStyle}>
+         <Check size={14} />
+         <span className="fdr-btn-label-full">{saved ? 'Opgeslagen ✓' : 'Bewaar in browser'}</span>
+         <span className="fdr-btn-label-short">{saved ? 'Bewaard ✓' : 'Bewaar'}</span>
+       </button>
+       </span>
+-      <button onClick={() => setShowInfo(true)} aria-label="Uitleg" style={{
+-        display: 'flex', alignItems: 'center', justifyContent: 'center', width: '34px', height: '34px',
+-        background: 'transparent', color: '#C9B8E0', border: '1px solid rgba(255,255,255,0.2)',
+-        borderRadius: '8px', cursor: 'pointer', flexShrink: 0
+-      }}>
++      <button onClick={() => setShowInfo(true)} aria-label="Uitleg" className="fdr-icon-btn" style={iconButtonStyle}>
+         <Info size={16} />
+       </button>
+       </div>
+@@ -191,7 +189,7 @@ export default function FDRTab({
+       <section>
+         <SectionHeader icon={Settings2} title="Team-sterkte instellen" sectionKey="sliders" isOpen={openSections.sliders} onToggle={toggleSection} />
+         {openSections.sliders && (
+-        <div className="fdr-sliders-grid" style={{
++        <div id="fdr-section-sliders" className="fdr-sliders-grid" style={{
+           display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '8px', marginBottom: '8px'
+         }}>
+           {TEAMS_ALPHA.map(team => {
+@@ -225,25 +223,37 @@ export default function FDRTab({
+                   style={{ width: '100%' }}
+                   aria-label={`Sterkte ${team.name}`}
+                 />
+-                {/* Thuisvoordeel: losstaand van de sterkte-slider hierboven, zie getEffectiveRating. */}
+-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
+-                  <span style={{ color: '#C9B8E0', fontSize: '10px' }}>Thuisvoordeel</span>
+-                  <button
+-                    type="button"
+-                    role="switch"
+-                    aria-checked={homeAdvantageOn}
+-                    aria-label={`Thuisvoordeel ${team.name}`}
+-                    onClick={() => toggleHomeAdvantage(team.code)}
++                {/* Thuisvoordeel: losstaand van de sterkte-slider hierboven, zie getEffectiveRating.
++                    De VOLLEDIGE rij (label + schakelaar) is nu de knop, niet enkel het schakelaartje
++                    van 30x16px. Dat was met afstand het kleinste aanraakdoel op de site, en er staan
++                    er achttien van op één scherm — twee kolommen naast elkaar op een telefoon. De
++                    .fdr-touch-target-klasse tilt de rij op aanraakapparaten naar 44px hoogte. */}
++                <button
++                  type="button"
++                  role="switch"
++                  aria-checked={homeAdvantageOn}
++                  aria-label={`Thuisvoordeel ${team.name}`}
++                  onClick={() => toggleHomeAdvantage(team.code)}
++                  className="fdr-touch-target"
++                  style={{
++                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px',
++                    width: '100%', marginTop: '6px', padding: '4px 0',
++                    background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
++                  }}
++                >
++                  <span style={{ color: COLORS.textBody, fontSize: '10px' }}>Thuisvoordeel</span>
++                  <span
++                    aria-hidden="true"
+                     style={{
+-                      display: 'inline-flex', alignItems: 'center', width: '30px', height: '16px',
+-                      borderRadius: '999px', border: 'none', padding: '2px', cursor: 'pointer',
++                      display: 'inline-flex', alignItems: 'center', width: '34px', height: '18px',
++                      borderRadius: '999px', padding: '2px', flexShrink: 0,
+                       background: homeAdvantageOn ? '#4ECDC4' : 'rgba(255,255,255,0.15)',
+                       justifyContent: homeAdvantageOn ? 'flex-end' : 'flex-start', transition: 'background 0.15s ease'
+                     }}
+                   >
+-                    <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#FFFFFF', display: 'block' }} />
+-                  </button>
+-                </div>
++                    <span style={{ width: '14px', height: '14px', borderRadius: '50%', background: '#FFFFFF', display: 'block' }} />
++                  </span>
++                </button>
+               </div>
+             );
+           })}
+@@ -260,7 +270,7 @@ export default function FDRTab({
+         }}>
+           <button onClick={(e) => { e.stopPropagation(); setSortByDifficulty(s => !s); }} style={{
+             display: 'flex', alignItems: 'center', gap: '6px', background: 'transparent',
+-            color: '#C9B8E0', border: '1px solid rgba(255,255,255,0.2)',
++            color: COLORS.textBody, border: '1px solid rgba(255,255,255,0.2)',
+             borderRadius: '8px', padding: '8px 14px', fontWeight: 700, fontSize: '13px', cursor: 'pointer'
+           }}>
+             <ArrowUpDown size={14} />
+@@ -268,16 +278,16 @@ export default function FDRTab({
+           </button>
+           <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+-              <label style={{ color: '#C9B8E0', fontSize: '12px' }}>GW</label>
++              <label style={{ color: COLORS.textBody, fontSize: '12px' }}>GW</label>
+               <select value={gwHorizonStart} onChange={e => setGwHorizonStart(Number(e.target.value))} style={selectStyle}>
+                 {gwOptionElements}
+               </select>
+-              <span style={{ color: '#C9B8E0', fontSize: '12px' }}>t/m</span>
++              <span style={{ color: COLORS.textBody, fontSize: '12px' }}>t/m</span>
+               <select value={gwHorizonEnd} onChange={e => setGwHorizonEnd(Number(e.target.value))} style={selectStyle}>
+                 {gwOptionElements}
+               </select>
+             </div>
+-            <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#6B5289', fontSize: '11px' }}>
++            <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: COLORS.textSubtle, fontSize: '11px' }}>
+               <Info size={12} />
+               Tik op grijze cellen of die met een * voor meer info
+             </span>
+@@ -285,7 +295,7 @@ export default function FDRTab({
+         </div>
+         )}
+         <div ref={tableRef} id="fdr-capture-wrapper">
+-        <div className="fdr-table-scroll" style={{
++        <div id="fdr-section-table" className="fdr-table-scroll" style={{
+           overflowX: 'auto', background: '#2A1440', padding: '4px',
+           display: openSections.table ? 'block' : 'none'
+         }}>
+@@ -293,7 +303,7 @@ export default function FDRTab({
+           <thead>
+             <tr>
+               <th style={{
+-                textAlign: 'left', color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase',
++                textAlign: 'left', color: COLORS.textBody, fontSize: '11px', textTransform: 'uppercase',
+                 letterSpacing: '0.05em', padding: '6px 8px', position: 'sticky', left: 0,
+                 background: '#2A1440', zIndex: 3, boxShadow: '-4px 0 0 0 #2A1440, 4px 0 0 0 #2A1440'
+               }}>Team</th>
+@@ -351,7 +361,7 @@ export default function FDRTab({
+           {[1,2,3,4,5].map(r => (
+             <div key={r} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+               <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: RATING_STYLE[r].bg, display: 'inline-block' }} />
+-              <span style={{ color: '#C9B8E0', fontSize: '11px' }}>{RATING_STYLE[r].label}</span>
++              <span style={{ color: COLORS.textBody, fontSize: '11px' }}>{RATING_STYLE[r].label}</span>
+             </div>
+           ))}
+         </div>
+@@ -362,13 +372,13 @@ export default function FDRTab({
+       <section>
+         <SectionHeader icon={TrendingUp} title="Beste fixture runs" sectionKey="runs" isOpen={openSections.runs} onToggle={toggleSection} />
+         {openSections.runs && (
+-        <>
++        <div id="fdr-section-runs">
+         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
+-          <label style={{ color: '#C9B8E0', fontSize: '12px' }}>GW</label>
++          <label style={{ color: COLORS.textBody, fontSize: '12px' }}>GW</label>
+           <select value={rangeStart} onChange={e => setRangeStart(Number(e.target.value))} style={selectStyle}>
+             {gwOptionElements}
+           </select>
+-          <span style={{ color: '#C9B8E0', fontSize: '12px' }}>t/m</span>
++          <span style={{ color: COLORS.textBody, fontSize: '12px' }}>t/m</span>
+           <select value={rangeEnd} onChange={e => setRangeEnd(Number(e.target.value))} style={selectStyle}>
+             {gwOptionElements}
+           </select>
+@@ -392,7 +402,7 @@ export default function FDRTab({
+                 />
+                 <div style={{ minWidth: '130px' }}>
+                   <div style={{ color: '#FFF', fontWeight: 700, fontSize: '14px' }}>{team.name}</div>
+-                  <div style={{ color: '#8F79AD', fontSize: '11px' }}>Gem. moeilijkheid: {team.avg.toFixed(1)}</div>
++                  <div style={{ color: COLORS.textMuted, fontSize: '11px' }}>Gem. moeilijkheid: {team.avg.toFixed(1)}</div>
+                 </div>
+               </div>
+               <div
+@@ -413,7 +423,7 @@ export default function FDRTab({
+             </div>
+           ))}
+         </div>
+-        </>
++        </div>
+         )}
+       </section>
+ 
+@@ -421,8 +431,8 @@ export default function FDRTab({
+       <section>
+         <SectionHeader icon={Scale} title="Vergelijk teams" sectionKey="compare" isOpen={openSections.compare} onToggle={toggleSection} />
+         {openSections.compare && (
+-        <>
+-        <p style={{ color: '#8F79AD', fontSize: '12px', marginBottom: '10px' }}>
++        <div id="fdr-section-compare">
++        <p style={{ color: COLORS.textMuted, fontSize: '12px', marginBottom: '10px' }}>
+           Kies tot 5 teams om hun fixtures onder elkaar te zien (vanaf GW{compareGwStart}).
+         </p>
+         <div style={{
+@@ -435,7 +445,7 @@ export default function FDRTab({
+               <button key={team.code} onClick={() => toggleCompareTeam(team.code)} disabled={disabled} style={{
+                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
+                 background: selected ? '#4ECDC4' : 'rgba(255,255,255,0.04)',
+-                color: selected ? '#0B2E1B' : disabled ? '#5A4A72' : '#FFF',
++                color: selected ? '#0B2E1B' : disabled ? COLORS.textDisabled : '#FFF',
+                 border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px',
+                 padding: '6px 4px', fontSize: '12px', fontWeight: 700,
+                 cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.5 : 1
+@@ -453,14 +463,14 @@ export default function FDRTab({
+           })}
+         </div>
+         {compareTeams.length === 0 && (
+-          <p style={{ color: '#6B5289', fontSize: '13px' }}>Nog geen teams geselecteerd.</p>
++          <p style={{ color: COLORS.textSubtle, fontSize: '13px' }}>Nog geen teams geselecteerd.</p>
+         )}
+         {compareTeams.length > 0 && (
+           <div style={{ overflowX: 'auto' }}>
+             <table style={{ borderCollapse: 'separate', borderSpacing: '4px', minWidth: '600px', width: '100%' }}>
+               <thead>
+                 <tr>
+-                  <th style={{ textAlign: 'left', color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', padding: '6px 8px' }}>Team</th>
++                  <th style={{ textAlign: 'left', color: COLORS.textBody, fontSize: '11px', textTransform: 'uppercase', padding: '6px 8px', ...stickyTeamCellStyle }}>Team</th>
+                   {compareGwHeaderCells}
+                 </tr>
+               </thead>
+@@ -469,7 +479,7 @@ export default function FDRTab({
+                   const team = TEAMS.find(t => t.code === code);
+                   return (
+                     <tr key={code}>
+-                      <td style={{ color: '#FFF', fontWeight: 700, fontSize: '13px', padding: '6px 8px', whiteSpace: 'nowrap' }}>
++                      <td style={{ color: '#FFF', fontWeight: 700, fontSize: '13px', padding: '6px 8px', whiteSpace: 'nowrap', ...stickyTeamCellStyle }}>
+                         <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                           <img
+                             src={`/club-logos/${team.code}.png`}
+@@ -508,7 +518,7 @@ export default function FDRTab({
+             </table>
+           </div>
+         )}
+-        </>
++        </div>
+         )}
+       </section>
+     </div>
+diff --git a/src/tabs/PredictedLineupsTab.jsx b/src/tabs/PredictedLineupsTab.jsx
+index 34e9e25..4c091bc 100644
+--- a/src/tabs/PredictedLineupsTab.jsx
++++ b/src/tabs/PredictedLineupsTab.jsx
+@@ -4,7 +4,9 @@
+ // (../predicted-xi/) via hun readOnly-prop, zodat de visuele stijl (veld, kaartjes, kleuren, header)
+ // gegarandeerd exact dezelfde is als de privé-tool — geen duplicatie, geen risico op visuele drift.
+ import { useState } from 'react';
+-import { TEAMS } from '../constants';
++import { AlertTriangle } from 'lucide-react';
++import { TEAMS, CURRENT_GW, PREDICTED_LINEUPS_GW } from '../constants';
++import { COLORS } from '../theme';
+ import { FORMATIONS } from '../predicted-xi/formations';
+ import PitchField from '../predicted-xi/PitchField';
+ import { SAFETY_STYLE } from '../predicted-xi/theme';
+@@ -28,6 +30,38 @@ const SAFETY_LEGEND = [
+ // predictedLineupsData.js per ongeluk een halfafgewerkte entry bevat.
+ const readyLineups = PREDICTED_LINEUPS.filter(l => l.slots.some(s => s.positionId !== '_unassigned' && s.playerName));
+ 
++// De opstellingen zijn verouderd zodra de speeldag waarvoor ze gemaakt zijn achterloopt op de
++// gameweek die nu aan de beurt is. Beide waarden komen uit constants.js (PREDICTED_LINEUPS_GW wordt
++// handmatig bijgewerkt samen met de data; CURRENT_GW wordt afgeleid uit de echte deadlines), zodat
++// deze check niet stilzwijgend kan verlopen zoals de vroeger hardgecodeerde tekst "GW2".
++const isStale = PREDICTED_LINEUPS_GW < CURRENT_GW;
++
++// Waarschuwingsbanner bovenaan de tab zodra de opstellingen van een vorige speeldag zijn. Bewust
++// prominent en niet weg te klikken: verouderde team-info is voor een fantasymanager schadelijker dan
++// géén team-info, want ze ziet er precies hetzelfde uit als actuele info.
++function StaleWarning() {
++  if (!isStale) return null;
++  return (
++    <div
++      role="status"
++      style={{
++        display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: '16px',
++        background: 'rgba(232,197,71,0.12)', border: '1px solid rgba(232,197,71,0.45)',
++        borderRadius: '10px', padding: '12px 14px',
++      }}
++    >
++      <AlertTriangle size={18} color={COLORS.warning} style={{ flexShrink: 0, marginTop: '1px' }} aria-hidden="true" />
++      <p style={{ margin: 0, color: COLORS.warning, fontSize: '13px', lineHeight: 1.55, fontWeight: 700 }}>
++        Let op: dit zijn de opstellingen van GW{PREDICTED_LINEUPS_GW}, niet van de huidige GW{CURRENT_GW}.
++        <span style={{ display: 'block', color: COLORS.textBody, fontWeight: 400, marginTop: '4px' }}>
++          Gebruik ze dus niet om je team voor GW{CURRENT_GW} te zetten — de opstellingen voor de komende
++          speeldag worden later bijgewerkt.
++        </span>
++      </p>
++    </div>
++  );
++}
++
+ export default function PredictedLineupsTab() {
+   const availableClubCodes = [...new Set(readyLineups.map(l => l.clubCode))];
+   const [selectedClubCode, setSelectedClubCode] = useState(availableClubCodes[0] ?? '');
+@@ -35,14 +69,15 @@ export default function PredictedLineupsTab() {
+   if (readyLineups.length === 0) {
+     return (
+       <>
+-        <p style={{ color: '#8F79AD', fontSize: '13px', marginBottom: '16px' }}>
+-          Voorspelde opstellingen voor GW2, samengesteld door @5YSiebee.
++        <StaleWarning />
++        <p style={{ color: COLORS.textMuted, fontSize: '13px', marginBottom: '16px' }}>
++          Voorspelde opstellingen voor GW{PREDICTED_LINEUPS_GW}, samengesteld door @5YSiebee.
+         </p>
+         <div style={{
+           background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+           borderRadius: '10px', padding: '16px',
+         }}>
+-          <p style={{ color: '#C9B8E0', fontSize: '13px', margin: 0 }}>
++          <p style={{ color: COLORS.textBody, fontSize: '13px', margin: 0 }}>
+             Nog geen voorspelde lineups beschikbaar — kom binnenkort terug.
+           </p>
+         </div>
+@@ -57,13 +92,23 @@ export default function PredictedLineupsTab() {
+ 
+   return (
+     <>
+-      <p style={{ color: '#8F79AD', fontSize: '13px', marginBottom: '16px' }}>
+-        Voorspelde opstellingen voor GW2, samengesteld door @5YSiebee. Kies een club om de opstelling te bekijken.
++      <StaleWarning />
++      <p style={{ color: COLORS.textMuted, fontSize: '13px', marginBottom: '16px' }}>
++        Voorspelde opstellingen voor GW{PREDICTED_LINEUPS_GW}, samengesteld door @5YSiebee. Kies een club om de opstelling te bekijken.
+       </p>
+ 
+-      <div style={{
+-        display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px',
+-      }}>
++      {/* Responsief raster i.p.v. een flex-wrap van vaste 76px-blokken: op een telefoon leverde dat
++          vijf rijen clublogo's op vóór je de opstelling zelf zag. auto-fill met een minimum van 58px
++          geeft daar ~5-6 per rij, en op desktop vullen ze de breedte netjes op. */}
++      <div
++        role="group"
++        aria-label="Kies een club"
++        className="fdr-club-picker"
++        style={{
++          display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(58px, 1fr))',
++          gap: '6px', marginBottom: '20px',
++        }}
++      >
+         {availableClubCodes.map(code => {
+           const t = TEAMS.find(team => team.code === code);
+           const isSelected = code === selectedClubCode;
+@@ -76,18 +121,21 @@ export default function PredictedLineupsTab() {
+                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
+                 background: isSelected ? 'rgba(78,205,196,0.12)' : 'rgba(255,255,255,0.04)',
+                 border: isSelected ? '1px solid #4ECDC4' : '1px solid rgba(255,255,255,0.08)',
+-                borderRadius: '10px', padding: '8px 6px', width: '76px', cursor: 'pointer',
++                borderRadius: '10px', padding: '6px 4px', width: '100%', cursor: 'pointer',
++                fontFamily: 'inherit',
+               }}
++              aria-pressed={isSelected}
+             >
+               <img
+                 src={`/club-logos/${code}.png`}
+                 alt=""
+-                style={{ width: '28px', height: '28px', objectFit: 'contain' }}
++                style={{ width: '24px', height: '24px', objectFit: 'contain' }}
+                 onError={(e) => { e.target.style.display = 'none'; }}
+               />
+               <span style={{
+-                color: isSelected ? '#4ECDC4' : '#C9B8E0', fontSize: '10px', fontWeight: 700,
+-                textAlign: 'center', lineHeight: 1.2,
++                color: isSelected ? '#4ECDC4' : COLORS.textBody, fontSize: '9px', fontWeight: 700,
++                textAlign: 'center', lineHeight: 1.15, overflow: 'hidden', textOverflow: 'ellipsis',
++                display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+               }}>
+                 {t?.name ?? code}
+               </span>
+@@ -102,7 +150,7 @@ export default function PredictedLineupsTab() {
+             safety-badge, die hier bewust niet gerenderd wordt — zie PitchSlot.jsx's readOnly-prop). */}
+         <div style={{
+           display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center',
+-          fontSize: '11px', fontWeight: 700, color: '#C9B8E0',
++          fontSize: '11px', fontWeight: 700, color: COLORS.textBody,
+         }}>
+           {SAFETY_LEGEND.map(({ level, label }) => (
+             <div key={level} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+@@ -132,7 +180,7 @@ export default function PredictedLineupsTab() {
+             los van elkaar bijgewerkt, dus enkel de samensteller weet wanneer een specifieke opstelling
+             voor het laatst nagekeken is. */}
+         {lineup.lastUpdatedLabel && (
+-          <p style={{ color: '#8F79AD', fontSize: '10px', margin: 0 }}>
++          <p style={{ color: COLORS.textMuted, fontSize: '10px', margin: 0 }}>
+             Laatst geüpdatet: {lineup.lastUpdatedLabel}
+           </p>
+         )}
+diff --git a/src/tabs/TeamPlannerTab.jsx b/src/tabs/TeamPlannerTab.jsx
+index 7906fc5..a74ae1f 100644
+--- a/src/tabs/TeamPlannerTab.jsx
++++ b/src/tabs/TeamPlannerTab.jsx
+@@ -19,6 +19,8 @@ import {
+   isRechargeActiveForGw as isRechargeActiveForGwRule,
+ } from '../constants';
+ import { MiniFixtureBadge } from '../components/MiniFixtureBadge';
++import { COLORS, retryButtonStyle, primaryButtonStyle, dangerButtonStyle } from '../theme';
++import { TooltipTrigger } from '../components/Tooltip';
+ import { SectionHeader } from '../components/SectionHeader';
+ import { PlayerSearchInput } from '../components/PlayerSearchInput';
+ import { TeamScreenshotUpload } from './TeamScreenshotUpload';
+@@ -29,16 +31,10 @@ const teamPlannerInputStyle = {
+ };
+ 
+ const thStyle = {
+-  textAlign: 'left', color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase',
++  textAlign: 'left', color: COLORS.textBody, fontSize: '11px', textTransform: 'uppercase',
+   letterSpacing: '0.05em', padding: '6px 8px'
+ };
+ 
+-const retryButtonStyle = {
+-  display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0,
+-  background: 'transparent', color: '#FBEAE7', border: '1px solid rgba(251,234,231,0.4)',
+-  borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px', cursor: 'pointer',
+-};
+-
+ // Alleen voor de veld-weergave hieronder — GK bovenaan, FWD onderaan, zoals de echte FPL-app (gelijk
+ // aan POSITIONS, de canonieke volgorde voor het formulier en de positie-telling).
+ const PITCH_ROW_ORDER = ['GK', 'DEF', 'MID', 'FWD'];
+@@ -50,7 +46,7 @@ const PITCH_ROW_ORDER = ['GK', 'DEF', 'MID', 'FWD'];
+ function countBadgeStyle(count, required) {
+   if (count === required) return { background: '#4ECDC4', color: '#0B2E1B' };
+   if (count > required) return { background: '#C2402C', color: '#FBEAE7' };
+-  return { background: 'rgba(255,255,255,0.08)', color: '#C9B8E0' };
++  return { background: 'rgba(255,255,255,0.08)', color: COLORS.textBody };
+ }
+ 
+ // Kleurstaat voor de gratis-transfers-pill bij de GW-selector (zie teamPlannerTransferBudget,
+@@ -60,13 +56,13 @@ function countBadgeStyle(count, required) {
+ // enkel de effectief gemaakte extra transfers die punten kosten krijgen de rode stijl, zie hieronder).
+ function transferBudgetBadgeStyle(isRecharge, remainingFree) {
+   if (isRecharge) return { background: 'rgba(232,197,71,0.15)', color: '#E8C547' };
+-  return remainingFree > 0 ? { background: '#4ECDC4', color: '#0B2E1B' } : { background: 'rgba(255,255,255,0.08)', color: '#C9B8E0' };
++  return remainingFree > 0 ? { background: '#4ECDC4', color: '#0B2E1B' } : { background: 'rgba(255,255,255,0.08)', color: COLORS.textBody };
+ }
+ 
+ // Kleurstaat voor de formatie-pill: neutraal zolang de bank nog niet exact 4 spelers telt (de
+ // basisploeg staat dan nog niet vast op 11), anders teal (geldig) of rood (ongeldig).
+ function formationBadgeStyle(isBenchComplete, isValidFormation) {
+-  if (!isBenchComplete) return { background: 'rgba(255,255,255,0.08)', color: '#C9B8E0' };
++  if (!isBenchComplete) return { background: 'rgba(255,255,255,0.08)', color: COLORS.textBody };
+   return isValidFormation ? { background: '#4ECDC4', color: '#0B2E1B' } : { background: '#C2402C', color: '#FBEAE7' };
+ }
+ 
+@@ -77,26 +73,61 @@ function formationBadgeStyle(isBenchComplete, isValidFormation) {
+ // om te annuleren), 'used-elsewhere' (al verbruikt op een andere GW — disabled) of 'available' (nog
+ // vrij te gebruiken). Ofwel `icon` (een lucide-component) ofwel `label` (korte tekst, bv. "3×" voor
+ // Driedubbele kapitein — zelfde glyph als de kapitein-badge op de kaart zelf) meegeven, niet beide.
+-function BoosterIconButton({ icon: Icon, label, title, state, onClick }) {
++// Booster-knop met ZICHTBAAR label.
++//
++// Vroeger was dit een rondje van 26x26px met enkel een icoon erin, waarvan de betekenis uitsluitend
++// in een `title`-attribuut stond. Op een telefoon of iPad — waar geen hover bestaat — zag een
++// gebruiker dus drie naamloze cirkeltjes in de hoek van het veld. Boosters zijn nochtans de
++// zwaarstwegende keuzes van het hele spel (je hebt er één van elk per seizoen), dus ze mogen niet de
++// minst herkenbare en moeilijkst aan te tikken elementen op de pagina zijn.
++//
++// Nu: icoon + tekstlabel + expliciete toestand, met een echt aanraakdoel (.fdr-touch-target tilt dit
++// op aanraakapparaten naar 44px hoog). aria-pressed maakt de aan/uit-toestand ook voor schermlezers
++// zichtbaar; de reden waarom een knop uitgeschakeld is staat als zichtbare tekst onder het label
++// i.p.v. enkel in een tooltip.
++function BoosterButton({ icon: Icon, label, glyph, description, state, gw, onClick }) {
+   const isActive = state === 'active';
+   const isUsedElsewhere = state === 'used-elsewhere';
++  const statusText = isActive ? `Actief voor GW${gw}` : isUsedElsewhere ? 'Al gebruikt' : 'Beschikbaar';
++
+   return (
+     <button
+       onClick={onClick}
+       disabled={isUsedElsewhere}
+-      title={isUsedElsewhere ? `${title} — al gebruikt` : title}
++      aria-pressed={isActive}
++      aria-label={`${label} — ${statusText}. ${description}`}
++      className="fdr-touch-target"
+       style={{
+-        display: 'flex', alignItems: 'center', justifyContent: 'center', width: '26px', height: '26px',
+-        borderRadius: '50%', flexShrink: 0,
+-        background: isActive ? 'rgba(78,205,196,0.25)' : 'rgba(42,20,64,0.55)',
+-        color: isActive ? '#4ECDC4' : isUsedElsewhere ? '#5A4A72' : '#C9B8E0',
+-        border: `1px solid ${isActive ? '#4ECDC4' : 'rgba(255,255,255,0.25)'}`,
+-        opacity: isUsedElsewhere ? 0.5 : 1,
++        display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 150px', minWidth: 0,
++        textAlign: 'left', borderRadius: '10px', padding: '8px 10px',
++        background: isActive ? 'rgba(78,205,196,0.18)' : 'rgba(255,255,255,0.04)',
++        color: isActive ? '#4ECDC4' : isUsedElsewhere ? COLORS.textDisabled : COLORS.textBody,
++        border: `1px solid ${isActive ? '#4ECDC4' : isUsedElsewhere ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.18)'}`,
++        opacity: isUsedElsewhere ? 0.7 : 1,
+         cursor: isUsedElsewhere ? 'not-allowed' : 'pointer',
+-        fontSize: '10px', fontWeight: 900, lineHeight: 1,
++        fontFamily: 'inherit',
+       }}
+     >
+-      {Icon ? <Icon size={13} /> : label}
++      <span
++        aria-hidden="true"
++        style={{
++          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
++          width: '26px', height: '26px', borderRadius: '50%', flexShrink: 0,
++          border: `1px solid ${isActive ? '#4ECDC4' : 'rgba(255,255,255,0.25)'}`,
++          fontSize: '11px', fontWeight: 900, lineHeight: 1,
++        }}
++      >
++        {Icon ? <Icon size={13} /> : glyph}
++      </span>
++      <span style={{ minWidth: 0 }}>
++        <span style={{ display: 'block', fontSize: '12px', fontWeight: 700, lineHeight: 1.2 }}>{label}</span>
++        <span style={{
++          display: 'block', fontSize: '10px', fontWeight: 500, lineHeight: 1.2, marginTop: '2px',
++          color: isActive ? '#4ECDC4' : COLORS.textMuted,
++        }}>
++          {statusText}
++        </span>
++      </span>
+     </button>
+   );
+ }
+@@ -176,7 +207,7 @@ function PlayerPitchCard({ player, gw, ratings, homeAdvantage, isBenched, isCapt
+             position: 'absolute', top: '-6px', left: '-6px', zIndex: 1,
+             width: '18px', height: '18px', borderRadius: '50%', display: 'flex',
+             alignItems: 'center', justifyContent: 'center', padding: 0,
+-            background: 'rgba(42,20,64,0.85)', color: '#8F79AD',
++            background: 'rgba(42,20,64,0.85)', color: COLORS.textMuted,
+             border: '1px solid rgba(255,255,255,0.25)', cursor: 'pointer',
+           }}
+         >
+@@ -256,7 +287,7 @@ function TransferPlayerCard({ player, highlight }) {
+         />
+       )}
+       <span style={{ color: '#FFF', fontSize: '12px', fontWeight: 700, textAlign: 'center' }}>{player.name || '—'}</span>
+-      <span style={{ color: '#8F79AD', fontSize: '10px' }}>{teamNameFor(player.teamCode)} · {player.position}</span>
++      <span style={{ color: COLORS.textMuted, fontSize: '10px' }}>{teamNameFor(player.teamCode)} · {player.position}</span>
+       <span style={{ color: '#4ECDC4', fontSize: '11px', fontWeight: 700 }}>{formatPrice(player.price)}</span>
+     </div>
+   );
+@@ -353,7 +384,7 @@ function TransferPanel({ gw, resolvedIndexedPlayers, playerDatabase, playerDatab
+         }}>
+           <div style={{ display: 'grid', gap: '10px', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
+             <label style={{ display: 'grid', gap: '4px' }}>
+-              <span style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase' }}>Uit (OUT)</span>
++              <span style={{ color: COLORS.textBody, fontSize: '11px', textTransform: 'uppercase' }}>Uit (OUT)</span>
+               <select
+                 value={outIndex}
+                 onChange={e => { setOutIndex(e.target.value); setInPlayer(null); }}
+@@ -368,7 +399,7 @@ function TransferPanel({ gw, resolvedIndexedPlayers, playerDatabase, playerDatab
+               </select>
+             </label>
+             <label style={{ display: 'grid', gap: '4px' }}>
+-              <span style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase' }}>In (IN)</span>
++              <span style={{ color: COLORS.textBody, fontSize: '11px', textTransform: 'uppercase' }}>In (IN)</span>
+               {/* excludeUsedPlayers sluit spelers uit die al ergens in het huidige team zitten (inclusief
+                   de OUT-speler zelf, want die zit ook in resolvedIndexedPlayers) — zo kan een transfer
+                   nooit een speler binnenhalen die al elders in de 15 staat. */}
+@@ -409,7 +440,7 @@ function TransferPanel({ gw, resolvedIndexedPlayers, playerDatabase, playerDatab
+                 </p>
+               )}
+               {!isPositionMismatch && !isOverBudgetAfter && !isClubOverCapAfter && (
+-                <p style={{ color: '#8F79AD', fontSize: '12px', margin: 0, textAlign: 'center' }}>
++                <p style={{ color: COLORS.textMuted, fontSize: '12px', margin: 0, textAlign: 'center' }}>
+                   Nieuw budget na transfer: {newTotal.toFixed(1)}M / {TEAM_PLANNER_BUDGET}M
+                 </p>
+               )}
+@@ -633,7 +664,7 @@ export default function TeamPlannerTab({
+ 
+   return (
+     <>
+-      <p style={{ color: '#8F79AD', fontSize: '13px', marginBottom: '16px' }}>
++      <p style={{ color: COLORS.textMuted, fontSize: '13px', marginBottom: '16px' }}>
+         Stel je selectie samen, plan transfers en bekijk je team, bank en kapitein op elk moment in het seizoen. Deze planner slaat automatisch op in je browser.
+       </p>
+       <TeamScreenshotUpload
+@@ -643,6 +674,7 @@ export default function TeamPlannerTab({
+         updateTeamPlannerPlayer={updateTeamPlannerPlayer}
+         setTeamPlannerCaptain={setTeamPlannerCaptain}
+         teamPlannerGw={teamPlannerGw}
++        isRosterEmpty={isRosterEmpty}
+       />
+       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '24px' }}>
+         <section>
+@@ -662,7 +694,7 @@ export default function TeamPlannerTab({
+                 title={isRosterEmpty ? 'Team is al leeg' : 'Wis je volledige 15-koppige selectie'}
+                 style={{
+                   display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0,
+-                  background: 'transparent', color: isRosterEmpty ? '#5A4A72' : '#C2402C',
++                  background: 'transparent', color: isRosterEmpty ? COLORS.textDisabled : '#C2402C',
+                   border: `1px solid ${isRosterEmpty ? 'rgba(255,255,255,0.15)' : 'rgba(194,64,44,0.4)'}`,
+                   borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px',
+                   cursor: isRosterEmpty ? 'not-allowed' : 'pointer', marginBottom: '12px',
+@@ -672,7 +704,7 @@ export default function TeamPlannerTab({
+               </button>
+             </div>
+             {openSections.teamPlannerRoster && (
+-              <>
++              <div id="fdr-section-teamPlannerRoster">
+                 {/* Recharge-booster (zie FDRTool.jsx): laat de gebruiker het volledige team op de bekeken
+                     GW herbekijken/herbewerken via deze zelfde tabel, i.p.v. spelers één voor één via
+                     "Transfer plannen" te vervangen — zie rechargeDraft/handleConfirmRecharge hierboven. */}
+@@ -705,7 +737,7 @@ export default function TeamPlannerTab({
+                           title={isRechargeInvalid ? 'Los eerst het budget of de clublimiet hierboven op' : undefined}
+                           style={{
+                             background: isRechargeInvalid ? 'rgba(255,255,255,0.08)' : '#4ECDC4',
+-                            color: isRechargeInvalid ? '#6B5289' : '#0B2E1B', border: 'none',
++                            color: isRechargeInvalid ? COLORS.textSubtle : '#0B2E1B', border: 'none',
+                             borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px',
+                             cursor: isRechargeInvalid ? 'not-allowed' : 'pointer',
+                           }}
+@@ -713,7 +745,7 @@ export default function TeamPlannerTab({
+                           Bevestig recharge
+                         </button>
+                         <button onClick={() => setRechargeDraft(null)} style={{
+-                          background: 'transparent', color: '#C9B8E0', border: '1px solid rgba(255,255,255,0.2)',
++                          background: 'transparent', color: COLORS.textBody, border: '1px solid rgba(255,255,255,0.2)',
+                           borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px', cursor: 'pointer',
+                         }}>
+                           Annuleer
+@@ -728,7 +760,7 @@ export default function TeamPlannerTab({
+                     foutmelding met "opnieuw proberen"-knop bij een mislukte fetch. Zolang de databank niet
+                     geladen is, staat de zoek/autocomplete hieronder op disabled (zie PlayerSearchInput). */}
+                 {playerDatabaseLoading && (
+-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#C9B8E0', fontSize: '13px', marginBottom: '16px' }}>
++                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: COLORS.textBody, fontSize: '13px', marginBottom: '16px' }}>
+                     <Loader2 size={16} className="fdr-spin" /> Spelersdatabank laden...
+                   </div>
+                 )}
+@@ -779,6 +811,9 @@ export default function TeamPlannerTab({
+                 </div>
+ 
+                 <div style={{ overflowX: 'auto' }}>
++                  {/* minWidth 520px = deze tabel scrolt horizontaal op een telefoon. De eerste kolom
++                      staat daarom sticky (zelfde patroon als de FDR-hoofdtabel), zodat je bij het
++                      scrollen altijd blijft zien over welke speler/positie een rij gaat. */}
+                   <table style={{ borderCollapse: 'separate', borderSpacing: '0 4px', width: '100%', minWidth: '520px' }}>
+                     <thead>
+                       <tr>
+@@ -798,12 +833,12 @@ export default function TeamPlannerTab({
+                         return (
+                           <tr key={index}>
+                             <td style={{
+-                              color: '#6B5289', fontSize: '12px', padding: '4px 8px', background: rowBg,
++                              color: COLORS.textSubtle, fontSize: '12px', padding: '4px 8px', background: rowBg,
+                               borderLeft: isOverCapClub ? '3px solid #C2402C' : '3px solid transparent',
+                             }}>
+                               {index + 1}
+                             </td>
+-                            <td style={{ padding: '4px 6px', minWidth: '200px', background: rowBg }}>
++                            <td style={{ padding: '4px 6px', minWidth: '200px', background: rowBg, position: 'sticky', left: 0, zIndex: 2 }}>
+                               {/* filterPosition beperkt de suggesties tot de vaste positie van dit slot
+                                   (TEAM_PLANNER_SLOT_POSITIONS) — zo blijft de 2 GK/5 DEF/5 MID/3 FWD-
+                                   structuur altijd kloppen, ook tijdens een Recharge-bewerking. Buiten
+@@ -832,7 +867,7 @@ export default function TeamPlannerTab({
+                                 }}
+                               />
+                             </td>
+-                            <td style={{ padding: '4px 6px', color: '#C9B8E0', fontSize: '13px', fontWeight: 700, background: rowBg }}>
++                            <td style={{ padding: '4px 6px', color: COLORS.textBody, fontSize: '13px', fontWeight: 700, background: rowBg }}>
+                               {TEAM_PLANNER_SLOT_POSITIONS[index]}
+                             </td>
+                             <td style={{ padding: '4px 6px', width: '80px', color: '#FFF', fontSize: '13px', fontWeight: 700, background: rowBg }}>
+@@ -844,7 +879,7 @@ export default function TeamPlannerTab({
+                     </tbody>
+                   </table>
+                 </div>
+-              </>
++              </div>
+             )}
+           </div>
+         </section>
+@@ -860,9 +895,10 @@ export default function TeamPlannerTab({
+               onClick={handleTeamPlannerGwPrev}
+               disabled={teamPlannerGw <= 1}
+               aria-label="Vorige gameweek"
++              className="fdr-icon-btn"
+               style={{
+                 display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px',
+-                background: 'transparent', color: teamPlannerGw <= 1 ? '#5A4A72' : '#C9B8E0',
++                background: 'transparent', color: teamPlannerGw <= 1 ? COLORS.textDisabled : '#C9B8E0',
+                 border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px',
+                 cursor: teamPlannerGw <= 1 ? 'default' : 'pointer'
+               }}
+@@ -876,9 +912,10 @@ export default function TeamPlannerTab({
+               onClick={handleTeamPlannerGwNext}
+               disabled={teamPlannerGw >= GW_COUNT}
+               aria-label="Volgende gameweek"
++              className="fdr-icon-btn"
+               style={{
+                 display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px',
+-                background: 'transparent', color: teamPlannerGw >= GW_COUNT ? '#5A4A72' : '#C9B8E0',
++                background: 'transparent', color: teamPlannerGw >= GW_COUNT ? COLORS.textDisabled : '#C9B8E0',
+                 border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px',
+                 cursor: teamPlannerGw >= GW_COUNT ? 'default' : 'pointer'
+               }}
+@@ -890,7 +927,7 @@ export default function TeamPlannerTab({
+           {/* Handmatig bij te werken deadline-tekst per GW (zie GW_DEADLINES in constants.js) — klein en
+               subtiel, enkel getoond als er voor deze GW iets is ingevuld. */}
+           {GW_DEADLINES[teamPlannerGw] && (
+-            <p style={{ textAlign: 'center', color: '#8F79AD', fontSize: '10px', margin: '0 0 12px' }}>
++            <p style={{ textAlign: 'center', color: COLORS.textMuted, fontSize: '12px', margin: '0 0 12px' }}>
+               Deadline: {GW_DEADLINES[teamPlannerGw]}
+             </p>
+           )}
+@@ -926,7 +963,7 @@ export default function TeamPlannerTab({
+               Formatie: {defCount}-{midCount}-{fwdCount}
+             </span>
+             <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+-              <span style={{ color: '#8F79AD', fontSize: '12px' }}>Kapitein</span>
++              <span style={{ color: COLORS.textMuted, fontSize: '12px' }}>Kapitein</span>
+               <select
+                 value={captainForGw ?? ''}
+                 onChange={e => setTeamPlannerCaptain(e.target.value === '' ? null : Number(e.target.value))}
+@@ -940,7 +977,7 @@ export default function TeamPlannerTab({
+             </label>
+           </div>
+           {!isBenchComplete && (
+-            <p style={{ textAlign: 'center', color: '#8F79AD', fontSize: '12px', margin: '0 0 12px' }}>
++            <p style={{ textAlign: 'center', color: COLORS.textMuted, fontSize: '12px', margin: '0 0 12px' }}>
+               Kies exact {TEAM_PLANNER_BENCH_SIZE} bankspelers voor GW{teamPlannerGw} om je formatie te valideren.
+             </p>
+           )}
+@@ -972,6 +1009,62 @@ export default function TeamPlannerTab({
+             </div>
+           )}
+ 
++          {/* Boosters staan nu als volwaardige, gelabelde knoppen BOVEN het veld i.p.v. als drie
++              naamloze icoontjes in de rechterbovenhoek ván het veld. Ze concurreren daar niet meer
++              met de spelerskaartjes om ruimte, en het is meteen duidelijk wát ze zijn. */}
++          <div style={{ marginBottom: '10px' }}>
++            <h3 className="fdr-title" style={{
++              color: COLORS.textBody, fontSize: '12px', textTransform: 'uppercase',
++              letterSpacing: '0.03em', margin: '0 0 6px',
++            }}>
++              Boosters
++            </h3>
++            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
++              {teamPlannerGw <= 7 ? (
++                <>
++                  <BoosterButton
++                    icon={Armchair}
++                    label="Bankzitters"
++                    description="Je vier bankspelers tellen deze gameweek mee voor punten."
++                    state={boosterState('benchBoost')}
++                    gw={teamPlannerGw}
++                    onClick={() => toggleTeamPlannerBooster('benchBoost', teamPlannerGw)}
++                  />
++                  <BoosterButton
++                    glyph="3×"
++                    label="Driedubbele kapitein"
++                    description="Je kapitein levert deze gameweek drie keer zijn punten op i.p.v. twee keer."
++                    state={boosterState('tripleCaptain')}
++                    gw={teamPlannerGw}
++                    onClick={() => toggleTeamPlannerBooster('tripleCaptain', teamPlannerGw)}
++                  />
++                  <BoosterButton
++                    icon={RefreshCw}
++                    label="Recharge"
++                    description="Herbouw je volledige team zonder puntenaftrek voor transfers."
++                    state={boosterState('recharge')}
++                    gw={teamPlannerGw}
++                    onClick={handleActivateRecharge}
++                  />
++                </>
++              ) : (
++                <BoosterButton
++                  icon={RefreshCw}
++                  label="Recharge"
++                  description="Op GW8 krijgt iedereen automatisch een gratis Recharge — dit telt niet als verbruikt."
++                  state="active"
++                  gw={teamPlannerGw}
++                  onClick={() => {}}
++                />
++              )}
++            </div>
++            {teamPlannerGw > 7 && (
++              <p style={{ color: COLORS.textSubtle, fontSize: '11px', margin: '6px 0 0' }}>
++                Op GW8 krijgt iedereen automatisch een gratis Recharge.
++              </p>
++            )}
++          </div>
++
+           <div className="fdr-pitch-container" style={{
+             position: 'relative',
+             background: 'linear-gradient(180deg, rgba(78,205,196,0.08), rgba(78,205,196,0.02))',
+@@ -994,16 +1087,17 @@ export default function TeamPlannerTab({
+                   }}>
+                     {budget.isRecharge ? 'Recharge: gratis' : `${remainingFree} gratis transfer${remainingFree === 1 ? '' : 's'}`}
+                   </span>
+-                  {/* Enkel getoond zodra er effectief al puntenkost is opgelopen deze GW — de volledige
+-                      "X transfers, Y gratis"-uitleg staat al in de title-tooltip én, voluit, bij de
+-                      Transfers-sectie verderop; hier blijft het compact voor de krappe hoek. */}
++                  {/* Enkel getoond zodra er effectief al puntenkost is opgelopen deze GW. De uitleg
++                      zat vroeger in een `title`, wat op een telefoon of iPad simpelweg onzichtbaar is
++                      — nu via TooltipTrigger, dat óók op een tik en op toetsenbordfocus opent. */}
+                   {budget.pointsCost > 0 && (
+-                    <span
+-                      title={`${budget.used} transfers, ${Math.min(budget.used, budget.freeAvailable)} gratis`}
+-                      style={{ color: '#C2402C', fontSize: '11px', fontWeight: 700 }}
++                    <TooltipTrigger
++                      as="span"
++                      text={`${budget.used} transfers deze GW, waarvan ${Math.min(budget.used, budget.freeAvailable)} gratis`}
++                      style={{ color: '#FF9E90', fontSize: '11px', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: '2px' }}
+                     >
+                       -{budget.pointsCost} punten
+-                    </span>
++                    </TooltipTrigger>
+                   )}
+                 </div>
+               );
+@@ -1014,21 +1108,6 @@ export default function TeamPlannerTab({
+                 GW1-7 handmatig te activeren; GW8 krijgt automatisch (en gratis — telt niet als
+                 "verbruikt") een Recharge voor iedereen, dus daar tonen we enkel dat ene, niet-klikbare,
+                 actief-gemarkeerde icoon i.p.v. de volledige 3-stapel (zie isRechargeActiveForGw). */}
+-            {/* className i.p.v. enkel inline style: laat de mobile media query (FDRTool.jsx) de kolom
+-                hieronder omzetten naar een rij — op smalle schermen is de rijhoogte van een kaart vaak
+-                kleiner dan de hoogte van 3 gestapelde iconen, waardoor die anders over de kaartenrij
+-                eronder heen kunnen vallen (zie .fdr-pitch-boosters). */}
+-            <div className="fdr-pitch-boosters" style={{ position: 'absolute', top: '8px', right: '8px', display: 'flex', flexDirection: 'column', gap: '4px', zIndex: 2 }}>
+-              {teamPlannerGw <= 7 ? (
+-                <>
+-                  <BoosterIconButton icon={Armchair} title="Bankzitters" state={boosterState('benchBoost')} onClick={() => toggleTeamPlannerBooster('benchBoost', teamPlannerGw)} />
+-                  <BoosterIconButton label="3×" title="Driedubbele kapitein" state={boosterState('tripleCaptain')} onClick={() => toggleTeamPlannerBooster('tripleCaptain', teamPlannerGw)} />
+-                  <BoosterIconButton icon={RefreshCw} title="Recharge" state={boosterState('recharge')} onClick={handleActivateRecharge} />
+-                </>
+-              ) : (
+-                <BoosterIconButton icon={RefreshCw} title="Recharge — automatisch voor iedereen op GW8" state="active" onClick={() => {}} />
+-              )}
+-            </div>
+             {PITCH_ROW_ORDER.map(pos => {
+               const rowPlayers = resolvedIndexedPlayers.filter(p => p.position === pos && !benchForGw.includes(p.index));
+               return (
+@@ -1047,7 +1126,7 @@ export default function TeamPlannerTab({
+                   }}
+                 >
+                   {rowPlayers.length === 0 ? (
+-                    <span style={{ color: '#6B5289', fontSize: '11px', textTransform: 'uppercase' }}>{pos}</span>
++                    <span style={{ color: COLORS.textSubtle, fontSize: '11px', textTransform: 'uppercase' }}>{pos}</span>
+                   ) : (
+                     rowPlayers.map(player => (
+                       <PlayerPitchCard
+@@ -1081,7 +1160,7 @@ export default function TeamPlannerTab({
+                   optimaliseren. flexWrap zorgt dat dit linkerdeel op erg smalle schermen netjes
+                   onder elkaar/naast elkaar uitvalt i.p.v. iets af te knijpen. */}
+               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+-                <h3 className="fdr-title" style={{ color: '#C9B8E0', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.03em', margin: 0 }}>
++                <h3 className="fdr-title" style={{ color: COLORS.textBody, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.03em', margin: 0 }}>
+                   Bank — GW{teamPlannerGw}
+                 </h3>
+                 <button
+@@ -1091,14 +1170,19 @@ export default function TeamPlannerTab({
+                   style={{
+                     display: 'inline-flex', alignItems: 'center', gap: '6px',
+                     background: isBenchReorderMode ? '#4ECDC4' : 'transparent',
+-                    color: isBenchReorderMode ? '#0B2E1B' : benchOutfieldPlayers.length < 2 ? '#5A4A72' : '#4ECDC4',
++                    color: isBenchReorderMode ? '#0B2E1B' : benchOutfieldPlayers.length < 2 ? COLORS.textDisabled : '#4ECDC4',
+                     border: `1px solid ${isBenchReorderMode ? '#4ECDC4' : benchOutfieldPlayers.length < 2 ? 'rgba(255,255,255,0.15)' : '#4ECDC4'}`,
+                     borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px',
+                     cursor: benchOutfieldPlayers.length < 2 ? 'not-allowed' : 'pointer',
+                   }}
+                 >
+-                  <ArrowUpDown size={14} /> {isBenchReorderMode ? 'Klaar met herschikken' : 'Herschik bank'}
++                  <ArrowUpDown size={14} aria-hidden="true" /> {isBenchReorderMode ? 'Klaar met herschikken' : 'Herschik bank'}
+                 </button>
++                {benchOutfieldPlayers.length < 2 && (
++                  <span style={{ color: COLORS.textSubtle, fontSize: '11px' }}>
++                    Minstens 2 veldspelers op de bank nodig om te herschikken.
++                  </span>
++                )}
+               </div>
+               <button onClick={handleOptimizeTeamPlannerLineup} style={{
+                 display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'transparent',
+@@ -1122,13 +1206,30 @@ export default function TeamPlannerTab({
+                 <Zap size={14} /> Bankzitters actief voor GW{teamPlannerGw} — bankspelers tellen mee.
+               </div>
+             )}
++            {/* Modusbanner. De Team Planner kent drie standen waarin ÉÉN EN DEZELFDE tik op een
++                kaartje iets anders doet (normaal / herschik-bank / recharge-bewerking). Dat was
++                vroeger enkel af te leiden uit een klein regeltje tekst of uit de kleur van een knop.
++                Deze banner zegt onomwonden wat een tik nú doet, en hoe je de modus weer verlaat. */}
+             {isBenchReorderMode && (
+-              <p style={{ color: '#4ECDC4', fontSize: '11px', margin: '0 0 8px' }}>
+-                Herschik-modus actief: klik een bankspeler (niet de keeper) aan, en daarna een andere, om ze van plaats te wisselen.
+-              </p>
++              <div role="status" style={{
++                display: 'flex', alignItems: 'flex-start', gap: '8px', margin: '0 0 10px',
++                background: 'rgba(78,205,196,0.12)', border: '1px solid rgba(78,205,196,0.45)',
++                borderRadius: '8px', padding: '8px 12px',
++              }}>
++                <ArrowUpDown size={14} color="#4ECDC4" style={{ flexShrink: 0, marginTop: '2px' }} aria-hidden="true" />
++                <p style={{ margin: 0, color: '#4ECDC4', fontSize: '12px', lineHeight: 1.5, fontWeight: 700 }}>
++                  Herschik-modus actief
++                  <span style={{ display: 'block', color: COLORS.textBody, fontWeight: 400, marginTop: '2px' }}>
++                    {benchSwapSlot === null
++                      ? 'Tik een bankspeler aan (niet de keeper), daarna een tweede om ze van plaats te wisselen.'
++                      : 'Tik nu een andere bankspeler aan om te wisselen, of dezelfde om te annuleren.'}
++                    {' '}Tikken zet een speler zolang niet terug naar het veld — druk op "Klaar met herschikken" om te stoppen.
++                  </span>
++                </p>
++              </div>
+             )}
+             {benchPlayers.length === 0 ? (
+-              <p style={{ color: '#6B5289', fontSize: '13px' }}>Nog geen bankspelers voor deze GW. Klik een speler op het veld aan om 'm naar de bank te sturen.</p>
++              <p style={{ color: COLORS.textSubtle, fontSize: '13px' }}>Nog geen bankspelers voor deze GW. Klik een speler op het veld aan om 'm naar de bank te sturen.</p>
+             ) : (
+               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                 {benchPlayers.map(player => {
+@@ -1179,18 +1280,18 @@ export default function TeamPlannerTab({
+                 title={transferGroups.length === 0 ? 'Nog geen transfers om te wissen' : 'Wis alle geplande transfers'}
+                 style={{
+                   display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0,
+-                  background: 'transparent', color: transferGroups.length === 0 ? '#5A4A72' : '#C2402C',
++                  background: 'transparent', color: transferGroups.length === 0 ? COLORS.textDisabled : '#C2402C',
+                   border: `1px solid ${transferGroups.length === 0 ? 'rgba(255,255,255,0.15)' : 'rgba(194,64,44,0.4)'}`,
+                   borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px',
+                   cursor: transferGroups.length === 0 ? 'not-allowed' : 'pointer', marginBottom: '12px',
+                 }}
+               >
+-                <Trash2 size={13} /> Wis alle transfers
++                <Trash2 size={13} aria-hidden="true" /> Wis alle transfers
+               </button>
+             </div>
+             {openSections.teamPlannerTransfers && (
+               transferGroups.length === 0 ? (
+-                <p style={{ color: '#6B5289', fontSize: '13px' }}>
++                <p style={{ color: COLORS.textSubtle, fontSize: '13px' }}>
+                   Nog geen transfers gepland. Gebruik "Transfer plannen" bij het veld hierboven om spelers vanaf een gekozen GW te vervangen.
+                 </p>
+               ) : (
+@@ -1199,7 +1300,7 @@ export default function TeamPlannerTab({
+                     <div key={group.gw}>
+                       <h3 className="fdr-title" style={{
+                         display: 'flex', alignItems: 'center', gap: '6px',
+-                        color: '#C9B8E0', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.03em', margin: '0 0 8px',
++                        color: COLORS.textBody, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.03em', margin: '0 0 8px',
+                       }}>
+                         GW{group.gw}
+                         {/* isRechargeActiveForGwRule (constants.js, zelfde bron van waarheid als hierboven
+@@ -1236,7 +1337,7 @@ export default function TeamPlannerTab({
+                             />
+                             <span style={{ color: '#FFF', fontSize: '13px' }}>
+                               {entry.outPlayer.name || '—'}{' '}
+-                              <span style={{ color: '#8F79AD', fontSize: '11px' }}>({formatPrice(entry.outPlayer.price)})</span>
++                              <span style={{ color: COLORS.textMuted, fontSize: '11px' }}>({formatPrice(entry.outPlayer.price)})</span>
+                             </span>
+                             <ArrowRight size={14} color="#4ECDC4" style={{ flexShrink: 0 }} />
+                             <img
+@@ -1255,7 +1356,7 @@ export default function TeamPlannerTab({
+                               aria-label={`Verwijder transfer ${entry.outPlayer.name} naar ${entry.inPlayer.name}`}
+                               style={{
+                                 display: 'flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', flexShrink: 0,
+-                                background: 'transparent', color: '#8F79AD', border: 'none', borderRadius: '6px', cursor: 'pointer'
++                                background: 'transparent', color: COLORS.textMuted, border: 'none', borderRadius: '6px', cursor: 'pointer'
+                               }}
+                             >
+                               <X size={14} />
+diff --git a/src/tabs/TeamScreenshotUpload.jsx b/src/tabs/TeamScreenshotUpload.jsx
+index 748a5e8..5687742 100644
+--- a/src/tabs/TeamScreenshotUpload.jsx
++++ b/src/tabs/TeamScreenshotUpload.jsx
+@@ -9,16 +9,11 @@
+ import { useState, useRef } from 'react';
+ import { Upload, Loader2, AlertCircle, RotateCcw, Check, X, Crown } from 'lucide-react';
+ import { POSITIONS, TEAM_PLANNER_SLOT_POSITIONS } from '../constants';
++import { COLORS, retryButtonStyle, primaryButtonStyle, secondaryButtonStyle } from '../theme';
+ import { PlayerSearchInput } from '../components/PlayerSearchInput';
+ import { downscaleImageToBase64 } from '../utils/imageDownscale';
+ import { matchPlayer } from '../utils/playerFuzzyMatch';
+ 
+-const retryButtonStyle = {
+-  display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0,
+-  background: 'transparent', color: '#FBEAE7', border: '1px solid rgba(251,234,231,0.4)',
+-  borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px', cursor: 'pointer',
+-};
+-
+ const CONFIDENCE_STYLE = {
+   hoog: { bg: 'rgba(78,205,196,0.15)', color: '#4ECDC4', label: 'Hoog' },
+   twijfelachtig: { bg: 'rgba(232,197,71,0.15)', color: '#E8C547', label: 'Twijfelachtig' },
+@@ -56,13 +51,13 @@ function SuggestionRow({ suggestion, index, playerDatabase, onUpdate, onToggleCa
+         <div style={{ color: '#FFF', fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+           Herkend: &ldquo;{suggestion.rawName}&rdquo;
+           {suggestion.isCaptain && (
+-            <span title="Kapitein herkend" style={{ background: '#4ECDC4', color: '#0B2E1B', borderRadius: '999px', width: '16px', height: '16px', fontSize: '9px', fontWeight: 900, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>C</span>
++            <span title="Kapitein herkend" aria-label="Kapitein herkend" role="img" style={{ background: '#4ECDC4', color: '#0B2E1B', borderRadius: '999px', width: '16px', height: '16px', fontSize: '9px', fontWeight: 900, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>C</span>
+           )}
+           {suggestion.isViceCaptain && (
+-            <span title="Vice-kapitein herkend (enkel ter info)" style={{ background: 'rgba(255,255,255,0.15)', color: '#C9B8E0', borderRadius: '999px', width: '16px', height: '16px', fontSize: '9px', fontWeight: 900, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>V</span>
++            <span title="Vice-kapitein herkend (enkel ter info)" aria-label="Vice-kapitein herkend" role="img" style={{ background: 'rgba(255,255,255,0.15)', color: COLORS.textBody, borderRadius: '999px', width: '16px', height: '16px', fontSize: '9px', fontWeight: 900, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>V</span>
+           )}
+         </div>
+-        <div style={{ color: '#8F79AD', fontSize: '11px' }}>rij: {suggestion.rowLabel || suggestion.rawPosition || '—'}</div>
++        <div style={{ color: COLORS.textMuted, fontSize: '11px' }}>rij: {suggestion.rowLabel || suggestion.rawPosition || '—'}</div>
+       </div>
+       <span style={{
+         background: confidenceStyle.bg, color: confidenceStyle.color, fontSize: '11px', fontWeight: 700,
+@@ -80,11 +75,14 @@ function SuggestionRow({ suggestion, index, playerDatabase, onUpdate, onToggleCa
+       </div>
+       <button
+         onClick={() => onToggleCaptain(index)}
++        aria-pressed={suggestion.isCaptain}
++        aria-label={suggestion.isCaptain ? `Kapitein-markering verwijderen bij ${suggestion.rawName}` : `${suggestion.rawName} kapitein maken`}
+         title={suggestion.isCaptain ? 'Kapitein-markering verwijderen' : 'Maak kapitein'}
++        className="fdr-icon-btn"
+         style={{
+           display: 'flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px',
+           borderRadius: '8px', flexShrink: 0, background: suggestion.isCaptain ? 'rgba(78,205,196,0.2)' : 'transparent',
+-          color: suggestion.isCaptain ? '#4ECDC4' : '#8F79AD', border: `1px solid ${suggestion.isCaptain ? '#4ECDC4' : 'rgba(255,255,255,0.2)'}`,
++          color: suggestion.isCaptain ? '#4ECDC4' : COLORS.textMuted, border: `1px solid ${suggestion.isCaptain ? '#4ECDC4' : 'rgba(255,255,255,0.2)'}`,
+           cursor: 'pointer',
+         }}
+       >
+@@ -96,7 +94,7 @@ function SuggestionRow({ suggestion, index, playerDatabase, onUpdate, onToggleCa
+ 
+ export function TeamScreenshotUpload({
+   playerDatabase, playerDatabaseLoading, playerDatabaseError,
+-  updateTeamPlannerPlayer, setTeamPlannerCaptain, teamPlannerGw,
++  updateTeamPlannerPlayer, setTeamPlannerCaptain, teamPlannerGw, isRosterEmpty = false,
+ }) {
+   const [proposal, setProposal] = useState(null); // null | { suggestions: [...], warning }
+   const [status, setStatus] = useState('idle'); // 'idle' | 'loading' | 'error'
+@@ -194,15 +192,37 @@ export function TeamScreenshotUpload({
+   const hasViceCaptainSuggestion = proposal?.suggestions.some(s => s.isViceCaptain);
+ 
+   return (
++    // Visueel naar voren gehaald (accentrand + accentachtergrond) i.p.v. het neutrale grijze kaartje
++    // van vroeger. Dit is de snelste weg van "lege planner" naar "volledig team": één screenshot
++    // vervangt vijftien keer handmatig zoeken en typen. Als dat eruitziet als zomaar weer een blok,
++    // scrollen mensen er straal voorbij en beginnen ze aan het trage pad.
+     <div style={{
+-      background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
++      background: isRosterEmpty ? 'rgba(78,205,196,0.08)' : 'rgba(255,255,255,0.04)',
++      border: `1px solid ${isRosterEmpty ? 'rgba(78,205,196,0.45)' : 'rgba(255,255,255,0.08)'}`,
+       borderRadius: '10px', padding: '16px', marginBottom: '20px',
+     }}>
+-      <h3 className="fdr-title" style={{ color: '#C9B8E0', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.03em', margin: '0 0 8px' }}>
+-        Team herkennen via screenshot
++      <h3 className="fdr-title" style={{
++        color: isRosterEmpty ? '#4ECDC4' : COLORS.textBody, fontSize: '13px',
++        textTransform: 'uppercase', letterSpacing: '0.03em', margin: '0 0 8px',
++        display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap',
++      }}>
++        <Upload size={15} aria-hidden="true" />
++        Start snel: team herkennen via screenshot
++        {isRosterEmpty && (
++          <span style={{
++            background: '#4ECDC4', color: '#0B2E1B', fontSize: '10px', fontWeight: 900,
++            padding: '2px 8px', borderRadius: '999px', letterSpacing: '0.03em',
++          }}>
++            Aanrader
++          </span>
++        )}
+       </h3>
+-      <p style={{ color: '#8F79AD', fontSize: '12px', margin: '0 0 12px' }}>
+-        
++      {/* Deze paragraaf stond vroeger volledig leeg in de code — een zichtbaar gat waar uitleg hoorde. */}
++      <p style={{ color: COLORS.textMuted, fontSize: '12px', margin: '0 0 12px', lineHeight: 1.55 }}>
++        Upload een screenshot van je team uit de Fantasy Pro League-app en we vullen je vijftien
++        spelers automatisch in — een stuk sneller dan ze één voor één opzoeken. Je krijgt eerst een
++        voorstel te zien dat je zelf kan corrigeren; er wordt niets ingevuld tot je op
++        &ldquo;Toepassen&rdquo; klikt.
+       </p>
+ 
+       <input
+@@ -243,7 +263,7 @@ export function TeamScreenshotUpload({
+             </div>
+           )}
+           {teamPlannerGw !== 1 && (
+-            <p style={{ color: '#8F79AD', fontSize: '11px', margin: '0 0 10px' }}>
++            <p style={{ color: COLORS.textMuted, fontSize: '11px', margin: '0 0 10px' }}>
+               De herkende kapitein wordt ingesteld voor GW{teamPlannerGw} (de momenteel bekeken speelweek).
+             </p>
+           )}
+@@ -260,7 +280,7 @@ export function TeamScreenshotUpload({
+             ))}
+           </div>
+           {hasViceCaptainSuggestion && (
+-            <p style={{ color: '#8F79AD', fontSize: '11px', margin: '10px 0 0' }}>
++            <p style={{ color: COLORS.textMuted, fontSize: '11px', margin: '10px 0 0' }}>
+               Vice-kapitein herkend maar niet ondersteund door Team Planner — enkel ter info (V-badge hierboven).
+             </p>
+           )}
+@@ -274,7 +294,7 @@ export function TeamScreenshotUpload({
+             </button>
+             <button onClick={handleCancel} style={{
+               display: 'inline-flex', alignItems: 'center', gap: '6px',
+-              background: 'transparent', color: '#C9B8E0', border: '1px solid rgba(255,255,255,0.2)',
++              background: 'transparent', color: COLORS.textBody, border: '1px solid rgba(255,255,255,0.2)',
+               borderRadius: '8px', padding: '8px 16px', fontWeight: 700, fontSize: '13px', cursor: 'pointer',
+             }}>
+               <X size={15} /> Annuleren
+@@ -282,7 +302,7 @@ export function TeamScreenshotUpload({
+           </div>
+         </div>
+       ) : status === 'loading' ? (
+-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#C9B8E0', fontSize: '13px' }}>
++        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: COLORS.textBody, fontSize: '13px' }}>
+           <Loader2 size={16} className="fdr-spin" /> Team herkennen...
+         </div>
+       ) : status === 'error' ? (
+@@ -303,7 +323,7 @@ export function TeamScreenshotUpload({
+           disabled={playerDatabaseLoading || !!playerDatabaseError}
+           style={{
+             display: 'inline-flex', alignItems: 'center', gap: '6px',
+-            background: 'transparent', color: playerDatabaseLoading || playerDatabaseError ? '#5A4A72' : '#4ECDC4',
++            background: 'transparent', color: playerDatabaseLoading || playerDatabaseError ? COLORS.textDisabled : '#4ECDC4',
+             border: `1px solid ${playerDatabaseLoading || playerDatabaseError ? 'rgba(255,255,255,0.15)' : '#4ECDC4'}`,
+             borderRadius: '8px', padding: '8px 14px', fontWeight: 700, fontSize: '13px',
+             cursor: playerDatabaseLoading || playerDatabaseError ? 'not-allowed' : 'pointer',
+diff --git a/src/tabs/WatchlistTab.jsx b/src/tabs/WatchlistTab.jsx
+index 47ee132..cee4e41 100644
+--- a/src/tabs/WatchlistTab.jsx
++++ b/src/tabs/WatchlistTab.jsx
+@@ -5,20 +5,15 @@
+ 
+ import { X, Plus, Eye, UserPlus, Loader2, AlertCircle, RotateCcw } from 'lucide-react';
+ import { TEAMS, CURRENT_GW, FIXTURES, sectionTitleStyle, sectionTitleTextStyle } from '../constants';
++import { COLORS, retryButtonStyle, primaryButtonStyle } from '../theme';
+ import { MiniFixtureBadge } from '../components/MiniFixtureBadge';
+ import { PlayerSearchInput } from '../components/PlayerSearchInput';
+ 
+ const watchlistInputStyle = {
+-  background: '#3D1E5C', color: '#FFF', border: '1px solid rgba(255,255,255,0.15)',
++  background: COLORS.surface, color: COLORS.text, border: '1px solid rgba(255,255,255,0.15)',
+   borderRadius: '6px', padding: '8px 10px', fontSize: '13px', width: '100%'
+ };
+ 
+-const retryButtonStyle = {
+-  display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0,
+-  background: 'transparent', color: '#FBEAE7', border: '1px solid rgba(251,234,231,0.4)',
+-  borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px', cursor: 'pointer',
+-};
+-
+ export default function WatchlistTab({
+   ratings, homeAdvantage,
+   watchlist, newPlayerName, setNewPlayerName, newPlayerTeam, setNewPlayerTeam, newPlayerPrice, setNewPlayerPrice,
+@@ -27,7 +22,7 @@ export default function WatchlistTab({
+ }) {
+   return (
+     <>
+-      <p style={{ color: '#8F79AD', fontSize: '13px', marginBottom: '16px' }}>
++      <p style={{ color: COLORS.textMuted, fontSize: '13px', marginBottom: '16px' }}>
+         Houd je favoriete spelers in de gaten — voeg ze toe aan je persoonlijke watchlist, samen met hun eerstvolgende fixtures. Deze lijst slaat automatisch op in je browser.
+       </p>
+       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '24px' }}>
+@@ -45,8 +40,12 @@ export default function WatchlistTab({
+               FDRTool.jsx) — zelfde patroon als Team Planner: spinner tijdens het laden, rode foutmelding
+               met "opnieuw proberen"-knop bij een mislukte fetch. De zoek/autocomplete hieronder staat
+               zolang op disabled (zie PlayerSearchInput). */}
++          {/* aria-live: het laden/mislukken van de spelersdatabank gebeurt asynchroon en veranderde
++              vroeger stilletjes de staat van het zoekveld (disabled) zonder dat een schermlezer daar
++              iets van meekreeg. */}
++          <div aria-live="polite">
+           {playerDatabaseLoading && (
+-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#C9B8E0', fontSize: '13px', marginBottom: '12px' }}>
++            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: COLORS.textBody, fontSize: '13px', marginBottom: '12px' }}>
+               <Loader2 size={16} className="fdr-spin" /> Spelersdatabank laden...
+             </div>
+           )}
+@@ -58,17 +57,18 @@ export default function WatchlistTab({
+             }}>
+               <AlertCircle size={16} color="#C2402C" style={{ flexShrink: 0 }} />
+               <span style={{ color: '#FBEAE7', fontSize: '13px', flex: 1 }}>{playerDatabaseError}</span>
+-              <button onClick={fetchPlayerDatabase} style={retryButtonStyle}>
+-                <RotateCcw size={14} /> Probeer opnieuw
++              <button onClick={fetchPlayerDatabase} className="fdr-touch-target" style={retryButtonStyle}>
++                <RotateCcw size={14} aria-hidden="true" /> Probeer opnieuw
+               </button>
+             </div>
+           )}
++          </div>
+ 
+           <form onSubmit={handleAddWatchlistPlayer} style={{
+             display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px', alignItems: 'end'
+           }}>
+             <label style={{ display: 'grid', gap: '4px', gridColumn: 'span 2' }}>
+-              <span style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', marginLeft: '4px'}}>Speler</span>
++              <span style={{ color: COLORS.textBody, fontSize: '11px', textTransform: 'uppercase', marginLeft: '4px'}}>Speler</span>
+               {/* Zoek/autocomplete op de spelersdatabank i.p.v. vrije-tekst naam + los team-dropdown —
+                   bij selectie vullen newPlayerName/-Team/-Price automatisch (zie onSelect hieronder),
+                   zelfde patroon als de 15-koppige teaminvoer in TeamPlannerTab.jsx. */}
+@@ -85,16 +85,12 @@ export default function WatchlistTab({
+               />
+             </label>
+             <label style={{ display: 'grid', gap: '4px' }}>
+-              <span style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', marginLeft: '4px' }}>Prijs</span>
+-              <div style={{ ...watchlistInputStyle, color: newPlayerPrice !== '' ? '#FFF' : '#8F79AD', fontWeight: 700 }}>
++              <span style={{ color: COLORS.textBody, fontSize: '11px', textTransform: 'uppercase', marginLeft: '4px' }}>Prijs</span>
++              <div style={{ ...watchlistInputStyle, color: newPlayerPrice !== '' ? '#FFF' : COLORS.textMuted, fontWeight: 700 }}>
+                 {newPlayerPrice !== '' ? `${Number(newPlayerPrice).toFixed(1)}M` : '—'}
+               </div>
+             </label>
+-            <button type="submit" style={{
+-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+-              background: '#4ECDC4', color: '#0B2E1B', border: 'none', borderRadius: '8px',
+-              padding: '9px 14px', fontWeight: 700, fontSize: '13px', cursor: 'pointer'
+-            }}>
++            <button type="submit" className="fdr-touch-target" style={primaryButtonStyle}>
+               <Plus size={18} /> Toevoegen
+             </button>
+           </form>
+@@ -107,7 +103,7 @@ export default function WatchlistTab({
+             <span style={sectionTitleTextStyle}>Mijn watchlist</span>
+           </h2>
+           {watchlist.length === 0 ? (
+-            <p style={{ color: '#6B5289', fontSize: '13px' }}>
++            <p style={{ color: COLORS.textSubtle, fontSize: '13px' }}>
+               Je watchlist is nog leeg. Voeg spelers toe die je in de gaten wil houden.
+             </p>
+           ) : (
+@@ -124,11 +120,12 @@ export default function WatchlistTab({
+                   }}>
+                     <button
+                       onClick={() => handleRemoveWatchlistPlayer(player.id)}
+-                      aria-label={`Verwijder ${player.name}`}
++                      aria-label={`Verwijder ${player.name} uit je watchlist`}
++                      className="fdr-icon-btn"
+                       style={{
+-                        position: 'absolute', top: '6px', right: '6px',
+-                        display: 'flex', alignItems: 'center', justifyContent: 'center', width: '22px', height: '22px',
+-                        background: 'transparent', color: '#8F79AD', border: 'none', borderRadius: '6px', cursor: 'pointer'
++                        position: 'absolute', top: '2px', right: '2px',
++                        display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px',
++                        background: 'transparent', color: COLORS.textMuted, border: 'none', borderRadius: '6px', cursor: 'pointer'
+                       }}
+                     >
+                       <X size={14} />
+@@ -143,7 +140,7 @@ export default function WatchlistTab({
+                       />
+                       <div style={{ minWidth: 0, flex: 1 }}>
+                         <div style={{ color: '#FFF', fontWeight: 700, fontSize: '14px', lineHeight: 1.25 }}>{player.name}</div>
+-                        <div style={{ color: '#8F79AD', fontSize: '11px', marginTop: '1px' }}>{team?.name ?? player.teamCode}</div>
++                        <div style={{ color: COLORS.textMuted, fontSize: '11px', marginTop: '1px' }}>{team?.name ?? player.teamCode}</div>
+                       </div>
+                       {player.price != null && (
+                         <span style={{
+diff --git a/src/theme.js b/src/theme.js
+new file mode 100644
+index 0000000..f39eb12
+--- /dev/null
++++ b/src/theme.js
+@@ -0,0 +1,95 @@
++// Gedeelde UI-tokens en knopstijlen voor de publieke site.
++//
++// Waarom dit bestand bestaat: de knopstijlen stonden vroeger als losse objectliteralen in elk
++// tab-bestand apart (en `retryButtonStyle` stond zelfs twee keer LETTERLIJK gekopieerd, in
++// WatchlistTab.jsx en TeamScreenshotUpload.jsx). Daardoor liepen padding, radius en font-size van
++// knoppen met dezelfde rang uiteen per tab. Alles wat hier staat is één keer gedefinieerd en wordt
++// overal geïmporteerd, zodat "primaire knop" er op elk tabblad identiek uitziet.
++//
++// Deze file bevat bewust GEEN JSX — het is een .js-bestand (zie de opmerking bovenaan constants.js).
++
++// --- Kleuren -------------------------------------------------------------------------------------
++//
++// De contrastwaarden hieronder zijn berekend t.o.v. de paginakleur (#2A1440) en de kaartkleur
++// (#3D1E5C). De twee "muted" tinten zijn opgetrokken t.o.v. hun vorige waarden omdat die onder de
++// WCAG AA-drempel van 4.5:1 zaten — precies op de plaatsen waar het het meest telt: de uitleg boven
++// elke tab en álle lege-toestand-teksten ("Je watchlist is nog leeg", ...), dus exact de tekst die
++// een nieuwe bezoeker moet lezen.
++export const COLORS = {
++  bg: '#2A1440',
++  surface: '#3D1E5C',
++  accent: '#4ECDC4',
++  accentInk: '#0B2E1B',
++  text: '#FFFFFF',
++  // Hoofdtekst — was al ruim in orde (8.97:1).
++  textBody: '#C9B8E0',
++  // Secundaire tekst / uitleg boven elke tab. Was #8F79AD (4.33:1 → zakte net onder AA).
++  // Nu 6.02:1 op de pagina en 4.98:1 op een kaart.
++  textMuted: '#A794C2',
++  // Tertiaire tekst / lege toestanden / footer. Was #6B5289 (2.51:1 — ruim onvoldoende).
++  // Nu 6.00:1 op de pagina en 4.96:1 op een kaart. Bewust iets doffer dan textMuted zodat de
++  // hiërarchie tussen "uitleg" en "lege toestand" behouden blijft.
++  textSubtle: '#A594C4',
++  // Uitgeschakelde tekst. Was #5A4A72 (2.09:1). Disabled-tekst valt formeel buiten WCAG 1.4.3,
++  // maar 4.15:1 is een stuk leesbaarder zonder dat "uit" er actief uit gaat zien.
++  textDisabled: '#8878A5',
++  danger: '#C2402C',
++  dangerInk: '#FBEAE7',
++  warning: '#E8C547',
++  border: 'rgba(255,255,255,0.2)',
++  borderSubtle: 'rgba(255,255,255,0.08)',
++  cardBg: 'rgba(255,255,255,0.04)',
++};
++
++// --- Vormtokens ----------------------------------------------------------------------------------
++export const RADIUS = { sm: '6px', md: '8px', lg: '10px', xl: '14px', pill: '999px' };
++
++// --- Knoppen -------------------------------------------------------------------------------------
++//
++// Drie rangen (primair / secundair / gevaar) plus een vierkante icoonknop. Allemaal dezelfde radius
++// (RADIUS.md), dezelfde verticale padding en dezelfde font-size, zodat knoppen die naast elkaar staan
++// ook echt even hoog zijn.
++
++const buttonBase = {
++  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
++  borderRadius: RADIUS.md, padding: '8px 14px', fontWeight: 700, fontSize: '13px',
++  fontFamily: 'inherit', cursor: 'pointer',
++};
++
++export const primaryButtonStyle = {
++  ...buttonBase,
++  background: COLORS.accent, color: COLORS.accentInk, border: 'none',
++};
++
++export const secondaryButtonStyle = {
++  ...buttonBase,
++  background: 'transparent', color: COLORS.textBody, border: `1px solid ${COLORS.border}`,
++};
++
++export const dangerButtonStyle = {
++  ...buttonBase,
++  background: 'transparent', color: COLORS.danger,
++  border: '1px solid rgba(194,64,44,0.4)', padding: '6px 12px', fontSize: '12px',
++};
++
++// Gebruikt in rode foutpanelen (spelersdatabank kon niet laden). Stond vroeger dubbel gekopieerd.
++export const retryButtonStyle = {
++  ...buttonBase,
++  background: 'transparent', color: COLORS.dangerInk,
++  border: '1px solid rgba(251,234,231,0.4)', padding: '6px 12px', fontSize: '12px', flexShrink: 0,
++};
++
++// Vierkante icoonknop. 34px op muis-apparaten; de globale `@media (pointer: coarse)`-regel in
++// FDRTool.jsx tilt elke .fdr-icon-btn op touchtoestellen naar minimaal 44x44px, zodat we hier geen
++// aparte mobiele maat hoeven te definiëren.
++export const iconButtonStyle = {
++  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
++  width: '34px', height: '34px', flexShrink: 0,
++  background: 'transparent', color: COLORS.textBody,
++  border: `1px solid ${COLORS.border}`, borderRadius: RADIUS.md, cursor: 'pointer',
++};
++
++export const selectStyle = {
++  background: COLORS.surface, color: COLORS.text, border: '1px solid rgba(255,255,255,0.15)',
++  borderRadius: RADIUS.sm, padding: '4px 8px', fontSize: '12px', fontFamily: 'inherit',
++};
+diff --git a/vercel.json b/vercel.json
+new file mode 100644
+index 0000000..82980da
+--- /dev/null
++++ b/vercel.json
+@@ -0,0 +1,10 @@
++{
++  "$schema": "https://openapi.vercel.sh/vercel.json",
++  "rewrites": [
++    { "source": "/fdr", "destination": "/index.html" },
++    { "source": "/team-planner", "destination": "/index.html" },
++    { "source": "/predicted-lineups", "destination": "/index.html" },
++    { "source": "/watchlist", "destination": "/index.html" },
++    { "source": "/price-changes", "destination": "/index.html" }
++  ]
++}
+-- 
+2.43.0
+
