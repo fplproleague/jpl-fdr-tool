@@ -362,6 +362,9 @@ export function resolveSlotPlayerAtGw(basePlayer, transfersForSlot, atGw) {
 // Publiek gepubliceerde Google Sheet (CSV-export) met naam/team/positie/prijs van elke speler. De
 // gebruiker werkt deze sheet regelmatig bij tijdens de zomermercato — elke fetch in FDRTool.jsx
 // gebeurt daarom met cache: 'no-store', zodat nooit een verouderde, gecachete versie getoond wordt.
+// Bevat sinds kort ook 7 statistiek-kolommen (Gele kaarten/Duels gewonnen/.../Bonuspunten, zie
+// parsePlayerDatabaseCsv hieronder) — deze voeden nu ook de Kaarten- en Bonuspunten-tab (zie
+// src/kaarten.js/src/bonuspunten.js), die voorheen elk hun eigen aparte werkblad-CSV nodig hadden.
 export const PLAYER_DATABASE_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS_PSoy3cpm-nckncN8C8lmxg0PfxYpANthYfLFccxft2UuBbmCvOa8SXrlwyJkBWUu0ek3QMBsIknU/pub?gid=0&single=true&output=csv';
 
 // Eenvoudige RFC4180-achtige CSV-tokenizer (i.p.v. text.split(',')): velden tussen aanhalingstekens
