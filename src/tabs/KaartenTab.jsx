@@ -14,19 +14,32 @@ const retryButtonStyle = {
   borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px', cursor: 'pointer',
 };
 
+// Tijdelijk verborgen (sinds 16 aug 2026, ±1 maand) — het aantal kaarten is dit vroeg in het seizoen nog
+// te laag om "dichtst bij schorsing" zinvol te maken. Zet terug op true om de sorteermodus-knop weer te
+// tonen; sortMode's default ('mostCards') blijft ondertussen gewoon werken.
+const SHOW_CLOSEST_TO_SUSPENSION_MODE = false;
+
 const SORT_MODES = [
   { key: 'mostCards', label: 'Meeste gele kaarten' },
   { key: 'closestToSuspension', label: 'Dichtst bij schorsing' },
 ];
 
+// Enkel spelers vanaf 2 gele kaarten zijn relevant genoeg om in de tabel te tonen — 0 of 1 kaart is
+// nog te vroeg om interessant te zijn. allEntries (ongefilterd) blijft apart bewaard om de lege-staat-
+// melding hieronder correct te kunnen onderscheiden: "nog geen databank geladen" vs. "databank geladen,
+// maar niemand heeft nog 2+ kaarten" (dat laatste is vroeg in het seizoen het te verwachten geval).
+const MIN_VISIBLE_CARDS = 2;
+
 export default function KaartenTab({ playerDatabase, playerDatabaseLoading, playerDatabaseError, fetchPlayerDatabase }) {
   const [sortMode, setSortMode] = useState('mostCards');
 
-  const entries = useMemo(() => buildKaartenEntries(playerDatabase), [playerDatabase]);
+  const allEntries = useMemo(() => buildKaartenEntries(playerDatabase), [playerDatabase]);
+  const entries = useMemo(() => allEntries.filter(e => e.cards >= MIN_VISIBLE_CARDS), [allEntries]);
   const ranking = useMemo(
     () => (sortMode === 'closestToSuspension' ? rankByClosestToSuspension(entries) : rankByMostCards(entries)),
     [entries, sortMode],
   );
+  const visibleSortModes = SORT_MODES.filter(m => SHOW_CLOSEST_TO_SUSPENSION_MODE || m.key !== 'closestToSuspension');
 
   return (
     <>
@@ -40,7 +53,7 @@ export default function KaartenTab({ playerDatabase, playerDatabaseLoading, play
       </p>
 
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '18px' }}>
-        {SORT_MODES.map(({ key, label }) => {
+        {visibleSortModes.map(({ key, label }) => {
           const isSelected = sortMode === key;
           return (
             <button
@@ -85,7 +98,9 @@ export default function KaartenTab({ playerDatabase, playerDatabaseLoading, play
           borderRadius: '10px', padding: '16px',
         }}>
           <p style={{ color: '#C9B8E0', fontSize: '13px', margin: 0 }}>
-            Nog geen kaarten-gegevens beschikbaar — kom binnenkort terug.
+            {allEntries.length === 0
+              ? 'Nog geen kaarten-gegevens beschikbaar — kom binnenkort terug.'
+              : `Nog geen enkele speler met ${MIN_VISIBLE_CARDS}+ gele kaarten — kom later in het seizoen terug.`}
           </p>
         </div>
       )}
