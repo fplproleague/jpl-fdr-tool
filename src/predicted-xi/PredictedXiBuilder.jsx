@@ -287,7 +287,9 @@ export default function PredictedXiBuilder() {
   return (
     <div style={{ minHeight: '100vh', background: '#1A0E2E', padding: '24px 16px', fontFamily: 'Archivo, Arial, sans-serif' }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;700;900&display=swap');
+        /* Het Archivo-lettertype wordt geladen via een <link> in predicted-xi.html (zie daar) —
+           bewust niet meer via een @import hier, want dat kon pas starten nadat React deze <style>
+           had geïnjecteerd. */
         * { box-sizing: border-box; }
         body { margin: 0; }
         @keyframes pxi-spin { to { transform: rotate(360deg); } }

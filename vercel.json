@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    { "source": "/fdr", "destination": "/index.html" },
+    { "source": "/team-planner", "destination": "/index.html" },
+    { "source": "/predicted-lineups", "destination": "/index.html" },
+    { "source": "/watchlist", "destination": "/index.html" },
+    { "source": "/price-changes", "destination": "/index.html" }
+  ]
+}

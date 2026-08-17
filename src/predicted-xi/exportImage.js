@@ -2,7 +2,8 @@
 // zelfde html2canvas-techniek en watermerk-truc. De scroll-width-forceer-stap uit het origineel is
 // weggelaten: die was specifiek nodig voor FDR's horizontaal scrollbare tabel, terwijl het veldkaartje
 // hier een vaste aspect-ratio heeft en nooit intern scrolt.
-import html2canvas from 'html2canvas';
+// html2canvas wordt hieronder dynamisch geïmporteerd (~199 kB, enkel nodig bij een effectieve export)
+// — zo belandt het niet in de chunk die de publieke site meelaadt via PredictedLineupsTab/PitchField.
 import { EXPORT_BACKGROUND, WATERMARK_TEXT, WATERMARK_FONT, WATERMARK_COLOR } from './theme';
 
 export async function exportLineupAsPng(pitchEl, { clubCode, opponentCode, formationKey }) {
@@ -21,6 +22,7 @@ export async function exportLineupAsPng(pitchEl, { clubCode, opponentCode, forma
   // ignoreElements i.p.v. op React-rendertiming vertrouwen om browser-UI (de verwijder-"X" op elke
   // kaart) uit te sluiten — deterministisch, ongeacht of een re-render al voltooid is op het moment
   // van capture. De safety-badge blijft wél zichtbaar, dat is een bewust onderdeel van het ontwerp.
+  const { default: html2canvas } = await import('html2canvas');
   const canvas = await html2canvas(pitchEl, {
     backgroundColor: EXPORT_BACKGROUND, scale: 2,
     ignoreElements: (el) => el.classList?.contains('pxi-no-export'),

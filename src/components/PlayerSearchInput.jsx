@@ -8,6 +8,7 @@
 import { useState, useRef, useEffect, useCallback, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { Search } from 'lucide-react';
+import { COLORS } from '../theme';
 
 const dropdownItemStyle = {
   display: 'flex', alignItems: 'center', gap: '8px', width: '100%', textAlign: 'left',
@@ -114,7 +115,7 @@ export const PlayerSearchInput = memo(function PlayerSearchInput({
     // koppige teamtabel, of de 2-koloms-span in Watchlist's "Speler toevoegen") dit veld onbegrensd
     // meegroeien met de resterende ruimte, wat er op brede schermen absurd lang uitziet.
     <div ref={containerRef} style={{ position: 'relative', width: '100%', maxWidth: '320px' }}>
-      <Search size={13} color="#8F79AD" style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+      <Search size={13} color={COLORS.textMuted} style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
       <input
         type="text"
         value={query}
@@ -154,14 +155,14 @@ export const PlayerSearchInput = memo(function PlayerSearchInput({
               <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 700 }}>
                 {p.name}
               </span>
-              <span style={{ color: '#8F79AD', fontSize: '11px', flexShrink: 0 }}>{p.teamName}</span>
+              <span style={{ color: COLORS.textMuted, fontSize: '11px', flexShrink: 0 }}>{p.teamName}</span>
               <span style={{ color: '#C9B8E0', fontSize: '11px', flexShrink: 0 }}>{p.position}</span>
               <span style={{ color: '#4ECDC4', fontSize: '11px', fontWeight: 700, flexShrink: 0 }}>
                 {p.price != null ? `${p.price.toFixed(1)}M` : '—'}
               </span>
             </button>
           )) : (
-            <div style={{ padding: '10px', color: '#8F79AD', fontSize: '12px' }}>
+            <div style={{ padding: '10px', color: COLORS.textMuted, fontSize: '12px' }}>
               Geen spelers gevonden.
             </div>
           )}

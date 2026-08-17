@@ -10,6 +10,16 @@
     <meta name="google-site-verification" content="ZW1zdNXLVFyGjHTXykx1VYgon6m1XMDTyJLTYGO20cg" />
     <link rel="canonical" href="https://fplproleague.vercel.app/" />
 
+    <!-- Lettertypes: bewust hier in de <head> i.p.v. via een @import in de door React geïnjecteerde
+         <style> (zoals vroeger in FDRTool.jsx). Dat @import kon pas ontdekt worden nádat de volledige
+         JS-bundle gedownload en uitgevoerd was en React de <style> in de DOM had gezet — het
+         lettertype stond dus helemaal achteraan de kritieke keten, met een zichtbare flits van het
+         fallback-font bij élk bezoek. Een <link> hier start de aanvraag meteen bij het parsen van de
+         HTML, parallel met de JS, en preconnect zet de verbinding met Google Fonts al klaar. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Inter:wght@400;500;600&display=swap" />
+
     <!-- Open Graph / social sharing (Facebook, LinkedIn, etc.) -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://fplproleague.vercel.app/" />
