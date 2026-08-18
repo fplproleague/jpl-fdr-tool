@@ -16,7 +16,16 @@ function chevronStyle(isOpen) {
 
 export const SectionHeader = memo(function SectionHeader({ icon: Icon, title, sectionKey, isOpen, onToggle }) {
   return (
-    <button onClick={() => onToggle(sectionKey)} style={sectionToggleButtonStyle}>
+    <button
+      onClick={() => onToggle(sectionKey)}
+      // aria-expanded vertelt schermlezers of de sectie open of dicht staat — zonder dit is de knop
+      // enkel "Mijn 15 spelers", zonder enige indicatie dat er iets in-/uitklapt. aria-controls
+      // koppelt 'm aan het paneel dat hij bestuurt (zie de id op de inhoud in de tabs).
+      aria-expanded={isOpen}
+      aria-controls={`fdr-section-${sectionKey}`}
+      className="fdr-touch-target"
+      style={sectionToggleButtonStyle}
+    >
       <h2 className="fdr-title fdr-section-title" style={sectionTitleStyle}>
         <Icon size={18} color="#4ECDC4" style={{ flexShrink: 0 }} />
         <span style={sectionTitleTextStyle}>{title}</span>

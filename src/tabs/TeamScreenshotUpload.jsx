@@ -9,15 +9,10 @@
 import { useState, useRef } from 'react';
 import { Upload, Loader2, AlertCircle, RotateCcw, Check, X, Crown } from 'lucide-react';
 import { POSITIONS, TEAM_PLANNER_SLOT_POSITIONS } from '../constants';
+import { COLORS, retryButtonStyle, primaryButtonStyle, secondaryButtonStyle } from '../theme';
 import { PlayerSearchInput } from '../components/PlayerSearchInput';
 import { downscaleImageToBase64 } from '../utils/imageDownscale';
 import { matchPlayer } from '../utils/playerFuzzyMatch';
-
-const retryButtonStyle = {
-  display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0,
-  background: 'transparent', color: '#FBEAE7', border: '1px solid rgba(251,234,231,0.4)',
-  borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px', cursor: 'pointer',
-};
 
 const CONFIDENCE_STYLE = {
   hoog: { bg: 'rgba(78,205,196,0.15)', color: '#4ECDC4', label: 'Hoog' },
@@ -56,13 +51,13 @@ function SuggestionRow({ suggestion, index, playerDatabase, onUpdate, onToggleCa
         <div style={{ color: '#FFF', fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
           Herkend: &ldquo;{suggestion.rawName}&rdquo;
           {suggestion.isCaptain && (
-            <span title="Kapitein herkend" style={{ background: '#4ECDC4', color: '#0B2E1B', borderRadius: '999px', width: '16px', height: '16px', fontSize: '9px', fontWeight: 900, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>C</span>
+            <span title="Kapitein herkend" aria-label="Kapitein herkend" role="img" style={{ background: '#4ECDC4', color: '#0B2E1B', borderRadius: '999px', width: '16px', height: '16px', fontSize: '9px', fontWeight: 900, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>C</span>
           )}
           {suggestion.isViceCaptain && (
-            <span title="Vice-kapitein herkend (enkel ter info)" style={{ background: 'rgba(255,255,255,0.15)', color: '#C9B8E0', borderRadius: '999px', width: '16px', height: '16px', fontSize: '9px', fontWeight: 900, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>V</span>
+            <span title="Vice-kapitein herkend (enkel ter info)" aria-label="Vice-kapitein herkend" role="img" style={{ background: 'rgba(255,255,255,0.15)', color: COLORS.textBody, borderRadius: '999px', width: '16px', height: '16px', fontSize: '9px', fontWeight: 900, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>V</span>
           )}
         </div>
-        <div style={{ color: '#8F79AD', fontSize: '11px' }}>rij: {suggestion.rowLabel || suggestion.rawPosition || '—'}</div>
+        <div style={{ color: COLORS.textMuted, fontSize: '11px' }}>rij: {suggestion.rowLabel || suggestion.rawPosition || '—'}</div>
       </div>
       <span style={{
         background: confidenceStyle.bg, color: confidenceStyle.color, fontSize: '11px', fontWeight: 700,
@@ -80,11 +75,14 @@ function SuggestionRow({ suggestion, index, playerDatabase, onUpdate, onToggleCa
       </div>
       <button
         onClick={() => onToggleCaptain(index)}
+        aria-pressed={suggestion.isCaptain}
+        aria-label={suggestion.isCaptain ? `Kapitein-markering verwijderen bij ${suggestion.rawName}` : `${suggestion.rawName} kapitein maken`}
         title={suggestion.isCaptain ? 'Kapitein-markering verwijderen' : 'Maak kapitein'}
+        className="fdr-icon-btn"
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px',
           borderRadius: '8px', flexShrink: 0, background: suggestion.isCaptain ? 'rgba(78,205,196,0.2)' : 'transparent',
-          color: suggestion.isCaptain ? '#4ECDC4' : '#8F79AD', border: `1px solid ${suggestion.isCaptain ? '#4ECDC4' : 'rgba(255,255,255,0.2)'}`,
+          color: suggestion.isCaptain ? '#4ECDC4' : COLORS.textMuted, border: `1px solid ${suggestion.isCaptain ? '#4ECDC4' : 'rgba(255,255,255,0.2)'}`,
           cursor: 'pointer',
         }}
       >
@@ -96,7 +94,7 @@ function SuggestionRow({ suggestion, index, playerDatabase, onUpdate, onToggleCa
 
 export function TeamScreenshotUpload({
   playerDatabase, playerDatabaseLoading, playerDatabaseError,
-  updateTeamPlannerPlayer, setTeamPlannerCaptain, teamPlannerGw,
+  updateTeamPlannerPlayer, setTeamPlannerCaptain, teamPlannerGw, isRosterEmpty = false,
 }) {
   const [proposal, setProposal] = useState(null); // null | { suggestions: [...], warning }
   const [status, setStatus] = useState('idle'); // 'idle' | 'loading' | 'error'
@@ -194,15 +192,35 @@ export function TeamScreenshotUpload({
   const hasViceCaptainSuggestion = proposal?.suggestions.some(s => s.isViceCaptain);
 
   return (
+    // Visueel naar voren gehaald (accentrand + accentachtergrond) i.p.v. het neutrale grijze kaartje
+    // van vroeger. Dit is de snelste weg van "lege planner" naar "volledig team": één screenshot
+    // vervangt vijftien keer handmatig zoeken en typen. Als dat eruitziet als zomaar weer een blok,
+    // scrollen mensen er straal voorbij en beginnen ze aan het trage pad.
     <div style={{
-      background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+      background: isRosterEmpty ? 'rgba(78,205,196,0.08)' : 'rgba(255,255,255,0.04)',
+      border: `1px solid ${isRosterEmpty ? 'rgba(78,205,196,0.45)' : 'rgba(255,255,255,0.08)'}`,
       borderRadius: '10px', padding: '16px', marginBottom: '20px',
     }}>
-      <h3 className="fdr-title" style={{ color: '#C9B8E0', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.03em', margin: '0 0 8px' }}>
+      <h3 className="fdr-title" style={{
+        color: isRosterEmpty ? '#4ECDC4' : COLORS.textBody, fontSize: '13px',
+        textTransform: 'uppercase', letterSpacing: '0.03em', margin: '0 0 8px',
+        display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap',
+      }}>
+        <Upload size={15} aria-hidden="true" />
         Team herkennen via screenshot
+        {isRosterEmpty && (
+          <span style={{
+            background: '#4ECDC4', color: '#0B2E1B', fontSize: '10px', fontWeight: 900,
+            padding: '2px 8px', borderRadius: '999px', letterSpacing: '0.03em',
+          }}>
+            Aanrader
+          </span>
+        )}
       </h3>
-      <p style={{ color: '#8F79AD', fontSize: '12px', margin: '0 0 12px' }}>
-        
+      <p style={{ color: COLORS.textMuted, fontSize: '12px', margin: '0 0 12px', lineHeight: 1.55 }}>
+        Upload een screenshot van je team en we vullen je vijftien spelers automatisch in. Je krijgt
+        eerst een voorstel te zien dat je zelf kan corrigeren; er wordt niets ingevuld tot je op
+        &ldquo;Toepassen&rdquo; klikt.
       </p>
 
       <input
@@ -243,7 +261,7 @@ export function TeamScreenshotUpload({
             </div>
           )}
           {teamPlannerGw !== 1 && (
-            <p style={{ color: '#8F79AD', fontSize: '11px', margin: '0 0 10px' }}>
+            <p style={{ color: COLORS.textMuted, fontSize: '11px', margin: '0 0 10px' }}>
               De herkende kapitein wordt ingesteld voor GW{teamPlannerGw} (de momenteel bekeken speelweek).
             </p>
           )}
@@ -260,7 +278,7 @@ export function TeamScreenshotUpload({
             ))}
           </div>
           {hasViceCaptainSuggestion && (
-            <p style={{ color: '#8F79AD', fontSize: '11px', margin: '10px 0 0' }}>
+            <p style={{ color: COLORS.textMuted, fontSize: '11px', margin: '10px 0 0' }}>
               Vice-kapitein herkend maar niet ondersteund door Team Planner — enkel ter info (V-badge hierboven).
             </p>
           )}
@@ -274,7 +292,7 @@ export function TeamScreenshotUpload({
             </button>
             <button onClick={handleCancel} style={{
               display: 'inline-flex', alignItems: 'center', gap: '6px',
-              background: 'transparent', color: '#C9B8E0', border: '1px solid rgba(255,255,255,0.2)',
+              background: 'transparent', color: COLORS.textBody, border: '1px solid rgba(255,255,255,0.2)',
               borderRadius: '8px', padding: '8px 16px', fontWeight: 700, fontSize: '13px', cursor: 'pointer',
             }}>
               <X size={15} /> Annuleren
@@ -282,7 +300,7 @@ export function TeamScreenshotUpload({
           </div>
         </div>
       ) : status === 'loading' ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#C9B8E0', fontSize: '13px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: COLORS.textBody, fontSize: '13px' }}>
           <Loader2 size={16} className="fdr-spin" /> Team herkennen...
         </div>
       ) : status === 'error' ? (
@@ -303,7 +321,7 @@ export function TeamScreenshotUpload({
           disabled={playerDatabaseLoading || !!playerDatabaseError}
           style={{
             display: 'inline-flex', alignItems: 'center', gap: '6px',
-            background: 'transparent', color: playerDatabaseLoading || playerDatabaseError ? '#5A4A72' : '#4ECDC4',
+            background: 'transparent', color: playerDatabaseLoading || playerDatabaseError ? COLORS.textDisabled : '#4ECDC4',
             border: `1px solid ${playerDatabaseLoading || playerDatabaseError ? 'rgba(255,255,255,0.15)' : '#4ECDC4'}`,
             borderRadius: '8px', padding: '8px 14px', fontWeight: 700, fontSize: '13px',
             cursor: playerDatabaseLoading || playerDatabaseError ? 'not-allowed' : 'pointer',
