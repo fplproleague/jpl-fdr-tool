@@ -1433,7 +1433,10 @@ export default function FDRTool() {
                 style={{
                   display: 'flex', flexDirection: 'column', gap: '2px', flexShrink: 0,
                   background: 'rgba(255,255,255,0.04)', border: `1px solid ${COLORS.borderSubtle}`,
-                  borderRadius: '10px', padding: '8px 14px',
+                  // Zelfde volledig afgeronde vorm (999px) als de minileague-chip ernaast — voorheen
+                  // een lichte hoekafronding (10px), waardoor de twee chips naast elkaar toch niet
+                  // hetzelfde oogden ondanks de gedeelde achtergrond/rand-stijl.
+                  borderRadius: '999px', padding: '8px 14px',
                 }}
               >
                 <span style={{

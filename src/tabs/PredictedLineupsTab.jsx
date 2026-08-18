@@ -90,7 +90,7 @@ export default function PredictedLineupsTab() {
     <>
       <StaleWarning />
       <p style={{ color: COLORS.textMuted, fontSize: '13px', marginBottom: '16px' }}>
-        Voorspelde opstellingen voor GW{PREDICTED_LINEUPS_GW}, samengesteld door @5YSiebee. Kies een club om de opstelling te bekijken.
+        Voorspelde opstellingen voor GW{PREDICTED_LINEUPS_GW}, samengesteld door @5YSiebee. Kies een club om de verwachte opstelling te bekijken.
       </p>
 
       {/* Responsief raster i.p.v. een flex-wrap van vaste 76px-blokken: op een telefoon leverde dat

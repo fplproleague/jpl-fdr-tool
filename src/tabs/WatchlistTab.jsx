@@ -90,7 +90,11 @@ export default function WatchlistTab({
                 {newPlayerPrice !== '' ? `${Number(newPlayerPrice).toFixed(1)}M` : '—'}
               </div>
             </label>
-            <button type="submit" className="fdr-touch-target" style={primaryButtonStyle}>
+            {/* minWidth: 0 overschrijft de impliciete grid-item-vloer (min-width:auto), die anders de
+                onbreekbare knoptekst zijn EIGEN minimumbreedte laat opleggen aan de kolom — daardoor
+                werd deze kolom op smallere schermen breder dan de "Prijs"-kolom ernaast, ook al delen
+                beide dezelfde 1fr-verdeling in het grid hierboven. */}
+            <button type="submit" className="fdr-touch-target" style={{ ...primaryButtonStyle, minWidth: 0 }}>
               <Plus size={18} /> Toevoegen
             </button>
           </form>
