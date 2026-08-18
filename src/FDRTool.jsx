@@ -1431,23 +1431,24 @@ export default function FDRTool() {
                 // voorgelezen worden. De volledige tekst staat in het label hieronder.
                 aria-live="off"
                 style={{
-                  display: 'flex', flexDirection: 'column', gap: '2px', flexShrink: 0,
+                  // Eén regel (label + countdown naast elkaar) i.p.v. twee gestapelde regels — dat
+                  // maakte deze chip een stuk hoger dan de minileague-chip ernaast, waardoor ze op
+                  // mobiel nooit netjes naast elkaar pasten qua hoogte. Padding nu ook gelijk aan de
+                  // minileague-chip (3px verticaal) voor eenzelfde pil-hoogte.
+                  display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0,
                   background: 'rgba(255,255,255,0.04)', border: `1px solid ${COLORS.borderSubtle}`,
-                  // Zelfde volledig afgeronde vorm (999px) als de minileague-chip ernaast — voorheen
-                  // een lichte hoekafronding (10px), waardoor de twee chips naast elkaar toch niet
-                  // hetzelfde oogden ondanks de gedeelde achtergrond/rand-stijl.
-                  borderRadius: '999px', padding: '8px 14px',
+                  borderRadius: '999px', padding: '3px 14px',
                 }}
               >
                 <span style={{
                   color: COLORS.textMuted, fontSize: '11px', textTransform: 'uppercase',
-                  letterSpacing: '0.05em', fontWeight: 700,
+                  letterSpacing: '0.05em', fontWeight: 700, whiteSpace: 'nowrap',
                 }}>
                   Deadline GW{CURRENT_GW}
                 </span>
                 <span className="fdr-title" style={{
                   color: deadlineRemaining.totalMinutes <= 180 ? COLORS.warning : '#4ECDC4',
-                  fontSize: '18px', fontWeight: 900, lineHeight: 1,
+                  fontSize: '15px', fontWeight: 900, lineHeight: 1, whiteSpace: 'nowrap',
                 }}>
                   {formatCountdown(deadlineRemaining)}
                 </span>

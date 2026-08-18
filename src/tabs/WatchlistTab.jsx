@@ -94,11 +94,15 @@ export default function WatchlistTab({
                 onbreekbare knoptekst zijn EIGEN minimumbreedte laat opleggen aan de kolom — daardoor
                 werd deze kolom op smallere schermen breder dan de "Prijs"-kolom ernaast, ook al delen
                 beide dezelfde 1fr-verdeling in het grid hierboven (geverifieerd: de kolombreedtes zijn
-                nu pixel-voor-pixel gelijk). borderRadius hier expliciet teruggebracht naar 6px (i.p.v.
-                primaryButtonStyle's standaard 8px, RADIUS.md) om ook qua VORM exact aan te sluiten bij
-                watchlistInputStyle's 6px — de iets rondere hoeken + volle accentkleur van de standaard
-                knopstijl lieten 'm ondanks een identieke breedte toch groter/ronder ogen. */}
-            <button type="submit" className="fdr-touch-target" style={{ ...primaryButtonStyle, minWidth: 0, borderRadius: '6px' }}>
+                pixel-voor-pixel gelijk). borderRadius teruggebracht naar 6px, gelijk aan
+                watchlistInputStyle. GEEN .fdr-touch-target-klasse (in tegenstelling tot de meeste
+                knoppen op de site): die tilt op aanraakschermen (@media pointer:coarse, zie
+                FDRTool.jsx) de hoogte naar minimaal 44px — onzichtbaar op een muis-desktop, maar op een
+                telefoon precies de reden waarom deze knop duidelijk hoger oogde dan het "Prijs"-vakje
+                ernaast (dat geen interactief element is en dus nooit die regel kreeg). Expliciet
+                bewust gekozen: op verzoek even hoog als "Prijs" (~33px), ook al zakt dat net onder de
+                aanbevolen 44px-aanraakdoelgrootte. */}
+            <button type="submit" style={{ ...primaryButtonStyle, minWidth: 0, borderRadius: '6px' }}>
               <Plus size={18} /> Toevoegen
             </button>
           </form>
