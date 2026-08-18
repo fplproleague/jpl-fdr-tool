@@ -93,8 +93,12 @@ export default function WatchlistTab({
             {/* minWidth: 0 overschrijft de impliciete grid-item-vloer (min-width:auto), die anders de
                 onbreekbare knoptekst zijn EIGEN minimumbreedte laat opleggen aan de kolom — daardoor
                 werd deze kolom op smallere schermen breder dan de "Prijs"-kolom ernaast, ook al delen
-                beide dezelfde 1fr-verdeling in het grid hierboven. */}
-            <button type="submit" className="fdr-touch-target" style={{ ...primaryButtonStyle, minWidth: 0 }}>
+                beide dezelfde 1fr-verdeling in het grid hierboven (geverifieerd: de kolombreedtes zijn
+                nu pixel-voor-pixel gelijk). borderRadius hier expliciet teruggebracht naar 6px (i.p.v.
+                primaryButtonStyle's standaard 8px, RADIUS.md) om ook qua VORM exact aan te sluiten bij
+                watchlistInputStyle's 6px — de iets rondere hoeken + volle accentkleur van de standaard
+                knopstijl lieten 'm ondanks een identieke breedte toch groter/ronder ogen. */}
+            <button type="submit" className="fdr-touch-target" style={{ ...primaryButtonStyle, minWidth: 0, borderRadius: '6px' }}>
               <Plus size={18} /> Toevoegen
             </button>
           </form>
