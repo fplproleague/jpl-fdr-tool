@@ -9,9 +9,14 @@ import { COLORS, retryButtonStyle, primaryButtonStyle } from '../theme';
 import { MiniFixtureBadge } from '../components/MiniFixtureBadge';
 import { PlayerSearchInput } from '../components/PlayerSearchInput';
 
+// Expliciete height + boxSizing: border-box i.p.v. op auto-hoogte (padding+lineHeight) te vertrouwen —
+// een <div> en een <button> gebruiken elk hun eigen browser-default line-height/box-sizing, waardoor
+// twee elementen met "dezelfde" padding/font-size toch een paar pixels konden verschillen in
+// gerenderde hoogte. Een vaste height elimineert dat verschil volledig, ongeacht welk element-type.
 const watchlistInputStyle = {
   background: COLORS.surface, color: COLORS.text, border: '1px solid rgba(255,255,255,0.15)',
-  borderRadius: '6px', padding: '8px 10px', fontSize: '13px', width: '100%'
+  borderRadius: '6px', padding: '0 10px', fontSize: '13px', width: '100%',
+  height: '34px', boxSizing: 'border-box', display: 'flex', alignItems: 'center',
 };
 
 export default function WatchlistTab({
@@ -92,18 +97,24 @@ export default function WatchlistTab({
             </label>
             {/* minWidth: 0 overschrijft de impliciete grid-item-vloer (min-width:auto), die anders de
                 onbreekbare knoptekst zijn EIGEN minimumbreedte laat opleggen aan de kolom — daardoor
-                werd deze kolom op smallere schermen breder dan de "Prijs"-kolom ernaast, ook al delen
-                beide dezelfde 1fr-verdeling in het grid hierboven (geverifieerd: de kolombreedtes zijn
-                pixel-voor-pixel gelijk). borderRadius teruggebracht naar 6px, gelijk aan
-                watchlistInputStyle. GEEN .fdr-touch-target-klasse (in tegenstelling tot de meeste
-                knoppen op de site): die tilt op aanraakschermen (@media pointer:coarse, zie
-                FDRTool.jsx) de hoogte naar minimaal 44px — onzichtbaar op een muis-desktop, maar op een
-                telefoon precies de reden waarom deze knop duidelijk hoger oogde dan het "Prijs"-vakje
-                ernaast (dat geen interactief element is en dus nooit die regel kreeg). Expliciet
-                bewust gekozen: op verzoek even hoog als "Prijs" (~33px), ook al zakt dat net onder de
-                aanbevolen 44px-aanraakdoelgrootte. */}
-            <button type="submit" style={{ ...primaryButtonStyle, minWidth: 0, borderRadius: '6px' }}>
-              <Plus size={18} /> Toevoegen
+                werd deze kolom op smallere schermen breder dan de "Prijs"-kolom ernaast. GEEN
+                .fdr-touch-target-klasse (in tegenstelling tot de meeste knoppen op de site): die tilt
+                op aanraakschermen (@media pointer:coarse, zie FDRTool.jsx) de hoogte naar minimaal
+                44px — onzichtbaar op een muis-desktop, maar op een telefoon precies de reden waarom
+                deze knop duidelijk hoger oogde dan het "Prijs"-vakje ernaast. height + boxSizing
+                expliciet gelijk aan watchlistInputStyle gezet (i.p.v. op gelijke padding/font-size te
+                vertrouwen) — een <div> en <button> renderen elk met hun eigen browser-default
+                line-height, dus "dezelfde" padding gaf toch een paar pixels verschil. padding/fontSize/
+                gap/icoongrootte hier verkleind t.o.v. primaryButtonStyle: in de nu even smalle kolom
+                als "Prijs" verdween het "+"-icoon anders half buiten de knop op mobiel. */}
+            <button
+              type="submit"
+              style={{
+                ...primaryButtonStyle, minWidth: 0, borderRadius: '6px', height: '34px',
+                boxSizing: 'border-box', padding: '0 8px', fontSize: '12px', gap: '4px',
+              }}
+            >
+              <Plus size={14} /> Toevoegen
             </button>
           </form>
           </div>

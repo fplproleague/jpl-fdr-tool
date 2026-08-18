@@ -55,6 +55,11 @@ const HOME_ADVANTAGE_INTRO_SEEN_KEY = 'fpl_proleague_ha_intro_seen_v1';
 // Eigen storage key voor de Team Planner — los van de watch list hierboven.
 const TEAM_PLANNER_STORAGE_KEY = 'fpl_proleague_teamplanner_v1';
 
+// Gedeelde vaste hoogte voor de deadline- en minileague-chip in de header — beide gebruiken exact
+// deze waarde (i.p.v. losse padding/lineHeight-berekeningen) zodat ze gegarandeerd even hoog zijn,
+// ongeacht dat de ene chip enkel tekst bevat en de andere een geneste knop met eigen randen/padding.
+const HEADER_CHIP_HEIGHT = '28px';
+
 // Statische GW-headers, eenmalig opgebouwd — nodig voor visibleGwHeaderCells (hoofdtabel-horizon,
 // zie hieronder) en, geslicet vanaf CURRENT_GW, voor de vergelijk-tabel in FDRTab (compareGwHeaderCells
 // hieronder). Blijft hier i.p.v. in constants.js: dat is een .js-bestand en Vite/esbuild parsen
@@ -1431,13 +1436,13 @@ export default function FDRTool() {
                 // voorgelezen worden. De volledige tekst staat in het label hieronder.
                 aria-live="off"
                 style={{
-                  // Eén regel (label + countdown naast elkaar) i.p.v. twee gestapelde regels — dat
-                  // maakte deze chip een stuk hoger dan de minileague-chip ernaast, waardoor ze op
-                  // mobiel nooit netjes naast elkaar pasten qua hoogte. Padding nu ook gelijk aan de
-                  // minileague-chip (3px verticaal) voor eenzelfde pil-hoogte.
+                  // Eén regel (label + countdown naast elkaar) i.p.v. twee gestapelde regels. Expliciete
+                  // height (i.p.v. op padding+lineHeight te vertrouwen) — zelfde reden als bij de
+                  // Watchlist-knop hierboven: gedeeld met de minileague-chip hieronder, die dezelfde
+                  // waarde gebruikt, zodat ze altijd EXACT gelijk zijn ongeacht lettertype-metrics.
                   display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0,
                   background: 'rgba(255,255,255,0.04)', border: `1px solid ${COLORS.borderSubtle}`,
-                  borderRadius: '999px', padding: '3px 14px',
+                  borderRadius: '999px', height: HEADER_CHIP_HEIGHT, boxSizing: 'border-box', padding: '0 14px',
                 }}
               >
                 <span style={{
@@ -1455,26 +1460,30 @@ export default function FDRTool() {
               </div>
             )}
 
-            {/* Minileague-code: compacte, inline chip, verder verkleind (padding) t.o.v. de vorige
-                versie — het is één regel promotionele info en hoeft niet evenveel gewicht als de
-                deadline-klok ernaast te dragen. */}
+            {/* Minileague-code: compacte, inline chip. Zelfde HEADER_CHIP_HEIGHT als de deadline-chip
+                hierboven, met boxSizing:border-box — voorheen liep de hoogte via padding+lineHeight
+                een paar pixels uiteen, extra versterkt doordat de geneste "Kopieer"-knop tot voor kort
+                de .fdr-touch-target-klasse droeg: die tilt op aanraakschermen (@media pointer:coarse)
+                de knop naar minimaal 44px, terwijl de deadline-chip (geen knop erin) die regel nooit
+                kreeg — op mobiel dus juist de grootste bron van het hoogteverschil. De knop hieronder
+                heeft nu een eigen kleinere, expliciete hoogte i.p.v. die klasse. */}
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap',
-              padding: '3px 3px 3px 10px', width: 'fit-content', maxWidth: '100%',
-              background: 'rgba(255,255,255,0.04)', border: `1px solid ${COLORS.borderSubtle}`, borderRadius: '999px'
+              width: 'fit-content', maxWidth: '100%',
+              background: 'rgba(255,255,255,0.04)', border: `1px solid ${COLORS.borderSubtle}`, borderRadius: '999px',
+              height: HEADER_CHIP_HEIGHT, boxSizing: 'border-box', padding: '0 3px 0 10px',
             }}>
               <span style={{ color: COLORS.textMuted, fontSize: '12px' }}>
                 Minileague: <strong style={{ color: '#4ECDC4', fontWeight: 700, letterSpacing: '0.05em' }}>{MINILEAGUE_CODE}</strong>
               </span>
               <button
                 onClick={handleCopyMinileagueCode}
-                className="fdr-touch-target"
                 aria-label={`Minileague-code ${MINILEAGUE_CODE} kopiëren`}
                 style={{
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
                   background: 'transparent', color: COLORS.textBody, border: `1px solid ${COLORS.border}`,
-                  borderRadius: '999px', padding: '3px 10px', fontWeight: 700, fontSize: '12px',
-                  fontFamily: 'inherit', cursor: 'pointer'
+                  borderRadius: '999px', padding: '0 10px', fontWeight: 700, fontSize: '12px',
+                  fontFamily: 'inherit', cursor: 'pointer', height: '22px', boxSizing: 'border-box',
                 }}
               >
                 {minileagueCodeCopied ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
