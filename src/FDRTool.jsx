@@ -1220,6 +1220,14 @@ export default function FDRTool() {
           .fdr-header img {
             margin-top: 0 !important;
           }
+          /* Logo boven de titeltekst i.p.v. ernaast — op mobiel duwde het logo (44px + 14px gap) de
+             titel zo ver naar rechts dat "FPL Pro League Tools" over 3 regels brak. Zonder het logo
+             ernaast heeft de tekst de volle breedte en wrapt ze compacter. */
+          .fdr-brand {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 8px !important;
+          }
           .fdr-content {
             padding-top: 16px !important;
           }
@@ -1399,7 +1407,7 @@ export default function FDRTool() {
           marginBottom: '18px', display: 'flex', alignItems: 'flex-start',
           justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap',
         }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', minWidth: 0 }}>
+          <div className="fdr-brand" style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', minWidth: 0 }}>
             <img
               src="/app-icon-mark.png"
               alt=""
