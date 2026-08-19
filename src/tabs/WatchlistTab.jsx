@@ -111,10 +111,10 @@ export default function WatchlistTab({
               type="submit"
               style={{
                 ...primaryButtonStyle, minWidth: 0, borderRadius: '6px', height: '34px',
-                boxSizing: 'border-box', padding: '0 8px', fontSize: '12px', gap: '4px',
+                boxSizing: 'border-box', padding: '0 8px', fontSize: '11px', gap: '5px',
               }}
             >
-              <Plus size={14} /> Toevoegen
+              <Plus size={16} /> Toevoegen
             </button>
           </form>
           </div>
