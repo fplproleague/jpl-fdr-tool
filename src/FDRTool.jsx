@@ -1762,7 +1762,7 @@ export default function FDRTool() {
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
               <h3 className="fdr-title" style={{ color: '#4ECDC4', fontSize: '16px', margin: 0, textTransform: 'uppercase' }}>
-                ⚽ De Premier League start morgen!
+                De Premier League start morgen!
               </h3>
               <button
                 onClick={handleClosePLMinileaguePopup}
