@@ -8,7 +8,7 @@ import { useState, useMemo, useRef, useCallback, useEffect, lazy, Suspense } fro
 import { Info, X, Check, Copy, Undo2, Loader2 } from 'lucide-react';
 import {
   TEAMS, FIXTURES, GW_COUNT, CURRENT_GW, DEFAULT_GW_HORIZON_END, MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS,
-  MINILEAGUE_CODE, LAST_UPDATED, GW_INDEXES, DEFAULT_RATINGS, DEFAULT_HOME_ADVANTAGE,
+  MINILEAGUE_CODE, PL_MINILEAGUE_CODE, LAST_UPDATED, GW_INDEXES, DEFAULT_RATINGS, DEFAULT_HOME_ADVANTAGE,
   TEAM_PLANNER_SQUAD_SIZE, TEAM_PLANNER_BENCH_SIZE, TEAM_PLANNER_SLOT_POSITIONS, VALID_FORMATIONS,
   resolveSlotPlayerAtGw, PLAYER_DATABASE_CSV_URL, parsePlayerDatabaseCsv, getFixtureScores, average,
   POSTPONED, computeTeamPlannerTransferBudget, getGwDeadlineDate,
@@ -52,6 +52,10 @@ const HOME_ADVANTAGE_STORAGE_KEY = 'fpl_proleague_fdr_home_advantage_v1';
 const WATCHLIST_STORAGE_KEY = 'fpl_proleague_watchlist_v1';
 // Onthoudt of de first-time-uitleg over Thuisvoordeel al getoond is, zodat die maar één keer ooit verschijnt.
 const HOME_ADVANTAGE_INTRO_SEEN_KEY = 'fpl_proleague_ha_intro_seen_v1';
+// Onthoudt of de eenmalige PL-minileague-popup (zie PL_MINILEAGUE_CODE, constants.js) al getoond is —
+// zelfde eenmalig-tonen-patroon als hasSeenHomeAdvantageIntro hieronder. Elke bezoeker ziet 'm precies
+// één keer, ongeacht hoe vaak ze de site nadien nog openen.
+const PL_MINILEAGUE_POPUP_SEEN_KEY = 'fpl_proleague_pl_minileague_popup_seen_v1';
 // Eigen storage key voor de Team Planner — los van de watch list hierboven.
 const TEAM_PLANNER_STORAGE_KEY = 'fpl_proleague_teamplanner_v1';
 
@@ -122,6 +126,14 @@ function loadStoredHomeAdvantage() {
 function hasSeenHomeAdvantageIntro() {
   try {
     return window.localStorage?.getItem(HOME_ADVANTAGE_INTRO_SEEN_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function hasSeenPLMinileaguePopup() {
+  try {
+    return window.localStorage?.getItem(PL_MINILEAGUE_POPUP_SEEN_KEY) === '1';
   } catch {
     return false;
   }
@@ -363,6 +375,33 @@ export default function FDRTool() {
   const [downloading, setDownloading] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [showHomeAdvantageIntro, setShowHomeAdvantageIntro] = useState(false);
+  const [showPLMinileaguePopup, setShowPLMinileaguePopup] = useState(false);
+  const [plCodeCopied, setPlCodeCopied] = useState(false);
+  // Eenmalige PL-minileague-popup: verschijnt bij de allereerste keer dat iemand de site opent (niet
+  // getriggerd door een klik, in tegenstelling tot de Thuisvoordeel-uitleg hierboven), en daarna nooit
+  // meer — zie hasSeenPLMinileaguePopup/PL_MINILEAGUE_POPUP_SEEN_KEY.
+  useEffect(() => {
+    if (!hasSeenPLMinileaguePopup()) {
+      setShowPLMinileaguePopup(true);
+    }
+  }, []);
+  const handleClosePLMinileaguePopup = () => {
+    setShowPLMinileaguePopup(false);
+    try {
+      window.localStorage?.setItem(PL_MINILEAGUE_POPUP_SEEN_KEY, '1');
+    } catch {
+      // storage unavailable — de popup verschijnt dan gewoon opnieuw bij een volgend bezoek
+    }
+  };
+  const handleCopyPLMinileagueCode = async () => {
+    try {
+      await navigator.clipboard.writeText(PL_MINILEAGUE_CODE);
+      setPlCodeCopied(true);
+      setTimeout(() => setPlCodeCopied(false), 2000);
+    } catch {
+      // clipboard unavailable — zelfde stille fallback als handleCopyMinileagueCode
+    }
+  };
   const [openSections, setOpenSections] = useState({
     sliders: false,
     table: true,
@@ -1702,6 +1741,63 @@ export default function FDRTool() {
             <p style={{ color: '#C9B8E0', fontSize: '13px', lineHeight: 1.6, marginTop: '8px' }}>
               <strong>Thuisvoordeel</strong> is een aparte toggle per team: zet je hem aan voor een team, dan wordt de moeilijkheidsgraad met 1 verhoogd (tot maximum 5) voor elk team dat bij hen op verplaatsing speelt. Handig omdat sommige teams nu eenmaal moeilijker te verslaan zijn op hun eigen veld.
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Eenmalige PL-minileague-popup — zie showPLMinileaguePopup hierboven voor de "toon precies één
+          keer ooit"-logica. TIJDELIJKE content rond de start van het Premier League-seizoen: dit hele
+          blok (plus PL_MINILEAGUE_CODE in constants.js en de subtiele vermelding in FDRTab.jsx) mag
+          weg zodra de hype rond de seizoensstart voorbij is. Zelfde overlay-opzet als de "Hoe werkt
+          dit?"-modal hierboven (klik op de achtergrond sluit ook), maar met een eigen hogere zIndex
+          zodat hij bij een eerste bezoek altijd bovenop verschijnt. */}
+      {showPLMinileaguePopup && (
+        <div onClick={handleClosePLMinileaguePopup} style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex',
+          alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 70
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: '#3D1E5C', borderRadius: '14px', padding: '24px', maxWidth: '400px',
+            border: '1px solid rgba(78,205,196,0.35)',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+              <h3 className="fdr-title" style={{ color: '#4ECDC4', fontSize: '16px', margin: 0, textTransform: 'uppercase' }}>
+                ⚽ De Premier League start morgen!
+              </h3>
+              <button
+                onClick={handleClosePLMinileaguePopup}
+                aria-label="Melding sluiten"
+                style={{ background: 'none', border: 'none', color: '#C9B8E0', cursor: 'pointer', flexShrink: 0 }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <p style={{ color: '#C9B8E0', fontSize: '13px', lineHeight: 1.6, margin: 0 }}>
+              Speel je ook Fantasy Premier League? Doe mee met mijn minileague via de code hieronder.
+            </p>
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px',
+              background: 'rgba(78,205,196,0.1)', border: '1px solid rgba(78,205,196,0.35)',
+              borderRadius: '10px', padding: '10px 14px', marginTop: '14px',
+            }}>
+              <span style={{ color: '#FFF', fontWeight: 900, fontSize: '18px', letterSpacing: '0.05em' }}>
+                {PL_MINILEAGUE_CODE}
+              </span>
+              <button
+                onClick={handleCopyPLMinileagueCode}
+                className="fdr-touch-target"
+                aria-label={`Minileague-code ${PL_MINILEAGUE_CODE} kopiëren`}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                  background: plCodeCopied ? 'transparent' : '#4ECDC4', color: plCodeCopied ? '#4ECDC4' : '#0B2E1B',
+                  border: '1px solid #4ECDC4', borderRadius: '8px', padding: '6px 12px',
+                  fontWeight: 700, fontSize: '12px', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0,
+                }}
+              >
+                {plCodeCopied ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
+                {plCodeCopied ? 'Gekopieerd!' : 'Kopieer'}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -126,6 +126,12 @@ export const MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS = 760;
 export const MINILEAGUE_CODE = '19WN75';
 export const LAST_UPDATED = '17 augustus 2026';
 
+// Code voor de PERSOONLIJKE Fantasy Premier League-minileague (het echte, Engelse FPL-spel) — los van
+// MINILEAGUE_CODE hierboven, dat is voor DEZE site (Fantasy Pro League, de Belgische competitie). Wordt
+// getoond in de eenmalige PL-popup en tijdelijk op het startscherm (zie showPLMinileaguePopup in
+// FDRTool.jsx) rond de start van het Premier League-seizoen. Tijdelijke content: mag weg na de hype.
+export const PL_MINILEAGUE_CODE = 'slogga';
+
 // --- Gameweek-deadlines (enige handmatig bij te werken bron van waarheid voor "waar staan we") ---
 //
 // ISO-8601 mét expliciete offset (+02:00 = CEST, geldig voor augustus/september 2026). Eén échte
