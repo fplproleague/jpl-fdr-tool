@@ -131,21 +131,24 @@ const FORM_RESULT_STYLE = {
   V: { bg: 'rgba(194,64,44,0.65)', text: '#FFFFFF' },
 };
 
-// Kleine vormbalk onder de clubnaam in de hoofdtabel: max. 5 laatste uitslagen (oudste eerst), zie
-// TEAM_FORM in constants.js. Rendert bewust niets zolang er geen uitslagen zijn (leeg seizoenbegin) —
-// geen lege/grijze placeholder-vakjes die een uitslag lijken te suggereren die er niet is.
+// Kleine vormindicator naast de clubcode in de hoofdtabel: max. 5 laatste uitslagen (oudste eerst), zie
+// TEAM_FORM in constants.js. Bewust INLINE i.p.v. op een eigen regel eronder (zoals de allereerste versie
+// deed) — dat duwde de team-cel hoger dan de fixture-cellen ernaast, waardoor de hele rij meegroeide en
+// vooral de strak-passende DGW-cellen (2 gestapelde helften) opeens lucht/lege ruimte kregen. Als kleine
+// puntjes (7px, kleiner dan de 20px clublogo) op dezelfde regel als de code blijft de rijhoogte exact
+// gelijk aan voordien. Rendert bewust niets zolang er geen uitslagen zijn (leeg seizoenbegin) — geen
+// lege/grijze placeholder-stippen die een uitslag lijken te suggereren die er niet is.
 function TeamFormBar({ results }) {
   if (!results || results.length === 0) return null;
   return (
-    <span style={{ display: 'flex', gap: '2px', marginTop: '3px' }} aria-label={`Recente vorm: ${results.join(', ')}`}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }} aria-label={`Recente vorm: ${results.join(', ')}`}>
       {results.map((r, i) => {
         const style = FORM_RESULT_STYLE[r];
         return (
-          <span key={i} aria-hidden="true" style={{
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            width: '13px', height: '13px', borderRadius: '3px', fontSize: '8px', fontWeight: 700,
-            lineHeight: 1, background: style?.bg ?? 'rgba(255,255,255,0.1)', color: style?.text ?? '#C9B8E0',
-          }}>{r}</span>
+          <span key={i} aria-hidden="true" title={r} style={{
+            display: 'inline-block', width: '7px', height: '7px', borderRadius: '50%', flexShrink: 0,
+            background: style?.bg ?? 'rgba(255,255,255,0.25)',
+          }} />
         );
       })}
     </span>
@@ -366,8 +369,8 @@ export default function FDRTab({
                       onError={(e) => { e.target.style.display = 'none'; }}
                     />
                     {team.code}
+                    <TeamFormBar results={TEAM_FORM[team.code]} />
                   </span>
-                  <TeamFormBar results={TEAM_FORM[team.code]} />
                 </td>
 
                 {FIXTURES[team.code].slice(gwHorizonRange.start - 1, gwHorizonRange.end).map((f, i) => {
