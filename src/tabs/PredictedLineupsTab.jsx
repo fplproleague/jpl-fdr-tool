@@ -4,8 +4,8 @@
 // (../predicted-xi/) via hun readOnly-prop, zodat de visuele stijl (veld, kaartjes, kleuren, header)
 // gegarandeerd exact dezelfde is als de privé-tool — geen duplicatie, geen risico op visuele drift.
 import { useState } from 'react';
-import { AlertTriangle } from 'lucide-react';
-import { TEAMS, CURRENT_GW, PREDICTED_LINEUPS_GW } from '../constants';
+import { AlertTriangle, CalendarOff } from 'lucide-react';
+import { TEAMS, CURRENT_GW, PREDICTED_LINEUPS_GW, POSTPONED, FIXTURES, buildPostponedTooltipText } from '../constants';
 import { COLORS } from '../theme';
 import { FORMATIONS } from '../predicted-xi/formations';
 import PitchField from '../predicted-xi/PitchField';
@@ -29,6 +29,13 @@ const SAFETY_LEGEND = [
 // verschijnt zo'n club nooit als een lege, verwarrende kaart in de kiezer, ook niet als
 // predictedLineupsData.js per ongeluk een halfafgewerkte entry bevat.
 const readyLineups = PREDICTED_LINEUPS.filter(l => l.slots.some(s => s.positionId !== '_unassigned' && s.playerName));
+
+// Clubs zonder wedstrijd in de GW waarvoor deze opstellingen gelden (uitgestelde fixture — zie
+// POSTPONED in constants.js, al de bestaande bron van waarheid hiervoor, gebruikt door o.a. de
+// FDR-hoofdtabel). Deze clubs horen nog steeds in de klub-kiezer hieronder (anders lijkt het alsof de
+// site ze vergeten is), maar tonen een placeholder i.p.v. een opstelling: er valt nu eenmaal niets te
+// voorspellen voor een wedstrijd die niet doorgaat.
+const notPlayingClubCodes = TEAMS.filter(t => POSTPONED.has(`${t.code}-${PREDICTED_LINEUPS_GW}`)).map(t => t.code);
 
 // De opstellingen zijn verouderd zodra de speeldag waarvoor ze gemaakt zijn achterloopt op de
 // gameweek die nu aan de beurt is. Beide waarden komen uit constants.js (PREDICTED_LINEUPS_GW wordt
@@ -59,10 +66,15 @@ function StaleWarning() {
 }
 
 export default function PredictedLineupsTab() {
-  const availableClubCodes = [...new Set(readyLineups.map(l => l.clubCode))];
+  // TEAMS-volgorde (canoniek, alfabetisch op code) i.p.v. data-invoervolgorde: nu dat niet-spelende
+  // clubs (zonder eigen entry in PREDICTED_LINEUPS) ertussen gemengd moeten worden, geeft dit een
+  // voorspelbare, stabiele kiezer-volgorde voor alle clubs samen i.p.v. twee losse groepjes.
+  const availableClubCodes = TEAMS.map(t => t.code).filter(code =>
+    readyLineups.some(l => l.clubCode === code) || notPlayingClubCodes.includes(code)
+  );
   const [selectedClubCode, setSelectedClubCode] = useState(availableClubCodes[0] ?? '');
 
-  if (readyLineups.length === 0) {
+  if (availableClubCodes.length === 0) {
     return (
       <>
         <StaleWarning />
@@ -81,10 +93,27 @@ export default function PredictedLineupsTab() {
     );
   }
 
-  const lineup = readyLineups.find(l => l.clubCode === selectedClubCode) ?? readyLineups[0];
-  const club = TEAMS.find(t => t.code === lineup.clubCode);
-  const opponent = lineup.opponentCode ? TEAMS.find(t => t.code === lineup.opponentCode) : null;
-  const formationLabel = lineup.formationLabelOverride?.trim() || FORMATIONS[lineup.formationKey]?.label || lineup.formationKey;
+  // isNotPlaying wint altijd van een eventuele (verouderde) lineup-entry voor diezelfde club — zie
+  // notPlayingClubCodes hierboven. lineup/opponent/formationLabel hebben dan geen betekenis en worden
+  // niet berekend; de placeholder-tak hieronder gebruikt enkel club/postponedMessage.
+  const isNotPlaying = notPlayingClubCodes.includes(selectedClubCode);
+  const club = TEAMS.find(t => t.code === selectedClubCode);
+  const lineup = !isNotPlaying ? (readyLineups.find(l => l.clubCode === selectedClubCode) ?? readyLineups[0]) : null;
+  const opponent = lineup?.opponentCode ? TEAMS.find(t => t.code === lineup.opponentCode) : null;
+  const formationLabel = lineup
+    ? (lineup.formationLabelOverride?.trim() || FORMATIONS[lineup.formationKey]?.label || lineup.formationKey)
+    : null;
+  // Hergebruikt buildPostponedTooltipText (constants.js) — dezelfde functie die de FDR-hoofdtabel al
+  // gebruikt voor de tooltip op een uitgestelde fixture-cel, zodat de uitleg hier ("uitgesteld naar
+  // X wegens Y") altijd woordelijk consistent is met wat elders op de site al over deze wedstrijd
+  // staat, i.p.v. een aparte, los onderhouden placeholder-tekst.
+  const postponedMessage = (() => {
+    if (!isNotPlaying) return null;
+    const fixtureEntry = FIXTURES[selectedClubCode]?.[PREDICTED_LINEUPS_GW - 1];
+    if (typeof fixtureEntry !== 'string') return `${club?.name ?? selectedClubCode} speelt niet in GW${PREDICTED_LINEUPS_GW}.`;
+    const [opp, venue] = fixtureEntry.split('-');
+    return buildPostponedTooltipText(selectedClubCode, opp, venue);
+  })();
 
   return (
     <>
@@ -108,17 +137,21 @@ export default function PredictedLineupsTab() {
         {availableClubCodes.map(code => {
           const t = TEAMS.find(team => team.code === code);
           const isSelected = code === selectedClubCode;
+          // Gedimd (i.p.v. een apart icoontje): genoeg om in de kiezer zelf al te laten vermoeden dat
+          // deze club iets anders toont, zonder de rest van het raster drukker te maken — de
+          // placeholder na selectie legt de reden vervolgens expliciet uit.
+          const clubIsNotPlaying = notPlayingClubCodes.includes(code);
           return (
             <button
               key={code}
               onClick={() => setSelectedClubCode(code)}
-              title={t?.name ?? code}
+              title={clubIsNotPlaying ? `${t?.name ?? code} — geen wedstrijd deze speeldag` : (t?.name ?? code)}
               style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
                 background: isSelected ? 'rgba(78,205,196,0.12)' : 'rgba(255,255,255,0.04)',
                 border: isSelected ? '1px solid #4ECDC4' : '1px solid rgba(255,255,255,0.08)',
                 borderRadius: '10px', padding: '6px 4px', width: '100%', cursor: 'pointer',
-                fontFamily: 'inherit',
+                fontFamily: 'inherit', opacity: clubIsNotPlaying && !isSelected ? 0.55 : 1,
               }}
               aria-pressed={isSelected}
             >
@@ -141,44 +174,75 @@ export default function PredictedLineupsTab() {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
-        {/* Kleurenlegende voor de kaartranden — zonder dit weten publieke bezoekers niet wat een rode
-            of oranje rand betekent (enkel de privé-tool toont de betekenis via een hover-tooltip op de
-            safety-badge, die hier bewust niet gerenderd wordt — zie PitchSlot.jsx's readOnly-prop). */}
-        <div style={{
-          display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center',
-          fontSize: '11px', fontWeight: 700, color: COLORS.textBody,
-        }}>
-          {SAFETY_LEGEND.map(({ level, label }) => (
-            <div key={level} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <span style={{
-                width: '10px', height: '10px', borderRadius: '50%',
-                background: SAFETY_STYLE[level].border, flexShrink: 0,
-              }} />
-              {label}
+        {isNotPlaying ? (
+          /* Placeholder i.p.v. PitchField: er is voor deze club simpelweg geen wedstrijd (dus geen
+             opstelling) deze speeldag — zie notPlayingClubCodes/postponedMessage hierboven. Zelfde
+             kaart-look als de "nog geen lineups"-lege-staat verderop in dit bestand, maar dan
+             per-club en met de specifieke uitstel-reden. */
+          <div style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px',
+            background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: '10px', padding: '40px 24px', width: '100%', maxWidth: '420px', textAlign: 'center',
+          }}>
+            {club && (
+              <img
+                src={`/club-logos/${club.code}.png`}
+                alt=""
+                style={{ width: '48px', height: '48px', objectFit: 'contain', opacity: 0.6 }}
+                onError={(e) => { e.target.style.display = 'none'; }}
+              />
+            )}
+            <CalendarOff size={22} color={COLORS.textSubtle} aria-hidden="true" />
+            <p style={{ color: COLORS.textBody, fontSize: '14px', fontWeight: 700, margin: 0 }}>
+              Geen wedstrijd deze speeldag
+            </p>
+            <p style={{ color: COLORS.textMuted, fontSize: '13px', lineHeight: 1.5, margin: 0 }}>
+              {postponedMessage}
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Kleurenlegende voor de kaartranden — zonder dit weten publieke bezoekers niet wat een
+                rode of oranje rand betekent (enkel de privé-tool toont de betekenis via een
+                hover-tooltip op de safety-badge, die hier bewust niet gerenderd wordt — zie
+                PitchSlot.jsx's readOnly-prop). */}
+            <div style={{
+              display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center',
+              fontSize: '11px', fontWeight: 700, color: COLORS.textBody,
+            }}>
+              {SAFETY_LEGEND.map(({ level, label }) => (
+                <div key={level} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <span style={{
+                    width: '10px', height: '10px', borderRadius: '50%',
+                    background: SAFETY_STYLE[level].border, flexShrink: 0,
+                  }} />
+                  {label}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-        <PitchField
-          readOnly
-          club={club}
-          opponent={opponent}
-          formationLabel={formationLabel}
-          slots={lineup.slots}
-          activeSlotIndex={null}
-          onSlotClick={noop}
-          onRemove={noop}
-          onCycleSafety={noop}
-          onDragStart={noop}
-          onSlotDrop={noop}
-        />
-        {/* Per-lineup "laatst geüpdatet" — een handmatig ingevuld tekstveld in predictedLineupsData.js
-            (lastUpdatedLabel), bewust géén afgeleide/berekende datum: elke lineup wordt onregelmatig en
-            los van elkaar bijgewerkt, dus enkel de samensteller weet wanneer een specifieke opstelling
-            voor het laatst nagekeken is. */}
-        {lineup.lastUpdatedLabel && (
-          <p style={{ color: COLORS.textMuted, fontSize: '10px', margin: 0 }}>
-            Laatst geüpdatet: {lineup.lastUpdatedLabel}
-          </p>
+            <PitchField
+              readOnly
+              club={club}
+              opponent={opponent}
+              formationLabel={formationLabel}
+              slots={lineup.slots}
+              activeSlotIndex={null}
+              onSlotClick={noop}
+              onRemove={noop}
+              onCycleSafety={noop}
+              onDragStart={noop}
+              onSlotDrop={noop}
+            />
+            {/* Per-lineup "laatst geüpdatet" — een handmatig ingevuld tekstveld in
+                predictedLineupsData.js (lastUpdatedLabel), bewust géén afgeleide/berekende datum: elke
+                lineup wordt onregelmatig en los van elkaar bijgewerkt, dus enkel de samensteller weet
+                wanneer een specifieke opstelling voor het laatst nagekeken is. */}
+            {lineup.lastUpdatedLabel && (
+              <p style={{ color: COLORS.textMuted, fontSize: '10px', margin: 0 }}>
+                Laatst geüpdatet: {lineup.lastUpdatedLabel}
+              </p>
+            )}
+          </>
         )}
         {/* Publiek watermerk, specifiek voor deze read-only weergave — geen downloadknop (bewuste
             keuze, enkel bekijken). Zit bewust hier en niet in PitchField.jsx zelf: dat blijft ook door
