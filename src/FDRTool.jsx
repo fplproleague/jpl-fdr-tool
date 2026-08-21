@@ -1746,24 +1746,26 @@ export default function FDRTool() {
       )}
 
       {/* Eenmalige PL-minileague-popup — zie showPLMinileaguePopup hierboven voor de "toon precies één
-          keer ooit"-logica. TIJDELIJKE content rond de start van het Premier League-seizoen: dit hele
-          blok (plus PL_MINILEAGUE_CODE in constants.js en de subtiele vermelding in FDRTab.jsx) mag
-          weg zodra de hype rond de seizoensstart voorbij is. Zelfde overlay-opzet als de "Hoe werkt
-          dit?"-modal hierboven (klik op de achtergrond sluit ook), maar met een eigen hogere zIndex
-          zodat hij bij een eerste bezoek altijd bovenop verschijnt. */}
+          keer ooit"-logica. Bewust vereenvoudigd tot enkel de code zelf (geen aankondigingstekst meer)
+          — PL_MINILEAGUE_POPUP_SEEN_KEY bleef ONGEWIJZIGD t.o.v. de vorige (uitgebreidere) versie, dus
+          wie die al zag krijgt deze simpelere versie niet alsnog te zien. TIJDELIJKE content: dit hele
+          blok (plus PL_MINILEAGUE_CODE in constants.js) mag weg zodra de hype rond de seizoensstart
+          voorbij is. Zelfde overlay-opzet als de "Hoe werkt dit?"-modal hierboven (klik op de
+          achtergrond sluit ook), maar met een eigen hogere zIndex zodat hij bij een eerste bezoek
+          altijd bovenop verschijnt. */}
       {showPLMinileaguePopup && (
         <div onClick={handleClosePLMinileaguePopup} style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex',
           alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 70
         }}>
           <div onClick={e => e.stopPropagation()} style={{
-            background: '#3D1E5C', borderRadius: '14px', padding: '24px', maxWidth: '400px',
+            background: '#3D1E5C', borderRadius: '14px', padding: '20px', maxWidth: '340px',
             border: '1px solid rgba(78,205,196,0.35)',
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-              <h3 className="fdr-title" style={{ color: '#4ECDC4', fontSize: '16px', margin: 0, textTransform: 'uppercase' }}>
-                De Premier League start morgen!
-              </h3>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
+              <p style={{ color: '#FFF', fontSize: '15px', fontWeight: 700, lineHeight: 1.4, margin: 0 }}>
+                Fantasy Premier League code: <span style={{ color: '#4ECDC4', letterSpacing: '0.05em' }}>{PL_MINILEAGUE_CODE}</span>
+              </p>
               <button
                 onClick={handleClosePLMinileaguePopup}
                 aria-label="Melding sluiten"
@@ -1772,32 +1774,20 @@ export default function FDRTool() {
                 <X size={18} />
               </button>
             </div>
-            <p style={{ color: '#C9B8E0', fontSize: '13px', lineHeight: 1.6, margin: 0 }}>
-              Speel je ook Fantasy Premier League? Doe mee met mijn minileague via de code hieronder.
-            </p>
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px',
-              background: 'rgba(78,205,196,0.1)', border: '1px solid rgba(78,205,196,0.35)',
-              borderRadius: '10px', padding: '10px 14px', marginTop: '14px',
-            }}>
-              <span style={{ color: '#FFF', fontWeight: 900, fontSize: '18px', letterSpacing: '0.05em' }}>
-                {PL_MINILEAGUE_CODE}
-              </span>
-              <button
-                onClick={handleCopyPLMinileagueCode}
-                className="fdr-touch-target"
-                aria-label={`Minileague-code ${PL_MINILEAGUE_CODE} kopiëren`}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                  background: plCodeCopied ? 'transparent' : '#4ECDC4', color: plCodeCopied ? '#4ECDC4' : '#0B2E1B',
-                  border: '1px solid #4ECDC4', borderRadius: '8px', padding: '6px 12px',
-                  fontWeight: 700, fontSize: '12px', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0,
-                }}
-              >
-                {plCodeCopied ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
-                {plCodeCopied ? 'Gekopieerd!' : 'Kopieer'}
-              </button>
-            </div>
+            <button
+              onClick={handleCopyPLMinileagueCode}
+              className="fdr-touch-target"
+              aria-label={`Minileague-code ${PL_MINILEAGUE_CODE} kopiëren`}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', width: '100%',
+                background: plCodeCopied ? 'transparent' : '#4ECDC4', color: plCodeCopied ? '#4ECDC4' : '#0B2E1B',
+                border: '1px solid #4ECDC4', borderRadius: '8px', padding: '8px 12px', marginTop: '14px',
+                fontWeight: 700, fontSize: '12px', fontFamily: 'inherit', cursor: 'pointer',
+              }}
+            >
+              {plCodeCopied ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
+              {plCodeCopied ? 'Gekopieerd!' : 'Kopieer'}
+            </button>
           </div>
         </div>
       )}
