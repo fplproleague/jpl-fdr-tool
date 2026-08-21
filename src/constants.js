@@ -222,7 +222,27 @@ export const PREDICTED_LINEUPS_GW = 2;
 // nieuwste uitslag achteraan elke array en knip de oudste eraf zodra een team er meer dan 5 heeft. Een
 // team zonder vermelde uitslagen (het huidige, lopende seizoenbegin) krijgt een lege array — dan toont
 // de tabel simpelweg geen vormbalk voor dat team, nooit een verzonnen of geraden uitslag.
-export const TEAM_FORM = Object.fromEntries(TEAMS.map(t => [t.code, []]));
+export const TEAM_FORM = {
+  ...Object.fromEntries(TEAMS.map(t => [t.code, []])),
+  CLU: ['W', 'W'],
+  ANT: ['W', 'W'],
+  GNT: ['W', 'W'],
+  CHA: ['W', 'W'],
+  STA: ['G', 'G', 'W'],
+  USG: ['W', 'G'],
+  ZWA: ['W', 'G'],
+  GNK: ['V', 'W'],
+  BEV: ['V', 'W'],
+  AND: ['W', 'V'],
+  CER: ['G', 'G'],
+  STV: ['G', 'G'],
+  LOM: ['G', 'V'],
+  KVM: ['V', 'G'],
+  LLV: ['V', 'V', 'V'],
+  WES: ['V', 'V'],
+  OHL: ['V', 'V'],
+  KOR: ['V', 'V'],
+};
 
 // TEAMS is al alfabetisch op code — eenmalig gesorteerde kopie voor UI-lijsten die dat expliciet willen.
 export const TEAMS_ALPHA = [...TEAMS].sort((a, b) => a.code.localeCompare(b.code));
