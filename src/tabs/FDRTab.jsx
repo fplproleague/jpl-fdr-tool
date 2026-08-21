@@ -7,7 +7,7 @@
 
 import { memo } from 'react';
 import { RotateCcw, TrendingUp, Info, Link2, Download, Check, ArrowUpDown, Settings2, Grid2x2, Scale } from 'lucide-react';
-import { TEAMS, TEAMS_ALPHA, FIXTURES, RATING_STYLE, GW_INDEXES, getFixtureInfo, PL_MINILEAGUE_CODE } from '../constants';
+import { TEAMS, TEAMS_ALPHA, FIXTURES, RATING_STYLE, GW_INDEXES, getFixtureInfo } from '../constants';
 import { COLORS, selectStyle, secondaryButtonStyle, primaryButtonStyle, iconButtonStyle } from '../theme';
 import { SectionHeader } from '../components/SectionHeader';
 import { MiniFixtureBadge } from '../components/MiniFixtureBadge';
@@ -138,12 +138,6 @@ export default function FDRTab({
     <>
     <p style={{ color: COLORS.textMuted, fontSize: '13px', marginBottom: '18px' }}>
       Mijn eigen fixture difficulty ratings — pas ze aan naar jouw mening en ontdek meteen welke teams de beste runs hebben.
-    </p>
-    {/* Subtiele, TIJDELIJKE vermelding rond de start van het Premier League-seizoen — zie de
-        eenmalige popup in FDRTool.jsx (showPLMinileaguePopup) voor de kopieerbare versie. Mag weg
-        zodra de hype rond de seizoensstart voorbij is (samen met PL_MINILEAGUE_CODE in constants.js). */}
-    <p style={{ color: COLORS.textSubtle, fontSize: '12px', marginBottom: '18px' }}>
-      ⚽ PL start morgen — mijn minileague-code: <strong style={{ color: '#4ECDC4' }}>{PL_MINILEAGUE_CODE}</strong>
     </p>
     <div className="fpl-toolbar" style={{
       display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center',
