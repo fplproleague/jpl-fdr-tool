@@ -7,7 +7,7 @@
 
 import { memo } from 'react';
 import { RotateCcw, TrendingUp, Info, Link2, Download, Check, ArrowUpDown, Settings2, Grid2x2, Scale } from 'lucide-react';
-import { TEAMS, TEAMS_ALPHA, FIXTURES, RATING_STYLE, GW_INDEXES, getFixtureInfo } from '../constants';
+import { TEAMS, TEAMS_ALPHA, FIXTURES, RATING_STYLE, TEAM_FORM, GW_INDEXES, getFixtureInfo } from '../constants';
 import { COLORS, selectStyle, secondaryButtonStyle, primaryButtonStyle, iconButtonStyle } from '../theme';
 import { SectionHeader } from '../components/SectionHeader';
 import { MiniFixtureBadge } from '../components/MiniFixtureBadge';
@@ -121,6 +121,36 @@ const FixtureCell = memo(function FixtureCell({
     </td>
   );
 });
+
+// Eigen, bewust subtielere kleurtaal dan RATING_STYLE hierboven: die kleuren betekenen in de tabel iets
+// heel anders (ingeschatte fixture-moeilijkheid, geen echte uitslag), dus een vormbalk in exact dezelfde
+// groen/geel/rood-schaal zou de twee te makkelijk laten verwarren.
+const FORM_RESULT_STYLE = {
+  W: { bg: 'rgba(78,205,196,0.9)', text: '#0B2E1B' },
+  G: { bg: 'rgba(255,255,255,0.18)', text: '#C9B8E0' },
+  V: { bg: 'rgba(194,64,44,0.65)', text: '#FFFFFF' },
+};
+
+// Kleine vormbalk onder de clubnaam in de hoofdtabel: max. 5 laatste uitslagen (oudste eerst), zie
+// TEAM_FORM in constants.js. Rendert bewust niets zolang er geen uitslagen zijn (leeg seizoenbegin) —
+// geen lege/grijze placeholder-vakjes die een uitslag lijken te suggereren die er niet is.
+function TeamFormBar({ results }) {
+  if (!results || results.length === 0) return null;
+  return (
+    <span style={{ display: 'flex', gap: '2px', marginTop: '3px' }} aria-label={`Recente vorm: ${results.join(', ')}`}>
+      {results.map((r, i) => {
+        const style = FORM_RESULT_STYLE[r];
+        return (
+          <span key={i} aria-hidden="true" style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            width: '13px', height: '13px', borderRadius: '3px', fontSize: '8px', fontWeight: 700,
+            lineHeight: 1, background: style?.bg ?? 'rgba(255,255,255,0.1)', color: style?.text ?? '#C9B8E0',
+          }}>{r}</span>
+        );
+      })}
+    </span>
+  );
+}
 
 export default function FDRTab({
   ratings, homeAdvantage, updateRating, toggleHomeAdvantage,
@@ -337,6 +367,7 @@ export default function FDRTab({
                     />
                     {team.code}
                   </span>
+                  <TeamFormBar results={TEAM_FORM[team.code]} />
                 </td>
 
                 {FIXTURES[team.code].slice(gwHorizonRange.start - 1, gwHorizonRange.end).map((f, i) => {
