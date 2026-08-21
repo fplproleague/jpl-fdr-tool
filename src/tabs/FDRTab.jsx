@@ -7,7 +7,7 @@
 
 import { memo } from 'react';
 import { RotateCcw, TrendingUp, Info, Link2, Download, Check, ArrowUpDown, Settings2, Grid2x2, Scale } from 'lucide-react';
-import { TEAMS, TEAMS_ALPHA, FIXTURES, RATING_STYLE, GW_INDEXES, getFixtureInfo } from '../constants';
+import { TEAMS, TEAMS_ALPHA, FIXTURES, RATING_STYLE, TEAM_FORM, GW_INDEXES, getFixtureInfo } from '../constants';
 import { COLORS, selectStyle, secondaryButtonStyle, primaryButtonStyle, iconButtonStyle } from '../theme';
 import { SectionHeader } from '../components/SectionHeader';
 import { MiniFixtureBadge } from '../components/MiniFixtureBadge';
@@ -121,6 +121,40 @@ const FixtureCell = memo(function FixtureCell({
     </td>
   );
 });
+
+// Eigen, bewust subtielere kleurtaal dan RATING_STYLE hierboven: die kleuren betekenen in de tabel iets
+// heel anders (ingeschatte fixture-moeilijkheid, geen echte uitslag), dus een vormbalk in exact dezelfde
+// groen/geel/rood-schaal zou de twee te makkelijk laten verwarren.
+const FORM_RESULT_STYLE = {
+  W: { bg: 'rgba(78,205,196,0.9)', text: '#0B2E1B' },
+  G: { bg: 'rgba(255,255,255,0.18)', text: '#C9B8E0' },
+  V: { bg: 'rgba(194,64,44,0.65)', text: '#FFFFFF' },
+};
+
+// Kleine vormindicator onder de clubcode in de hoofdtabel: max. 5 laatste uitslagen (oudste eerst), zie
+// TEAM_FORM in constants.js. De team-cel se rijhoogte wordt gedreven door het 20px-hoge clublogo (padding
+// 6px boven/onder erbij = 32px, exact gelijk aan de fixture-cellen ernaast) — dus de code-regel + stippenrij
+// samen moeten binnen diezelfde 20px content-hoogte blijven, anders groeit de hele rij mee (en krijgen
+// vooral de strak-passende DGW-cellen, 2 gestapelde helften, opeens lucht). Vandaar de expliciete, krappe
+// lineHeight op de coderegel (13px, geen browser-standaard leading) en de kleine stip (6px): 13 + 1 (gap)
+// + 6 = 20px, exact gelijk aan het logo. Rendert bewust niets zolang er geen uitslagen zijn (leeg
+// seizoenbegin) — geen lege/grijze placeholder-stippen die een uitslag lijken te suggereren die er niet is.
+function TeamFormBar({ results }) {
+  if (!results || results.length === 0) return null;
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }} aria-label={`Recente vorm: ${results.join(', ')}`}>
+      {results.map((r, i) => {
+        const style = FORM_RESULT_STYLE[r];
+        return (
+          <span key={i} aria-hidden="true" title={r} style={{
+            display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', flexShrink: 0,
+            background: style?.bg ?? 'rgba(255,255,255,0.25)',
+          }} />
+        );
+      })}
+    </span>
+  );
+}
 
 export default function FDRTab({
   ratings, homeAdvantage, updateRating, toggleHomeAdvantage,
@@ -335,7 +369,10 @@ export default function FDRTab({
                       style={{ width: '20px', height: '20px', objectFit: 'contain', flexShrink: 0 }}
                       onError={(e) => { e.target.style.display = 'none'; }}
                     />
-                    {team.code}
+                    <span style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                      <span style={{ lineHeight: '13px' }}>{team.code}</span>
+                      <TeamFormBar results={TEAM_FORM[team.code]} />
+                    </span>
                   </span>
                 </td>
 

@@ -216,6 +216,34 @@ export const GW_DEADLINES = Object.fromEntries(
 // verouderde team-info nooit meer stilzwijgend als actueel gepresenteerd worden.
 export const PREDICTED_LINEUPS_GW = 2;
 
+// Recente vorm per team in de hoofdtabel van de FDR-tab: max. 5 laatste GESPEELDE wedstrijden, oudste
+// eerst en nieuwste laatst ('W' winst, 'G' gelijkspel, 'V' verlies). Handmatig bij te werken na elke
+// afgeronde speeldag (zelfde onderhoudspatroon als POSTPONED/PREDICTED_LINEUPS_GW hierboven): duw de
+// nieuwste uitslag achteraan elke array en knip de oudste eraf zodra een team er meer dan 5 heeft. Een
+// team zonder vermelde uitslagen (het huidige, lopende seizoenbegin) krijgt een lege array — dan toont
+// de tabel simpelweg geen vormbalk voor dat team, nooit een verzonnen of geraden uitslag.
+export const TEAM_FORM = {
+  ...Object.fromEntries(TEAMS.map(t => [t.code, []])),
+  CLU: ['W', 'W'],
+  ANT: ['W', 'W'],
+  GNT: ['W', 'W'],
+  CHA: ['W', 'W'],
+  STA: ['G', 'G', 'W'],
+  USG: ['W', 'G'],
+  ZWA: ['W', 'G'],
+  GNK: ['V', 'W'],
+  BEV: ['V', 'W'],
+  AND: ['W', 'V'],
+  CER: ['G', 'G'],
+  STV: ['G', 'G'],
+  LOM: ['G', 'V'],
+  KVM: ['V', 'G'],
+  LLV: ['V', 'V', 'V'],
+  WES: ['V', 'V'],
+  OHL: ['V', 'V'],
+  KOR: ['V', 'V'],
+};
+
 // TEAMS is al alfabetisch op code — eenmalig gesorteerde kopie voor UI-lijsten die dat expliciet willen.
 export const TEAMS_ALPHA = [...TEAMS].sort((a, b) => a.code.localeCompare(b.code));
 export const GW_INDEXES = Array.from({ length: GW_COUNT }, (_, i) => i);
