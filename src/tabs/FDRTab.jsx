@@ -131,13 +131,14 @@ const FORM_RESULT_STYLE = {
   V: { bg: 'rgba(194,64,44,0.65)', text: '#FFFFFF' },
 };
 
-// Kleine vormindicator naast de clubcode in de hoofdtabel: max. 5 laatste uitslagen (oudste eerst), zie
-// TEAM_FORM in constants.js. Bewust INLINE i.p.v. op een eigen regel eronder (zoals de allereerste versie
-// deed) — dat duwde de team-cel hoger dan de fixture-cellen ernaast, waardoor de hele rij meegroeide en
-// vooral de strak-passende DGW-cellen (2 gestapelde helften) opeens lucht/lege ruimte kregen. Als kleine
-// puntjes (7px, kleiner dan de 20px clublogo) op dezelfde regel als de code blijft de rijhoogte exact
-// gelijk aan voordien. Rendert bewust niets zolang er geen uitslagen zijn (leeg seizoenbegin) — geen
-// lege/grijze placeholder-stippen die een uitslag lijken te suggereren die er niet is.
+// Kleine vormindicator onder de clubcode in de hoofdtabel: max. 5 laatste uitslagen (oudste eerst), zie
+// TEAM_FORM in constants.js. De team-cel se rijhoogte wordt gedreven door het 20px-hoge clublogo (padding
+// 6px boven/onder erbij = 32px, exact gelijk aan de fixture-cellen ernaast) — dus de code-regel + stippenrij
+// samen moeten binnen diezelfde 20px content-hoogte blijven, anders groeit de hele rij mee (en krijgen
+// vooral de strak-passende DGW-cellen, 2 gestapelde helften, opeens lucht). Vandaar de expliciete, krappe
+// lineHeight op de coderegel (13px, geen browser-standaard leading) en de kleine stip (6px): 13 + 1 (gap)
+// + 6 = 20px, exact gelijk aan het logo. Rendert bewust niets zolang er geen uitslagen zijn (leeg
+// seizoenbegin) — geen lege/grijze placeholder-stippen die een uitslag lijken te suggereren die er niet is.
 function TeamFormBar({ results }) {
   if (!results || results.length === 0) return null;
   return (
@@ -146,7 +147,7 @@ function TeamFormBar({ results }) {
         const style = FORM_RESULT_STYLE[r];
         return (
           <span key={i} aria-hidden="true" title={r} style={{
-            display: 'inline-block', width: '7px', height: '7px', borderRadius: '50%', flexShrink: 0,
+            display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', flexShrink: 0,
             background: style?.bg ?? 'rgba(255,255,255,0.25)',
           }} />
         );
@@ -368,8 +369,10 @@ export default function FDRTab({
                       style={{ width: '20px', height: '20px', objectFit: 'contain', flexShrink: 0 }}
                       onError={(e) => { e.target.style.display = 'none'; }}
                     />
-                    {team.code}
-                    <TeamFormBar results={TEAM_FORM[team.code]} />
+                    <span style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                      <span style={{ lineHeight: '13px' }}>{team.code}</span>
+                      <TeamFormBar results={TEAM_FORM[team.code]} />
+                    </span>
                   </span>
                 </td>
 
