@@ -1250,7 +1250,7 @@ export default function TeamPlannerTab({
                     {benchSwapSlot === null
                       ? 'Tik een bankspeler aan (niet de keeper), daarna een tweede om ze van plaats te wisselen.'
                       : 'Tik nu een andere bankspeler aan om te wisselen, of dezelfde om te annuleren.'}
-                    {' '}Tikken zet een speler zolang niet terug naar het veld — druk op "Klaar met herschikken" om te stoppen.
+                    {' '}
                   </span>
                 </p>
               </div>
