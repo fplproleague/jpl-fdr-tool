@@ -96,7 +96,7 @@ export const POSSIBLY_POSTPONED_REASONS = {
 
 export const DEFAULT_RATINGS = {
   LOM: 1, KOR: 1, BEV: 1,
-  ZWA: 2, OHL: 2, CER: 2, LLV: 2,
+  ZWA: 3, OHL: 2, CER: 2, LLV: 1,
   STA: 3, KVM: 3, WES: 3, CHA: 3, ANT: 3, STV: 3,
   GNK: 4, AND: 4, GNT: 4,
   USG: 5, CLU: 5,
