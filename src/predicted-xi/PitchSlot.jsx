@@ -136,9 +136,9 @@ export default function PitchSlot({
       >
         {isEmpty ? (
           <>
-            <Plus size={17} color={isActiveSearchTarget ? '#4ECDC4' : '#8F79AD'} />
+            <Plus size={17} color={isActiveSearchTarget ? '#4ECDC4' : '#A794C2'} />
             <span style={{
-              color: '#8F79AD', fontSize: '11px', fontWeight: 700,
+              color: '#A794C2', fontSize: '11px', fontWeight: 700,
               textAlign: 'center', lineHeight: 1.15,
             }}>
               {slot.role}
@@ -226,7 +226,7 @@ export default function PitchSlot({
               </span>
               {slot.playerPrice != null && (
                 <span className="pxi-card-price" style={{
-                  color: '#8F79AD', fontSize: '10px', fontWeight: 700,
+                  color: '#A794C2', fontSize: '10px', fontWeight: 700,
                   textShadow: TEXT_SHADOW,
                 }}>
                   {slot.playerPrice.toFixed(1)}M

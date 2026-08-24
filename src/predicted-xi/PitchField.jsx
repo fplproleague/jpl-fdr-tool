@@ -220,7 +220,7 @@ const PitchField = forwardRef(function PitchField({
           </div>
           {opponent && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ color: '#8F79AD', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>vs</span>
+              <span style={{ color: '#A794C2', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>vs</span>
               <img
                 src={`/club-logos/${opponent.code}.png`}
                 alt=""

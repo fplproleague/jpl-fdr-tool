@@ -9,6 +9,11 @@
     <meta name="robots" content="noindex, nofollow" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <meta name="theme-color" content="#2A1440" />
+    <!-- Zelfde reden als in index.html: lettertype via <link> in de <head> i.p.v. een @import in een
+         door React geïnjecteerde <style>, zodat het niet achteraan de kritieke keten hangt. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;700;900&display=swap" />
   </head>
   <body>
     <div id="root"></div>

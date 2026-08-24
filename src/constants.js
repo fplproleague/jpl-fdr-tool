@@ -96,7 +96,7 @@ export const POSSIBLY_POSTPONED_REASONS = {
 
 export const DEFAULT_RATINGS = {
   LOM: 1, KOR: 1, BEV: 1,
-  ZWA: 2, OHL: 2, CER: 2, LLV: 2,
+  ZWA: 3, OHL: 2, CER: 2, LLV: 1,
   STA: 3, KVM: 3, WES: 3, CHA: 3, ANT: 3, STV: 3,
   GNK: 4, AND: 4, GNT: 4,
   USG: 5, CLU: 5,
@@ -110,7 +110,9 @@ export const RATING_STYLE = {
   2: { bg: '#5BAE7A', text: '#0B2E1B', label: 'Makkelijk' },
   3: { bg: '#E8C547', text: '#3D2E00', label: 'Gemiddeld' },
   4: { bg: '#E08A3E', text: '#2E1500', label: 'Moeilijk' },
-  5: { bg: '#C2402C', text: '#FBEAE7', label: 'Moeilijkst' },
+  // Wit i.p.v. het vroegere #FBEAE7: dat haalde maar 4.44:1 op deze rode achtergrond en zakte
+  // daarmee net onder de WCAG AA-drempel (4.5:1) voor de kleine celtekst. #FFFFFF geeft 5.17:1.
+  5: { bg: '#C2402C', text: '#FFFFFF', label: 'Moeilijkst' },
 };
 
 export const GW_COUNT = 8;
@@ -122,17 +124,124 @@ export const DEFAULT_GW_HORIZON_END = 7;
 // mainTableMinWidth (zie FDRTool) evenredig van afschaalt bij een kleinere horizon.
 export const MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS = 760;
 export const MINILEAGUE_CODE = '19WN75';
-export const LAST_UPDATED = '12 augustus 2026';
-// Handmatig wekelijks bij te werken, net als LAST_UPDATED — markeert de "huidige" gameweek in de
-// hoofdtabel en bepaalt vanaf waar de mini-fixture-strip in de watch list start.
-export const CURRENT_GW = 2;
+export const LAST_UPDATED = '24 augustus 2026';
 
-// Handmatig wekelijks bij te werken (net als LAST_UPDATED/CURRENT_GW) — deadline-tekst per GW, getoond
-// klein/subtiel onder de GW-navigator in Team Planner. Kant-en-klare weergavestring i.p.v. een Date-
-// object, zelfde precedent als LAST_UPDATED (vermijdt tijdzone-gedoe). Lege/ontbrekende GW-waarden
-// tonen simpelweg niks.
-export const GW_DEADLINES = {
-  1: 'vrijdag 07 augustus 20:45', 2: 'vrijdag 14 augustus 20:45', 3: 'vrijdag 21 augustus 20:45', 4: 'vrijdag 28 augustus 20:45', 5: 'vrijdag 4 september 20:45', 6: 'vrijdag 11 september 20:45', 7: 'vrijdag 18 september 20:45', 8: '',
+// Code voor de PERSOONLIJKE Fantasy Premier League-minileague (het echte, Engelse FPL-spel) — los van
+// MINILEAGUE_CODE hierboven, dat is voor DEZE site (Fantasy Pro League, de Belgische competitie). Wordt
+// getoond in de eenmalige PL-popup en tijdelijk op het startscherm (zie showPLMinileaguePopup in
+// FDRTool.jsx) rond de start van het Premier League-seizoen. Tijdelijke content: mag weg na de hype.
+export const PL_MINILEAGUE_CODE = 'slogga';
+
+// --- Gameweek-deadlines (enige handmatig bij te werken bron van waarheid voor "waar staan we") ---
+//
+// ISO-8601 mét expliciete offset (+02:00 = CEST, geldig voor augustus/september 2026). Eén échte
+// datum per GW i.p.v. een kant-en-klare tekst: daaruit leiden we nu zowel de weergavestring
+// (formatGwDeadline) als de "huidige" gameweek (CURRENT_GW) én de aftelklok in de header af. Vroeger
+// stonden CURRENT_GW en de deadline-teksten als aparte, handmatig te synchroniseren constanten —
+// precies daardoor kon de site "GW3" tonen terwijl een ander onderdeel nog op GW2 stond. Werk enkel
+// dit object bij; al de rest volgt vanzelf.
+//
+// GW8 heeft (nog) geen bekende deadline: null i.p.v. een lege string, zodat "onbekend" expliciet is.
+export const GW_DEADLINE_ISO = {
+  1: '2026-08-07T20:45:00+02:00',
+  2: '2026-08-14T20:45:00+02:00',
+  3: '2026-08-21T20:45:00+02:00',
+  4: '2026-08-28T20:45:00+02:00',
+  5: '2026-09-04T20:45:00+02:00',
+  6: '2026-09-11T20:45:00+02:00',
+  7: '2026-09-18T20:45:00+02:00',
+  8: null,
+};
+
+// Deadlines worden ALTIJD in Belgische tijd getoond, ongeacht waar de bezoeker zit. Een Fantasy Pro
+// League-deadline is nu eenmaal een Belgisch tijdstip; iemand die vanuit een andere tijdzone kijkt
+// heeft niets aan een omgerekende klok en zou een afwijkende tijd als een fout lezen. De aftelklok
+// zelf is een tijdsduur en dus sowieso tijdzone-onafhankelijk.
+const BELGIAN_TIME_ZONE = 'Europe/Brussels';
+
+const deadlineFormatter = new Intl.DateTimeFormat('nl-BE', {
+  timeZone: BELGIAN_TIME_ZONE,
+  weekday: 'long', day: '2-digit', month: 'long',
+  hour: '2-digit', minute: '2-digit', hour12: false,
+});
+
+// Geeft de Date van een GW-deadline, of null als die niet gekend is (GW8).
+export function getGwDeadlineDate(gw) {
+  const iso = GW_DEADLINE_ISO[gw];
+  if (!iso) return null;
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+// Nederlandse weergavestring ("vrijdag 21 augustus 20:45"), afgeleid uit de echte datum i.p.v.
+// handmatig getypt. formatToParts i.p.v. format(): de exacte volgorde en scheidingstekens van de
+// nl-BE-locale liggen niet vast tussen browsers/versies, en we willen precies dezelfde tekst als
+// vroeger — niet "vrijdag 21 augustus om 20:45" of een variant met komma's.
+export function formatGwDeadline(gw) {
+  const date = getGwDeadlineDate(gw);
+  if (!date) return '';
+  const parts = Object.fromEntries(
+    deadlineFormatter.formatToParts(date)
+      .filter(p => p.type !== 'literal')
+      .map(p => [p.type, p.value])
+  );
+  return `${parts.weekday} ${parts.day} ${parts.month} ${parts.hour}:${parts.minute}`;
+}
+
+// De eerste GW waarvan de deadline nog niet verstreken is — dát is de gameweek waar een bezoeker mee
+// bezig is. Valt terug op GW_COUNT zodra alle gekende deadlines voorbij zijn. `now` is injecteerbaar
+// zodat dit testbaar is en niet stiekem van de systeemklok afhangt.
+export function resolveCurrentGw(now = new Date()) {
+  for (let gw = 1; gw <= GW_COUNT; gw++) {
+    const deadline = getGwDeadlineDate(gw);
+    if (deadline && deadline.getTime() > now.getTime()) return gw;
+  }
+  return GW_COUNT;
+}
+
+// Afgeleid i.p.v. handmatig ingesteld (zie resolveCurrentGw hierboven). Wordt één keer bij het laden
+// van de module berekend — ruim genoeg voor een sessie, en de aftelklok in de header hertelt sowieso
+// elke seconde zelf.
+export const CURRENT_GW = resolveCurrentGw();
+
+// Behouden voor bestaande aanroepers (Team Planner toont dit onder de GW-navigator): nu volledig
+// afgeleid uit GW_DEADLINE_ISO i.p.v. een tweede, apart bij te werken lijst.
+export const GW_DEADLINES = Object.fromEntries(
+  Array.from({ length: GW_COUNT }, (_, i) => [i + 1, formatGwDeadline(i + 1)])
+);
+
+// De gameweek waarvoor de voorspelde opstellingen in predictedLineupsData.js gelden. Handmatig bij te
+// werken samen met die data. Zolang deze waarde ACHTERLOOPT op CURRENT_GW toont de Predicted
+// Lineups-tab een expliciete waarschuwing dat de opstellingen van een vorige speeldag zijn — zo kan
+// verouderde team-info nooit meer stilzwijgend als actueel gepresenteerd worden.
+export const PREDICTED_LINEUPS_GW = 2;
+
+// Recente vorm per team in de hoofdtabel van de FDR-tab: max. 5 laatste GESPEELDE wedstrijden, oudste
+// eerst en nieuwste laatst ('W' winst, 'G' gelijkspel, 'V' verlies). Handmatig bij te werken na elke
+// afgeronde speeldag (zelfde onderhoudspatroon als POSTPONED/PREDICTED_LINEUPS_GW hierboven): duw de
+// nieuwste uitslag achteraan elke array en knip de oudste eraf zodra een team er meer dan 5 heeft. Een
+// team zonder vermelde uitslagen (het huidige, lopende seizoenbegin) krijgt een lege array — dan toont
+// de tabel simpelweg geen vormbalk voor dat team, nooit een verzonnen of geraden uitslag.
+export const TEAM_FORM = {
+  ...Object.fromEntries(TEAMS.map(t => [t.code, []])),
+  CLU: ['W', 'W', 'W'],
+  ANT: ['W', 'W', 'G'],
+  GNT: ['W', 'W'],
+  CHA: ['W', 'W', 'W'],
+  STA: ['G', 'G', 'W'],
+  USG: ['W', 'G'],
+  ZWA: ['W', 'G', 'W'],
+  GNK: ['V', 'W', 'G'],
+  BEV: ['V', 'W', 'V'],
+  AND: ['W', 'V'],
+  CER: ['G', 'G', 'V'],
+  STV: ['G', 'G'],
+  LOM: ['G', 'V', 'W'],
+  KVM: ['V', 'G', 'V'],
+  LLV: ['V', 'V', 'V'],
+  WES: ['V', 'V', 'V'],
+  OHL: ['V', 'V'],
+  KOR: ['V', 'V'],
 };
 
 // TEAMS is al alfabetisch op code — eenmalig gesorteerde kopie voor UI-lijsten die dat expliciet willen.
