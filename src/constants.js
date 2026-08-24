@@ -124,7 +124,7 @@ export const DEFAULT_GW_HORIZON_END = 7;
 // mainTableMinWidth (zie FDRTool) evenredig van afschaalt bij een kleinere horizon.
 export const MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS = 760;
 export const MINILEAGUE_CODE = '19WN75';
-export const LAST_UPDATED = '23 augustus 2026';
+export const LAST_UPDATED = '24 augustus 2026';
 
 // Code voor de PERSOONLIJKE Fantasy Premier League-minileague (het echte, Engelse FPL-spel) — los van
 // MINILEAGUE_CODE hierboven, dat is voor DEZE site (Fantasy Pro League, de Belgische competitie). Wordt
@@ -224,7 +224,7 @@ export const PREDICTED_LINEUPS_GW = 2;
 // de tabel simpelweg geen vormbalk voor dat team, nooit een verzonnen of geraden uitslag.
 export const TEAM_FORM = {
   ...Object.fromEntries(TEAMS.map(t => [t.code, []])),
-  CLU: ['W', 'W'],
+  CLU: ['W', 'W', 'W'],
   ANT: ['W', 'W', 'G'],
   GNT: ['W', 'W'],
   CHA: ['W', 'W', 'W'],
@@ -234,12 +234,12 @@ export const TEAM_FORM = {
   GNK: ['V', 'W', 'G'],
   BEV: ['V', 'W', 'V'],
   AND: ['W', 'V'],
-  CER: ['G', 'G'],
+  CER: ['G', 'G', 'V'],
   STV: ['G', 'G'],
-  LOM: ['G', 'V'],
+  LOM: ['G', 'V', 'W'],
   KVM: ['V', 'G', 'V'],
   LLV: ['V', 'V', 'V'],
-  WES: ['V', 'V'],
+  WES: ['V', 'V', 'V'],
   OHL: ['V', 'V'],
   KOR: ['V', 'V'],
 };
