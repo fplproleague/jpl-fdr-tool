@@ -6,12 +6,13 @@
 // props als WatchlistTab/TeamPlannerTab), dus geen eigen CSV-fetch/parsing meer hier (voorheen een
 // aparte BONUSPUNTEN_CSV_URL-werkblad-fetch).
 import { useCallback, useMemo, useState } from 'react';
-import { Loader2, AlertCircle, RotateCcw, Swords, Shield, RefreshCw, Target, Award } from 'lucide-react';
+import { Loader2, AlertCircle, RotateCcw, Swords, Shield, RefreshCw, Target, Award, X } from 'lucide-react';
 import { SectionHeader } from '../components/SectionHeader';
 import { RankingRow } from '../components/RankingRow';
+import { PlayerSearchInput } from '../components/PlayerSearchInput';
 import {
   buildBonuspuntenEntries, rankByDuels, rankByDefensiveHeaders, rankByRecoveries, rankByBigChances,
-  rankByBonusPoints, BONUS_CRITERIA,
+  rankByBonusPoints, findPlayerBonusStats, BONUS_CRITERIA,
 } from '../bonuspunten';
 
 const retryButtonStyle = {
@@ -29,10 +30,91 @@ function RankingSection({ icon, title, sectionKey, isOpen, onToggle, children })
   );
 }
 
+// Eén statistiek in de kaart van een opgezochte speler: grote waarde (turquoise als het criterium
+// gehaald is, anders gedempt lavendel — zelfde kleurtaal als RankingRow), plus de exacte plaats in de
+// volledige rangschikking (ook als die buiten de top 15 van de sectie hierboven valt).
+function BonusStatTile({ label, value, detail, qualifies, rank, total }) {
+  return (
+    <div style={{
+      background: 'rgba(0,0,0,0.15)', border: '1px solid rgba(255,255,255,0.08)',
+      borderRadius: '8px', padding: '8px 10px',
+    }}>
+      <div style={{ color: '#8F79AD', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+        {label}
+      </div>
+      <div style={{ color: qualifies ? '#4ECDC4' : '#FFF', fontWeight: 900, fontSize: '18px', lineHeight: 1.3 }}>
+        {value}
+      </div>
+      <div style={{ color: '#8F79AD', fontSize: '11px' }}>
+        {detail ? `${detail} · ` : ''}{rank}e / {total}
+      </div>
+    </div>
+  );
+}
+
+// Kaart met alle bonuspunten-info van één opgezochte speler, ongeacht of die in een top-15-sectie
+// hierboven staat. `stats` komt uit findPlayerBonusStats (src/bonuspunten.js).
+function PlayerBonusCard({ stats, onDismiss }) {
+  const { entry, totalPlayers, duelsRank, defensiveHeadersRank, recoveriesRank, bigChancesRank, bonusPointsRank } = stats;
+  return (
+    <div style={{
+      background: 'rgba(78,205,196,0.08)', border: '1px solid rgba(78,205,196,0.3)',
+      borderRadius: '10px', padding: '14px 16px', marginBottom: '20px',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+        <img
+          src={`/club-logos/${entry.clubCode}.png`}
+          alt=""
+          style={{ width: '26px', height: '26px', objectFit: 'contain', flexShrink: 0 }}
+          onError={(e) => { e.target.style.display = 'none'; }}
+        />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ color: '#FFF', fontWeight: 700, fontSize: '15px' }}>{entry.player}</div>
+          <div style={{ color: '#8F79AD', fontSize: '11px' }}>{entry.clubName}</div>
+        </div>
+        <button
+          type="button"
+          onClick={onDismiss}
+          aria-label="Sluiten"
+          style={{ background: 'none', border: 'none', color: '#C9B8E0', cursor: 'pointer', flexShrink: 0, padding: '4px' }}
+        >
+          <X size={16} />
+        </button>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px' }}>
+        <BonusStatTile
+          label="Duels" value={`${entry.duelDiff > 0 ? '+' : ''}${entry.duelDiff}`}
+          detail={`${entry.duelsWon}W/${entry.duelsLost}V`}
+          qualifies={BONUS_CRITERIA.duels(entry)} rank={duelsRank} total={totalPlayers}
+        />
+        <BonusStatTile
+          label="Kopballen" value={entry.defensiveHeaders}
+          qualifies={BONUS_CRITERIA.defensiveHeaders(entry)} rank={defensiveHeadersRank} total={totalPlayers}
+        />
+        <BonusStatTile
+          label="Recoveries" value={entry.recoveries}
+          qualifies={BONUS_CRITERIA.recoveries(entry)} rank={recoveriesRank} total={totalPlayers}
+        />
+        <BonusStatTile
+          label="Grote kansen" value={entry.bigChances}
+          qualifies={BONUS_CRITERIA.bigChances(entry)} rank={bigChancesRank} total={totalPlayers}
+        />
+        <BonusStatTile
+          label="Bonuspunten" value={entry.bonusPoints}
+          qualifies rank={bonusPointsRank} total={totalPlayers}
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function BonuspuntenTab({ playerDatabase, playerDatabaseLoading, playerDatabaseError, fetchPlayerDatabase }) {
   const [openSections, setOpenSections] = useState({
     duels: true, defensiveHeaders: true, recoveries: true, bigChances: true, bonusPoints: true,
   });
+  // Transiënte UI-state van de zoekbalk (zelfde precedent als openSections hierboven) — mag gerust
+  // resetten bij het weg- en terugnavigeren van deze tab.
+  const [selectedPlayer, setSelectedPlayer] = useState(null);
 
   const toggleSection = useCallback((key) => {
     setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
@@ -44,6 +126,10 @@ export default function BonuspuntenTab({ playerDatabase, playerDatabaseLoading, 
   const recoveriesRanking = useMemo(() => rankByRecoveries(entries), [entries]);
   const bigChancesRanking = useMemo(() => rankByBigChances(entries), [entries]);
   const bonusRanking = useMemo(() => rankByBonusPoints(entries), [entries]);
+  const selectedStats = useMemo(
+    () => findPlayerBonusStats(entries, selectedPlayer),
+    [entries, selectedPlayer]
+  );
 
   return (
     <>
@@ -89,6 +175,20 @@ export default function BonuspuntenTab({ playerDatabase, playerDatabaseLoading, 
 
       {!playerDatabaseLoading && !playerDatabaseError && entries.length > 0 && (
         <>
+          <div style={{ marginBottom: selectedStats ? '12px' : '20px' }}>
+            <PlayerSearchInput
+              players={playerDatabase}
+              value={selectedPlayer?.name}
+              onSelect={setSelectedPlayer}
+              placeholder="Zoek een speler op naam..."
+              maxWidth="320px"
+            />
+          </div>
+
+          {selectedStats && (
+            <PlayerBonusCard stats={selectedStats} onDismiss={() => setSelectedPlayer(null)} />
+          )}
+
           <RankingSection
             icon={Swords} title="Duels (gewonnen > verloren)" sectionKey="duels"
             isOpen={openSections.duels} onToggle={toggleSection}
