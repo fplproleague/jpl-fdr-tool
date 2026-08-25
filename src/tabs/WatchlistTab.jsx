@@ -20,6 +20,7 @@ const watchlistInputStyle = {
 };
 
 export default function WatchlistTab({
+  t,
   ratings, homeAdvantage,
   watchlist, newPlayerName, setNewPlayerName, newPlayerTeam, setNewPlayerTeam, newPlayerPrice, setNewPlayerPrice,
   handleAddWatchlistPlayer, handleRemoveWatchlistPlayer,
@@ -28,7 +29,7 @@ export default function WatchlistTab({
   return (
     <>
       <p style={{ color: COLORS.textMuted, fontSize: '13px', marginBottom: '16px' }}>
-        Houd je favoriete spelers in de gaten — voeg ze toe aan je persoonlijke watchlist, samen met hun eerstvolgende fixtures. Deze lijst slaat automatisch op in je browser.
+        {t('watchlist.intro')}
       </p>
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '24px' }}>
         <section>
@@ -38,7 +39,7 @@ export default function WatchlistTab({
           }}>
           <h2 className="fdr-title fdr-section-title" style={{ ...sectionTitleStyle, marginBottom: '12px' }}>
             <UserPlus size={18} color="#4ECDC4" style={{ flexShrink: 0 }} />
-            <span style={sectionTitleTextStyle}>Speler toevoegen</span>
+            <span style={sectionTitleTextStyle}>{t('watchlist.addHeading')}</span>
           </h2>
 
           {/* Laad-/foutstatus van de spelersdatabank (Google Sheet CSV, zie fetchPlayerDatabase in
@@ -51,7 +52,7 @@ export default function WatchlistTab({
           <div aria-live="polite">
           {playerDatabaseLoading && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: COLORS.textBody, fontSize: '13px', marginBottom: '12px' }}>
-              <Loader2 size={16} className="fdr-spin" /> Spelersdatabank laden...
+              <Loader2 size={16} className="fdr-spin" /> {t('watchlist.loadingDb')}
             </div>
           )}
           {!playerDatabaseLoading && playerDatabaseError && (
@@ -63,7 +64,7 @@ export default function WatchlistTab({
               <AlertCircle size={16} color="#C2402C" style={{ flexShrink: 0 }} />
               <span style={{ color: '#FBEAE7', fontSize: '13px', flex: 1 }}>{playerDatabaseError}</span>
               <button onClick={fetchPlayerDatabase} className="fdr-touch-target" style={retryButtonStyle}>
-                <RotateCcw size={14} aria-hidden="true" /> Probeer opnieuw
+                <RotateCcw size={14} aria-hidden="true" /> {t('shared.retry')}
               </button>
             </div>
           )}
@@ -73,7 +74,7 @@ export default function WatchlistTab({
             display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px', alignItems: 'end'
           }}>
             <label style={{ display: 'grid', gap: '4px', gridColumn: 'span 2' }}>
-              <span style={{ color: COLORS.textBody, fontSize: '11px', textTransform: 'uppercase', marginLeft: '4px'}}>Speler</span>
+              <span style={{ color: COLORS.textBody, fontSize: '11px', textTransform: 'uppercase', marginLeft: '4px'}}>{t('watchlist.playerLabel')}</span>
               {/* Zoek/autocomplete op de spelersdatabank i.p.v. vrije-tekst naam + los team-dropdown —
                   bij selectie vullen newPlayerName/-Team/-Price automatisch (zie onSelect hieronder),
                   zelfde patroon als de 15-koppige teaminvoer in TeamPlannerTab.jsx. */}
@@ -81,7 +82,7 @@ export default function WatchlistTab({
                 value={newPlayerName}
                 players={playerDatabase}
                 disabled={playerDatabaseLoading || !!playerDatabaseError}
-                placeholder={playerDatabaseLoading ? 'Databank laden...' : 'Zoek speler...'}
+                placeholder={playerDatabaseLoading ? t('watchlist.searchLoadingPlaceholder') : t('watchlist.searchPlaceholder')}
                 onSelect={(selected) => {
                   setNewPlayerName(selected.name);
                   setNewPlayerTeam(selected.teamCode);
@@ -90,7 +91,7 @@ export default function WatchlistTab({
               />
             </label>
             <label style={{ display: 'grid', gap: '4px' }}>
-              <span style={{ color: COLORS.textBody, fontSize: '11px', textTransform: 'uppercase', marginLeft: '4px' }}>Prijs</span>
+              <span style={{ color: COLORS.textBody, fontSize: '11px', textTransform: 'uppercase', marginLeft: '4px' }}>{t('watchlist.priceLabel')}</span>
               <div style={{ ...watchlistInputStyle, color: newPlayerPrice !== '' ? '#FFF' : COLORS.textMuted, fontWeight: 700 }}>
                 {newPlayerPrice !== '' ? `${Number(newPlayerPrice).toFixed(1)}M` : '—'}
               </div>
@@ -114,7 +115,7 @@ export default function WatchlistTab({
                 boxSizing: 'border-box', padding: '0 8px', fontSize: '11px', gap: '5px',
               }}
             >
-              <Plus size={16} /> Toevoegen
+              <Plus size={16} /> {t('watchlist.add')}
             </button>
           </form>
           </div>
@@ -123,16 +124,16 @@ export default function WatchlistTab({
         <section>
           <h2 className="fdr-title fdr-section-title" style={{ ...sectionTitleStyle, marginBottom: '12px' }}>
             <Eye size={18} color="#4ECDC4" style={{ flexShrink: 0 }} />
-            <span style={sectionTitleTextStyle}>Mijn watchlist</span>
+            <span style={sectionTitleTextStyle}>{t('watchlist.myWatchlist')}</span>
           </h2>
           {watchlist.length === 0 ? (
             <p style={{ color: COLORS.textSubtle, fontSize: '13px' }}>
-              Je watchlist is nog leeg. Voeg spelers toe die je in de gaten wil houden.
+              {t('watchlist.empty')}
             </p>
           ) : (
             <div style={{ display: 'grid', gap: '8px' }}>
               {watchlist.map(player => {
-                const team = TEAMS.find(t => t.code === player.teamCode);
+                const team = TEAMS.find(team => team.code === player.teamCode);
                 // Eerstvolgende (max. 5) fixtures vanaf CURRENT_GW — .slice() geeft vanzelf minder
                 // terug als het seizoen bijna afloopt, dus geen aparte "resterende fixtures"-logica nodig.
                 const upcomingFixtures = (FIXTURES[player.teamCode] ?? []).slice(CURRENT_GW - 1, CURRENT_GW - 1 + 5);
@@ -143,7 +144,7 @@ export default function WatchlistTab({
                   }}>
                     <button
                       onClick={() => handleRemoveWatchlistPlayer(player.id)}
-                      aria-label={`Verwijder ${player.name} uit je watchlist`}
+                      aria-label={t('watchlist.removeAria', { name: player.name })}
                       className="fdr-icon-btn"
                       style={{
                         position: 'absolute', top: '2px', right: '2px',
