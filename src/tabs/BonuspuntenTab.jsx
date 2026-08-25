@@ -5,7 +5,7 @@
 // parsePlayerDatabaseCsv in constants.js) — die is al elders in FDRTool.jsx opgehaald/geparset (zelfde
 // props als WatchlistTab/TeamPlannerTab), dus geen eigen CSV-fetch/parsing meer hier (voorheen een
 // aparte BONUSPUNTEN_CSV_URL-werkblad-fetch).
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2, AlertCircle, RotateCcw, Swords, Shield, RefreshCw, Target, Award, X } from 'lucide-react';
 import { SectionHeader } from '../components/SectionHeader';
 import { RankingRow } from '../components/RankingRow';
@@ -115,9 +115,17 @@ export default function BonuspuntenTab({ playerDatabase, playerDatabaseLoading, 
   // Transiënte UI-state van de zoekbalk (zelfde precedent als openSections hierboven) — mag gerust
   // resetten bij het weg- en terugnavigeren van deze tab.
   const [selectedPlayer, setSelectedPlayer] = useState(null);
+  const playerCardRef = useRef(null);
 
   const toggleSection = useCallback((key) => {
     setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
+  }, []);
+
+  // Een rij in een top-15-sectie hieronder klikken doet exact hetzelfde als die speler opzoeken via de
+  // zoekbalk — zelfde kaart, zelfde state. `entry` gebruikt .player/.clubCode (bonuspunten-veldnamen),
+  // findPlayerBonusStats verwacht .name/.teamCode (playerDatabase-veldnamen), vandaar de kleine mapping.
+  const handleSelectFromRanking = useCallback((entry) => {
+    setSelectedPlayer({ name: entry.player, teamCode: entry.clubCode });
   }, []);
 
   const entries = useMemo(() => buildBonuspuntenEntries(playerDatabase), [playerDatabase]);
@@ -130,6 +138,12 @@ export default function BonuspuntenTab({ playerDatabase, playerDatabaseLoading, 
     () => findPlayerBonusStats(entries, selectedPlayer),
     [entries, selectedPlayer]
   );
+
+  // Een rij diep in een sectie aanklikken toont de kaart bovenaan — zonder deze scroll zou die
+  // buiten beeld verschijnen en lijken alsof de klik niets deed.
+  useEffect(() => {
+    if (selectedStats) playerCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [selectedStats]);
 
   return (
     <>
@@ -186,7 +200,9 @@ export default function BonuspuntenTab({ playerDatabase, playerDatabaseLoading, 
           </div>
 
           {selectedStats && (
-            <PlayerBonusCard stats={selectedStats} onDismiss={() => setSelectedPlayer(null)} />
+            <div ref={playerCardRef}>
+              <PlayerBonusCard stats={selectedStats} onDismiss={() => setSelectedPlayer(null)} />
+            </div>
           )}
 
           <RankingSection
@@ -199,6 +215,7 @@ export default function BonuspuntenTab({ playerDatabase, playerDatabaseLoading, 
                 subtitle={`${entry.duelsWon} gewonnen · ${entry.duelsLost} verloren`}
                 value={`${entry.duelDiff > 0 ? '+' : ''}${entry.duelDiff}`}
                 qualifies={BONUS_CRITERIA.duels(entry)}
+                onClick={() => handleSelectFromRanking(entry)}
               />
             ))}
           </RankingSection>
@@ -212,6 +229,7 @@ export default function BonuspuntenTab({ playerDatabase, playerDatabaseLoading, 
                 key={entry.player} rank={idx + 1} clubCode={entry.clubCode} player={entry.player}
                 subtitle={entry.clubName} value={entry.defensiveHeaders}
                 qualifies={BONUS_CRITERIA.defensiveHeaders(entry)}
+                onClick={() => handleSelectFromRanking(entry)}
               />
             ))}
           </RankingSection>
@@ -225,6 +243,7 @@ export default function BonuspuntenTab({ playerDatabase, playerDatabaseLoading, 
                 key={entry.player} rank={idx + 1} clubCode={entry.clubCode} player={entry.player}
                 subtitle={entry.clubName} value={entry.recoveries}
                 qualifies={BONUS_CRITERIA.recoveries(entry)}
+                onClick={() => handleSelectFromRanking(entry)}
               />
             ))}
           </RankingSection>
@@ -238,6 +257,7 @@ export default function BonuspuntenTab({ playerDatabase, playerDatabaseLoading, 
                 key={entry.player} rank={idx + 1} clubCode={entry.clubCode} player={entry.player}
                 subtitle={entry.clubName} value={entry.bigChances}
                 qualifies={BONUS_CRITERIA.bigChances(entry)}
+                onClick={() => handleSelectFromRanking(entry)}
               />
             ))}
           </RankingSection>
@@ -251,6 +271,7 @@ export default function BonuspuntenTab({ playerDatabase, playerDatabaseLoading, 
                 key={entry.player} rank={idx + 1} clubCode={entry.clubCode} player={entry.player}
                 subtitle={entry.clubName} value={entry.bonusPoints}
                 qualifies
+                onClick={() => handleSelectFromRanking(entry)}
               />
             ))}
           </RankingSection>
