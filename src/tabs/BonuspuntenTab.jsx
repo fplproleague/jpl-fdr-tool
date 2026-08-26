@@ -12,7 +12,7 @@ import { RankingRow } from '../components/RankingRow';
 import { PlayerSearchInput } from '../components/PlayerSearchInput';
 import {
   buildBonuspuntenEntries, rankByDuels, rankByDefensiveHeaders, rankByRecoveries, rankByBigChances,
-  rankByBonusPoints, findPlayerBonusStats, perGameLabel, BONUS_CRITERIA,
+  rankByBonusPoints, findPlayerBonusEntry, perGameLabel, BONUS_CRITERIA,
 } from '../bonuspunten';
 
 const retryButtonStyle = {
@@ -31,9 +31,9 @@ function RankingSection({ icon, title, sectionKey, isOpen, onToggle, children })
 }
 
 // Eén statistiek in de kaart van een opgezochte speler: grote waarde (turquoise als het criterium
-// gehaald is, anders gedempt lavendel — zelfde kleurtaal als RankingRow), plus de exacte plaats in de
-// volledige rangschikking (ook als die buiten de top 15 van de sectie hierboven valt).
-function BonusStatTile({ label, value, valueSub, detail, qualifies, rank, total }) {
+// gehaald is, anders gedempt lavendel — zelfde kleurtaal als RankingRow), met de "per wedstrijd"-waarde
+// (i.p.v. de rangschikkingsplaats die hier vroeger stond) op de tweede regel.
+function BonusStatTile({ label, value, perGame, detail, qualifies }) {
   return (
     <div style={{
       background: 'rgba(0,0,0,0.15)', border: '1px solid rgba(255,255,255,0.08)',
@@ -42,23 +42,19 @@ function BonusStatTile({ label, value, valueSub, detail, qualifies, rank, total 
       <div style={{ color: '#8F79AD', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
         {label}
       </div>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: '5px' }}>
-        <span style={{ color: qualifies ? '#4ECDC4' : '#FFF', fontWeight: 900, fontSize: '18px', lineHeight: 1.3 }}>
-          {value}
-        </span>
-        {valueSub && <span style={{ color: '#8F79AD', fontSize: '10px', fontWeight: 500 }}>{valueSub}</span>}
+      <div style={{ color: qualifies ? '#4ECDC4' : '#FFF', fontWeight: 900, fontSize: '18px', lineHeight: 1.3 }}>
+        {value}
       </div>
       <div style={{ color: '#8F79AD', fontSize: '11px' }}>
-        {detail ? `${detail} · ` : ''}{rank}e / {total}
+        {[detail, perGame].filter(Boolean).join(' · ')}
       </div>
     </div>
   );
 }
 
 // Kaart met alle bonuspunten-info van één opgezochte speler, ongeacht of die in een top-15-sectie
-// hierboven staat. `stats` komt uit findPlayerBonusStats (src/bonuspunten.js).
-function PlayerBonusCard({ stats, onDismiss }) {
-  const { entry, totalPlayers, duelsRank, defensiveHeadersRank, recoveriesRank, bigChancesRank, bonusPointsRank } = stats;
+// hierboven staat. `entry` komt uit findPlayerBonusEntry (src/bonuspunten.js).
+function PlayerBonusCard({ entry, onDismiss }) {
   return (
     <div style={{
       background: 'rgba(78,205,196,0.08)', border: '1px solid rgba(78,205,196,0.3)',
@@ -87,29 +83,29 @@ function PlayerBonusCard({ stats, onDismiss }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px' }}>
         <BonusStatTile
           label="Duels" value={`${entry.duelDiff > 0 ? '+' : ''}${entry.duelDiff}`}
-          valueSub={perGameLabel(entry.duelDiff, entry.games, { showSign: true })}
+          perGame={perGameLabel(entry.duelDiff, entry.games, { showSign: true })}
           detail={`${entry.duelsWon}W/${entry.duelsLost}V`}
-          qualifies={BONUS_CRITERIA.duels(entry)} rank={duelsRank} total={totalPlayers}
+          qualifies={BONUS_CRITERIA.duels(entry)}
         />
         <BonusStatTile
           label="Kopballen" value={entry.defensiveHeaders}
-          valueSub={perGameLabel(entry.defensiveHeaders, entry.games)}
-          qualifies={BONUS_CRITERIA.defensiveHeaders(entry)} rank={defensiveHeadersRank} total={totalPlayers}
+          perGame={perGameLabel(entry.defensiveHeaders, entry.games)}
+          qualifies={BONUS_CRITERIA.defensiveHeaders(entry)}
         />
         <BonusStatTile
           label="Recoveries" value={entry.recoveries}
-          valueSub={perGameLabel(entry.recoveries, entry.games)}
-          qualifies={BONUS_CRITERIA.recoveries(entry)} rank={recoveriesRank} total={totalPlayers}
+          perGame={perGameLabel(entry.recoveries, entry.games)}
+          qualifies={BONUS_CRITERIA.recoveries(entry)}
         />
         <BonusStatTile
           label="Grote kansen" value={entry.bigChances}
-          valueSub={perGameLabel(entry.bigChances, entry.games)}
-          qualifies={BONUS_CRITERIA.bigChances(entry)} rank={bigChancesRank} total={totalPlayers}
+          perGame={perGameLabel(entry.bigChances, entry.games)}
+          qualifies={BONUS_CRITERIA.bigChances(entry)}
         />
         <BonusStatTile
           label="Bonuspunten" value={entry.bonusPoints}
-          valueSub={perGameLabel(entry.bonusPoints, entry.games)}
-          qualifies rank={bonusPointsRank} total={totalPlayers}
+          perGame={perGameLabel(entry.bonusPoints, entry.games)}
+          qualifies
         />
       </div>
     </div>
@@ -131,7 +127,7 @@ export default function BonuspuntenTab({ playerDatabase, playerDatabaseLoading, 
 
   // Een rij in een top-15-sectie hieronder klikken doet exact hetzelfde als die speler opzoeken via de
   // zoekbalk — zelfde kaart, zelfde state. `entry` gebruikt .player/.clubCode (bonuspunten-veldnamen),
-  // findPlayerBonusStats verwacht .name/.teamCode (playerDatabase-veldnamen), vandaar de kleine mapping.
+  // findPlayerBonusEntry verwacht .name/.teamCode (playerDatabase-veldnamen), vandaar de kleine mapping.
   const handleSelectFromRanking = useCallback((entry) => {
     setSelectedPlayer({ name: entry.player, teamCode: entry.clubCode });
   }, []);
@@ -142,16 +138,16 @@ export default function BonuspuntenTab({ playerDatabase, playerDatabaseLoading, 
   const recoveriesRanking = useMemo(() => rankByRecoveries(entries), [entries]);
   const bigChancesRanking = useMemo(() => rankByBigChances(entries), [entries]);
   const bonusRanking = useMemo(() => rankByBonusPoints(entries), [entries]);
-  const selectedStats = useMemo(
-    () => findPlayerBonusStats(entries, selectedPlayer),
+  const selectedEntry = useMemo(
+    () => findPlayerBonusEntry(entries, selectedPlayer),
     [entries, selectedPlayer]
   );
 
   // Een rij diep in een sectie aanklikken toont de kaart bovenaan — zonder deze scroll zou die
   // buiten beeld verschijnen en lijken alsof de klik niets deed.
   useEffect(() => {
-    if (selectedStats) playerCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }, [selectedStats]);
+    if (selectedEntry) playerCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [selectedEntry]);
 
   return (
     <>
@@ -197,7 +193,7 @@ export default function BonuspuntenTab({ playerDatabase, playerDatabaseLoading, 
 
       {!playerDatabaseLoading && !playerDatabaseError && entries.length > 0 && (
         <>
-          <div style={{ marginBottom: selectedStats ? '12px' : '20px' }}>
+          <div style={{ marginBottom: selectedEntry ? '12px' : '20px' }}>
             <PlayerSearchInput
               players={playerDatabase}
               value={selectedPlayer?.name}
@@ -207,9 +203,9 @@ export default function BonuspuntenTab({ playerDatabase, playerDatabaseLoading, 
             />
           </div>
 
-          {selectedStats && (
+          {selectedEntry && (
             <div ref={playerCardRef}>
-              <PlayerBonusCard stats={selectedStats} onDismiss={() => setSelectedPlayer(null)} />
+              <PlayerBonusCard entry={selectedEntry} onDismiss={() => setSelectedPlayer(null)} />
             </div>
           )}
 
