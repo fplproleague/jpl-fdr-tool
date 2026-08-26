@@ -75,15 +75,33 @@ export function perGameLabel(value, games, { showSign = false } = {}) {
   return `${sign}${perGame.toFixed(2)}/wedstrijd`;
 }
 
-// De 4 statistische bonuspunt-criteria (zie ook de sectietitels in BonuspuntenTab.jsx) — apart
-// geëxporteerd zodat de rij-highlight in de UI en de tekst in de titel altijd exact dezelfde grens
-// gebruiken.
-export const BONUS_CRITERIA = {
-  duels: entry => entry.duelDiff > 0,
-  defensiveHeaders: entry => entry.defensiveHeaders > 3,
-  recoveries: entry => entry.recoveries > 5,
-  bigChances: entry => entry.bigChances > 1,
+// Drempelwaarden voor de 4 bonuspunt-categorieën, als kale getallen (zie ook de sectietitels in
+// BonuspuntenTab.jsx: "... (> 3)" e.d.) — apart van BONUS_CRITERIA hieronder zodat dezelfde drempel ook
+// op de PER WEDSTRIJD-waarde toegepast kan worden (zie meetsThresholdPerGame), niet enkel op de
+// seizoenstotaal.
+export const BONUS_THRESHOLD = {
+  duels: 0,
+  defensiveHeaders: 3,
+  recoveries: 5,
+  bigChances: 1,
 };
+
+// De 4 statistische bonuspunt-criteria — apart geëxporteerd zodat de rij-highlight in de UI en de tekst
+// in de titel altijd exact dezelfde grens gebruiken.
+export const BONUS_CRITERIA = {
+  duels: entry => entry.duelDiff > BONUS_THRESHOLD.duels,
+  defensiveHeaders: entry => entry.defensiveHeaders > BONUS_THRESHOLD.defensiveHeaders,
+  recoveries: entry => entry.recoveries > BONUS_THRESHOLD.recoveries,
+  bigChances: entry => entry.bigChances > BONUS_THRESHOLD.bigChances,
+};
+
+// Of de PER WEDSTRIJD-waarde van een statistiek minstens de bonuspunt-drempel haalt (>=, i.p.v. de
+// striktere '>' van BONUS_CRITERIA hierboven, dat op de seizoenstotaal werkt) — gebruikt om de per-
+// wedstrijd-tekst in de spelerskaart (BonuspuntenTab.jsx) cyaan te kleuren als "op koers"-indicator.
+// false zolang games onbekend/0 is (net als perGameLabel hierboven).
+export function meetsThresholdPerGame(value, games, threshold) {
+  return !!games && value / games >= threshold;
+}
 
 // Zoekt de bonuspunten-entry op voor één speler, ongeacht of die wel/niet in de top 15 van een sectie
 // staat — gebruikt door de zoekbalk in BonuspuntenTab.jsx. `target` is een ruwe speler zoals

@@ -4,7 +4,7 @@
 // elders in FDRTool.jsx opgehaald/geparset (zelfde props als WatchlistTab/TeamPlannerTab), dus geen eigen
 // CSV-fetch/parsing meer hier (voorheen een aparte, nooit ingevulde KAARTEN_CSV_URL-sheet).
 import { useMemo, useState } from 'react';
-import { Loader2, AlertCircle, RotateCcw, Square } from 'lucide-react';
+import { Loader2, AlertCircle, RotateCcw } from 'lucide-react';
 import { RankingRow } from '../components/RankingRow';
 import { buildKaartenEntries, rankByMostCards, rankByClosestToSuspension, isOneCardFromSuspension } from '../kaarten';
 
@@ -43,11 +43,6 @@ export default function KaartenTab({ playerDatabase, playerDatabaseLoading, play
 
   return (
     <>
-      <h2 className="fdr-title" style={{
-        color: '#FFF', fontSize: '22px', margin: '0 0 6px', display: 'flex', alignItems: 'center', gap: '8px',
-      }}>
-        <Square size={18} fill="#E8C547" color="#E8C547" /> Kaarten
-      </h2>
       <p style={{ color: '#8F79AD', fontSize: '13px', marginBottom: '16px' }}>
         Gele kaarten &amp; schorsing.
       </p>

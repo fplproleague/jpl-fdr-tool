@@ -12,7 +12,7 @@ import { RankingRow } from '../components/RankingRow';
 import { PlayerSearchInput } from '../components/PlayerSearchInput';
 import {
   buildBonuspuntenEntries, rankByDuels, rankByDefensiveHeaders, rankByRecoveries, rankByBigChances,
-  rankByBonusPoints, findPlayerBonusEntry, perGameLabel, BONUS_CRITERIA,
+  rankByBonusPoints, findPlayerBonusEntry, perGameLabel, meetsThresholdPerGame, BONUS_CRITERIA, BONUS_THRESHOLD,
 } from '../bonuspunten';
 
 const retryButtonStyle = {
@@ -30,10 +30,11 @@ function RankingSection({ icon, title, sectionKey, isOpen, onToggle, children })
   );
 }
 
-// Eén statistiek in de kaart van een opgezochte speler: grote waarde (turquoise als het criterium
-// gehaald is, anders gedempt lavendel — zelfde kleurtaal als RankingRow), met de "per wedstrijd"-waarde
-// (i.p.v. de rangschikkingsplaats die hier vroeger stond) op de tweede regel.
-function BonusStatTile({ label, value, perGame, detail, qualifies }) {
+// Eén statistiek in de kaart van een opgezochte speler: de hoofdwaarde (seizoenstotaal) staat altijd
+// gewoon wit — enkel de "per wedstrijd"-waarde op de tweede regel kleurt cyaan, en dan enkel zodra die
+// PER WEDSTRIJD al minstens de bonuspunt-drempel haalt (perGameQualifies, zie meetsThresholdPerGame in
+// bonuspunten.js) — een "op koers voor dit bonuspunt"-indicator, los van de seizoenstotaal.
+function BonusStatTile({ label, value, perGame, perGameQualifies, detail }) {
   return (
     <div style={{
       background: 'rgba(0,0,0,0.15)', border: '1px solid rgba(255,255,255,0.08)',
@@ -42,11 +43,16 @@ function BonusStatTile({ label, value, perGame, detail, qualifies }) {
       <div style={{ color: '#8F79AD', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
         {label}
       </div>
-      <div style={{ color: qualifies ? '#4ECDC4' : '#FFF', fontWeight: 900, fontSize: '18px', lineHeight: 1.3 }}>
+      <div style={{ color: '#FFF', fontWeight: 900, fontSize: '18px', lineHeight: 1.3 }}>
         {value}
       </div>
       <div style={{ color: '#8F79AD', fontSize: '11px' }}>
-        {[detail, perGame].filter(Boolean).join(' · ')}
+        {detail && `${detail} · `}
+        {perGame && (
+          <span style={{ color: perGameQualifies ? '#4ECDC4' : '#8F79AD', fontWeight: perGameQualifies ? 700 : 400 }}>
+            {perGame}
+          </span>
+        )}
       </div>
     </div>
   );
@@ -84,28 +90,27 @@ function PlayerBonusCard({ entry, onDismiss }) {
         <BonusStatTile
           label="Duels" value={`${entry.duelDiff > 0 ? '+' : ''}${entry.duelDiff}`}
           perGame={perGameLabel(entry.duelDiff, entry.games, { showSign: true })}
+          perGameQualifies={meetsThresholdPerGame(entry.duelDiff, entry.games, BONUS_THRESHOLD.duels)}
           detail={`${entry.duelsWon}W/${entry.duelsLost}V`}
-          qualifies={BONUS_CRITERIA.duels(entry)}
         />
         <BonusStatTile
           label="Kopballen" value={entry.defensiveHeaders}
           perGame={perGameLabel(entry.defensiveHeaders, entry.games)}
-          qualifies={BONUS_CRITERIA.defensiveHeaders(entry)}
+          perGameQualifies={meetsThresholdPerGame(entry.defensiveHeaders, entry.games, BONUS_THRESHOLD.defensiveHeaders)}
         />
         <BonusStatTile
           label="Recoveries" value={entry.recoveries}
           perGame={perGameLabel(entry.recoveries, entry.games)}
-          qualifies={BONUS_CRITERIA.recoveries(entry)}
+          perGameQualifies={meetsThresholdPerGame(entry.recoveries, entry.games, BONUS_THRESHOLD.recoveries)}
         />
         <BonusStatTile
           label="Grote kansen" value={entry.bigChances}
           perGame={perGameLabel(entry.bigChances, entry.games)}
-          qualifies={BONUS_CRITERIA.bigChances(entry)}
+          perGameQualifies={meetsThresholdPerGame(entry.bigChances, entry.games, BONUS_THRESHOLD.bigChances)}
         />
         <BonusStatTile
           label="Bonuspunten" value={entry.bonusPoints}
           perGame={perGameLabel(entry.bonusPoints, entry.games)}
-          qualifies
         />
       </div>
     </div>
@@ -151,9 +156,6 @@ export default function BonuspuntenTab({ playerDatabase, playerDatabaseLoading, 
 
   return (
     <>
-      <h2 className="fdr-title" style={{ color: '#FFF', fontSize: '22px', margin: '0 0 6px' }}>
-        Bonuspunten
-      </h2>
       <p style={{ color: '#8F79AD', fontSize: '13px', marginBottom: '18px' }}>
         Rangschikkingen voor de vier statistieken die een Fantasy Pro League-bonuspunt kunnen opleveren:
         meer duels gewonnen dan verloren, meer dan 3 verdedigende kopballen, meer dan 5 recoveries, of
