@@ -12,7 +12,7 @@ import { RankingRow } from '../components/RankingRow';
 import { PlayerSearchInput } from '../components/PlayerSearchInput';
 import {
   buildBonuspuntenEntries, rankByDuels, rankByDefensiveHeaders, rankByRecoveries, rankByBigChances,
-  rankByBonusPoints, findPlayerBonusStats, BONUS_CRITERIA,
+  rankByBonusPoints, findPlayerBonusStats, perGameLabel, BONUS_CRITERIA,
 } from '../bonuspunten';
 
 const retryButtonStyle = {
@@ -33,7 +33,7 @@ function RankingSection({ icon, title, sectionKey, isOpen, onToggle, children })
 // Eén statistiek in de kaart van een opgezochte speler: grote waarde (turquoise als het criterium
 // gehaald is, anders gedempt lavendel — zelfde kleurtaal als RankingRow), plus de exacte plaats in de
 // volledige rangschikking (ook als die buiten de top 15 van de sectie hierboven valt).
-function BonusStatTile({ label, value, detail, qualifies, rank, total }) {
+function BonusStatTile({ label, value, valueSub, detail, qualifies, rank, total }) {
   return (
     <div style={{
       background: 'rgba(0,0,0,0.15)', border: '1px solid rgba(255,255,255,0.08)',
@@ -42,8 +42,11 @@ function BonusStatTile({ label, value, detail, qualifies, rank, total }) {
       <div style={{ color: '#8F79AD', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
         {label}
       </div>
-      <div style={{ color: qualifies ? '#4ECDC4' : '#FFF', fontWeight: 900, fontSize: '18px', lineHeight: 1.3 }}>
-        {value}
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: '5px' }}>
+        <span style={{ color: qualifies ? '#4ECDC4' : '#FFF', fontWeight: 900, fontSize: '18px', lineHeight: 1.3 }}>
+          {value}
+        </span>
+        {valueSub && <span style={{ color: '#8F79AD', fontSize: '10px', fontWeight: 500 }}>{valueSub}</span>}
       </div>
       <div style={{ color: '#8F79AD', fontSize: '11px' }}>
         {detail ? `${detail} · ` : ''}{rank}e / {total}
@@ -84,23 +87,28 @@ function PlayerBonusCard({ stats, onDismiss }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px' }}>
         <BonusStatTile
           label="Duels" value={`${entry.duelDiff > 0 ? '+' : ''}${entry.duelDiff}`}
+          valueSub={perGameLabel(entry.duelDiff, entry.games, { showSign: true })}
           detail={`${entry.duelsWon}W/${entry.duelsLost}V`}
           qualifies={BONUS_CRITERIA.duels(entry)} rank={duelsRank} total={totalPlayers}
         />
         <BonusStatTile
           label="Kopballen" value={entry.defensiveHeaders}
+          valueSub={perGameLabel(entry.defensiveHeaders, entry.games)}
           qualifies={BONUS_CRITERIA.defensiveHeaders(entry)} rank={defensiveHeadersRank} total={totalPlayers}
         />
         <BonusStatTile
           label="Recoveries" value={entry.recoveries}
+          valueSub={perGameLabel(entry.recoveries, entry.games)}
           qualifies={BONUS_CRITERIA.recoveries(entry)} rank={recoveriesRank} total={totalPlayers}
         />
         <BonusStatTile
           label="Grote kansen" value={entry.bigChances}
+          valueSub={perGameLabel(entry.bigChances, entry.games)}
           qualifies={BONUS_CRITERIA.bigChances(entry)} rank={bigChancesRank} total={totalPlayers}
         />
         <BonusStatTile
           label="Bonuspunten" value={entry.bonusPoints}
+          valueSub={perGameLabel(entry.bonusPoints, entry.games)}
           qualifies rank={bonusPointsRank} total={totalPlayers}
         />
       </div>
@@ -214,6 +222,7 @@ export default function BonuspuntenTab({ playerDatabase, playerDatabaseLoading, 
                 key={entry.player} rank={idx + 1} clubCode={entry.clubCode} player={entry.player}
                 subtitle={`${entry.duelsWon} gewonnen · ${entry.duelsLost} verloren`}
                 value={`${entry.duelDiff > 0 ? '+' : ''}${entry.duelDiff}`}
+                valueSub={perGameLabel(entry.duelDiff, entry.games, { showSign: true })}
                 qualifies={BONUS_CRITERIA.duels(entry)}
                 onClick={() => handleSelectFromRanking(entry)}
               />
@@ -228,6 +237,7 @@ export default function BonuspuntenTab({ playerDatabase, playerDatabaseLoading, 
               <RankingRow
                 key={entry.player} rank={idx + 1} clubCode={entry.clubCode} player={entry.player}
                 subtitle={entry.clubName} value={entry.defensiveHeaders}
+                valueSub={perGameLabel(entry.defensiveHeaders, entry.games)}
                 qualifies={BONUS_CRITERIA.defensiveHeaders(entry)}
                 onClick={() => handleSelectFromRanking(entry)}
               />
@@ -242,6 +252,7 @@ export default function BonuspuntenTab({ playerDatabase, playerDatabaseLoading, 
               <RankingRow
                 key={entry.player} rank={idx + 1} clubCode={entry.clubCode} player={entry.player}
                 subtitle={entry.clubName} value={entry.recoveries}
+                valueSub={perGameLabel(entry.recoveries, entry.games)}
                 qualifies={BONUS_CRITERIA.recoveries(entry)}
                 onClick={() => handleSelectFromRanking(entry)}
               />
@@ -256,6 +267,7 @@ export default function BonuspuntenTab({ playerDatabase, playerDatabaseLoading, 
               <RankingRow
                 key={entry.player} rank={idx + 1} clubCode={entry.clubCode} player={entry.player}
                 subtitle={entry.clubName} value={entry.bigChances}
+                valueSub={perGameLabel(entry.bigChances, entry.games)}
                 qualifies={BONUS_CRITERIA.bigChances(entry)}
                 onClick={() => handleSelectFromRanking(entry)}
               />
@@ -270,6 +282,7 @@ export default function BonuspuntenTab({ playerDatabase, playerDatabaseLoading, 
               <RankingRow
                 key={entry.player} rank={idx + 1} clubCode={entry.clubCode} player={entry.player}
                 subtitle={entry.clubName} value={entry.bonusPoints}
+                valueSub={perGameLabel(entry.bonusPoints, entry.games)}
                 qualifies
                 onClick={() => handleSelectFromRanking(entry)}
               />

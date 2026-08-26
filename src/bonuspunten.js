@@ -23,6 +23,7 @@ export function buildBonuspuntenEntries(playerDatabase) {
         recoveries: p.recoveries ?? 0,
         bigChances: p.bigChances ?? 0,
         bonusPoints: p.bonusPoints ?? 0,
+        games: p.games ?? 0,
       };
     });
 }
@@ -63,6 +64,18 @@ export function rankByBonusPoints(entries, limit = TOP_N) {
   return [...entries]
     .sort((a, b) => b.bonusPoints - a.bonusPoints || byName(a, b))
     .slice(0, limit);
+}
+
+// Subtiele "per wedstrijd"-waarde naast een hoofdstatistiek (zie RankingRow's valueSub-prop en
+// BonusStatTile in BonuspuntenTab.jsx) — null zolang games onbekend/0 is (bv. de Games-kolom nog niet
+// ingevuld voor deze speler), zodat de UI nooit een misleidende "0.00/wedstrijd" toont i.p.v. gewoon
+// niets. showSign herhaalt het '+'-teken van de hoofdwaarde bij Duels (waar het verschil ook negatief
+// kan zijn); de andere statistieken zijn altijd >= 0, dus daar nooit een teken nodig.
+export function perGameLabel(value, games, { showSign = false } = {}) {
+  if (!games) return null;
+  const perGame = value / games;
+  const sign = showSign && perGame > 0 ? '+' : '';
+  return `${sign}${perGame.toFixed(2)}/wedstrijd`;
 }
 
 // De 4 statistische bonuspunt-criteria (zie ook de sectietitels in BonuspuntenTab.jsx) — apart

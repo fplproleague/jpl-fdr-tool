@@ -11,7 +11,10 @@ import { AlertTriangle } from 'lucide-react';
 // (bv. Bonuspunten se zoekfunctie: klik een rij in de top 15 om diens volledige spelerskaart te tonen,
 // zelfde als via de zoekbalk) — de rij rendert dan als <button> i.p.v. <div> voor toetsenbord-
 // toegankelijkheid, maar blijft er verder identiek uit zien. Zonder onClick (KaartenTab) verandert er niets.
-export function RankingRow({ rank, clubCode, player, subtitle, value, qualifies, warning, onClick }) {
+// `valueSub`, indien meegegeven, toont een klein gedempt regeltje ONDER de hoofdwaarde (bv.
+// "0.45/wedstrijd" in Bonuspunten) — bewust klein/gedempt, geen aparte kolom, zodat het de hoofdwaarde
+// niet beconcurreert.
+export function RankingRow({ rank, clubCode, player, subtitle, value, valueSub, qualifies, warning, onClick }) {
   const Wrapper = onClick ? 'button' : 'div';
   return (
     <Wrapper
@@ -48,11 +51,18 @@ export function RankingRow({ rank, clubCode, player, subtitle, value, qualifies,
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
         {warning && <AlertTriangle size={13} color="#E8C547" aria-hidden="true" />}
-        <span style={{
-          color: qualifies ? '#4ECDC4' : '#C9B8E0', fontWeight: 900, fontSize: '16px', textAlign: 'right',
-        }}>
-          {value}
-        </span>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+          <span style={{
+            color: qualifies ? '#4ECDC4' : '#C9B8E0', fontWeight: 900, fontSize: '16px', textAlign: 'right',
+          }}>
+            {value}
+          </span>
+          {valueSub && (
+            <span style={{ color: '#8F79AD', fontSize: '10px', fontWeight: 500, lineHeight: 1.3 }}>
+              {valueSub}
+            </span>
+          )}
+        </div>
       </div>
     </Wrapper>
   );

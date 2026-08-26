@@ -533,13 +533,13 @@ function parseStatValue(raw) {
 
 // Zet de ruwe CSV-tekst van de spelersdatabank om naar een array van genormaliseerde speler-
 // objecten ({ name, teamCode, teamName, position, price, yellowCards, duelsWon, duelsLost, headers,
-// recoveries, bigChances, bonusPoints }). Kolommen worden op hun EXACTE headertekst opgezocht i.p.v.
-// blind op vaste index, met een index-fallback voor het geval een header onverhoopt ontbreekt — zo
-// blijft de parsing ook werken als de kolomvolgorde in de sheet ooit verandert, zolang de headers zelf
-// niet hernoemd worden. De 7 statistiek-kolommen (Gele kaarten/Duels gewonnen/Duels verloren/Kopballen/
-// Recoveries/Grote kansen/Bonuspunten) staan in die exacte volgorde na de bestaande Name/Team/Position/
-// Price-kolommen, vandaar hun fallback-index 4-10. Rijen zonder naam (lege of malformed rijen, of de
-// header-rij zelf) worden stilzwijgend genegeerd i.p.v. te crashen.
+// recoveries, bigChances, bonusPoints, games }). Kolommen worden op hun EXACTE headertekst opgezocht
+// i.p.v. blind op vaste index, met een index-fallback voor het geval een header onverhoopt ontbreekt —
+// zo blijft de parsing ook werken als de kolomvolgorde in de sheet ooit verandert, zolang de headers
+// zelf niet hernoemd worden. De 8 statistiek-kolommen (Gele kaarten/Duels gewonnen/Duels verloren/
+// Kopballen/Recoveries/Grote kansen/Bonuspunten/Games) staan in die exacte volgorde na de bestaande
+// Name/Team/Position/Price-kolommen, vandaar hun fallback-index 4-11. Rijen zonder naam (lege of
+// malformed rijen, of de header-rij zelf) worden stilzwijgend genegeerd i.p.v. te crashen.
 export function parsePlayerDatabaseCsv(text) {
   const rows = parseCsvRows(text).filter(row => row.some(cell => (cell ?? '').trim() !== ''));
   if (rows.length === 0) return [];
@@ -560,6 +560,7 @@ export function parsePlayerDatabaseCsv(text) {
   const recoveriesCol = columnIndex('Recoveries', 8);
   const bigChancesCol = columnIndex('Grote kansen', 9);
   const bonusPointsCol = columnIndex('Bonuspunten', 10);
+  const gamesCol = columnIndex('Games', 11);
 
   return dataRows
     .map(row => {
@@ -576,6 +577,7 @@ export function parsePlayerDatabaseCsv(text) {
         recoveries: parseStatValue(row[recoveriesCol]),
         bigChances: parseStatValue(row[bigChancesCol]),
         bonusPoints: parseStatValue(row[bonusPointsCol]),
+        games: parseStatValue(row[gamesCol]),
       };
     })
     .filter(p => p.name);
