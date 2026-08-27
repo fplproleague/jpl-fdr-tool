@@ -471,7 +471,16 @@ export function resolveSlotPlayerAtGw(basePlayer, transfersForSlot, atGw) {
 // Publiek gepubliceerde Google Sheet (CSV-export) met naam/team/positie/prijs van elke speler. De
 // gebruiker werkt deze sheet regelmatig bij tijdens de zomermercato — elke fetch in FDRTool.jsx
 // gebeurt daarom met cache: 'no-store', zodat nooit een verouderde, gecachete versie getoond wordt.
+// Bevat sinds kort ook 7 statistiek-kolommen (Gele kaarten/Duels gewonnen/.../Bonuspunten, zie
+// parsePlayerDatabaseCsv hieronder) — deze voeden nu ook de Kaarten- en Bonuspunten-tab (zie
+// src/kaarten.js/src/bonuspunten.js), die voorheen elk hun eigen aparte werkblad-CSV nodig hadden.
 export const PLAYER_DATABASE_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS_PSoy3cpm-nckncN8C8lmxg0PfxYpANthYfLFccxft2UuBbmCvOa8SXrlwyJkBWUu0ek3QMBsIknU/pub?gid=0&single=true&output=csv';
+
+// Set Pieces-tab (zie src/tabs/SetPiecesTab.jsx, src/setPieces.js): een APARTE, apart gepubliceerde CSV-
+// export van een NIEUW werkblad/tabblad binnen dezelfde Google Sheet als hierboven (andere gid — een
+// aparte "Publish to web"-link per werkblad). Kolommen: Club | Penalties | Corners | Free Kicks |
+// (optioneel) Updated GW.
+export const SET_PIECES_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS_PSoy3cpm-nckncN8C8lmxg0PfxYpANthYfLFccxft2UuBbmCvOa8SXrlwyJkBWUu0ek3QMBsIknU/pub?gid=1124774550&single=true&output=csv';
 
 // Eenvoudige RFC4180-achtige CSV-tokenizer (i.p.v. text.split(',')): velden tussen aanhalingstekens
 // kunnen komma's en regeleindes bevatten, en "" binnen zo'n veld is een ontsnapt aanhalingsteken.
@@ -530,13 +539,13 @@ function parseStatValue(raw) {
 
 // Zet de ruwe CSV-tekst van de spelersdatabank om naar een array van genormaliseerde speler-
 // objecten ({ name, teamCode, teamName, position, price, yellowCards, duelsWon, duelsLost, headers,
-// recoveries, bigChances, bonusPoints }). Kolommen worden op hun EXACTE headertekst opgezocht i.p.v.
-// blind op vaste index, met een index-fallback voor het geval een header onverhoopt ontbreekt — zo
-// blijft de parsing ook werken als de kolomvolgorde in de sheet ooit verandert, zolang de headers zelf
-// niet hernoemd worden. De 7 statistiek-kolommen (Gele kaarten/Duels gewonnen/Duels verloren/Kopballen/
-// Recoveries/Grote kansen/Bonuspunten) staan in die exacte volgorde na de bestaande Name/Team/Position/
-// Price-kolommen, vandaar hun fallback-index 4-10. Rijen zonder naam (lege of malformed rijen, of de
-// header-rij zelf) worden stilzwijgend genegeerd i.p.v. te crashen.
+// recoveries, bigChances, bonusPoints, games }). Kolommen worden op hun EXACTE headertekst opgezocht
+// i.p.v. blind op vaste index, met een index-fallback voor het geval een header onverhoopt ontbreekt —
+// zo blijft de parsing ook werken als de kolomvolgorde in de sheet ooit verandert, zolang de headers
+// zelf niet hernoemd worden. De 8 statistiek-kolommen (Gele kaarten/Duels gewonnen/Duels verloren/
+// Kopballen/Recoveries/Grote kansen/Bonuspunten/Games) staan in die exacte volgorde na de bestaande
+// Name/Team/Position/Price-kolommen, vandaar hun fallback-index 4-11. Rijen zonder naam (lege of
+// malformed rijen, of de header-rij zelf) worden stilzwijgend genegeerd i.p.v. te crashen.
 export function parsePlayerDatabaseCsv(text) {
   const rows = parseCsvRows(text).filter(row => row.some(cell => (cell ?? '').trim() !== ''));
   if (rows.length === 0) return [];
@@ -557,6 +566,7 @@ export function parsePlayerDatabaseCsv(text) {
   const recoveriesCol = columnIndex('Recoveries', 8);
   const bigChancesCol = columnIndex('Grote kansen', 9);
   const bonusPointsCol = columnIndex('Bonuspunten', 10);
+  const gamesCol = columnIndex('Games', 11);
 
   return dataRows
     .map(row => {
@@ -573,6 +583,7 @@ export function parsePlayerDatabaseCsv(text) {
         recoveries: parseStatValue(row[recoveriesCol]),
         bigChances: parseStatValue(row[bigChancesCol]),
         bonusPoints: parseStatValue(row[bonusPointsCol]),
+        games: parseStatValue(row[gamesCol]),
       };
     })
     .filter(p => p.name);

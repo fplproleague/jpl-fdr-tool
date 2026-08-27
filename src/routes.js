@@ -34,11 +34,32 @@ export const ROUTES = [
     description: 'Verwachte basiselftallen voor alle 18 clubs van de Jupiler Pro League, met een duidelijke inschatting van de startkans per speler.',
   },
   {
+    key: 'bonuspunten',
+    path: '/bonuspunten',
+    label: 'Bonuspunten',
+    title: 'Bonuspunten — spelersranking | Fantasy Pro League Tools',
+    description: 'Ranking van Jupiler Pro League-spelers op bonuspunten, met een zoekbalk om een specifieke speler op te zoeken.',
+  },
+  {
+    key: 'setpieces',
+    path: '/set-pieces',
+    label: 'Set Pieces',
+    title: 'Set Pieces — strafschop-, corner- en vrijetrapnemers | Fantasy Pro League Tools',
+    description: 'Huidige strafschop-, corner- en vrijetrapnemers voor elke Belgische Pro League-club.',
+  },
+  {
     key: 'watchlist',
     path: '/watchlist',
     label: 'Watchlist',
     title: 'Watchlist — volg je spelers | Fantasy Pro League Tools',
     description: 'Houd je favoriete Fantasy Pro League-spelers in de gaten, met hun eerstvolgende fixtures en moeilijkheidsgraad.',
+  },
+  {
+    key: 'kaarten',
+    path: '/kaarten',
+    label: 'Kaarten',
+    title: 'Kaarten — schorsingsrisico | Fantasy Pro League Tools',
+    description: 'Gele kaarten per speler en wie het dichtst bij een schorsing zit.',
   },
   {
     key: 'pricechanges',

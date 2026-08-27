@@ -5,7 +5,7 @@
 // gemount/unmount bij het wisselen van tab.
 
 import { useState, useMemo, useRef, useCallback, useEffect, lazy, Suspense } from 'react';
-import { Info, X, Check, Copy, Undo2, Loader2 } from 'lucide-react';
+import { Info, X, Check, Copy, Undo2, Loader2, ChevronDown } from 'lucide-react';
 import {
   TEAMS, FIXTURES, GW_COUNT, CURRENT_GW, DEFAULT_GW_HORIZON_END, MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS,
   MINILEAGUE_CODE, PL_MINILEAGUE_CODE, LAST_UPDATED, GW_INDEXES, DEFAULT_RATINGS, DEFAULT_HOME_ADVANTAGE,
@@ -18,7 +18,7 @@ import { ROUTES, routeKeyFromPath, routeByKey, urlForRoute } from './routes';
 import { t as translate, LANGUAGES, DEFAULT_LANGUAGE } from './i18n';
 import FDRTab from './tabs/FDRTab';
 
-// Enkel de FDR-tab (de standaardweergave) zit in de hoofdbundle. De vier andere tabs worden pas
+// Enkel de FDR-tab (de standaardweergave) zit in de hoofdbundle. De andere tabs worden pas
 // opgehaald wanneer iemand er effectief naartoe navigeert.
 //
 // Waarom dit uitmaakt: PredictedLineupsTab trekt via PitchField de volledige veld-renderer én
@@ -29,10 +29,21 @@ import FDRTab from './tabs/FDRTab';
 const WatchlistTab = lazy(() => import('./tabs/WatchlistTab'));
 const TeamPlannerTab = lazy(() => import('./tabs/TeamPlannerTab'));
 const PredictedLineupsTab = lazy(() => import('./tabs/PredictedLineupsTab'));
+const BonuspuntenTab = lazy(() => import('./tabs/BonuspuntenTab'));
+const KaartenTab = lazy(() => import('./tabs/KaartenTab'));
+const SetPiecesTab = lazy(() => import('./tabs/SetPiecesTab'));
 
 // Tab-navigatie bovenaan de pagina. De lijst zelf (labels, paden, per-tab titel/omschrijving) staat
 // in src/routes.js, zodat de URL-afhandeling en de zichtbare tabs nooit uit elkaar kunnen lopen.
 const TABS = ROUTES;
+
+// Op mobiel (zie .fdr-tabs-mobile) blijven enkel de eerste MOBILE_PRIMARY_TAB_COUNT tabs los
+// zichtbaar; de rest komt in het "Meer"-menu. 2 is met opzet krap: bij 8 tabs past "FDR" + "Team
+// Planner" nog net naast de "Meer"-knop op een toestel van ~390px breed zonder dat er iets afgesneden
+// wordt (gemeten met de effectief gerenderde tab-breedtes) — een derde tab past daar niet meer bij.
+const MOBILE_PRIMARY_TAB_COUNT = 2;
+const MOBILE_PRIMARY_TABS = TABS.slice(0, MOBILE_PRIMARY_TAB_COUNT);
+const MOBILE_OVERFLOW_TABS = TABS.slice(MOBILE_PRIMARY_TAB_COUNT);
 
 // Getoond terwijl een lui geladen tab binnenkomt. Bewust minimaal en even hoog als een gemiddelde
 // sectie, zodat de pagina niet zichtbaar springt.
@@ -378,6 +389,27 @@ export default function FDRTool() {
     window.addEventListener('resize', updateTabsScrollState);
     return () => window.removeEventListener('resize', updateTabsScrollState);
   }, [updateTabsScrollState]);
+
+  // Mobiele "Meer"-tabmenu (zie .fdr-tabs-mobile hieronder): op smalle schermen is er ruimte voor
+  // maar 2 tabs naast elkaar (zie MOBILE_PRIMARY_TAB_COUNT) — de rest verdwijnt in een dropdown i.p.v.
+  // enkel te vertrouwen op de horizontale scroll die de brede/desktop-tabbalk wél gebruikt, want die
+  // scroll-affordance (vervagende rand) is op mobiel makkelijk te missen en "Kaarten"/"Price Changes"
+  // zaten daardoor 6-7 tabs diep buiten beeld.
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const moreMenuRef = useRef(null);
+  useEffect(() => {
+    if (!moreMenuOpen) return;
+    const handleOutside = (e) => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target)) setMoreMenuOpen(false);
+    };
+    const handleEscape = (e) => { if (e.key === 'Escape') setMoreMenuOpen(false); };
+    document.addEventListener('mousedown', handleOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [moreMenuOpen]);
   const [ratings, setRatings] = useState(() => loadRatingsFromURL() || loadStoredRatings() || DEFAULT_RATINGS);
   const [homeAdvantage, setHomeAdvantage] = useState(() => loadHomeAdvantageFromURL() || loadStoredHomeAdvantage() || DEFAULT_HOME_ADVANTAGE);
   // Beide starten standaard op CURRENT_GW (i.p.v. hardcoded GW1) zodat de default range vanzelf
@@ -1168,6 +1200,17 @@ export default function FDRTool() {
           mask-image: none;
         }
 
+        /* Onder de 700px-drempel (telefoons) wisselt de tabbalk van "alle 8 tabs, horizontaal
+           scrollend" naar "2 vaste tabs + Meer-dropdown" (zie MOBILE_PRIMARY_TAB_COUNT hierboven) —
+           op dat formaat is de scroll-uitfaderand makkelijk te missen en zaten de laatste tabs
+           daardoor te diep verstopt. Boven de drempel is er ruim plaats voor alle 8, dus blijft de
+           vertrouwde scrollbalk actief. */
+        .fdr-tabs-mobile { display: none; }
+        @media (max-width: 700px) {
+          .fdr-tabs-desktop { display: none !important; }
+          .fdr-tabs-mobile { display: flex; }
+        }
+
         /* Zichtbare toetsenbord-focus. De browserstandaard is op deze donkerpaarse achtergrond
            nauwelijks te zien; :focus-visible raakt enkel toetsenbordgebruikers, nooit muisklikken. */
         :focus-visible {
@@ -1603,10 +1646,14 @@ export default function FDRTool() {
         </header>
 
         {/* role="tablist" is bewust NIET gebruikt: dit zijn echte links naar echte URL's, geen
-            ARIA-tabs. Een <nav> met aria-current geeft schermlezers de juiste boodschap. */}
+            ARIA-tabs. Een <nav> met aria-current geeft schermlezers de juiste boodschap.
+            Twee varianten: de brede/desktop-balk toont alle tabs met horizontale scroll (zie
+            .fdr-tabs hierboven), de mobiele balk (.fdr-tabs-mobile) toont enkel de eerste paar tabs
+            plus een "Meer"-dropdown. Welke van de twee zichtbaar is, bepaalt de @media-regel bij
+            .fdr-tabs-desktop/.fdr-tabs-mobile hieronder — geen JS-breakpointdetectie nodig. */}
         <nav
           ref={tabsRef}
-          className={`fdr-tabs${tabsAtEnd ? ' fdr-tabs--end' : ''}`}
+          className={`fdr-tabs fdr-tabs-desktop${tabsAtEnd ? ' fdr-tabs--end' : ''}`}
           aria-label={t('nav.aria')}
           onScroll={updateTabsScrollState}
           style={{
@@ -1639,6 +1686,95 @@ export default function FDRTool() {
               </a>
             );
           })}
+        </nav>
+
+        <nav
+          className="fdr-tabs-mobile"
+          aria-label={t('nav.aria')}
+          style={{
+            gap: '4px', marginBottom: '18px', borderBottom: `1px solid ${COLORS.borderSubtle}`,
+          }}
+        >
+          {MOBILE_PRIMARY_TABS.map(tab => {
+            const isActive = activeTab === tab.key;
+            return (
+              <a
+                key={tab.key}
+                href={tab.path}
+                onClick={(e) => {
+                  if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                  e.preventDefault();
+                  navigateToTab(tab.key);
+                }}
+                className="fdr-title fdr-tab-btn"
+                aria-current={isActive ? 'page' : undefined}
+                style={{
+                  color: isActive ? '#4ECDC4' : COLORS.textBody,
+                  borderBottom: isActive ? '2px solid #4ECDC4' : '2px solid transparent',
+                  display: 'inline-flex', alignItems: 'center', gap: '5px', textDecoration: 'none', flexShrink: 0,
+                }}
+              >
+                {t(`nav.${tab.key}`)}
+              </a>
+            );
+          })}
+
+          <div ref={moreMenuRef} style={{ position: 'relative', marginLeft: 'auto' }}>
+            {(() => {
+              const activeOverflowTab = MOBILE_OVERFLOW_TABS.find(tab => tab.key === activeTab);
+              const isActive = Boolean(activeOverflowTab);
+              return (
+                <button
+                  type="button"
+                  onClick={() => setMoreMenuOpen(open => !open)}
+                  aria-haspopup="true"
+                  aria-expanded={moreMenuOpen}
+                  className="fdr-title fdr-tab-btn"
+                  style={{
+                    color: isActive ? '#4ECDC4' : COLORS.textBody,
+                    borderBottom: isActive ? '2px solid #4ECDC4' : '2px solid transparent',
+                    display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none',
+                    border: 'none', borderRadius: 0, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
+                  }}
+                >
+                  {activeOverflowTab ? t(`nav.${activeOverflowTab.key}`) : t('nav.more')}
+                  <ChevronDown size={14} style={{ transform: moreMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} aria-hidden="true" />
+                </button>
+              );
+            })()}
+
+            {moreMenuOpen && (
+              <div style={{
+                position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 45, minWidth: '190px',
+                background: '#2A1547', border: `1px solid ${COLORS.border}`, borderRadius: '10px',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.4)', overflow: 'hidden',
+              }}>
+                {MOBILE_OVERFLOW_TABS.map(tab => {
+                  const isActive = activeTab === tab.key;
+                  return (
+                    <a
+                      key={tab.key}
+                      href={tab.path}
+                      onClick={(e) => {
+                        setMoreMenuOpen(false);
+                        if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                        e.preventDefault();
+                        navigateToTab(tab.key);
+                      }}
+                      aria-current={isActive ? 'page' : undefined}
+                      style={{
+                        display: 'block', padding: '10px 14px', fontSize: '13px', fontWeight: 700,
+                        color: isActive ? '#4ECDC4' : '#FFF', textDecoration: 'none',
+                        background: isActive ? 'rgba(78,205,196,0.1)' : 'none',
+                      }}
+                    >
+                      {t(`nav.${tab.key}`)}
+                    </a>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </nav>
 
         {activeTab === 'fdr' && (
@@ -1748,6 +1884,36 @@ export default function FDRTool() {
         {activeTab === 'predictedlineups' && (
           <Suspense fallback={<TabLoading text={t('shared.loading')} />}>
             <PredictedLineupsTab t={t} />
+          </Suspense>
+        )}
+
+        {activeTab === 'bonuspunten' && (
+          <Suspense fallback={<TabLoading text={t('shared.loading')} />}>
+            <BonuspuntenTab
+              t={t}
+              playerDatabase={playerDatabase}
+              playerDatabaseLoading={playerDatabaseLoading}
+              playerDatabaseError={playerDatabaseError}
+              fetchPlayerDatabase={fetchPlayerDatabase}
+            />
+          </Suspense>
+        )}
+
+        {activeTab === 'setpieces' && (
+          <Suspense fallback={<TabLoading text={t('shared.loading')} />}>
+            <SetPiecesTab t={t} />
+          </Suspense>
+        )}
+
+        {activeTab === 'kaarten' && (
+          <Suspense fallback={<TabLoading text={t('shared.loading')} />}>
+            <KaartenTab
+              t={t}
+              playerDatabase={playerDatabase}
+              playerDatabaseLoading={playerDatabaseLoading}
+              playerDatabaseError={playerDatabaseError}
+              fetchPlayerDatabase={fetchPlayerDatabase}
+            />
           </Suspense>
         )}
 
