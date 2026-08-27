@@ -5,7 +5,7 @@
 // gemount/unmount bij het wisselen van tab.
 
 import { useState, useMemo, useRef, useCallback, useEffect, lazy, Suspense } from 'react';
-import { Info, X, Check, Copy, Undo2, Loader2 } from 'lucide-react';
+import { Info, X, Check, Copy, Undo2, Loader2, ChevronDown } from 'lucide-react';
 import {
   TEAMS, FIXTURES, GW_COUNT, CURRENT_GW, DEFAULT_GW_HORIZON_END, MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS,
   MINILEAGUE_CODE, PL_MINILEAGUE_CODE, LAST_UPDATED, GW_INDEXES, DEFAULT_RATINGS, DEFAULT_HOME_ADVANTAGE,
@@ -15,9 +15,10 @@ import {
 } from './constants';
 import { COLORS } from './theme';
 import { ROUTES, routeKeyFromPath, routeByKey, urlForRoute } from './routes';
+import { t as translate, LANGUAGES, DEFAULT_LANGUAGE } from './i18n';
 import FDRTab from './tabs/FDRTab';
 
-// Enkel de FDR-tab (de standaardweergave) zit in de hoofdbundle. De vier andere tabs worden pas
+// Enkel de FDR-tab (de standaardweergave) zit in de hoofdbundle. De andere tabs worden pas
 // opgehaald wanneer iemand er effectief naartoe navigeert.
 //
 // Waarom dit uitmaakt: PredictedLineupsTab trekt via PitchField de volledige veld-renderer én
@@ -28,20 +29,39 @@ import FDRTab from './tabs/FDRTab';
 const WatchlistTab = lazy(() => import('./tabs/WatchlistTab'));
 const TeamPlannerTab = lazy(() => import('./tabs/TeamPlannerTab'));
 const PredictedLineupsTab = lazy(() => import('./tabs/PredictedLineupsTab'));
+const BonuspuntenTab = lazy(() => import('./tabs/BonuspuntenTab'));
+const KaartenTab = lazy(() => import('./tabs/KaartenTab'));
+const SetPiecesTab = lazy(() => import('./tabs/SetPiecesTab'));
 
 // Tab-navigatie bovenaan de pagina. De lijst zelf (labels, paden, per-tab titel/omschrijving) staat
 // in src/routes.js, zodat de URL-afhandeling en de zichtbare tabs nooit uit elkaar kunnen lopen.
 const TABS = ROUTES;
 
+// Op mobiel (zie .fdr-tabs-mobile) blijven enkel de eerste MOBILE_PRIMARY_TAB_COUNT tabs los
+// zichtbaar; de rest komt in het "Meer"-menu. 3 is met opzet krap: bij 8 tabs passen "FDR" + "Team
+// Planner" + "Verwachte XI's" (de verkorte NL-naam van Predicted Lineups) nog net naast de "Meer"-knop
+// op een toestel van ~390px breed zonder dat er iets afgesneden wordt (gemeten met de effectief
+// gerenderde tab-breedtes) — een vierde tab past daar niet meer bij.
+const MOBILE_PRIMARY_TAB_COUNT = 3;
+const MOBILE_PRIMARY_TABS = TABS.slice(0, MOBILE_PRIMARY_TAB_COUNT);
+const MOBILE_OVERFLOW_TABS = TABS.slice(MOBILE_PRIMARY_TAB_COUNT);
+
+// Subtiele "nieuw"-stip naast een tab-label (zie NEW_TAB_KEYS/seenNewTabs) — goud i.p.v. het teal van
+// een actieve tab, zodat de twee signalen (actief vs. nieuw) nooit door elkaar lopen.
+const newTabDotStyle = {
+  display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%',
+  background: '#E8C547', flexShrink: 0,
+};
+
 // Getoond terwijl een lui geladen tab binnenkomt. Bewust minimaal en even hoog als een gemiddelde
 // sectie, zodat de pagina niet zichtbaar springt.
-function TabLoading() {
+function TabLoading({ text }) {
   return (
     <div role="status" aria-live="polite" style={{
       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
       minHeight: '240px', color: COLORS.textMuted, fontSize: '13px',
     }}>
-      <Loader2 size={18} className="fdr-spin" aria-hidden="true" /> Laden...
+      <Loader2 size={18} className="fdr-spin" aria-hidden="true" /> {text}
     </div>
   );
 }
@@ -58,6 +78,44 @@ const HOME_ADVANTAGE_INTRO_SEEN_KEY = 'fpl_proleague_ha_intro_seen_v1';
 const PL_MINILEAGUE_POPUP_SEEN_KEY = 'fpl_proleague_pl_minileague_popup_seen_v1';
 // Eigen storage key voor de Team Planner — los van de watch list hierboven.
 const TEAM_PLANNER_STORAGE_KEY = 'fpl_proleague_teamplanner_v1';
+// Onthoudt de gekozen taal (NL/FR) tussen bezoeken — zie src/i18n.js.
+const LANGUAGE_STORAGE_KEY = 'fpl_proleague_language_v1';
+
+function loadStoredLanguage() {
+  try {
+    const raw = window.localStorage?.getItem(LANGUAGE_STORAGE_KEY);
+    return LANGUAGES.includes(raw) ? raw : null;
+  } catch {
+    return null;
+  }
+}
+
+// Welke tabs een "nieuw"-stip krijgen in de tabbalk (zie NEW_TAB_KEYS-gebruik verderop) totdat de
+// bezoeker ze minstens één keer heeft geopend — zelfde eenmalig-tonen-opzet als
+// hasSeenHomeAdvantageIntro/PL_MINILEAGUE_POPUP_SEEN_KEY hierboven, maar dan per tab i.p.v. één
+// globale vlag: een array van reeds-bezochte tab-keys i.p.v. een simpele '1'/geen-waarde.
+const NEW_TABS_SEEN_STORAGE_KEY = 'fpl_proleague_new_tabs_seen_v1';
+const NEW_TAB_KEYS = ['bonuspunten', 'setpieces', 'kaarten'];
+
+function loadSeenNewTabs() {
+  try {
+    const raw = window.localStorage?.getItem(NEW_TABS_SEEN_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter(key => NEW_TAB_KEYS.includes(key)) : [];
+  } catch {
+    return [];
+  }
+}
+
+function markNewTabSeen(key, alreadySeen) {
+  try {
+    window.localStorage?.setItem(NEW_TABS_SEEN_STORAGE_KEY, JSON.stringify([...alreadySeen, key]));
+  } catch {
+    // localStorage niet beschikbaar (privénavigatie e.d.) — de stip toont dan gewoon elke keer
+    // opnieuw, geen harde fout.
+  }
+}
 
 // Gedeelde vaste hoogte voor de deadline- en minileague-chip in de header — beide gebruiken exact
 // deze waarde (i.p.v. losse padding/lineHeight-berekeningen) zodat ze gegarandeerd even hoog zijn,
@@ -292,6 +350,34 @@ export default function FDRTool() {
     typeof window === 'undefined' ? 'fdr' : routeKeyFromPath(window.location.pathname)
   );
 
+  // "Nieuw"-stip in de tabbalk voor Bonuspunten/Set Pieces/Kaarten (zie NEW_TAB_KEYS hierboven) totdat
+  // een bezoeker die tab minstens één keer geopend heeft — ook via een directe link of de terug-/
+  // vooruitknop, vandaar gekoppeld aan activeTab i.p.v. enkel aan een klik op de tabbalk zelf.
+  const [seenNewTabs, setSeenNewTabs] = useState(() => new Set(loadSeenNewTabs()));
+  useEffect(() => {
+    if (!NEW_TAB_KEYS.includes(activeTab)) return;
+    setSeenNewTabs(prev => {
+      if (prev.has(activeTab)) return prev;
+      markNewTabSeen(activeTab, prev);
+      return new Set(prev).add(activeTab);
+    });
+  }, [activeTab]);
+
+  // --- Taal (NL/FR) — zie src/i18n.js. Persistent (localStorage), zodat de keuze bezoek-overschrijdend
+  // is; default Nederlands, de oorspronkelijke (en enige) taal vóór deze toggle. `t` is een simpele
+  // curried helper zodat de rest van deze component en alle tabs gewoon t('key') kunnen aanroepen i.p.v.
+  // overal translate(language, 'key') te herhalen.
+  const [language, setLanguage] = useState(() => loadStoredLanguage() ?? DEFAULT_LANGUAGE);
+  const t = useCallback((key, vars) => translate(language, key, vars), [language]);
+  const changeLanguage = useCallback((next) => {
+    setLanguage(next);
+    try {
+      window.localStorage?.setItem(LANGUAGE_STORAGE_KEY, next);
+    } catch {
+      // storage unavailable — taalkeuze werkt nog wel deze sessie, onthoudt 'm enkel niet
+    }
+  }, []);
+
   // Tab wisselen = een echte navigatie. De query-string blijft bewust behouden: de FDR-tab codeert
   // aangepaste ratings in ?r= en thuisvoordeel in ?ha=, en die mogen niet sneuvelen bij het wisselen.
   const navigateToTab = useCallback((key) => {
@@ -314,12 +400,12 @@ export default function FDRTool() {
   // altijd "FDR Tool" als preview toont en elke tool apart indexeerbaar is.
   useEffect(() => {
     const route = routeByKey(activeTab);
-    document.title = route.title;
+    document.title = t(`route.${activeTab}.title`);
     const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute('content', route.description);
+    if (meta) meta.setAttribute('content', t(`route.${activeTab}.description`));
     const canonical = document.querySelector('link[rel="canonical"]');
     if (canonical) canonical.setAttribute('href', `https://fplproleague.vercel.app${route.path}`);
-  }, [activeTab]);
+  }, [activeTab, t]);
 
   // --- Deadline-aftelklok in de header ---
   // Tikt elke 30 seconden. De minuutweergave is daarmee hooguit een halve minuut oud, en we vermijden
@@ -351,6 +437,27 @@ export default function FDRTool() {
     window.addEventListener('resize', updateTabsScrollState);
     return () => window.removeEventListener('resize', updateTabsScrollState);
   }, [updateTabsScrollState]);
+
+  // Mobiele "Meer"-tabmenu (zie .fdr-tabs-mobile hieronder): op smalle schermen is er ruimte voor
+  // maar 3 tabs naast elkaar (zie MOBILE_PRIMARY_TAB_COUNT) — de rest verdwijnt in een dropdown i.p.v.
+  // enkel te vertrouwen op de horizontale scroll die de brede/desktop-tabbalk wél gebruikt, want die
+  // scroll-affordance (vervagende rand) is op mobiel makkelijk te missen en "Kaarten"/"Price Changes"
+  // zaten daardoor 6-7 tabs diep buiten beeld.
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const moreMenuRef = useRef(null);
+  useEffect(() => {
+    if (!moreMenuOpen) return;
+    const handleOutside = (e) => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target)) setMoreMenuOpen(false);
+    };
+    const handleEscape = (e) => { if (e.key === 'Escape') setMoreMenuOpen(false); };
+    document.addEventListener('mousedown', handleOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [moreMenuOpen]);
   const [ratings, setRatings] = useState(() => loadRatingsFromURL() || loadStoredRatings() || DEFAULT_RATINGS);
   const [homeAdvantage, setHomeAdvantage] = useState(() => loadHomeAdvantageFromURL() || loadStoredHomeAdvantage() || DEFAULT_HOME_ADVANTAGE);
   // Beide starten standaard op CURRENT_GW (i.p.v. hardcoded GW1) zodat de default range vanzelf
@@ -1126,7 +1233,8 @@ export default function FDRTool() {
         ::-webkit-scrollbar-track { background: #3D1E5C; }
         .fdr-spin { animation: fdr-spin 0.8s linear infinite; }
         @keyframes fdr-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .fdr-tabs { scrollbar-width: none; -ms-overflow-style: none; }
+        .fdr-tabs, .fdr-tabs-mobile-primary { scrollbar-width: none; -ms-overflow-style: none; }
+        .fdr-tabs-mobile-primary::-webkit-scrollbar { display: none; }
         .fdr-tabs::-webkit-scrollbar { display: none; }
         /* De tabbalk scrollt horizontaal en de scrollbar is verborgen, dus zonder extra signaal is er
            niets dat verraadt dat er nog tabs rechts staan. Deze mask laat de laatste 28px subtiel
@@ -1139,6 +1247,17 @@ export default function FDRTool() {
         .fdr-tabs.fdr-tabs--end {
           -webkit-mask-image: none;
           mask-image: none;
+        }
+
+        /* Onder de 700px-drempel (telefoons) wisselt de tabbalk van "alle 8 tabs, horizontaal
+           scrollend" naar "3 vaste tabs + Meer-dropdown" (zie MOBILE_PRIMARY_TAB_COUNT hierboven) —
+           op dat formaat is de scroll-uitfaderand makkelijk te missen en zaten de laatste tabs
+           daardoor te diep verstopt. Boven de drempel is er ruim plaats voor alle 8, dus blijft de
+           vertrouwde scrollbalk actief. */
+        .fdr-tabs-mobile { display: none; }
+        @media (max-width: 700px) {
+          .fdr-tabs-desktop { display: none !important; }
+          .fdr-tabs-mobile { display: flex; }
         }
 
         /* Zichtbare toetsenbord-focus. De browserstandaard is op deze donkerpaarse achtergrond
@@ -1461,7 +1580,7 @@ export default function FDRTool() {
                 FPL Pro League <span style={{ color: '#4ECDC4' }}>Tools</span>
               </h1>
               <p style={{ color: '#C9B8E0', fontSize: '15px', marginTop: '6px', maxWidth: '640px' }}>
-                Interactieve tools voor Fantasy Pro League — gemaakt door @fpl_proleague.
+                {t('header.tagline')}
               </p>
             </div>
           </div>
@@ -1496,7 +1615,7 @@ export default function FDRTool() {
                   color: COLORS.textMuted, fontSize: '11px', textTransform: 'uppercase',
                   letterSpacing: '0.05em', fontWeight: 700, whiteSpace: 'nowrap',
                 }}>
-                  Deadline GW{CURRENT_GW}
+                  {t('header.deadlineLabel', { gw: CURRENT_GW })}
                 </span>
                 <span className="fdr-title" style={{
                   color: deadlineRemaining.totalMinutes <= 180 ? COLORS.warning : '#4ECDC4',
@@ -1521,11 +1640,11 @@ export default function FDRTool() {
               height: HEADER_CHIP_HEIGHT, boxSizing: 'border-box', padding: '0 3px 0 10px',
             }}>
               <span style={{ color: COLORS.textMuted, fontSize: '12px' }}>
-                Minileague: <strong style={{ color: '#4ECDC4', fontWeight: 700, letterSpacing: '0.05em' }}>{MINILEAGUE_CODE}</strong>
+                {t('header.minileagueLabel')} <strong style={{ color: '#4ECDC4', fontWeight: 700, letterSpacing: '0.05em' }}>{MINILEAGUE_CODE}</strong>
               </span>
               <button
                 onClick={handleCopyMinileagueCode}
-                aria-label={`Minileague-code ${MINILEAGUE_CODE} kopiëren`}
+                aria-label={t('header.copyMinileagueAria', { code: MINILEAGUE_CODE })}
                 style={{
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
                   background: 'transparent', color: COLORS.textBody, border: `1px solid ${COLORS.border}`,
@@ -1534,26 +1653,66 @@ export default function FDRTool() {
                 }}
               >
                 {minileagueCodeCopied ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
-                {minileagueCodeCopied ? 'Gekopieerd!' : 'Kopieer'}
+                {minileagueCodeCopied ? t('header.copied') : t('header.copy')}
               </button>
+            </div>
+
+            {/* Taal-toggle (NL/FR) — zelfde chip-hoogte/vorm als de deadline-/minileague-chip hierboven,
+                zodat hij zich naadloos in dezelfde header-rij voegt zonder een eigen, afwijkende stijl te
+                introduceren. Frans is naast Nederlands een officiële taal in België; zie src/i18n.js. */}
+            <div
+              role="group"
+              aria-label={t('header.languageToggleAria', { lang: language.toUpperCase() })}
+              style={{
+                display: 'inline-flex', alignItems: 'center', height: HEADER_CHIP_HEIGHT, boxSizing: 'border-box',
+                background: 'rgba(255,255,255,0.04)', border: `1px solid ${COLORS.borderSubtle}`,
+                borderRadius: '999px', padding: '3px', gap: '2px', flexShrink: 0,
+              }}
+            >
+              {LANGUAGES.map(lang => {
+                const isActive = language === lang;
+                return (
+                  <button
+                    key={lang}
+                    type="button"
+                    onClick={() => changeLanguage(lang)}
+                    aria-pressed={isActive}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      height: '100%', minWidth: '28px', padding: '0 8px', borderRadius: '999px',
+                      border: 'none', fontFamily: 'inherit', fontSize: '11px', fontWeight: 700,
+                      letterSpacing: '0.03em', cursor: isActive ? 'default' : 'pointer',
+                      background: isActive ? '#4ECDC4' : 'transparent',
+                      color: isActive ? '#0B2E1B' : COLORS.textBody,
+                    }}
+                  >
+                    {lang.toUpperCase()}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </header>
 
         {/* role="tablist" is bewust NIET gebruikt: dit zijn echte links naar echte URL's, geen
-            ARIA-tabs. Een <nav> met aria-current geeft schermlezers de juiste boodschap. */}
+            ARIA-tabs. Een <nav> met aria-current geeft schermlezers de juiste boodschap.
+            Twee varianten: de brede/desktop-balk toont alle tabs met horizontale scroll (zie
+            .fdr-tabs hierboven), de mobiele balk (.fdr-tabs-mobile) toont enkel de eerste paar tabs
+            plus een "Meer"-dropdown. Welke van de twee zichtbaar is, bepaalt de @media-regel bij
+            .fdr-tabs-desktop/.fdr-tabs-mobile hieronder — geen JS-breakpointdetectie nodig. */}
         <nav
           ref={tabsRef}
-          className={`fdr-tabs${tabsAtEnd ? ' fdr-tabs--end' : ''}`}
-          aria-label="Tools"
+          className={`fdr-tabs fdr-tabs-desktop${tabsAtEnd ? ' fdr-tabs--end' : ''}`}
+          aria-label={t('nav.aria')}
           onScroll={updateTabsScrollState}
           style={{
             display: 'flex', gap: '4px', marginBottom: '18px', borderBottom: `1px solid ${COLORS.borderSubtle}`,
-            overflowX: 'auto', flexWrap: 'nowrap'
+            overflowX: 'auto', overflowY: 'hidden', flexWrap: 'nowrap'
           }}
         >
           {TABS.map(tab => {
             const isActive = activeTab === tab.key;
+            const isNewUnseen = NEW_TAB_KEYS.includes(tab.key) && !seenNewTabs.has(tab.key);
             return (
               <a
                 key={tab.key}
@@ -1573,14 +1732,120 @@ export default function FDRTool() {
                   display: 'inline-flex', alignItems: 'center', gap: '5px', textDecoration: 'none',
                 }}
               >
-                {tab.label}
+                {t(`nav.${tab.key}`)}
+                {isNewUnseen && <span style={newTabDotStyle} aria-hidden="true" />}
               </a>
             );
           })}
         </nav>
 
+        <nav
+          className="fdr-tabs-mobile"
+          aria-label={t('nav.aria')}
+          style={{
+            gap: '4px', marginBottom: '18px', borderBottom: `1px solid ${COLORS.borderSubtle}`,
+          }}
+        >
+          {/* Eigen scroll-container voor enkel de vaste tabs, los van de "Meer"-knop: op de meeste
+              telefoons passen FDR + Team Planner + Verwachte XI's naast elkaar, maar op smallere
+              toestellen (bv. 375px) is dat net te krap. I.p.v. de knoptekst daarvoor in te korten of de
+              "Meer"-knop mee te laten verdringen, scrollt enkel dít stripje dan binnen zijn eigen
+              begrenzing — de "Meer"-knop (buiten deze container, zie flexShrink hieronder) blijft
+              altijd volledig zichtbaar en klikbaar. */}
+          <div className="fdr-tabs-mobile-primary" style={{
+            display: 'flex', gap: '4px', overflowX: 'auto', overflowY: 'hidden', flexWrap: 'nowrap', minWidth: 0,
+          }}>
+            {MOBILE_PRIMARY_TABS.map(tab => {
+              const isActive = activeTab === tab.key;
+              return (
+                <a
+                  key={tab.key}
+                  href={tab.path}
+                  onClick={(e) => {
+                    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                    e.preventDefault();
+                    navigateToTab(tab.key);
+                  }}
+                  className="fdr-title fdr-tab-btn"
+                  aria-current={isActive ? 'page' : undefined}
+                  style={{
+                    color: isActive ? '#4ECDC4' : COLORS.textBody,
+                    borderBottom: isActive ? '2px solid #4ECDC4' : '2px solid transparent',
+                    display: 'inline-flex', alignItems: 'center', gap: '5px', textDecoration: 'none', flexShrink: 0,
+                  }}
+                >
+                  {t(`nav.${tab.key}`)}
+                </a>
+              );
+            })}
+          </div>
+
+          <div ref={moreMenuRef} style={{ position: 'relative', marginLeft: 'auto', flexShrink: 0 }}>
+            {(() => {
+              const activeOverflowTab = MOBILE_OVERFLOW_TABS.find(tab => tab.key === activeTab);
+              const isActive = Boolean(activeOverflowTab);
+              // De Meer-knop krijgt zelf één stip zolang er nog minstens één nieuwe tab (Bonuspunten/
+              // Set Pieces/Kaarten) verstopt zit in het dropdown-menu erachter — niet elk item apart,
+              // dat is precies wat het "Meer"-niveau al samenvat.
+              const hasUnseenNewTab = NEW_TAB_KEYS.some(key => !seenNewTabs.has(key));
+              return (
+                <button
+                  type="button"
+                  onClick={() => setMoreMenuOpen(open => !open)}
+                  aria-haspopup="true"
+                  aria-expanded={moreMenuOpen}
+                  className="fdr-title fdr-tab-btn"
+                  style={{
+                    color: isActive ? '#4ECDC4' : COLORS.textBody,
+                    borderBottom: isActive ? '2px solid #4ECDC4' : '2px solid transparent',
+                    display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none',
+                    border: 'none', borderRadius: 0, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
+                  }}
+                >
+                  {activeOverflowTab ? t(`nav.${activeOverflowTab.key}`) : t('nav.more')}
+                  {hasUnseenNewTab && !activeOverflowTab && <span style={newTabDotStyle} aria-hidden="true" />}
+                  <ChevronDown size={14} style={{ transform: moreMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} aria-hidden="true" />
+                </button>
+              );
+            })()}
+
+            {moreMenuOpen && (
+              <div style={{
+                position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 45, minWidth: '190px',
+                background: '#2A1547', border: `1px solid ${COLORS.border}`, borderRadius: '10px',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.4)', overflow: 'hidden',
+              }}>
+                {MOBILE_OVERFLOW_TABS.map(tab => {
+                  const isActive = activeTab === tab.key;
+                  return (
+                    <a
+                      key={tab.key}
+                      href={tab.path}
+                      onClick={(e) => {
+                        setMoreMenuOpen(false);
+                        if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                        e.preventDefault();
+                        navigateToTab(tab.key);
+                      }}
+                      aria-current={isActive ? 'page' : undefined}
+                      style={{
+                        display: 'block', padding: '10px 14px', fontSize: '13px', fontWeight: 700,
+                        color: isActive ? '#4ECDC4' : '#FFF', textDecoration: 'none',
+                        background: isActive ? 'rgba(78,205,196,0.1)' : 'none',
+                      }}
+                    >
+                      {t(`nav.${tab.key}`)}
+                    </a>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </nav>
+
         {activeTab === 'fdr' && (
           <FDRTab
+            t={t}
             ratings={ratings}
             homeAdvantage={homeAdvantage}
             updateRating={updateRating}
@@ -1620,8 +1885,9 @@ export default function FDRTool() {
         )}
 
         {activeTab === 'watchlist' && (
-          <Suspense fallback={<TabLoading />}>
+          <Suspense fallback={<TabLoading text={t('shared.loading')} />}>
           <WatchlistTab
+            t={t}
             ratings={ratings}
             homeAdvantage={homeAdvantage}
             watchlist={watchlist}
@@ -1642,8 +1908,9 @@ export default function FDRTool() {
         )}
 
         {activeTab === 'teamplanner' && (
-          <Suspense fallback={<TabLoading />}>
+          <Suspense fallback={<TabLoading text={t('shared.loading')} />}>
           <TeamPlannerTab
+            t={t}
             ratings={ratings}
             homeAdvantage={homeAdvantage}
             openSections={openSections}
@@ -1681,8 +1948,38 @@ export default function FDRTool() {
         )}
 
         {activeTab === 'predictedlineups' && (
-          <Suspense fallback={<TabLoading />}>
-            <PredictedLineupsTab />
+          <Suspense fallback={<TabLoading text={t('shared.loading')} />}>
+            <PredictedLineupsTab t={t} />
+          </Suspense>
+        )}
+
+        {activeTab === 'bonuspunten' && (
+          <Suspense fallback={<TabLoading text={t('shared.loading')} />}>
+            <BonuspuntenTab
+              t={t}
+              playerDatabase={playerDatabase}
+              playerDatabaseLoading={playerDatabaseLoading}
+              playerDatabaseError={playerDatabaseError}
+              fetchPlayerDatabase={fetchPlayerDatabase}
+            />
+          </Suspense>
+        )}
+
+        {activeTab === 'setpieces' && (
+          <Suspense fallback={<TabLoading text={t('shared.loading')} />}>
+            <SetPiecesTab t={t} />
+          </Suspense>
+        )}
+
+        {activeTab === 'kaarten' && (
+          <Suspense fallback={<TabLoading text={t('shared.loading')} />}>
+            <KaartenTab
+              t={t}
+              playerDatabase={playerDatabase}
+              playerDatabaseLoading={playerDatabaseLoading}
+              playerDatabaseError={playerDatabaseError}
+              fetchPlayerDatabase={fetchPlayerDatabase}
+            />
           </Suspense>
         )}
 
@@ -1696,24 +1993,23 @@ export default function FDRTool() {
                   context lijkt een lege tab op een onafgewerkte tool, terwijl er in het spel simpelweg
                   nog niets te tonen valt. */}
               <p style={{ color: COLORS.textBody, fontSize: '13px', margin: 0, lineHeight: 1.6 }}>
-                In Fantasy Pro League veranderen spelersprijzen pas <strong>vanaf gameweek 7</strong>.
-                Tot dan blijft elke prijs gelijk aan de startprijs, dus valt er nog niets te melden.
+                {t('priceChanges.p1')}
               </p>
               <p style={{ color: COLORS.textSubtle, fontSize: '13px', margin: '8px 0 0', lineHeight: 1.6 }}>
-                Vanaf GW7 documenteren we hier alle stijgers en dalers.
+                {t('priceChanges.p2')}
               </p>
             </div>
           </div>
         )}
 
         <footer style={{ marginTop: '28px', textAlign: 'center', color: COLORS.textSubtle, fontSize: '12px', lineHeight: 1.5 }}>
-          Gemaakt door{' '}
+          {t('footer.madeBy')}{' '}
           <a href="https://x.com/fpl_proleague" target="_blank" rel="noopener noreferrer" className="fdr-footer-link">
             <img src="/x-logo.png" alt="" style={{ width: '12px', height: '12px', verticalAlign:'-2px' }} />
             @fpl_proleague
           </a>
-          {' '}· Fantasy Pro League 26/27 · Data eigen analyse<br />
-          Laatst bijgewerkt: {LAST_UPDATED}
+          {' '}· {t('footer.season')}<br />
+          {t('footer.lastUpdated', { date: LAST_UPDATED })}
         </footer>
       </div>
 
@@ -1727,19 +2023,19 @@ export default function FDRTool() {
             border: '1px solid rgba(255,255,255,0.1)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-              <h3 className="fdr-title" style={{ color: '#4ECDC4', fontSize: '16px', margin: 0, textTransform: 'uppercase' }}>Hoe werkt dit?</h3>
-              <button onClick={() => setShowInfo(false)} style={{ background: 'none', border: 'none', color: '#C9B8E0', cursor: 'pointer' }}>
+              <h3 className="fdr-title" style={{ color: '#4ECDC4', fontSize: '16px', margin: 0, textTransform: 'uppercase' }}>{t('infoModal.title')}</h3>
+              <button onClick={() => setShowInfo(false)} aria-label={t('infoModal.close')} style={{ background: 'none', border: 'none', color: '#C9B8E0', cursor: 'pointer' }}>
                 <X size={18} />
               </button>
             </div>
             <p style={{ color: '#C9B8E0', fontSize: '13px', lineHeight: 1.6 }}>
-              De kleur van elke fixture komt van de <strong>sterkte-rating van de tegenstander</strong> (1 = makkelijkst, 5 = moeilijkst). Sleep de sliders om een team sterker of zwakker in te schatten. Bij de berekening van fixture runs tellen Blank Gameweeks als 5 (moeilijkst) en Double Gameweeks als 1 (makkelijkst).
+              {t('infoModal.p1')}
             </p>
             <p style={{ color: '#C9B8E0', fontSize: '13px', lineHeight: 1.6, marginTop: '8px' }}>
-              <strong>"Bewaar in browser"</strong> onthoudt jouw versie op dit toestel voor de volgende keer. <strong>"Beste fixture runs"</strong> toont de 5 teams met de laagste gemiddelde moeilijkheid over de gekozen periode.
+              {t('infoModal.p2')}
             </p>
             <p style={{ color: '#C9B8E0', fontSize: '13px', lineHeight: 1.6, marginTop: '8px' }}>
-              <strong>Thuisvoordeel</strong> is een aparte toggle per team: zet je hem aan voor een team, dan wordt de moeilijkheidsgraad met 1 verhoogd (tot maximum 5) voor elk team dat bij hen op verplaatsing speelt. Handig omdat sommige teams nu eenmaal moeilijker te verslaan zijn op hun eigen veld.
+              {t('infoModal.p3')}
             </p>
           </div>
         </div>
@@ -1764,11 +2060,11 @@ export default function FDRTool() {
           }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
               <p style={{ color: '#FFF', fontSize: '15px', fontWeight: 700, lineHeight: 1.4, margin: 0 }}>
-                Fantasy Premier League code: <span style={{ color: '#4ECDC4', letterSpacing: '0.05em' }}>{PL_MINILEAGUE_CODE}</span>
+                {t('plPopup.body')} <span style={{ color: '#4ECDC4', letterSpacing: '0.05em' }}>{PL_MINILEAGUE_CODE}</span>
               </p>
               <button
                 onClick={handleClosePLMinileaguePopup}
-                aria-label="Melding sluiten"
+                aria-label={t('plPopup.closeAria')}
                 style={{ background: 'none', border: 'none', color: '#C9B8E0', cursor: 'pointer', flexShrink: 0 }}
               >
                 <X size={18} />
@@ -1777,7 +2073,7 @@ export default function FDRTool() {
             <button
               onClick={handleCopyPLMinileagueCode}
               className="fdr-touch-target"
-              aria-label={`Minileague-code ${PL_MINILEAGUE_CODE} kopiëren`}
+              aria-label={t('plPopup.copyAria', { code: PL_MINILEAGUE_CODE })}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', width: '100%',
                 background: plCodeCopied ? 'transparent' : '#4ECDC4', color: plCodeCopied ? '#4ECDC4' : '#0B2E1B',
@@ -1786,7 +2082,7 @@ export default function FDRTool() {
               }}
             >
               {plCodeCopied ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
-              {plCodeCopied ? 'Gekopieerd!' : 'Kopieer'}
+              {plCodeCopied ? t('header.copied') : t('header.copy')}
             </button>
           </div>
         </div>
@@ -1804,7 +2100,7 @@ export default function FDRTool() {
           fontFamily: "'Inter', sans-serif"
         }}>
           <span style={{ margin: 0, fontSize: '13px', lineHeight: 1.4, flex: 1, minWidth: 0 }}>
-            <strong style={{ color: '#FFFFFF' }}>{recentlyRemovedPlayer.player.name}</strong> verwijderd.
+            <strong style={{ color: '#FFFFFF' }}>{recentlyRemovedPlayer.player.name}</strong> {t('undo.removedSuffix')}
           </span>
           <button
             onClick={handleUndoRemoveWatchlistPlayer}
@@ -1816,11 +2112,11 @@ export default function FDRTool() {
               fontFamily: 'inherit', cursor: 'pointer'
             }}
           >
-            <Undo2 size={14} aria-hidden="true" /> Ongedaan maken
+            <Undo2 size={14} aria-hidden="true" /> {t('undo.action')}
           </button>
           <button
             onClick={() => setRecentlyRemovedPlayer(null)}
-            aria-label="Melding sluiten"
+            aria-label={t('undo.closeAria')}
             className="fdr-icon-btn"
             style={{ background: 'transparent', border: 'none', color: COLORS.textBody, cursor: 'pointer', flexShrink: 0, padding: 0, display: 'inline-flex' }}
           >
@@ -1840,11 +2136,11 @@ export default function FDRTool() {
         }}>
           <Info size={16} color="#4ECDC4" style={{ flexShrink: 0, marginTop: '2px' }} />
           <p style={{ margin: 0, fontSize: '12px', lineHeight: 1.5, flex: 1 }}>
-            <strong style={{ color: '#FFFFFF' }}>Thuisvoordeel</strong> verhoogt de moeilijkheidsgraad met 1 voor teams die hier op bezoek komen.
+            <strong style={{ color: '#FFFFFF' }}>{t('fdr.homeAdvantage')}</strong> {t('homeAdvantageToast.bodySuffix')}
           </p>
           <button
             onClick={() => setShowHomeAdvantageIntro(false)}
-            aria-label="Sluiten"
+            aria-label={t('homeAdvantageToast.closeAria')}
             style={{ background: 'transparent', border: 'none', color: '#C9B8E0', cursor: 'pointer', flexShrink: 0, padding: 0 }}
           >
             <X size={14} />

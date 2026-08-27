@@ -157,6 +157,7 @@ function TeamFormBar({ results }) {
 }
 
 export default function FDRTab({
+  t,
   ratings, homeAdvantage, updateRating, toggleHomeAdvantage,
   isCustom, saved, linkCopied, downloading,
   handleCopyLink, handleDownloadImage, handleReset, handleSave, setShowInfo,
@@ -171,7 +172,7 @@ export default function FDRTab({
   return (
     <>
     <p style={{ color: COLORS.textMuted, fontSize: '13px', marginBottom: '18px' }}>
-      Mijn eigen fixture difficulty ratings — pas ze aan naar jouw mening en ontdek meteen welke teams de beste runs hebben.
+      {t('fdr.intro')}
     </p>
     <div className="fpl-toolbar" style={{
       display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center',
@@ -183,14 +184,14 @@ export default function FDRTab({
         background: isCustom ? '#4ECDC4' : 'rgba(255,255,255,0.1)',
         color: isCustom ? '#0B2E1B' : '#C9B8E0'
       }}>
-        {isCustom ? 'JOUW AANGEPASTE VERSIE' : 'RATING VAN @FPL_PROLEAGUE'}
+        {isCustom ? t('fdr.badge.custom') : t('fdr.badge.default')}
       </span>
       <div className="fpl-toolbar-actions">
       <span className="fpl-toolbar-secondary">
       <button onClick={handleCopyLink} className="fdr-toolbar-btn" style={secondaryToolbarBtnStyle}>
         {linkCopied ? <Check size={14} /> : <Link2 size={14} />}
-        <span className="fdr-btn-label-full">{linkCopied ? 'Link gekopieerd!' : 'Kopieer link'}</span>
-        <span className="fdr-btn-label-short">{linkCopied ? 'Gekopieerd!' : 'Kopieer'}</span>
+        <span className="fdr-btn-label-full">{linkCopied ? t('fdr.linkCopied') : t('fdr.copyLink')}</span>
+        <span className="fdr-btn-label-short">{linkCopied ? t('fdr.linkCopiedShort') : t('fdr.copyLinkShort')}</span>
       </button>
       <button onClick={handleDownloadImage} disabled={downloading} className="fdr-toolbar-btn" style={{
         ...secondaryToolbarBtnStyle,
@@ -198,21 +199,21 @@ export default function FDRTab({
         opacity: downloading ? 0.6 : 1
       }}>
         <Download size={14} />
-        <span className="fdr-btn-label-full">{downloading ? 'Bezig...' : 'Download als afbeelding'}</span>
-        <span className="fdr-btn-label-short">{downloading ? 'Bezig...' : 'Download'}</span>
+        <span className="fdr-btn-label-full">{downloading ? t('fdr.downloading') : t('fdr.downloadImage')}</span>
+        <span className="fdr-btn-label-short">{downloading ? t('fdr.downloading') : t('fdr.downloadImageShort')}</span>
       </button>
       <button onClick={handleReset} className="fdr-toolbar-btn" style={secondaryToolbarBtnStyle}>
         <RotateCcw size={14} />
-        <span className="fdr-btn-label-full">Reset FDR</span>
-        <span className="fdr-btn-label-short">Reset</span>
+        <span className="fdr-btn-label-full">{t('fdr.reset')}</span>
+        <span className="fdr-btn-label-short">{t('fdr.resetShort')}</span>
       </button>
       <button onClick={handleSave} className="fdr-toolbar-btn" style={primaryButtonStyle}>
         <Check size={14} />
-        <span className="fdr-btn-label-full">{saved ? 'Opgeslagen ✓' : 'Bewaar in browser'}</span>
-        <span className="fdr-btn-label-short">{saved ? 'Bewaard ✓' : 'Bewaar'}</span>
+        <span className="fdr-btn-label-full">{saved ? t('fdr.saved') : t('fdr.save')}</span>
+        <span className="fdr-btn-label-short">{saved ? t('fdr.savedShort') : t('fdr.saveShort')}</span>
       </button>
       </span>
-      <button onClick={() => setShowInfo(true)} aria-label="Uitleg" className="fdr-icon-btn" style={iconButtonStyle}>
+      <button onClick={() => setShowInfo(true)} aria-label={t('fdr.infoAria')} className="fdr-icon-btn" style={iconButtonStyle}>
         <Info size={16} />
       </button>
       </div>
@@ -221,7 +222,7 @@ export default function FDRTab({
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '24px' }}>
 
       <section>
-        <SectionHeader icon={Settings2} title="Team-sterkte instellen" sectionKey="sliders" isOpen={openSections.sliders} onToggle={toggleSection} />
+        <SectionHeader icon={Settings2} title={t('fdr.section.sliders')} sectionKey="sliders" isOpen={openSections.sliders} onToggle={toggleSection} />
         {openSections.sliders && (
         <div id="fdr-section-sliders" className="fdr-sliders-grid" style={{
           display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '8px', marginBottom: '8px'
@@ -255,7 +256,7 @@ export default function FDRTab({
                   type="range" min={1} max={5} step={1} value={r}
                   onChange={e => updateRating(team.code, Number(e.target.value))}
                   style={{ width: '100%' }}
-                  aria-label={`Sterkte ${team.name}`}
+                  aria-label={t('fdr.strengthAria', { team: team.name })}
                 />
                 {/* Thuisvoordeel: losstaand van de sterkte-slider hierboven, zie getEffectiveRating.
                     De VOLLEDIGE rij (label + schakelaar) is nu de knop, niet enkel het schakelaartje
@@ -266,7 +267,7 @@ export default function FDRTab({
                   type="button"
                   role="switch"
                   aria-checked={homeAdvantageOn}
-                  aria-label={`Thuisvoordeel ${team.name}`}
+                  aria-label={t('fdr.homeAdvantageAria', { team: team.name })}
                   onClick={() => toggleHomeAdvantage(team.code)}
                   className="fdr-touch-target"
                   style={{
@@ -275,7 +276,7 @@ export default function FDRTab({
                     background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                   }}
                 >
-                  <span style={{ color: COLORS.textBody, fontSize: '10px' }}>Thuisvoordeel</span>
+                  <span style={{ color: COLORS.textBody, fontSize: '10px' }}>{t('fdr.homeAdvantage')}</span>
                   {/* De knop verschoof voorheen via justifyContent (flex-start/flex-end) — dat is geen
                       animeerbare CSS-property, dus de knop "sprong" abrupt naar de overkant terwijl
                       enkel de achtergrondkleur vloeiend overging, wat als een flits oogde. Nu blijft
@@ -305,7 +306,7 @@ export default function FDRTab({
       </section>
 
       <section>
-        <SectionHeader icon={Grid2x2} title="Fixture Difficulty Rating" sectionKey="table" isOpen={openSections.table} onToggle={toggleSection} />
+        <SectionHeader icon={Grid2x2} title={t('fdr.section.table')} sectionKey="table" isOpen={openSections.table} onToggle={toggleSection} />
         {openSections.table && (
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -317,22 +318,22 @@ export default function FDRTab({
             borderRadius: '8px', padding: '8px 14px', fontWeight: 700, fontSize: '13px', cursor: 'pointer'
           }}>
             <ArrowUpDown size={14} />
-            {sortByDifficulty ? 'Gesorteerd: makkelijkste eerst' : 'Sorteer op makkelijkste run'}
+            {sortByDifficulty ? t('fdr.sortByDifficultySorted') : t('fdr.sortByDifficulty')}
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <label style={{ color: COLORS.textBody, fontSize: '12px' }}>GW</label>
+              <label style={{ color: COLORS.textBody, fontSize: '12px' }}>{t('fdr.gwLabel')}</label>
               <select value={gwHorizonStart} onChange={e => setGwHorizonStart(Number(e.target.value))} style={selectStyle}>
                 {gwOptionElements}
               </select>
-              <span style={{ color: COLORS.textBody, fontSize: '12px' }}>t/m</span>
+              <span style={{ color: COLORS.textBody, fontSize: '12px' }}>{t('fdr.gwTo')}</span>
               <select value={gwHorizonEnd} onChange={e => setGwHorizonEnd(Number(e.target.value))} style={selectStyle}>
                 {gwOptionElements}
               </select>
             </div>
             <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: COLORS.textSubtle, fontSize: '11px' }}>
               <Info size={12} />
-              Tik op grijze cellen of die met een * voor meer info
+              {t('fdr.tapHint')}
             </span>
           </div>
         </div>
@@ -349,7 +350,7 @@ export default function FDRTab({
                 textAlign: 'left', color: COLORS.textBody, fontSize: '11px', textTransform: 'uppercase',
                 letterSpacing: '0.05em', padding: '6px 8px', position: 'sticky', left: 0,
                 background: '#2A1440', zIndex: 3, boxShadow: '-4px 0 0 0 #2A1440, 4px 0 0 0 #2A1440'
-              }}>Team</th>
+              }}>{t('fdr.teamColumn')}</th>
               {visibleGwHeaderCells}
             </tr>
           </thead>
@@ -407,7 +408,7 @@ export default function FDRTab({
           {[1,2,3,4,5].map(r => (
             <div key={r} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: RATING_STYLE[r].bg, display: 'inline-block' }} />
-              <span style={{ color: COLORS.textBody, fontSize: '11px' }}>{RATING_STYLE[r].label}</span>
+              <span style={{ color: COLORS.textBody, fontSize: '11px' }}>{t(`fdr.rating.${r}`)}</span>
             </div>
           ))}
         </div>
@@ -416,15 +417,15 @@ export default function FDRTab({
       </section>
 
       <section>
-        <SectionHeader icon={TrendingUp} title="Beste fixture runs" sectionKey="runs" isOpen={openSections.runs} onToggle={toggleSection} />
+        <SectionHeader icon={TrendingUp} title={t('fdr.section.runs')} sectionKey="runs" isOpen={openSections.runs} onToggle={toggleSection} />
         {openSections.runs && (
         <div id="fdr-section-runs">
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
-          <label style={{ color: COLORS.textBody, fontSize: '12px' }}>GW</label>
+          <label style={{ color: COLORS.textBody, fontSize: '12px' }}>{t('fdr.gwLabel')}</label>
           <select value={rangeStart} onChange={e => setRangeStart(Number(e.target.value))} style={selectStyle}>
             {gwOptionElements}
           </select>
-          <span style={{ color: COLORS.textBody, fontSize: '12px' }}>t/m</span>
+          <span style={{ color: COLORS.textBody, fontSize: '12px' }}>{t('fdr.gwTo')}</span>
           <select value={rangeEnd} onChange={e => setRangeEnd(Number(e.target.value))} style={selectStyle}>
             {gwOptionElements}
           </select>
@@ -448,7 +449,7 @@ export default function FDRTab({
                 />
                 <div style={{ minWidth: '130px' }}>
                   <div style={{ color: '#FFF', fontWeight: 700, fontSize: '14px' }}>{team.name}</div>
-                  <div style={{ color: COLORS.textMuted, fontSize: '11px' }}>Gem. moeilijkheid: {team.avg.toFixed(1)}</div>
+                  <div style={{ color: COLORS.textMuted, fontSize: '11px' }}>{t('fdr.avgDifficulty', { value: team.avg.toFixed(1) })}</div>
                 </div>
               </div>
               <div
@@ -475,11 +476,11 @@ export default function FDRTab({
 
       {/* COMPARE TEAMS */}
       <section>
-        <SectionHeader icon={Scale} title="Vergelijk teams" sectionKey="compare" isOpen={openSections.compare} onToggle={toggleSection} />
+        <SectionHeader icon={Scale} title={t('fdr.section.compare')} sectionKey="compare" isOpen={openSections.compare} onToggle={toggleSection} />
         {openSections.compare && (
         <div id="fdr-section-compare">
         <p style={{ color: COLORS.textMuted, fontSize: '12px', marginBottom: '10px' }}>
-          Kies tot 5 teams om hun fixtures onder elkaar te zien (vanaf GW{compareGwStart}).
+          {t('fdr.compareIntro', { gw: compareGwStart })}
         </p>
         <div style={{
           display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(70px, 1fr))', gap: '6px', marginBottom: '16px'
@@ -509,7 +510,7 @@ export default function FDRTab({
           })}
         </div>
         {compareTeams.length === 0 && (
-          <p style={{ color: COLORS.textSubtle, fontSize: '13px' }}>Nog geen teams geselecteerd.</p>
+          <p style={{ color: COLORS.textSubtle, fontSize: '13px' }}>{t('fdr.compareNoTeams')}</p>
         )}
         {compareTeams.length > 0 && (
           <div style={{ overflowX: 'auto' }}>
@@ -522,7 +523,7 @@ export default function FDRTab({
               </thead>
               <tbody>
                 {compareTeams.map(code => {
-                  const team = TEAMS.find(t => t.code === code);
+                  const team = TEAMS.find(team => team.code === code);
                   return (
                     <tr key={code}>
                       <td style={{ color: '#FFF', fontWeight: 700, fontSize: '13px', padding: '6px 8px', whiteSpace: 'nowrap', ...stickyTeamCellStyle }}>

@@ -93,6 +93,7 @@ function SuggestionRow({ suggestion, index, playerDatabase, onUpdate, onToggleCa
 }
 
 export function TeamScreenshotUpload({
+  t,
   playerDatabase, playerDatabaseLoading, playerDatabaseError,
   updateTeamPlannerPlayer, setTeamPlannerCaptain, teamPlannerGw, isRosterEmpty = false,
 }) {
@@ -207,20 +208,18 @@ export function TeamScreenshotUpload({
         display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap',
       }}>
         <Upload size={15} aria-hidden="true" />
-        Team herkennen via screenshot
+        {t('screenshotUpload.heading')}
         {isRosterEmpty && (
           <span style={{
             background: '#4ECDC4', color: '#0B2E1B', fontSize: '10px', fontWeight: 900,
             padding: '2px 8px', borderRadius: '999px', letterSpacing: '0.03em',
           }}>
-            Aanrader
+            {t('screenshotUpload.recommended')}
           </span>
         )}
       </h3>
       <p style={{ color: COLORS.textMuted, fontSize: '12px', margin: '0 0 12px', lineHeight: 1.55 }}>
-        Upload een screenshot van je team en we vullen je vijftien spelers automatisch in. Je krijgt
-        eerst een voorstel te zien dat je zelf kan corrigeren; er wordt niets ingevuld tot je op
-        &ldquo;Toepassen&rdquo; klikt.
+        {t('screenshotUpload.intro')}
       </p>
 
       <input
@@ -288,20 +287,20 @@ export function TeamScreenshotUpload({
               background: '#4ECDC4', color: '#0B2E1B', border: '1px solid #4ECDC4',
               borderRadius: '8px', padding: '8px 16px', fontWeight: 700, fontSize: '13px', cursor: 'pointer',
             }}>
-              <Check size={15} /> Toepassen
+              <Check size={15} /> {t('screenshotUpload.apply')}
             </button>
             <button onClick={handleCancel} style={{
               display: 'inline-flex', alignItems: 'center', gap: '6px',
               background: 'transparent', color: COLORS.textBody, border: '1px solid rgba(255,255,255,0.2)',
               borderRadius: '8px', padding: '8px 16px', fontWeight: 700, fontSize: '13px', cursor: 'pointer',
             }}>
-              <X size={15} /> Annuleren
+              <X size={15} /> {t('screenshotUpload.cancel')}
             </button>
           </div>
         </div>
       ) : status === 'loading' ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: COLORS.textBody, fontSize: '13px' }}>
-          <Loader2 size={16} className="fdr-spin" /> Team herkennen...
+          <Loader2 size={16} className="fdr-spin" /> {t('screenshotUpload.processing')}
         </div>
       ) : status === 'error' ? (
         <div style={{
@@ -312,7 +311,7 @@ export function TeamScreenshotUpload({
           <AlertCircle size={16} color="#C2402C" style={{ flexShrink: 0 }} />
           <span style={{ color: '#FBEAE7', fontSize: '13px', flex: 1 }}>{errorMessage}</span>
           <button onClick={() => fileInputRef.current?.click()} style={retryButtonStyle}>
-            <RotateCcw size={14} /> Probeer opnieuw
+            <RotateCcw size={14} /> {t('screenshotUpload.retry')}
           </button>
         </div>
       ) : (
@@ -327,7 +326,7 @@ export function TeamScreenshotUpload({
             cursor: playerDatabaseLoading || playerDatabaseError ? 'not-allowed' : 'pointer',
           }}
         >
-          <Upload size={15} /> Upload screenshot
+          <Upload size={15} /> {t('screenshotUpload.uploadButton')}
         </button>
       )}
     </div>

@@ -17,12 +17,12 @@ const noop = () => {};
 // Legt uit wat de kaartrand-kleur op elke kaart betekent (zie SAFETY_STYLE in theme.js voor de
 // kleurwaarden zelf — hier enkel de korte, publieksvriendelijke labels, bewust anders/beknopter dan de
 // interne titels op de safety-badge in de privé-tool, die daar als hover-tooltip dienen i.p.v. een
-// permanent zichtbare legende).
+// permanent zichtbare legende). labelKey i.p.v. een kant-en-klare tekst, zodat de legende meevertaalt.
 const SAFETY_LEGEND = [
-  { level: 'darkgreen', label: 'Zekerheid' },
-  { level: 'green', label: 'Starter' },
-  { level: 'orange', label: 'Twijfel' },
-  { level: 'red', label: 'Risico' },
+  { level: 'darkgreen', labelKey: 'predictedLineups.legend.certain' },
+  { level: 'green', labelKey: 'predictedLineups.legend.starter' },
+  { level: 'orange', labelKey: 'predictedLineups.legend.doubtful' },
+  { level: 'red', labelKey: 'predictedLineups.legend.risk' },
 ];
 
 // Filtert lineups zonder één enkele geplaatste speler eruit (bv. een club die nog niet af is) — zo
@@ -46,7 +46,7 @@ const isStale = PREDICTED_LINEUPS_GW < CURRENT_GW;
 // Waarschuwingsbanner bovenaan de tab zodra de opstellingen van een vorige speeldag zijn. Bewust
 // prominent en niet weg te klikken: verouderde team-info is voor een fantasymanager schadelijker dan
 // géén team-info, want ze ziet er precies hetzelfde uit als actuele info.
-function StaleWarning() {
+function StaleWarning({ t }) {
   if (!isStale) return null;
   return (
     <div
@@ -59,13 +59,13 @@ function StaleWarning() {
     >
       <AlertTriangle size={18} color={COLORS.warning} style={{ flexShrink: 0, marginTop: '1px' }} aria-hidden="true" />
       <p style={{ margin: 0, color: COLORS.warning, fontSize: '13px', lineHeight: 1.55, fontWeight: 700 }}>
-        Let op: dit zijn de opstellingen van GW{PREDICTED_LINEUPS_GW}, niet van de komende GW{CURRENT_GW}.
+        {t('predictedLineups.staleWarning', { predictedGw: PREDICTED_LINEUPS_GW, currentGw: CURRENT_GW })}
       </p>
     </div>
   );
 }
 
-export default function PredictedLineupsTab() {
+export default function PredictedLineupsTab({ t }) {
   // TEAMS-volgorde (canoniek, alfabetisch op code) i.p.v. data-invoervolgorde: nu dat niet-spelende
   // clubs (zonder eigen entry in PREDICTED_LINEUPS) ertussen gemengd moeten worden, geeft dit een
   // voorspelbare, stabiele kiezer-volgorde voor alle clubs samen i.p.v. twee losse groepjes.
@@ -77,16 +77,16 @@ export default function PredictedLineupsTab() {
   if (availableClubCodes.length === 0) {
     return (
       <>
-        <StaleWarning />
+        <StaleWarning t={t} />
         <p style={{ color: COLORS.textMuted, fontSize: '13px', marginBottom: '16px' }}>
-          Voorspelde opstellingen voor GW{PREDICTED_LINEUPS_GW}, samengesteld door @5YSiebee.
+          {t('predictedLineups.introEmpty', { gw: PREDICTED_LINEUPS_GW })}
         </p>
         <div style={{
           background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
           borderRadius: '10px', padding: '16px',
         }}>
           <p style={{ color: COLORS.textBody, fontSize: '13px', margin: 0 }}>
-            Nog geen voorspelde lineups beschikbaar — kom binnenkort terug.
+            {t('predictedLineups.empty')}
           </p>
         </div>
       </>
@@ -97,9 +97,9 @@ export default function PredictedLineupsTab() {
   // notPlayingClubCodes hierboven. lineup/opponent/formationLabel hebben dan geen betekenis en worden
   // niet berekend; de placeholder-tak hieronder gebruikt enkel club/postponedMessage.
   const isNotPlaying = notPlayingClubCodes.includes(selectedClubCode);
-  const club = TEAMS.find(t => t.code === selectedClubCode);
+  const club = TEAMS.find(team => team.code === selectedClubCode);
   const lineup = !isNotPlaying ? (readyLineups.find(l => l.clubCode === selectedClubCode) ?? readyLineups[0]) : null;
-  const opponent = lineup?.opponentCode ? TEAMS.find(t => t.code === lineup.opponentCode) : null;
+  const opponent = lineup?.opponentCode ? TEAMS.find(team => team.code === lineup.opponentCode) : null;
   const formationLabel = lineup
     ? (lineup.formationLabelOverride?.trim() || FORMATIONS[lineup.formationKey]?.label || lineup.formationKey)
     : null;
@@ -110,16 +110,16 @@ export default function PredictedLineupsTab() {
   const postponedMessage = (() => {
     if (!isNotPlaying) return null;
     const fixtureEntry = FIXTURES[selectedClubCode]?.[PREDICTED_LINEUPS_GW - 1];
-    if (typeof fixtureEntry !== 'string') return `${club?.name ?? selectedClubCode} speelt niet in GW${PREDICTED_LINEUPS_GW}.`;
+    if (typeof fixtureEntry !== 'string') return t('predictedLineups.noMatchGeneric', { club: club?.name ?? selectedClubCode, gw: PREDICTED_LINEUPS_GW });
     const [opp, venue] = fixtureEntry.split('-');
     return buildPostponedTooltipText(selectedClubCode, opp, venue);
   })();
 
   return (
     <>
-      <StaleWarning />
+      <StaleWarning t={t} />
       <p style={{ color: COLORS.textMuted, fontSize: '13px', marginBottom: '16px' }}>
-        Voorspelde opstellingen voor GW{PREDICTED_LINEUPS_GW}, samengesteld door @5YSiebee. Kies een club om de verwachte opstelling te bekijken.
+        {t('predictedLineups.intro', { gw: PREDICTED_LINEUPS_GW })}
       </p>
 
       {/* Responsief raster i.p.v. een flex-wrap van vaste 76px-blokken: op een telefoon leverde dat
@@ -127,7 +127,7 @@ export default function PredictedLineupsTab() {
           geeft daar ~5-6 per rij, en op desktop vullen ze de breedte netjes op. */}
       <div
         role="group"
-        aria-label="Kies een club"
+        aria-label={t('predictedLineups.pickClubAria')}
         className="fdr-club-picker"
         style={{
           display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(58px, 1fr))',
@@ -135,7 +135,7 @@ export default function PredictedLineupsTab() {
         }}
       >
         {availableClubCodes.map(code => {
-          const t = TEAMS.find(team => team.code === code);
+          const clubTeam = TEAMS.find(team => team.code === code);
           const isSelected = code === selectedClubCode;
           // Gedimd (i.p.v. een apart icoontje): genoeg om in de kiezer zelf al te laten vermoeden dat
           // deze club iets anders toont, zonder de rest van het raster drukker te maken — de
@@ -145,7 +145,7 @@ export default function PredictedLineupsTab() {
             <button
               key={code}
               onClick={() => setSelectedClubCode(code)}
-              title={clubIsNotPlaying ? `${t?.name ?? code} — geen wedstrijd deze speeldag` : (t?.name ?? code)}
+              title={clubIsNotPlaying ? t('predictedLineups.notPlayingTitle', { club: clubTeam?.name ?? code }) : (clubTeam?.name ?? code)}
               style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
                 background: isSelected ? 'rgba(78,205,196,0.12)' : 'rgba(255,255,255,0.04)',
@@ -166,7 +166,7 @@ export default function PredictedLineupsTab() {
                 textAlign: 'center', lineHeight: 1.15, overflow: 'hidden', textOverflow: 'ellipsis',
                 display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
               }}>
-                {t?.name ?? code}
+                {clubTeam?.name ?? code}
               </span>
             </button>
           );
@@ -194,7 +194,7 @@ export default function PredictedLineupsTab() {
             )}
             <CalendarOff size={22} color={COLORS.textSubtle} aria-hidden="true" />
             <p style={{ color: COLORS.textBody, fontSize: '14px', fontWeight: 700, margin: 0 }}>
-              Geen wedstrijd deze speeldag
+              {t('predictedLineups.notPlaying')}
             </p>
             <p style={{ color: COLORS.textMuted, fontSize: '13px', lineHeight: 1.5, margin: 0 }}>
               {postponedMessage}
@@ -210,13 +210,13 @@ export default function PredictedLineupsTab() {
               display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center',
               fontSize: '11px', fontWeight: 700, color: COLORS.textBody,
             }}>
-              {SAFETY_LEGEND.map(({ level, label }) => (
+              {SAFETY_LEGEND.map(({ level, labelKey }) => (
                 <div key={level} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                   <span style={{
                     width: '10px', height: '10px', borderRadius: '50%',
                     background: SAFETY_STYLE[level].border, flexShrink: 0,
                   }} />
-                  {label}
+                  {t(labelKey)}
                 </div>
               ))}
             </div>
@@ -239,7 +239,7 @@ export default function PredictedLineupsTab() {
                 wanneer een specifieke opstelling voor het laatst nagekeken is. */}
             {lineup.lastUpdatedLabel && (
               <p style={{ color: COLORS.textMuted, fontSize: '10px', margin: 0 }}>
-                Laatst geüpdatet: {lineup.lastUpdatedLabel}
+                {t('predictedLineups.lastUpdated', { date: lineup.lastUpdatedLabel })}
               </p>
             )}
           </>

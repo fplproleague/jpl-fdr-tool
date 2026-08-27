@@ -85,10 +85,10 @@ function formationBadgeStyle(isBenchComplete, isValidFormation) {
 // op aanraakapparaten naar 44px hoog). aria-pressed maakt de aan/uit-toestand ook voor schermlezers
 // zichtbaar; de reden waarom een knop uitgeschakeld is staat als zichtbare tekst onder het label
 // i.p.v. enkel in een tooltip.
-function BoosterButton({ icon: Icon, label, glyph, description, state, gw, onClick }) {
+function BoosterButton({ t, icon: Icon, label, glyph, description, state, gw, onClick }) {
   const isActive = state === 'active';
   const isUsedElsewhere = state === 'used-elsewhere';
-  const statusText = isActive ? `Actief voor GW${gw}` : isUsedElsewhere ? 'Al gebruikt' : 'Beschikbaar';
+  const statusText = isActive ? t('teamPlanner.booster.active', { gw }) : isUsedElsewhere ? t('teamPlanner.booster.usedElsewhere') : t('teamPlanner.booster.available');
 
   return (
     <button
@@ -301,7 +301,7 @@ function TransferPlayerCard({ player, highlight }) {
 // spelerslijst — "Bevestig transfer" blijft altijd klikbaar, ook als er een waarschuwing getoond wordt.
 // De OUT/IN-keuze zelf is lokale draft-state (zie bestandscommentaar bovenaan): pas bij "Bevestig
 // transfer" wordt het via onConfirm naar FDRTool.jsx doorgegeven en permanent (localStorage).
-function TransferPanel({ gw, resolvedIndexedPlayers, playerDatabase, playerDatabaseLoading, playerDatabaseError, onConfirm, externalOutIndex, onExternalOutIndexConsumed, onOpenChange }) {
+function TransferPanel({ t, gw, resolvedIndexedPlayers, playerDatabase, playerDatabaseLoading, playerDatabaseError, onConfirm, externalOutIndex, onExternalOutIndexConsumed, onOpenChange }) {
   const [isOpen, setIsOpen] = useState(false);
   const [outIndex, setOutIndex] = useState('');
   const [inPlayer, setInPlayer] = useState(null);
@@ -374,7 +374,7 @@ function TransferPanel({ gw, resolvedIndexedPlayers, playerDatabase, playerDatab
           fontWeight: 700, fontSize: '13px', cursor: 'pointer',
         }}
       >
-        <ArrowLeftRight size={15} /> {isOpen ? 'Annuleer transfer' : `Transfer plannen voor GW${gw}`}
+        <ArrowLeftRight size={15} /> {isOpen ? t('teamPlanner.cancelTransfer') : t('teamPlanner.planTransfer', { gw })}
       </button>
 
       {isOpen && (
@@ -384,22 +384,22 @@ function TransferPanel({ gw, resolvedIndexedPlayers, playerDatabase, playerDatab
         }}>
           <div style={{ display: 'grid', gap: '10px', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
             <label style={{ display: 'grid', gap: '4px' }}>
-              <span style={{ color: COLORS.textBody, fontSize: '11px', textTransform: 'uppercase' }}>Uit (OUT)</span>
+              <span style={{ color: COLORS.textBody, fontSize: '11px', textTransform: 'uppercase' }}>{t('teamPlanner.out')}</span>
               <select
                 value={outIndex}
                 onChange={e => { setOutIndex(e.target.value); setInPlayer(null); }}
                 style={teamPlannerInputStyle}
               >
-                <option value="">Kies speler...</option>
+                <option value="">{t('teamPlanner.choosePlayer')}</option>
                 {outOptions.map(p => (
                   <option key={p.index} value={p.index}>
-                    {p.position} — {p.name || `Speler ${p.index + 1}`} ({formatPrice(p.price)})
+                    {p.position} — {p.name || t('teamPlanner.playerFallback', { number: p.index + 1 })} ({formatPrice(p.price)})
                   </option>
                 ))}
               </select>
             </label>
             <label style={{ display: 'grid', gap: '4px' }}>
-              <span style={{ color: COLORS.textBody, fontSize: '11px', textTransform: 'uppercase' }}>In (IN)</span>
+              <span style={{ color: COLORS.textBody, fontSize: '11px', textTransform: 'uppercase' }}>{t('teamPlanner.in')}</span>
               {/* excludeUsedPlayers sluit spelers uit die al ergens in het huidige team zitten (inclusief
                   de OUT-speler zelf, want die zit ook in resolvedIndexedPlayers) — zo kan een transfer
                   nooit een speler binnenhalen die al elders in de 15 staat. */}
@@ -408,8 +408,8 @@ function TransferPanel({ gw, resolvedIndexedPlayers, playerDatabase, playerDatab
                 players={excludeUsedPlayers(playerDatabase, resolvedIndexedPlayers)}
                 disabled={outIndex === '' || playerDatabaseLoading || !!playerDatabaseError}
                 placeholder={
-                  outIndex === '' ? 'Kies eerst een uitgaande speler'
-                    : playerDatabaseLoading ? 'Databank laden...' : 'Zoek inkomende speler...'
+                  outIndex === '' ? t('teamPlanner.chooseOutFirst')
+                    : playerDatabaseLoading ? t('teamPlanner.searchLoadingPlaceholder') : t('teamPlanner.searchIncoming')
                 }
                 onSelect={setInPlayer}
               />
@@ -426,22 +426,22 @@ function TransferPanel({ gw, resolvedIndexedPlayers, playerDatabase, playerDatab
 
               {isPositionMismatch && (
                 <p style={{ color: '#C2402C', fontSize: '12px', margin: 0, textAlign: 'center' }}>
-                  Let op: {inPlayer.name} ({inPlayer.position}) heeft een andere positie dan {outPlayer.name} ({outPlayer.position}).
+                  {t('teamPlanner.positionMismatch', { inName: inPlayer.name, inPosition: inPlayer.position, outName: outPlayer.name, outPosition: outPlayer.position })}
                 </p>
               )}
               {isOverBudgetAfter && (
                 <p style={{ color: '#C2402C', fontSize: '12px', margin: 0, textAlign: 'center' }}>
-                  Budget na transfer: {newTotal.toFixed(1)}M / {TEAM_PLANNER_BUDGET}M — {(newTotal - TEAM_PLANNER_BUDGET).toFixed(1)}M te veel.
+                  {t('teamPlanner.overBudgetAfter', { newTotal: newTotal.toFixed(1), budget: TEAM_PLANNER_BUDGET, over: (newTotal - TEAM_PLANNER_BUDGET).toFixed(1) })}
                 </p>
               )}
               {isClubOverCapAfter && (
                 <p style={{ color: '#C2402C', fontSize: '12px', margin: 0, textAlign: 'center' }}>
-                  Max {TEAM_PLANNER_MAX_PER_CLUB} per club overschreden bij {teamNameFor(inPlayer.teamCode)} na deze transfer.
+                  {t('teamPlanner.overCapAfter', { max: TEAM_PLANNER_MAX_PER_CLUB, club: teamNameFor(inPlayer.teamCode) })}
                 </p>
               )}
               {!isPositionMismatch && !isOverBudgetAfter && !isClubOverCapAfter && (
                 <p style={{ color: COLORS.textMuted, fontSize: '12px', margin: 0, textAlign: 'center' }}>
-                  Nieuw budget na transfer: {newTotal.toFixed(1)}M / {TEAM_PLANNER_BUDGET}M
+                  {t('teamPlanner.newBudgetAfter', { newTotal: newTotal.toFixed(1), budget: TEAM_PLANNER_BUDGET })}
                 </p>
               )}
 
@@ -452,7 +452,7 @@ function TransferPanel({ gw, resolvedIndexedPlayers, playerDatabase, playerDatab
                   padding: '9px 14px', fontWeight: 700, fontSize: '13px', cursor: 'pointer'
                 }}
               >
-                Bevestig transfer
+                {t('teamPlanner.confirmTransfer')}
               </button>
             </>
           )}
@@ -463,6 +463,7 @@ function TransferPanel({ gw, resolvedIndexedPlayers, playerDatabase, playerDatab
 }
 
 export default function TeamPlannerTab({
+  t,
   ratings, homeAdvantage, openSections, toggleSection,
   teamPlannerPlayers, updateTeamPlannerPlayer, toggleTeamPlannerBench,
   teamPlannerBenchByGw, teamPlannerCaptainByGw, setTeamPlannerCaptain,
@@ -665,9 +666,10 @@ export default function TeamPlannerTab({
   return (
     <>
       <p style={{ color: COLORS.textMuted, fontSize: '13px', marginBottom: '16px' }}>
-        Stel je selectie samen, plan transfers en bekijk je team, bank en kapitein op elk moment in het seizoen. Deze planner slaat automatisch op in je browser.
+        {t('teamPlanner.intro')}
       </p>
       <TeamScreenshotUpload
+        t={t}
         playerDatabase={playerDatabase}
         playerDatabaseLoading={playerDatabaseLoading}
         playerDatabaseError={playerDatabaseError}
@@ -695,12 +697,11 @@ export default function TeamPlannerTab({
               {/* SectionHeader is zelf al een <button> (toggle voor in-/uitklappen) — "Wis team" moet
                   daarom een sibling zijn, geen kind, anders geeft dat ongeldige geneste <button>'s. */}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <SectionHeader icon={Users} title="Mijn 15 spelers" sectionKey="teamPlannerRoster" isOpen={openSections.teamPlannerRoster} onToggle={toggleSection} />
+                <SectionHeader icon={Users} title={t('teamPlanner.myRoster')} sectionKey="teamPlannerRoster" isOpen={openSections.teamPlannerRoster} onToggle={toggleSection} />
               </div>
               <button
                 onClick={handleClearTeamPlanner}
                 disabled={isRosterEmpty}
-                title={isRosterEmpty ? 'Team is al leeg' : 'Wis je volledige 15-koppige selectie'}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0,
                   background: 'transparent', color: isRosterEmpty ? COLORS.textDisabled : '#C2402C',
@@ -709,7 +710,7 @@ export default function TeamPlannerTab({
                   cursor: isRosterEmpty ? 'not-allowed' : 'pointer', marginBottom: '12px',
                 }}
               >
-                <Trash2 size={13} /> Wis team
+                <Trash2 size={13} /> {t('teamPlanner.clearTeam')}
               </button>
             </div>
             {openSections.teamPlannerRoster && (
@@ -725,25 +726,24 @@ export default function TeamPlannerTab({
                   }}>
                     <RefreshCw size={16} color="#E8C547" style={{ flexShrink: 0 }} />
                     <span style={{ color: '#E8C547', fontSize: '13px', flex: 1, fontWeight: 700 }}>
-                      Recharge actief voor GW{teamPlannerGw}{rechargeDraft ? ' — bewerk je team hieronder' : ''}.
+                      {t('teamPlanner.rechargeActive', { gw: teamPlannerGw, editingSuffix: rechargeDraft ? t('teamPlanner.rechargeActiveEditingSuffix') : '' })}
                     </span>
                     {rechargeDraft === null ? (
                       <button onClick={handleStartRecharge} style={{
                         background: 'transparent', color: '#E8C547', border: '1px solid #E8C547',
                         borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px', cursor: 'pointer',
                       }}>
-                        Start bewerking
+                        {t('teamPlanner.startEditing')}
                       </button>
                     ) : (
                       <>
                         {/* Onmogelijk te bevestigen zolang de bewerking het budget of de clublimiet
                             overschrijdt (isRechargeInvalid) — het validatie-overzicht hierboven toont
-                            ondertussen al de reden (rood budget/clubtekst), dus enkel disabled + title
-                            hier, geen dubbele foutmelding. */}
+                            ondertussen al de reden (rood budget/clubtekst), dus enkel disabled hier,
+                            geen dubbele foutmelding. */}
                         <button
                           onClick={handleConfirmRecharge}
                           disabled={isRechargeInvalid}
-                          title={isRechargeInvalid ? 'Los eerst het budget of de clublimiet hierboven op' : undefined}
                           style={{
                             background: isRechargeInvalid ? 'rgba(255,255,255,0.08)' : '#4ECDC4',
                             color: isRechargeInvalid ? COLORS.textSubtle : '#0B2E1B', border: 'none',
@@ -751,13 +751,13 @@ export default function TeamPlannerTab({
                             cursor: isRechargeInvalid ? 'not-allowed' : 'pointer',
                           }}
                         >
-                          Bevestig recharge
+                          {t('teamPlanner.confirmRecharge')}
                         </button>
                         <button onClick={() => setRechargeDraft(null)} style={{
                           background: 'transparent', color: COLORS.textBody, border: '1px solid rgba(255,255,255,0.2)',
                           borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px', cursor: 'pointer',
                         }}>
-                          Annuleer
+                          {t('teamPlanner.cancel')}
                         </button>
                       </>
                     )}
@@ -770,7 +770,7 @@ export default function TeamPlannerTab({
                     geladen is, staat de zoek/autocomplete hieronder op disabled (zie PlayerSearchInput). */}
                 {playerDatabaseLoading && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: COLORS.textBody, fontSize: '13px', marginBottom: '16px' }}>
-                    <Loader2 size={16} className="fdr-spin" /> Spelersdatabank laden...
+                    <Loader2 size={16} className="fdr-spin" /> {t('teamPlanner.loadingDb')}
                   </div>
                 )}
                 {!playerDatabaseLoading && playerDatabaseError && (
@@ -782,7 +782,7 @@ export default function TeamPlannerTab({
                     <AlertCircle size={16} color="#C2402C" style={{ flexShrink: 0 }} />
                     <span style={{ color: '#FBEAE7', fontSize: '13px', flex: 1 }}>{playerDatabaseError}</span>
                     <button onClick={fetchPlayerDatabase} style={retryButtonStyle}>
-                      <RotateCcw size={14} /> Probeer opnieuw
+                      <RotateCcw size={14} /> {t('shared.retry')}
                     </button>
                   </div>
                 )}
@@ -804,17 +804,17 @@ export default function TeamPlannerTab({
                   borderRadius: '10px', padding: '12px 14px', marginBottom: '16px'
                 }}>
                   <div style={{ color: '#FFF', fontWeight: 700, fontSize: '15px' }}>
-                    Spelers: {effectiveRosterList.filter(p => p.name).length}/{TEAM_PLANNER_SQUAD_SIZE}
+                    {t('teamPlanner.squadCount', { count: effectiveRosterList.filter(p => p.name).length, total: TEAM_PLANNER_SQUAD_SIZE })}
                   </div>
                   {/* Bij overschrijding volstaat het negatieve bedrag zelf (bv. "-3.0M") als signaal — geen
                       aparte "X.XM te veel"-herhaling van hetzelfde getal. Budget- en club-overschrijding
                       delen bewust dezelfde tekststijl (rood, vet, 15px), zodat beide even prominent ogen. */}
                   <div style={{ color: isOverBudget ? '#C2402C' : '#4ECDC4', fontWeight: 700, fontSize: '15px'}}>
-                    Resterend budget: {remainingBudget.toFixed(1)}M
+                    {t('teamPlanner.remainingBudget', { value: remainingBudget.toFixed(1) })}
                   </div>
                   {overCapClubs.length > 0 && (
                     <div style={{ color: '#C2402C', fontWeight: 700, fontSize: '15px' }}>
-                      Max {TEAM_PLANNER_MAX_PER_CLUB} per club: {overCapClubs.map(([code, count]) => `${teamNameFor(code)} (${count})`).join(', ')}
+                      {t('teamPlanner.overCapClubs', { max: TEAM_PLANNER_MAX_PER_CLUB, clubs: overCapClubs.map(([code, count]) => `${teamNameFor(code)} (${count})`).join(', ') })}
                     </div>
                   )}
                 </div>
@@ -829,10 +829,10 @@ export default function TeamPlannerTab({
                   <table style={{ borderCollapse: 'separate', borderSpacing: '0 4px', width: '100%', minWidth: '400px' }}>
                     <thead>
                       <tr>
-                        <th style={thStyle}>#</th>
-                        <th style={thStyle}>Speler</th>
-                        <th style={thStyle}>Positie</th>
-                        <th style={thStyle}>Prijs (M)</th>
+                        <th style={thStyle}>{t('teamPlanner.colIndex')}</th>
+                        <th style={thStyle}>{t('teamPlanner.colPlayer')}</th>
+                        <th style={thStyle}>{t('teamPlanner.colPosition')}</th>
+                        <th style={thStyle}>{t('teamPlanner.colPrice')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -867,7 +867,7 @@ export default function TeamPlannerTab({
                                 players={excludeUsedPlayers(playerDatabase, rosterRowsData.filter((_, i) => i !== index))}
                                 filterPosition={TEAM_PLANNER_SLOT_POSITIONS[index]}
                                 disabled={playerDatabaseLoading || !!playerDatabaseError}
-                                placeholder={playerDatabaseLoading ? 'Databank laden...' : `Zoek ${TEAM_PLANNER_SLOT_POSITIONS[index]}...`}
+                                placeholder={playerDatabaseLoading ? t('teamPlanner.searchLoadingPlaceholder') : t('teamPlanner.searchPositionPlaceholder', { position: TEAM_PLANNER_SLOT_POSITIONS[index] })}
                                 maxWidth="190px"
                                 onSelect={(selected) => {
                                   if (rechargeDraft) {
@@ -902,14 +902,14 @@ export default function TeamPlannerTab({
         <section>
           <h2 className="fdr-title fdr-section-title" style={{ ...sectionTitleStyle, marginBottom: '12px' }}>
             <Shirt size={18} color="#4ECDC4" style={{ flexShrink: 0 }} />
-            <span style={sectionTitleTextStyle}>Veld</span>
+            <span style={sectionTitleTextStyle}>{t('teamPlanner.pitch')}</span>
           </h2>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '14px', marginBottom: '4px' }}>
             <button
               onClick={handleTeamPlannerGwPrev}
               disabled={teamPlannerGw <= 1}
-              aria-label="Vorige gameweek"
+              aria-label={t('teamPlanner.prevGwAria')}
               className="fdr-icon-btn"
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px',
@@ -926,7 +926,7 @@ export default function TeamPlannerTab({
             <button
               onClick={handleTeamPlannerGwNext}
               disabled={teamPlannerGw >= GW_COUNT}
-              aria-label="Volgende gameweek"
+              aria-label={t('teamPlanner.nextGwAria')}
               className="fdr-icon-btn"
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px',
@@ -946,13 +946,14 @@ export default function TeamPlannerTab({
               herhalen. Blader je naar een andere GW, dan is dit weer de enige plek die dát antwoord geeft. */}
           {teamPlannerGw !== CURRENT_GW && GW_DEADLINES[teamPlannerGw] && (
             <p style={{ textAlign: 'center', color: COLORS.textMuted, fontSize: '12px', margin: '0 0 12px' }}>
-              Deadline: {GW_DEADLINES[teamPlannerGw]}
+              {t('teamPlanner.deadline', { value: GW_DEADLINES[teamPlannerGw] })}
             </p>
           )}
 
           {/* Transfer plannen voor de bekeken GW — zie TransferPanel hierboven. Geconfirmeerde transfers
               gelden meteen vanaf deze GW en alle latere GW's, tot een nieuwe transfer op datzelfde slot. */}
           <TransferPanel
+            t={t}
             gw={teamPlannerGw}
             resolvedIndexedPlayers={resolvedIndexedPlayers}
             playerDatabase={playerDatabase}
@@ -974,23 +975,23 @@ export default function TeamPlannerTab({
               fontSize: '12px', fontWeight: 700, padding: '4px 10px', borderRadius: '999px',
               ...countBadgeStyle(benchCount, TEAM_PLANNER_BENCH_SIZE)
             }}>
-              Bank: {benchCount}/{TEAM_PLANNER_BENCH_SIZE}
+              {t('teamPlanner.benchCount', { count: benchCount, total: TEAM_PLANNER_BENCH_SIZE })}
             </span>
             <span style={{
               fontSize: '12px', fontWeight: 700, padding: '4px 10px', borderRadius: '999px',
               ...formationBadgeStyle(isBenchComplete, isValidFormation)
             }}>
-              Formatie: {defCount}-{midCount}-{fwdCount}
+              {t('teamPlanner.formation', { formation: `${defCount}-${midCount}-${fwdCount}` })}
             </span>
           </div>
           {!isBenchComplete && (
             <p style={{ textAlign: 'center', color: COLORS.textMuted, fontSize: '12px', margin: '0 0 12px' }}>
-              Kies exact {TEAM_PLANNER_BENCH_SIZE} bankspelers voor GW{teamPlannerGw} om je formatie te valideren.
+              {t('teamPlanner.chooseBenchPlayers', { count: TEAM_PLANNER_BENCH_SIZE, gw: teamPlannerGw })}
             </p>
           )}
           {isBenchComplete && !isValidFormation && (
             <p style={{ textAlign: 'center', color: '#C2402C', fontSize: '12px', margin: '0 0 12px' }}>
-              Ongeldige formatie ({defCount}-{midCount}-{fwdCount}, GK: {gkCount}). Geldige opties: 3-4-3, 3-5-2, 4-3-3, 4-4-2, 4-5-1, 5-3-2, 5-4-1 met exact 1 doelman.
+              {t('teamPlanner.invalidFormation', { formation: `${defCount}-${midCount}-${fwdCount}`, gk: gkCount })}
             </p>
           )}
 
@@ -1003,7 +1004,7 @@ export default function TeamPlannerTab({
               background: 'rgba(232,197,71,0.12)', border: '1px solid rgba(232,197,71,0.4)',
               borderRadius: '8px', padding: '6px 10px', color: '#E8C547', fontSize: '12px', fontWeight: 700,
             }}>
-              <Star size={14} /> Driedubbele kapitein actief voor GW{teamPlannerGw} — de kapitein telt 3× mee.
+              <Star size={14} /> {t('teamPlanner.tripleCaptainActive', { gw: teamPlannerGw })}
             </div>
           )}
           {isRechargeActiveForGw && (
@@ -1012,7 +1013,7 @@ export default function TeamPlannerTab({
               background: 'rgba(232,197,71,0.12)', border: '1px solid rgba(232,197,71,0.4)',
               borderRadius: '8px', padding: '6px 10px', color: '#E8C547', fontSize: '12px', fontWeight: 700,
             }}>
-              <RefreshCw size={14} /> Recharge actief voor GW{teamPlannerGw} — bewerk je volledige team bij "Mijn 15 spelers" hierboven.
+              <RefreshCw size={14} /> {t('teamPlanner.rechargeActiveEditAbove', { gw: teamPlannerGw })}
             </div>
           )}
 
@@ -1024,31 +1025,34 @@ export default function TeamPlannerTab({
               color: COLORS.textBody, fontSize: '12px', textTransform: 'uppercase',
               letterSpacing: '0.03em', margin: '0 0 6px',
             }}>
-              Boosters
+              {t('teamPlanner.boosters')}
             </h3>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               {teamPlannerGw <= 7 ? (
                 <>
                   <BoosterButton
+                    t={t}
                     icon={Armchair}
-                    label="Bankzitters"
-                    description="Je vier bankspelers tellen deze gameweek mee voor punten."
+                    label={t('teamPlanner.booster.benchBoost.label')}
+                    description={t('teamPlanner.booster.benchBoost.description')}
                     state={boosterState('benchBoost')}
                     gw={teamPlannerGw}
                     onClick={() => toggleTeamPlannerBooster('benchBoost', teamPlannerGw)}
                   />
                   <BoosterButton
+                    t={t}
                     glyph="3×"
-                    label="Driedubbele kapitein"
-                    description="Je kapitein levert deze gameweek drie keer zijn punten op i.p.v. twee keer."
+                    label={t('teamPlanner.booster.tripleCaptain.label')}
+                    description={t('teamPlanner.booster.tripleCaptain.description')}
                     state={boosterState('tripleCaptain')}
                     gw={teamPlannerGw}
                     onClick={() => toggleTeamPlannerBooster('tripleCaptain', teamPlannerGw)}
                   />
                   <BoosterButton
+                    t={t}
                     icon={RefreshCw}
-                    label="Recharge"
-                    description="Herbouw je volledige team zonder puntenaftrek voor transfers."
+                    label={t('teamPlanner.booster.recharge.label')}
+                    description={t('teamPlanner.booster.recharge.description')}
                     state={boosterState('recharge')}
                     gw={teamPlannerGw}
                     onClick={handleActivateRecharge}
@@ -1056,9 +1060,10 @@ export default function TeamPlannerTab({
                 </>
               ) : (
                 <BoosterButton
+                  t={t}
                   icon={RefreshCw}
-                  label="Recharge"
-                  description="Op GW8 krijgt iedereen automatisch een gratis Recharge — dit telt niet als verbruikt."
+                  label={t('teamPlanner.booster.recharge.label')}
+                  description={t('teamPlanner.booster.recharge.gw8description')}
                   state="active"
                   gw={teamPlannerGw}
                   onClick={() => {}}
@@ -1067,7 +1072,7 @@ export default function TeamPlannerTab({
             </div>
             {teamPlannerGw > 7 && (
               <p style={{ color: COLORS.textSubtle, fontSize: '11px', margin: '6px 0 0' }}>
-                Op GW8 krijgt iedereen automatisch een gratis Recharge.
+                {t('teamPlanner.gw8AutoRecharge')}
               </p>
             )}
           </div>
@@ -1092,7 +1097,7 @@ export default function TeamPlannerTab({
                     fontSize: '11px', fontWeight: 700, padding: '3px 8px', borderRadius: '999px',
                     ...transferBudgetBadgeStyle(budget.isRecharge, remainingFree),
                   }}>
-                    {budget.isRecharge ? 'Recharge: gratis' : `${remainingFree} gratis transfer${remainingFree === 1 ? '' : 's'}`}
+                    {budget.isRecharge ? t('teamPlanner.rechargeFree') : t(remainingFree === 1 ? 'teamPlanner.freeTransfer' : 'teamPlanner.freeTransfers', { count: remainingFree })}
                   </span>
                   {/* Enkel getoond zodra er effectief al puntenkost is opgelopen deze GW. De uitleg
                       zat vroeger in een `title`, wat op een telefoon of iPad simpelweg onzichtbaar is
@@ -1103,7 +1108,7 @@ export default function TeamPlannerTab({
                       text={`${budget.used} transfers deze GW, waarvan ${Math.min(budget.used, budget.freeAvailable)} gratis`}
                       style={{ color: '#FF9E90', fontSize: '11px', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: '2px' }}
                     >
-                      -{budget.pointsCost} punten
+                      {t('teamPlanner.pointsCost', { cost: budget.pointsCost })}
                     </TooltipTrigger>
                   )}
                 </div>
@@ -1120,16 +1125,16 @@ export default function TeamPlannerTab({
                   color: COLORS.textMuted, fontSize: '10px', textTransform: 'uppercase',
                   letterSpacing: '0.03em', fontWeight: 700,
                 }}>
-                  Kapitein
+                  {t('teamPlanner.captain')}
                 </span>
                 <select
                   value={captainForGw ?? ''}
                   onChange={e => setTeamPlannerCaptain(e.target.value === '' ? null : Number(e.target.value))}
                   style={{ ...teamPlannerInputStyle, width: 'auto', maxWidth: '140px', padding: '3px 6px', fontSize: '11px' }}
                 >
-                  <option value="">Geen kapitein</option>
+                  <option value="">{t('teamPlanner.noCaptain')}</option>
                   {captainOptions.map(p => (
-                    <option key={p.index} value={p.index}>{p.name || `Speler ${p.index + 1}`}</option>
+                    <option key={p.index} value={p.index}>{p.name || t('teamPlanner.playerFallback', { number: p.index + 1 })}</option>
                   ))}
                 </select>
               </label>
@@ -1188,12 +1193,11 @@ export default function TeamPlannerTab({
                   onder elkaar/naast elkaar uitvalt i.p.v. iets af te knijpen. */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                 <h3 className="fdr-title" style={{ color: COLORS.textBody, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.03em', margin: 0 }}>
-                  Bank — GW{teamPlannerGw}
+                  {t('teamPlanner.benchDash', { gw: teamPlannerGw })}
                 </h3>
                 <button
                   onClick={() => setIsBenchReorderMode(o => !o)}
                   disabled={benchOutfieldPlayers.length < 2}
-                  title={benchOutfieldPlayers.length < 2 ? 'Minstens 2 niet-keeper bankspelers nodig om te herschikken' : undefined}
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: '6px',
                     background: isBenchReorderMode ? '#4ECDC4' : 'transparent',
@@ -1203,11 +1207,11 @@ export default function TeamPlannerTab({
                     cursor: benchOutfieldPlayers.length < 2 ? 'not-allowed' : 'pointer',
                   }}
                 >
-                  <ArrowUpDown size={14} aria-hidden="true" /> {isBenchReorderMode ? 'Klaar met herschikken' : 'Herschik bank'}
+                  <ArrowUpDown size={14} aria-hidden="true" /> {isBenchReorderMode ? t('teamPlanner.reorderBenchDone') : t('teamPlanner.reorderBench')}
                 </button>
                 {benchOutfieldPlayers.length < 2 && (
                   <span style={{ color: COLORS.textSubtle, fontSize: '11px' }}>
-                    Minstens 2 veldspelers op de bank nodig om te herschikken.
+                    {t('teamPlanner.reorderBenchMinPlayers')}
                   </span>
                 )}
               </div>
@@ -1216,12 +1220,12 @@ export default function TeamPlannerTab({
                 color: '#4ECDC4', border: '1px solid #4ECDC4', borderRadius: '8px',
                 padding: '6px 12px', fontWeight: 700, fontSize: '12px', cursor: 'pointer', flexShrink: 0,
               }}>
-                <Wand2 size={14} /> Optimaliseer opstelling
+                <Wand2 size={14} /> {t('teamPlanner.optimizeLineup')}
               </button>
             </div>
             {teamPlannerOptimized && (
               <p style={{ color: '#4ECDC4', fontSize: '12px', margin: '0 0 10px' }}>
-                Opstelling geoptimaliseerd voor GW{teamPlannerGw}.
+                {t('teamPlanner.lineupOptimized', { gw: teamPlannerGw })}
               </p>
             )}
             {isBenchBoostActive && (
@@ -1230,7 +1234,7 @@ export default function TeamPlannerTab({
                 background: 'rgba(78,205,196,0.12)', border: '1px solid rgba(78,205,196,0.4)',
                 borderRadius: '8px', padding: '6px 10px', color: '#4ECDC4', fontSize: '12px', fontWeight: 700,
               }}>
-                <Zap size={14} /> Bankzitters actief voor GW{teamPlannerGw} — bankspelers tellen mee.
+                <Zap size={14} /> {t('teamPlanner.benchBoostActive', { gw: teamPlannerGw })}
               </div>
             )}
             {/* Modusbanner. De Team Planner kent drie standen waarin ÉÉN EN DEZELFDE tik op een
@@ -1245,18 +1249,18 @@ export default function TeamPlannerTab({
               }}>
                 <ArrowUpDown size={14} color="#4ECDC4" style={{ flexShrink: 0, marginTop: '2px' }} aria-hidden="true" />
                 <p style={{ margin: 0, color: '#4ECDC4', fontSize: '12px', lineHeight: 1.5, fontWeight: 700 }}>
-                  Herschik-modus actief
+                  {t('teamPlanner.reorderModeActive')}
                   <span style={{ display: 'block', color: COLORS.textBody, fontWeight: 400, marginTop: '2px' }}>
                     {benchSwapSlot === null
-                      ? 'Tik een bankspeler aan (niet de keeper), daarna een tweede om ze van plaats te wisselen.'
-                      : 'Tik nu een andere bankspeler aan om te wisselen, of dezelfde om te annuleren.'}
+                      ? t('teamPlanner.reorderModeHintFirst')
+                      : t('teamPlanner.reorderModeHintSecond')}
                     {' '}
                   </span>
                 </p>
               </div>
             )}
             {benchPlayers.length === 0 ? (
-              <p style={{ color: COLORS.textSubtle, fontSize: '13px' }}>Nog geen bankspelers voor deze GW. Klik een speler op het veld aan om 'm naar de bank te sturen.</p>
+              <p style={{ color: COLORS.textSubtle, fontSize: '13px' }}>{t('teamPlanner.emptyBench')}</p>
             ) : (
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                 {benchPlayers.map(player => {
@@ -1303,12 +1307,11 @@ export default function TeamPlannerTab({
                 team" bij "Mijn 15 spelers" hierboven. */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <SectionHeader icon={ArrowLeftRight} title="Transfers" sectionKey="teamPlannerTransfers" isOpen={openSections.teamPlannerTransfers} onToggle={toggleSection} />
+                <SectionHeader icon={ArrowLeftRight} title={t('teamPlanner.transfers')} sectionKey="teamPlannerTransfers" isOpen={openSections.teamPlannerTransfers} onToggle={toggleSection} />
               </div>
               <button
                 onClick={handleClearTeamPlannerTransfers}
                 disabled={transferGroups.length === 0}
-                title={transferGroups.length === 0 ? 'Nog geen transfers om te wissen' : 'Wis alle geplande transfers'}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0,
                   background: 'transparent', color: transferGroups.length === 0 ? COLORS.textDisabled : '#C2402C',
@@ -1317,13 +1320,13 @@ export default function TeamPlannerTab({
                   cursor: transferGroups.length === 0 ? 'not-allowed' : 'pointer', marginBottom: '12px',
                 }}
               >
-                <Trash2 size={13} aria-hidden="true" /> Wis alle transfers
+                <Trash2 size={13} aria-hidden="true" /> {t('teamPlanner.clearAllTransfers')}
               </button>
             </div>
             {openSections.teamPlannerTransfers && (
               transferGroups.length === 0 ? (
                 <p style={{ color: COLORS.textSubtle, fontSize: '13px' }}>
-                  Nog geen transfers gepland. Gebruik "Transfer plannen" bij het veld hierboven om spelers vanaf een gekozen GW te vervangen.
+                  {t('teamPlanner.emptyTransfers')}
                 </p>
               ) : (
                 <div style={{ display: 'grid', gap: '16px' }}>
@@ -1348,7 +1351,7 @@ export default function TeamPlannerTab({
                               padding: '1px 6px', borderRadius: '999px', textTransform: 'none', letterSpacing: 'normal',
                             }}
                           >
-                            -{teamPlannerTransferBudget[group.gw].pointsCost} punten
+                            {t('teamPlanner.pointsCost', { cost: teamPlannerTransferBudget[group.gw].pointsCost })}
                           </span>
                         )}
                       </h3>
@@ -1384,7 +1387,7 @@ export default function TeamPlannerTab({
                             </span>
                             <button
                               onClick={() => removeTeamPlannerTransfer(entry.slotIndex, entry.id)}
-                              aria-label={`Verwijder transfer ${entry.outPlayer.name} naar ${entry.inPlayer.name}`}
+                              aria-label={t('teamPlanner.removeTransferAria', { out: entry.outPlayer.name, in: entry.inPlayer.name })}
                               style={{
                                 display: 'flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', flexShrink: 0,
                                 background: 'transparent', color: COLORS.textMuted, border: 'none', borderRadius: '6px', cursor: 'pointer'
