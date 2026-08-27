@@ -21,6 +21,13 @@ const retryButtonStyle = {
   borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px', cursor: 'pointer',
 };
 
+// Tijdelijk (27-28 aug 2026) — de Duels/Kopballen/Recoveries/Grote kansen/Bonuspunten-kolommen in de
+// sheet staan nog op 0 voor iedereen, want die worden ten laatste morgen ingevuld. Zolang dat zo is,
+// tonen we een subtiele melding i.p.v. rangschikkingen die toch enkel nullen zouden laten zien. Zet op
+// true zodra de sheet gevuld is — zelfde tijdelijke-vlag-opzet als SHOW_CLOSEST_TO_SUSPENSION_MODE in
+// KaartenTab.jsx.
+const BONUS_DATA_AVAILABLE = false;
+
 function RankingSection({ icon, title, sectionKey, isOpen, onToggle, children }) {
   return (
     <section style={{ marginBottom: '20px' }}>
@@ -193,7 +200,18 @@ export default function BonuspuntenTab({ t, playerDatabase, playerDatabaseLoadin
         </div>
       )}
 
-      {!playerDatabaseLoading && !playerDatabaseError && entries.length > 0 && (
+      {!playerDatabaseLoading && !playerDatabaseError && entries.length > 0 && !BONUS_DATA_AVAILABLE && (
+        <div style={{
+          background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: '10px', padding: '16px',
+        }}>
+          <p style={{ color: '#C9B8E0', fontSize: '13px', margin: 0 }}>
+            {t('bonuspunten.dataComingSoon')}
+          </p>
+        </div>
+      )}
+
+      {!playerDatabaseLoading && !playerDatabaseError && entries.length > 0 && BONUS_DATA_AVAILABLE && (
         <>
           <div style={{ marginBottom: selectedEntry ? '12px' : '20px' }}>
             <PlayerSearchInput

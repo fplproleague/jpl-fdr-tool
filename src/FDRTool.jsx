@@ -46,6 +46,13 @@ const MOBILE_PRIMARY_TAB_COUNT = 3;
 const MOBILE_PRIMARY_TABS = TABS.slice(0, MOBILE_PRIMARY_TAB_COUNT);
 const MOBILE_OVERFLOW_TABS = TABS.slice(MOBILE_PRIMARY_TAB_COUNT);
 
+// Subtiele "nieuw"-stip naast een tab-label (zie NEW_TAB_KEYS/seenNewTabs) — goud i.p.v. het teal van
+// een actieve tab, zodat de twee signalen (actief vs. nieuw) nooit door elkaar lopen.
+const newTabDotStyle = {
+  display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%',
+  background: '#E8C547', flexShrink: 0,
+};
+
 // Getoond terwijl een lui geladen tab binnenkomt. Bewust minimaal en even hoog als een gemiddelde
 // sectie, zodat de pagina niet zichtbaar springt.
 function TabLoading({ text }) {
@@ -80,6 +87,33 @@ function loadStoredLanguage() {
     return LANGUAGES.includes(raw) ? raw : null;
   } catch {
     return null;
+  }
+}
+
+// Welke tabs een "nieuw"-stip krijgen in de tabbalk (zie NEW_TAB_KEYS-gebruik verderop) totdat de
+// bezoeker ze minstens één keer heeft geopend — zelfde eenmalig-tonen-opzet als
+// hasSeenHomeAdvantageIntro/PL_MINILEAGUE_POPUP_SEEN_KEY hierboven, maar dan per tab i.p.v. één
+// globale vlag: een array van reeds-bezochte tab-keys i.p.v. een simpele '1'/geen-waarde.
+const NEW_TABS_SEEN_STORAGE_KEY = 'fpl_proleague_new_tabs_seen_v1';
+const NEW_TAB_KEYS = ['bonuspunten', 'setpieces', 'kaarten'];
+
+function loadSeenNewTabs() {
+  try {
+    const raw = window.localStorage?.getItem(NEW_TABS_SEEN_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter(key => NEW_TAB_KEYS.includes(key)) : [];
+  } catch {
+    return [];
+  }
+}
+
+function markNewTabSeen(key, alreadySeen) {
+  try {
+    window.localStorage?.setItem(NEW_TABS_SEEN_STORAGE_KEY, JSON.stringify([...alreadySeen, key]));
+  } catch {
+    // localStorage niet beschikbaar (privénavigatie e.d.) — de stip toont dan gewoon elke keer
+    // opnieuw, geen harde fout.
   }
 }
 
@@ -315,6 +349,19 @@ export default function FDRTool() {
   const [activeTab, setActiveTab] = useState(() =>
     typeof window === 'undefined' ? 'fdr' : routeKeyFromPath(window.location.pathname)
   );
+
+  // "Nieuw"-stip in de tabbalk voor Bonuspunten/Set Pieces/Kaarten (zie NEW_TAB_KEYS hierboven) totdat
+  // een bezoeker die tab minstens één keer geopend heeft — ook via een directe link of de terug-/
+  // vooruitknop, vandaar gekoppeld aan activeTab i.p.v. enkel aan een klik op de tabbalk zelf.
+  const [seenNewTabs, setSeenNewTabs] = useState(() => new Set(loadSeenNewTabs()));
+  useEffect(() => {
+    if (!NEW_TAB_KEYS.includes(activeTab)) return;
+    setSeenNewTabs(prev => {
+      if (prev.has(activeTab)) return prev;
+      markNewTabSeen(activeTab, prev);
+      return new Set(prev).add(activeTab);
+    });
+  }, [activeTab]);
 
   // --- Taal (NL/FR) — zie src/i18n.js. Persistent (localStorage), zodat de keuze bezoek-overschrijdend
   // is; default Nederlands, de oorspronkelijke (en enige) taal vóór deze toggle. `t` is een simpele
@@ -1665,6 +1712,7 @@ export default function FDRTool() {
         >
           {TABS.map(tab => {
             const isActive = activeTab === tab.key;
+            const isNewUnseen = NEW_TAB_KEYS.includes(tab.key) && !seenNewTabs.has(tab.key);
             return (
               <a
                 key={tab.key}
@@ -1685,6 +1733,7 @@ export default function FDRTool() {
                 }}
               >
                 {t(`nav.${tab.key}`)}
+                {isNewUnseen && <span style={newTabDotStyle} aria-hidden="true" />}
               </a>
             );
           })}
@@ -1735,6 +1784,10 @@ export default function FDRTool() {
             {(() => {
               const activeOverflowTab = MOBILE_OVERFLOW_TABS.find(tab => tab.key === activeTab);
               const isActive = Boolean(activeOverflowTab);
+              // De Meer-knop krijgt zelf één stip zolang er nog minstens één nieuwe tab (Bonuspunten/
+              // Set Pieces/Kaarten) verstopt zit in het dropdown-menu erachter — niet elk item apart,
+              // dat is precies wat het "Meer"-niveau al samenvat.
+              const hasUnseenNewTab = NEW_TAB_KEYS.some(key => !seenNewTabs.has(key));
               return (
                 <button
                   type="button"
@@ -1750,6 +1803,7 @@ export default function FDRTool() {
                   }}
                 >
                   {activeOverflowTab ? t(`nav.${activeOverflowTab.key}`) : t('nav.more')}
+                  {hasUnseenNewTab && !activeOverflowTab && <span style={newTabDotStyle} aria-hidden="true" />}
                   <ChevronDown size={14} style={{ transform: moreMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} aria-hidden="true" />
                 </button>
               );
