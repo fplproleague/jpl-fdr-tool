@@ -1660,7 +1660,7 @@ export default function FDRTool() {
           onScroll={updateTabsScrollState}
           style={{
             display: 'flex', gap: '4px', marginBottom: '18px', borderBottom: `1px solid ${COLORS.borderSubtle}`,
-            overflowX: 'auto', flexWrap: 'nowrap'
+            overflowX: 'auto', overflowY: 'hidden', flexWrap: 'nowrap'
           }}
         >
           {TABS.map(tab => {
@@ -1704,7 +1704,7 @@ export default function FDRTool() {
               begrenzing — de "Meer"-knop (buiten deze container, zie flexShrink hieronder) blijft
               altijd volledig zichtbaar en klikbaar. */}
           <div className="fdr-tabs-mobile-primary" style={{
-            display: 'flex', gap: '4px', overflowX: 'auto', flexWrap: 'nowrap', minWidth: 0,
+            display: 'flex', gap: '4px', overflowX: 'auto', overflowY: 'hidden', flexWrap: 'nowrap', minWidth: 0,
           }}>
             {MOBILE_PRIMARY_TABS.map(tab => {
               const isActive = activeTab === tab.key;

@@ -63,13 +63,16 @@ export default function WatchlistTab({
           {/* Enkel nog het zoekveld + toevoegen-knop: het losse "Prijs"-vakje hierna is geschrapt, want
               de prijs wordt sowieso automatisch uit de spelersdatabank gehaald (zie onSelect hieronder)
               en verscheen daarna toch al als badge bij elke watchlist-kaart hieronder — een apart,
-              niet-bewerkbaar veld ervoor had dus geen functie. Vaste 2-kolommenindeling (i.p.v. het
-              vroegere auto-fit met 3 velden) i.p.v. flex-wrap: zo blijft dit altijd één regel, ook op
-              mobiel, met het zoekveld dat gewoon meekrimpt en de knop op zijn intrinsieke breedte. */}
+              niet-bewerkbaar veld ervoor had dus geen functie. Flex i.p.v. het vroegere grid met een 1fr-
+              kolom: die reserveerde de VOLLEDIGE resterende breedte voor het zoekveld (dat zelf via zijn
+              eigen maxWidth-prop maar ~320px breed rendert), waardoor de knop op brede schermen ver naar
+              rechts kwam te staan i.p.v. naast het zoekveld. flex-basis 320px (met shrink) houdt de knop
+              nu altijd vlak bij het zoekveld, en laat het zoekveld op smalle/mobiele schermen nog gewoon
+              meekrimpen — dit blijft dus altijd één regel, ook op mobiel. */}
           <form onSubmit={handleAddWatchlistPlayer} style={{
-            display: 'grid', gridTemplateColumns: '1fr auto', gap: '10px', alignItems: 'end'
+            display: 'flex', flexWrap: 'nowrap', gap: '10px', alignItems: 'end'
           }}>
-            <label style={{ display: 'grid', gap: '4px', minWidth: 0 }}>
+            <label style={{ display: 'grid', gap: '4px', minWidth: 0, flex: '0 1 320px' }}>
               <span style={{ color: COLORS.textBody, fontSize: '11px', textTransform: 'uppercase', marginLeft: '4px'}}>{t('watchlist.playerLabel')}</span>
               {/* Zoek/autocomplete op de spelersdatabank i.p.v. vrije-tekst naam + los team-dropdown —
                   bij selectie vullen newPlayerName/-Team/-Price automatisch (zie onSelect hieronder),
