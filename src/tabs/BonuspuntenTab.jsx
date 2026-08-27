@@ -21,12 +21,13 @@ const retryButtonStyle = {
   borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px', cursor: 'pointer',
 };
 
-// Tijdelijk (27-28 aug 2026) — de Duels/Kopballen/Recoveries/Grote kansen/Bonuspunten-kolommen in de
-// sheet staan nog op 0 voor iedereen, want die worden ten laatste morgen ingevuld. Zolang dat zo is,
-// tonen we een subtiele melding i.p.v. rangschikkingen die toch enkel nullen zouden laten zien. Zet op
-// true zodra de sheet gevuld is — zelfde tijdelijke-vlag-opzet als SHOW_CLOSEST_TO_SUSPENSION_MODE in
-// KaartenTab.jsx.
-const BONUS_DATA_AVAILABLE = false;
+// Tijdelijk (27-28 aug 2026) — enkel de Bonuspunten-kolom (de 5e, algemene "meeste bonuspunten"-
+// rangschikking) staat nog op 0 voor iedereen; Duels/Kopballen/Recoveries/Grote kansen zijn al wél
+// ingevuld en tonen dus gewoon normaal. Zolang dit op false staat, toont enkel de "Meeste bonuspunten"-
+// sectie (en de Bonuspunten-tegel in de spelerskaart) een subtiele melding i.p.v. een rangschikking vol
+// nullen. Zet op true zodra die kolom gevuld is — zelfde tijdelijke-vlag-opzet als
+// SHOW_CLOSEST_TO_SUSPENSION_MODE in KaartenTab.jsx.
+const BONUS_POINTS_DATA_AVAILABLE = false;
 
 function RankingSection({ icon, title, sectionKey, isOpen, onToggle, children }) {
   return (
@@ -41,7 +42,7 @@ function RankingSection({ icon, title, sectionKey, isOpen, onToggle, children })
 // gewoon wit — enkel de "per wedstrijd"-waarde op de tweede regel kleurt cyaan, en dan enkel zodra die
 // PER WEDSTRIJD al minstens de bonuspunt-drempel haalt (perGameQualifies, zie meetsThresholdPerGame in
 // bonuspunten.js) — een "op koers voor dit bonuspunt"-indicator, los van de seizoenstotaal.
-function BonusStatTile({ label, value, perGame, perGameQualifies, detail }) {
+function BonusStatTile({ label, value, perGame, perGameQualifies, detail, comingSoon }) {
   return (
     <div style={{
       background: 'rgba(0,0,0,0.15)', border: '1px solid rgba(255,255,255,0.08)',
@@ -54,11 +55,15 @@ function BonusStatTile({ label, value, perGame, perGameQualifies, detail }) {
         {value}
       </div>
       <div style={{ color: '#8F79AD', fontSize: '11px' }}>
-        {detail && `${detail} · `}
-        {perGame && (
-          <span style={{ color: perGameQualifies ? '#4ECDC4' : '#8F79AD', fontWeight: perGameQualifies ? 700 : 400 }}>
-            {perGame}
-          </span>
+        {comingSoon ? comingSoon : (
+          <>
+            {detail && `${detail} · `}
+            {perGame && (
+              <span style={{ color: perGameQualifies ? '#4ECDC4' : '#8F79AD', fontWeight: perGameQualifies ? 700 : 400 }}>
+                {perGame}
+              </span>
+            )}
+          </>
         )}
       </div>
     </div>
@@ -117,8 +122,10 @@ function PlayerBonusCard({ t, entry, onDismiss }) {
           perGameQualifies={meetsThresholdPerGame(entry.bigChances, entry.games, BONUS_THRESHOLD.bigChances)}
         />
         <BonusStatTile
-          label={t('bonuspunten.stat.bonusPoints')} value={entry.bonusPoints}
-          perGame={perGameLabel(entry.bonusPoints, entry.games, { unit })}
+          label={t('bonuspunten.stat.bonusPoints')}
+          value={BONUS_POINTS_DATA_AVAILABLE ? entry.bonusPoints : '—'}
+          perGame={BONUS_POINTS_DATA_AVAILABLE ? perGameLabel(entry.bonusPoints, entry.games, { unit }) : null}
+          comingSoon={BONUS_POINTS_DATA_AVAILABLE ? null : t('bonuspunten.comingSoonShort')}
         />
       </div>
     </div>
@@ -200,18 +207,7 @@ export default function BonuspuntenTab({ t, playerDatabase, playerDatabaseLoadin
         </div>
       )}
 
-      {!playerDatabaseLoading && !playerDatabaseError && entries.length > 0 && !BONUS_DATA_AVAILABLE && (
-        <div style={{
-          background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-          borderRadius: '10px', padding: '16px',
-        }}>
-          <p style={{ color: '#C9B8E0', fontSize: '13px', margin: 0 }}>
-            {t('bonuspunten.dataComingSoon')}
-          </p>
-        </div>
-      )}
-
-      {!playerDatabaseLoading && !playerDatabaseError && entries.length > 0 && BONUS_DATA_AVAILABLE && (
+      {!playerDatabaseLoading && !playerDatabaseError && entries.length > 0 && (
         <>
           <div style={{ marginBottom: selectedEntry ? '12px' : '20px' }}>
             <PlayerSearchInput
@@ -294,15 +290,26 @@ export default function BonuspuntenTab({ t, playerDatabase, playerDatabaseLoadin
             icon={Award} title={t('bonuspunten.section.bonusPoints')} sectionKey="bonusPoints"
             isOpen={openSections.bonusPoints} onToggle={toggleSection}
           >
-            {bonusRanking.map((entry, idx) => (
-              <RankingRow
-                key={entry.player} rank={idx + 1} clubCode={entry.clubCode} player={entry.player}
-                subtitle={entry.clubName} value={entry.bonusPoints}
-                valueSub={perGameLabel(entry.bonusPoints, entry.games, { unit: perMatchUnit })}
-                qualifies
-                onClick={() => handleSelectFromRanking(entry)}
-              />
-            ))}
+            {BONUS_POINTS_DATA_AVAILABLE ? (
+              bonusRanking.map((entry, idx) => (
+                <RankingRow
+                  key={entry.player} rank={idx + 1} clubCode={entry.clubCode} player={entry.player}
+                  subtitle={entry.clubName} value={entry.bonusPoints}
+                  valueSub={perGameLabel(entry.bonusPoints, entry.games, { unit: perMatchUnit })}
+                  qualifies
+                  onClick={() => handleSelectFromRanking(entry)}
+                />
+              ))
+            ) : (
+              <div style={{
+                background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: '8px', padding: '12px 14px',
+              }}>
+                <p style={{ color: '#8F79AD', fontSize: '12px', margin: 0 }}>
+                  {t('bonuspunten.dataComingSoon')}
+                </p>
+              </div>
+            )}
           </RankingSection>
         </>
       )}
