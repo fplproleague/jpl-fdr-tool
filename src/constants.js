@@ -476,6 +476,12 @@ export function resolveSlotPlayerAtGw(basePlayer, transfersForSlot, atGw) {
 // src/kaarten.js/src/bonuspunten.js), die voorheen elk hun eigen aparte werkblad-CSV nodig hadden.
 export const PLAYER_DATABASE_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS_PSoy3cpm-nckncN8C8lmxg0PfxYpANthYfLFccxft2UuBbmCvOa8SXrlwyJkBWUu0ek3QMBsIknU/pub?gid=0&single=true&output=csv';
 
+// Set Pieces-tab (zie src/tabs/SetPiecesTab.jsx, src/setPieces.js): een APARTE, apart gepubliceerde CSV-
+// export van een NIEUW werkblad/tabblad binnen dezelfde Google Sheet als hierboven (andere gid — een
+// aparte "Publish to web"-link per werkblad). Kolommen: Club | Penalties | Corners | Free Kicks |
+// (optioneel) Updated GW.
+export const SET_PIECES_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS_PSoy3cpm-nckncN8C8lmxg0PfxYpANthYfLFccxft2UuBbmCvOa8SXrlwyJkBWUu0ek3QMBsIknU/pub?gid=1124774550&single=true&output=csv';
+
 // Eenvoudige RFC4180-achtige CSV-tokenizer (i.p.v. text.split(',')): velden tussen aanhalingstekens
 // kunnen komma's en regeleindes bevatten, en "" binnen zo'n veld is een ontsnapt aanhalingsteken.
 // Geeft een array van rijen terug, elke rij een array van ruwe (nog niet-getrimde) celwaarden.

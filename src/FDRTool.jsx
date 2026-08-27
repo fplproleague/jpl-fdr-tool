@@ -17,8 +17,8 @@ import { COLORS } from './theme';
 import { ROUTES, routeKeyFromPath, routeByKey, urlForRoute } from './routes';
 import FDRTab from './tabs/FDRTab';
 
-// Enkel de FDR-tab (de standaardweergave) zit in de hoofdbundle. De andere tabs worden pas opgehaald
-// wanneer iemand er effectief naartoe navigeert.
+// Enkel de FDR-tab (de standaardweergave) zit in de hoofdbundle. De andere tabs worden pas
+// opgehaald wanneer iemand er effectief naartoe navigeert.
 //
 // Waarom dit uitmaakt: PredictedLineupsTab trekt via PitchField de volledige veld-renderer én
 // html2canvas mee — samen goed voor ~372 kB. Die stond vroeger als `modulepreload` in index.html,
@@ -30,6 +30,7 @@ const TeamPlannerTab = lazy(() => import('./tabs/TeamPlannerTab'));
 const PredictedLineupsTab = lazy(() => import('./tabs/PredictedLineupsTab'));
 const BonuspuntenTab = lazy(() => import('./tabs/BonuspuntenTab'));
 const KaartenTab = lazy(() => import('./tabs/KaartenTab'));
+const SetPiecesTab = lazy(() => import('./tabs/SetPiecesTab'));
 
 // Tab-navigatie bovenaan de pagina. De lijst zelf (labels, paden, per-tab titel/omschrijving) staat
 // in src/routes.js, zodat de URL-afhandeling en de zichtbare tabs nooit uit elkaar kunnen lopen.
@@ -1696,6 +1697,12 @@ export default function FDRTool() {
               playerDatabaseError={playerDatabaseError}
               fetchPlayerDatabase={fetchPlayerDatabase}
             />
+          </Suspense>
+        )}
+
+        {activeTab === 'setpieces' && (
+          <Suspense fallback={<TabLoading />}>
+            <SetPiecesTab />
           </Suspense>
         )}
 

@@ -4,8 +4,9 @@
     { "source": "/fdr", "destination": "/index.html" },
     { "source": "/team-planner", "destination": "/index.html" },
     { "source": "/predicted-lineups", "destination": "/index.html" },
-    { "source": "/watchlist", "destination": "/index.html" },
     { "source": "/bonuspunten", "destination": "/index.html" },
+    { "source": "/set-pieces", "destination": "/index.html" },
+    { "source": "/watchlist", "destination": "/index.html" },
     { "source": "/kaarten", "destination": "/index.html" },
     { "source": "/price-changes", "destination": "/index.html" }
   ]
