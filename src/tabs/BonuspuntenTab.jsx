@@ -313,6 +313,10 @@ export default function BonuspuntenTab({ t, playerDatabase, playerDatabaseLoadin
           </RankingSection>
         </>
       )}
+
+      <p style={{ color: '#A594C4', fontSize: '11px', marginTop: '24px' }}>
+        {t('bonuspunten.sources')}
+      </p>
     </>
   );
 }
