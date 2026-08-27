@@ -118,18 +118,6 @@ export default function SetPiecesTab() {
 
   return (
     <>
-      <div style={{
-        display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px',
-        marginBottom: '6px',
-      }}>
-        <div>
-          <h2 className="fdr-title" style={{ color: '#FFF', fontSize: '22px', margin: 0 }}>
-          </h2>
-          <p style={{
-            color: '#8F79AD', fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em',
-            textTransform: 'uppercase', margin: '4px 0 0',
-          }}>
-          </p>
         </div>
         {updatedGw && (
           <span style={{
