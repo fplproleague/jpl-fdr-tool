@@ -9,16 +9,6 @@ import { COLORS, retryButtonStyle, primaryButtonStyle } from '../theme';
 import { MiniFixtureBadge } from '../components/MiniFixtureBadge';
 import { PlayerSearchInput } from '../components/PlayerSearchInput';
 
-// Expliciete height + boxSizing: border-box i.p.v. op auto-hoogte (padding+lineHeight) te vertrouwen —
-// een <div> en een <button> gebruiken elk hun eigen browser-default line-height/box-sizing, waardoor
-// twee elementen met "dezelfde" padding/font-size toch een paar pixels konden verschillen in
-// gerenderde hoogte. Een vaste height elimineert dat verschil volledig, ongeacht welk element-type.
-const watchlistInputStyle = {
-  background: COLORS.surface, color: COLORS.text, border: '1px solid rgba(255,255,255,0.15)',
-  borderRadius: '6px', padding: '0 10px', fontSize: '13px', width: '100%',
-  height: '34px', boxSizing: 'border-box', display: 'flex', alignItems: 'center',
-};
-
 export default function WatchlistTab({
   t,
   ratings, homeAdvantage,
@@ -70,10 +60,16 @@ export default function WatchlistTab({
           )}
           </div>
 
+          {/* Enkel nog het zoekveld + toevoegen-knop: het losse "Prijs"-vakje hierna is geschrapt, want
+              de prijs wordt sowieso automatisch uit de spelersdatabank gehaald (zie onSelect hieronder)
+              en verscheen daarna toch al als badge bij elke watchlist-kaart hieronder — een apart,
+              niet-bewerkbaar veld ervoor had dus geen functie. Vaste 2-kolommenindeling (i.p.v. het
+              vroegere auto-fit met 3 velden) i.p.v. flex-wrap: zo blijft dit altijd één regel, ook op
+              mobiel, met het zoekveld dat gewoon meekrimpt en de knop op zijn intrinsieke breedte. */}
           <form onSubmit={handleAddWatchlistPlayer} style={{
-            display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px', alignItems: 'end'
+            display: 'grid', gridTemplateColumns: '1fr auto', gap: '10px', alignItems: 'end'
           }}>
-            <label style={{ display: 'grid', gap: '4px', gridColumn: 'span 2' }}>
+            <label style={{ display: 'grid', gap: '4px', minWidth: 0 }}>
               <span style={{ color: COLORS.textBody, fontSize: '11px', textTransform: 'uppercase', marginLeft: '4px'}}>{t('watchlist.playerLabel')}</span>
               {/* Zoek/autocomplete op de spelersdatabank i.p.v. vrije-tekst naam + los team-dropdown —
                   bij selectie vullen newPlayerName/-Team/-Price automatisch (zie onSelect hieronder),
@@ -90,29 +86,11 @@ export default function WatchlistTab({
                 }}
               />
             </label>
-            <label style={{ display: 'grid', gap: '4px' }}>
-              <span style={{ color: COLORS.textBody, fontSize: '11px', textTransform: 'uppercase', marginLeft: '4px' }}>{t('watchlist.priceLabel')}</span>
-              <div style={{ ...watchlistInputStyle, color: newPlayerPrice !== '' ? '#FFF' : COLORS.textMuted, fontWeight: 700 }}>
-                {newPlayerPrice !== '' ? `${Number(newPlayerPrice).toFixed(1)}M` : '—'}
-              </div>
-            </label>
-            {/* minWidth: 0 overschrijft de impliciete grid-item-vloer (min-width:auto), die anders de
-                onbreekbare knoptekst zijn EIGEN minimumbreedte laat opleggen aan de kolom — daardoor
-                werd deze kolom op smallere schermen breder dan de "Prijs"-kolom ernaast. GEEN
-                .fdr-touch-target-klasse (in tegenstelling tot de meeste knoppen op de site): die tilt
-                op aanraakschermen (@media pointer:coarse, zie FDRTool.jsx) de hoogte naar minimaal
-                44px — onzichtbaar op een muis-desktop, maar op een telefoon precies de reden waarom
-                deze knop duidelijk hoger oogde dan het "Prijs"-vakje ernaast. height + boxSizing
-                expliciet gelijk aan watchlistInputStyle gezet (i.p.v. op gelijke padding/font-size te
-                vertrouwen) — een <div> en <button> renderen elk met hun eigen browser-default
-                line-height, dus "dezelfde" padding gaf toch een paar pixels verschil. padding/fontSize/
-                gap/icoongrootte hier verkleind t.o.v. primaryButtonStyle: in de nu even smalle kolom
-                als "Prijs" verdween het "+"-icoon anders half buiten de knop op mobiel. */}
             <button
               type="submit"
               style={{
                 ...primaryButtonStyle, minWidth: 0, borderRadius: '6px', height: '34px',
-                boxSizing: 'border-box', padding: '0 8px', fontSize: '11px', gap: '5px',
+                boxSizing: 'border-box', padding: '0 12px', fontSize: '11px', gap: '5px',
               }}
             >
               <Plus size={16} /> {t('watchlist.add')}

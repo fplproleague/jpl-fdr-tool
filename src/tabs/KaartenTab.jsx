@@ -43,10 +43,6 @@ export default function KaartenTab({ t, playerDatabase, playerDatabaseLoading, p
 
   return (
     <>
-      <p style={{ color: '#8F79AD', fontSize: '13px', marginBottom: '16px' }}>
-        {t('kaarten.intro')}
-      </p>
-
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '18px' }}>
         {visibleSortModes.map(({ key, labelKey }) => {
           const isSelected = sortMode === key;

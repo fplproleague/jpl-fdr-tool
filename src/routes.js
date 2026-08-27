@@ -29,7 +29,7 @@ export const ROUTES = [
   {
     key: 'predictedlineups',
     path: '/predicted-lineups',
-    label: 'Predicted Lineups',
+    label: "Verwachte XI's",
     title: 'Predicted Lineups — verwachte opstellingen | Fantasy Pro League Tools',
     description: 'Verwachte basiselftallen voor alle 18 clubs van de Jupiler Pro League, met een duidelijke inschatting van de startkans per speler.',
   },

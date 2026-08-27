@@ -30,7 +30,7 @@ const STRINGS = {
     'nav.aria': 'Tools',
     'nav.fdr': 'FDR',
     'nav.teamplanner': 'Team Planner',
-    'nav.predictedlineups': 'Predicted Lineups',
+    'nav.predictedlineups': "Verwachte XI's",
     'nav.bonuspunten': 'Bonuspunten',
     'nav.setpieces': 'Set Pieces',
     'nav.watchlist': 'Watchlist',
@@ -125,7 +125,6 @@ const STRINGS = {
     'watchlist.loadingDb': 'Spelersdatabank laden...',
     'watchlist.addHeading': 'Speler toevoegen',
     'watchlist.playerLabel': 'Speler',
-    'watchlist.priceLabel': 'Prijs',
     'watchlist.searchPlaceholder': 'Zoek speler...',
     'watchlist.searchLoadingPlaceholder': 'Databank laden...',
     'watchlist.add': 'Toevoegen',
@@ -239,7 +238,7 @@ const STRINGS = {
     'teamPlanner.confirmTransfer': 'Bevestig transfer',
 
     // --- Bonuspunten-tab ---
-    'bonuspunten.intro': 'Rangschikkingen voor de vier statistieken die een Fantasy Pro League-bonuspunt kunnen opleveren: meer duels gewonnen dan verloren, meer dan 3 verdedigende kopballen, meer dan 5 recoveries, of meer dan 1 grote kans.',
+    'bonuspunten.intro': 'Rangschikkingen voor de vier statistieken die een Fantasy Pro League-bonuspunt kunnen opleveren: meer duels gewonnen dan verloren, meer dan 3 verdedigende kopballen, meer dan 5 recoveries, of meer dan 1 grote kans gecreëerd.',
     'bonuspunten.loading': 'Bonuspunten-gegevens laden...',
     'bonuspunten.emptyState': 'Nog geen bonuspunten-gegevens beschikbaar — kom binnenkort terug.',
     'bonuspunten.searchPlaceholder': 'Zoek een speler op naam...',
@@ -247,14 +246,14 @@ const STRINGS = {
     'bonuspunten.stat.duels': 'Duels',
     'bonuspunten.stat.headers': 'Kopballen',
     'bonuspunten.stat.recoveries': 'Recoveries',
-    'bonuspunten.stat.bigChances': 'Grote kansen',
+    'bonuspunten.stat.bigChances': 'Grote kansen gecreëerd',
     'bonuspunten.stat.bonusPoints': 'Bonuspunten',
     'bonuspunten.duelsDetail': '{{won}}W/{{lost}}V',
     'bonuspunten.perMatchUnit': '/wedstrijd',
     'bonuspunten.section.duels': 'Duels (gewonnen > verloren)',
     'bonuspunten.section.headers': 'Verdedigende kopballen (> 3)',
     'bonuspunten.section.recoveries': 'Recoveries (> 5)',
-    'bonuspunten.section.bigChances': 'Grote kansen (> 1)',
+    'bonuspunten.section.bigChances': 'Grote kansen gecreëerd (> 1)',
     'bonuspunten.section.bonusPoints': 'Meeste bonuspunten',
     'bonuspunten.duelsSubtitle': '{{won}} gewonnen · {{lost}} verloren',
 
@@ -269,7 +268,6 @@ const STRINGS = {
     'setpieces.emptyState': 'Nog geen set piece-gegevens beschikbaar — kom binnenkort terug.',
 
     // --- Kaarten-tab ---
-    'kaarten.intro': 'Gele kaarten & schorsing.',
     'kaarten.sortMode.mostCards': 'Meeste gele kaarten',
     'kaarten.sortMode.closestToSuspension': 'Dichtst bij schorsing',
     'kaarten.loading': 'Kaarten-gegevens laden...',
@@ -380,7 +378,6 @@ const STRINGS = {
     'watchlist.loadingDb': 'Chargement de la base de joueurs...',
     'watchlist.addHeading': 'Ajouter un joueur',
     'watchlist.playerLabel': 'Joueur',
-    'watchlist.priceLabel': 'Prix',
     'watchlist.searchPlaceholder': 'Rechercher un joueur...',
     'watchlist.searchLoadingPlaceholder': 'Chargement de la base...',
     'watchlist.add': 'Ajouter',
@@ -491,7 +488,7 @@ const STRINGS = {
     'teamPlanner.confirmTransfer': 'Confirmer le transfert',
 
     // --- Onglet Points bonus ---
-    'bonuspunten.intro': "Classements pour les quatre statistiques qui peuvent rapporter un point bonus Fantasy Pro League : plus de duels gagnés que perdus, plus de 3 duels aériens défensifs, plus de 5 récupérations, ou plus d'une grosse occasion.",
+    'bonuspunten.intro': "Classements pour les quatre statistiques qui peuvent rapporter un point bonus Fantasy Pro League : plus de duels gagnés que perdus, plus de 3 duels aériens défensifs, plus de 5 récupérations, ou plus d'une grosse occasion créée.",
     'bonuspunten.loading': 'Chargement des données de points bonus...',
     'bonuspunten.emptyState': 'Pas encore de données de points bonus disponibles — revenez bientôt.',
     'bonuspunten.searchPlaceholder': 'Recherchez un joueur par nom...',
@@ -499,14 +496,14 @@ const STRINGS = {
     'bonuspunten.stat.duels': 'Duels',
     'bonuspunten.stat.headers': 'Duels aériens',
     'bonuspunten.stat.recoveries': 'Récupérations',
-    'bonuspunten.stat.bigChances': 'Grosses occasions',
+    'bonuspunten.stat.bigChances': 'Grosses occasions créées',
     'bonuspunten.stat.bonusPoints': 'Points bonus',
     'bonuspunten.duelsDetail': '{{won}}G/{{lost}}P',
     'bonuspunten.perMatchUnit': '/match',
     'bonuspunten.section.duels': 'Duels (gagnés > perdus)',
     'bonuspunten.section.headers': 'Duels aériens défensifs (> 3)',
     'bonuspunten.section.recoveries': 'Récupérations (> 5)',
-    'bonuspunten.section.bigChances': 'Grosses occasions (> 1)',
+    'bonuspunten.section.bigChances': 'Grosses occasions créées (> 1)',
     'bonuspunten.section.bonusPoints': 'Plus de points bonus',
     'bonuspunten.duelsSubtitle': '{{won}} gagnés · {{lost}} perdus',
 
@@ -521,7 +518,6 @@ const STRINGS = {
     'setpieces.emptyState': 'Pas encore de données disponibles pour les coups de pied arrêtés — revenez bientôt.',
 
     // --- Onglet Cartons ---
-    'kaarten.intro': 'Cartons jaunes et suspension.',
     'kaarten.sortMode.mostCards': 'Plus de cartons jaunes',
     'kaarten.sortMode.closestToSuspension': "Plus proche d'une suspension",
     'kaarten.loading': 'Chargement des données de cartons...',
