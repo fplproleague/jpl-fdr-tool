@@ -124,13 +124,11 @@ export default function SetPiecesTab() {
       }}>
         <div>
           <h2 className="fdr-title" style={{ color: '#FFF', fontSize: '22px', margin: 0 }}>
-            Set Pieces
           </h2>
           <p style={{
             color: '#8F79AD', fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em',
             textTransform: 'uppercase', margin: '4px 0 0',
           }}>
-            Pro League &bull; 2026/27
           </p>
         </div>
         {updatedGw && (
@@ -145,7 +143,6 @@ export default function SetPiecesTab() {
       </div>
 
       <p style={{ color: '#8F79AD', fontSize: '13px', marginTop: '10px', marginBottom: '14px' }}>
-        Huidige strafschop-, corner- en vrijetrapnemers voor elke Belgische Pro League-club, bijgehouden door @5YSiebee.
       </p>
 
       {/* Legende — zelfde stijl als de safety-kleurenlegende op de Predicted Lineups-tab: badge + korte
