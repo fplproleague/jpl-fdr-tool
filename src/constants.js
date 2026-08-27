@@ -35,11 +35,12 @@ export const FIXTURES = {
   CHA: ['OHL-H','LOM-A','KVM-H','KOR-A','USG-H','ZWA-A','CER-H','STA-A'],
   CLU: ['KOR-H','OHL-A','CER-H','GNT-A','LOM-A','ANT-H','GNK-H','LLV-A'],
   GNK: ['ZWA-A','WES-H','ANT-A','BEV-H','AND-A','GNT-H','CLU-A','KOR-H'],
-  GNT: ['KVM-H','LLV-A','OHL-H','CLU-H','CER-A','GNK-A','STA-H','ZWA-A'],
+  // GNT-OHL (GW3) is definitief uitgesteld naar GW4 (3 september) — zelfde patroon als AND-KOR hierboven.
+  GNT: ['KVM-H','LLV-A','OHL-H', ['CLU-H','OHL-H'], 'CER-A','GNK-A','STA-H','ZWA-A'],
   KOR: ['CLU-A','ANT-H','AND-A', ['CHA-H','AND-A'], 'ZWA-H','LLV-A','BEV-H','GNK-A'],
   KVM: ['GNT-A','STA-H','CHA-A','LLV-A','WES-H','AND-H','LOM-A','STV-H'],
   LOM: ['STV-A','CHA-H','WES-H','CER-A','CLU-H','USG-A','KVM-H','BEV-A'],
-  OHL: ['CHA-A','CLU-H','GNT-A','STA-H','BEV-A','CER-H','LLV-H','USG-A'],
+  OHL: ['CHA-A','CLU-H','GNT-A', ['STA-H','GNT-A'], 'BEV-A','CER-H','LLV-H','USG-A'],
   LLV: ['AND-A','GNT-H','STA-A','KVM-H','STV-A','KOR-H','OHL-A','CLU-H'],
   BEV: ['ANT-A','AND-H','ZWA-A','GNK-A','OHL-H','STV-H','KOR-A','LOM-H'],
   // GW4 (index 3) is voor STV en USG een dubbele speeldag (DGW): zie isDoubleGameweek() hieronder.
@@ -71,31 +72,31 @@ export const POSTPONED = new Set([
   'USG-3', // Union SG vs Sint-Truiden, GW3 — uitgesteld naar 2 september
   'AND-3', // Anderlecht vs Kortrijk, GW3 — uitgesteld naar 3 september (Europese voorrondes)
   'KOR-3', // Kortrijk vs Anderlecht, GW3 — uitgesteld naar 3 september (Europese voorrondes)
+  'GNT-3', // Gent vs OH Leuven, GW3 — uitgesteld naar 3 september (Europese voorrondes)
+  'OHL-3', // OH Leuven vs Gent, GW3 — uitgesteld naar 3 september (Europese voorrondes)
 ]);
 // Datum waarnaar uitgestelde wedstrijden verplaatst zijn, per teamcode-onafhankelijke (gesorteerde)
 // paar-key — niet elke POSTPONED-wedstrijd valt op dezelfde datum.
 export const POSTPONED_DATES = {
   'STV-USG': '2 september',
   'AND-KOR': '3 september',
+  'GNT-OHL': '3 september',
 };
 
 // Nog niet zeker uitgesteld — kan verschuiven afhankelijk van Europese kwalificatie. Zelfde key-structuur als POSTPONED.
 export const POSSIBLY_POSTPONED = new Set([
-  'GNT-3', // Gent vs OH Leuven, GW3 — bij Europese kwalificatie van Gent
-  'OHL-3', // OH Leuven vs Gent, GW3 — bij Europese kwalificatie van Gent
   'USG-6', // Union SG vs Lommel, GW6 — afhankelijk van Europees programma Union SG
   'LOM-6', // Lommel vs Union SG, GW6 — afhankelijk van Europees programma Union SG
 ]);
 
 // Eén reden per wedstrijd, opgezocht via een teamcode-onafhankelijke (gesorteerde) paar-key.
 export const POSSIBLY_POSTPONED_REASONS = {
-  'GNT-OHL': 'mogelijk uitgesteld als Gent zich plaatst voor de laatste Europese kwalificatieronde',
   'LOM-USG': "mogelijk uitgesteld afhankelijk van Union SG's Europees programma",
 };
 
 export const DEFAULT_RATINGS = {
   LOM: 1, KOR: 1, BEV: 1,
-  ZWA: 2, OHL: 2, CER: 2, LLV: 2,
+  ZWA: 3, OHL: 2, CER: 2, LLV: 1,
   STA: 3, KVM: 3, WES: 3, CHA: 3, ANT: 3, STV: 3,
   GNK: 4, AND: 4, GNT: 4,
   USG: 5, CLU: 5,
@@ -109,7 +110,9 @@ export const RATING_STYLE = {
   2: { bg: '#5BAE7A', text: '#0B2E1B', label: 'Makkelijk' },
   3: { bg: '#E8C547', text: '#3D2E00', label: 'Gemiddeld' },
   4: { bg: '#E08A3E', text: '#2E1500', label: 'Moeilijk' },
-  5: { bg: '#C2402C', text: '#FBEAE7', label: 'Moeilijkst' },
+  // Wit i.p.v. het vroegere #FBEAE7: dat haalde maar 4.44:1 op deze rode achtergrond en zakte
+  // daarmee net onder de WCAG AA-drempel (4.5:1) voor de kleine celtekst. #FFFFFF geeft 5.17:1.
+  5: { bg: '#C2402C', text: '#FFFFFF', label: 'Moeilijkst' },
 };
 
 export const GW_COUNT = 8;
@@ -121,17 +124,124 @@ export const DEFAULT_GW_HORIZON_END = 7;
 // mainTableMinWidth (zie FDRTool) evenredig van afschaalt bij een kleinere horizon.
 export const MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS = 760;
 export const MINILEAGUE_CODE = '19WN75';
-export const LAST_UPDATED = '7 augustus 2026';
-// Handmatig wekelijks bij te werken, net als LAST_UPDATED — markeert de "huidige" gameweek in de
-// hoofdtabel en bepaalt vanaf waar de mini-fixture-strip in de watch list start.
-export const CURRENT_GW = 1;
+export const LAST_UPDATED = '24 augustus 2026';
 
-// Handmatig wekelijks bij te werken (net als LAST_UPDATED/CURRENT_GW) — deadline-tekst per GW, getoond
-// klein/subtiel onder de GW-navigator in Team Planner. Kant-en-klare weergavestring i.p.v. een Date-
-// object, zelfde precedent als LAST_UPDATED (vermijdt tijdzone-gedoe). Lege/ontbrekende GW-waarden
-// tonen simpelweg niks.
-export const GW_DEADLINES = {
-  1: 'vrijdag 07 augustus 20:45', 2: 'vrijdag 14 augustus 20:45', 3: 'vrijdag 21 augustus 20:45', 4: 'vrijdag 28 augustus 20:45', 5: 'vrijdag 4 september 20:45', 6: 'vrijdag 11 september 20:45', 7: 'vrijdag 18 september 20:45', 8: '',
+// Code voor de PERSOONLIJKE Fantasy Premier League-minileague (het echte, Engelse FPL-spel) — los van
+// MINILEAGUE_CODE hierboven, dat is voor DEZE site (Fantasy Pro League, de Belgische competitie). Wordt
+// getoond in de eenmalige PL-popup en tijdelijk op het startscherm (zie showPLMinileaguePopup in
+// FDRTool.jsx) rond de start van het Premier League-seizoen. Tijdelijke content: mag weg na de hype.
+export const PL_MINILEAGUE_CODE = 'slogga';
+
+// --- Gameweek-deadlines (enige handmatig bij te werken bron van waarheid voor "waar staan we") ---
+//
+// ISO-8601 mét expliciete offset (+02:00 = CEST, geldig voor augustus/september 2026). Eén échte
+// datum per GW i.p.v. een kant-en-klare tekst: daaruit leiden we nu zowel de weergavestring
+// (formatGwDeadline) als de "huidige" gameweek (CURRENT_GW) én de aftelklok in de header af. Vroeger
+// stonden CURRENT_GW en de deadline-teksten als aparte, handmatig te synchroniseren constanten —
+// precies daardoor kon de site "GW3" tonen terwijl een ander onderdeel nog op GW2 stond. Werk enkel
+// dit object bij; al de rest volgt vanzelf.
+//
+// GW8 heeft (nog) geen bekende deadline: null i.p.v. een lege string, zodat "onbekend" expliciet is.
+export const GW_DEADLINE_ISO = {
+  1: '2026-08-07T20:45:00+02:00',
+  2: '2026-08-14T20:45:00+02:00',
+  3: '2026-08-21T20:45:00+02:00',
+  4: '2026-08-28T20:45:00+02:00',
+  5: '2026-09-04T20:45:00+02:00',
+  6: '2026-09-11T20:45:00+02:00',
+  7: '2026-09-18T20:45:00+02:00',
+  8: null,
+};
+
+// Deadlines worden ALTIJD in Belgische tijd getoond, ongeacht waar de bezoeker zit. Een Fantasy Pro
+// League-deadline is nu eenmaal een Belgisch tijdstip; iemand die vanuit een andere tijdzone kijkt
+// heeft niets aan een omgerekende klok en zou een afwijkende tijd als een fout lezen. De aftelklok
+// zelf is een tijdsduur en dus sowieso tijdzone-onafhankelijk.
+const BELGIAN_TIME_ZONE = 'Europe/Brussels';
+
+const deadlineFormatter = new Intl.DateTimeFormat('nl-BE', {
+  timeZone: BELGIAN_TIME_ZONE,
+  weekday: 'long', day: '2-digit', month: 'long',
+  hour: '2-digit', minute: '2-digit', hour12: false,
+});
+
+// Geeft de Date van een GW-deadline, of null als die niet gekend is (GW8).
+export function getGwDeadlineDate(gw) {
+  const iso = GW_DEADLINE_ISO[gw];
+  if (!iso) return null;
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+// Nederlandse weergavestring ("vrijdag 21 augustus 20:45"), afgeleid uit de echte datum i.p.v.
+// handmatig getypt. formatToParts i.p.v. format(): de exacte volgorde en scheidingstekens van de
+// nl-BE-locale liggen niet vast tussen browsers/versies, en we willen precies dezelfde tekst als
+// vroeger — niet "vrijdag 21 augustus om 20:45" of een variant met komma's.
+export function formatGwDeadline(gw) {
+  const date = getGwDeadlineDate(gw);
+  if (!date) return '';
+  const parts = Object.fromEntries(
+    deadlineFormatter.formatToParts(date)
+      .filter(p => p.type !== 'literal')
+      .map(p => [p.type, p.value])
+  );
+  return `${parts.weekday} ${parts.day} ${parts.month} ${parts.hour}:${parts.minute}`;
+}
+
+// De eerste GW waarvan de deadline nog niet verstreken is — dát is de gameweek waar een bezoeker mee
+// bezig is. Valt terug op GW_COUNT zodra alle gekende deadlines voorbij zijn. `now` is injecteerbaar
+// zodat dit testbaar is en niet stiekem van de systeemklok afhangt.
+export function resolveCurrentGw(now = new Date()) {
+  for (let gw = 1; gw <= GW_COUNT; gw++) {
+    const deadline = getGwDeadlineDate(gw);
+    if (deadline && deadline.getTime() > now.getTime()) return gw;
+  }
+  return GW_COUNT;
+}
+
+// Afgeleid i.p.v. handmatig ingesteld (zie resolveCurrentGw hierboven). Wordt één keer bij het laden
+// van de module berekend — ruim genoeg voor een sessie, en de aftelklok in de header hertelt sowieso
+// elke seconde zelf.
+export const CURRENT_GW = resolveCurrentGw();
+
+// Behouden voor bestaande aanroepers (Team Planner toont dit onder de GW-navigator): nu volledig
+// afgeleid uit GW_DEADLINE_ISO i.p.v. een tweede, apart bij te werken lijst.
+export const GW_DEADLINES = Object.fromEntries(
+  Array.from({ length: GW_COUNT }, (_, i) => [i + 1, formatGwDeadline(i + 1)])
+);
+
+// De gameweek waarvoor de voorspelde opstellingen in predictedLineupsData.js gelden. Handmatig bij te
+// werken samen met die data. Zolang deze waarde ACHTERLOOPT op CURRENT_GW toont de Predicted
+// Lineups-tab een expliciete waarschuwing dat de opstellingen van een vorige speeldag zijn — zo kan
+// verouderde team-info nooit meer stilzwijgend als actueel gepresenteerd worden.
+export const PREDICTED_LINEUPS_GW = 2;
+
+// Recente vorm per team in de hoofdtabel van de FDR-tab: max. 5 laatste GESPEELDE wedstrijden, oudste
+// eerst en nieuwste laatst ('W' winst, 'G' gelijkspel, 'V' verlies). Handmatig bij te werken na elke
+// afgeronde speeldag (zelfde onderhoudspatroon als POSTPONED/PREDICTED_LINEUPS_GW hierboven): duw de
+// nieuwste uitslag achteraan elke array en knip de oudste eraf zodra een team er meer dan 5 heeft. Een
+// team zonder vermelde uitslagen (het huidige, lopende seizoenbegin) krijgt een lege array — dan toont
+// de tabel simpelweg geen vormbalk voor dat team, nooit een verzonnen of geraden uitslag.
+export const TEAM_FORM = {
+  ...Object.fromEntries(TEAMS.map(t => [t.code, []])),
+  CLU: ['W', 'W', 'W'],
+  ANT: ['W', 'W', 'G'],
+  GNT: ['W', 'W'],
+  CHA: ['W', 'W', 'W'],
+  STA: ['G', 'G', 'W'],
+  USG: ['W', 'G'],
+  ZWA: ['W', 'G', 'W'],
+  GNK: ['V', 'W', 'G'],
+  BEV: ['V', 'W', 'V'],
+  AND: ['W', 'V'],
+  CER: ['G', 'G', 'V'],
+  STV: ['G', 'G'],
+  LOM: ['G', 'V', 'W'],
+  KVM: ['V', 'G', 'V'],
+  LLV: ['V', 'V', 'V'],
+  WES: ['V', 'V', 'V'],
+  OHL: ['V', 'V'],
+  KOR: ['V', 'V'],
 };
 
 // TEAMS is al alfabetisch op code — eenmalig gesorteerde kopie voor UI-lijsten die dat expliciet willen.
@@ -222,9 +332,20 @@ export function getFixtureInfo(teamCode, fixture, gwNumber, ratings, homeAdvanta
 
 // Gedeeld tussen components/SectionHeader.jsx en tabs/WatchlistTab.jsx (dat laatste spreadt het
 // rechtstreeks op zijn eigen h2's), vandaar hier i.p.v. lokaal bij SectionHeader.
+// minWidth: 0 (i.p.v. het vroegere whiteSpace: 'nowrap' zonder shrink-mogelijkheid) laat de titel
+// binnen een flex-rij naast een sibling-knop (bv. "Wis team"/"Wis alle transfers" in TeamPlannerTab.jsx)
+// altijd echt krimpen i.p.v. eroverheen te overlappen op smalle schermen — de eigenlijke afkapping
+// (ellipsis) gebeurt op de tekst zelf via sectionTitleTextStyle hieronder, niet op dit hele blok, zodat
+// het icoon nooit mee afgekapt wordt.
 export const sectionTitleStyle = {
   color: '#FFFFFF', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.03em', margin: 0,
-  display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap'
+  display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0,
+};
+
+// Enkel voor de tekst ván de titel (niet het icoon ervoor) — one-line met ellipsis zodra de titel niet
+// meer past, i.p.v. te overlappen met een eventuele sibling-knop of de pagina breder te maken.
+export const sectionTitleTextStyle = {
+  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0,
 };
 
 // --- Team Planner: spelregels voor de 15-koppige selectie (Fase 1, handmatige invoer) ---
@@ -401,12 +522,27 @@ function parsePriceValue(raw) {
   return Number.isFinite(value) ? value : null;
 }
 
+// Zet een statistiek-cel (Gele kaarten/Duels gewonnen/.../Bonuspunten) om naar een getal. Anders dan
+// parsePriceValue hierboven (die null teruggeeft bij een lege/onbruikbare cel, zodat de UI zelf een
+// "—"-weergave kan kiezen) valt dit terug op 0 — deze velden worden rechtstreeks in tellingen/sortering
+// gebruikt (Kaarten-/Bonuspunten-tab), waar een NaN of null silent een hele rij/som zou laten verdwijnen.
+// Een lege cel betekent hier gewoon "nog geen [statistiek] voor deze speler", niet "onbekend".
+function parseStatValue(raw) {
+  const cleaned = (raw ?? '').replace(/[^0-9.-]/g, '');
+  if (!cleaned) return 0;
+  const value = parseFloat(cleaned);
+  return Number.isFinite(value) ? value : 0;
+}
+
 // Zet de ruwe CSV-tekst van de spelersdatabank om naar een array van genormaliseerde speler-
-// objecten ({ name, teamCode, teamName, position, price }). Kolommen worden op hun EXACTE headertekst
-// opgezocht (Name/Team/Position/Price) i.p.v. blind op vaste index, met een index-fallback (0-3) voor
-// het geval een header onverhoopt ontbreekt — zo blijft de parsing ook werken als de kolomvolgorde in
-// de sheet ooit verandert, zolang de 4 headers zelf niet hernoemd worden. Rijen zonder naam (lege of
-// malformed rijen, of de header-rij zelf) worden stilzwijgend genegeerd i.p.v. te crashen.
+// objecten ({ name, teamCode, teamName, position, price, yellowCards, duelsWon, duelsLost, headers,
+// recoveries, bigChances, bonusPoints }). Kolommen worden op hun EXACTE headertekst opgezocht i.p.v.
+// blind op vaste index, met een index-fallback voor het geval een header onverhoopt ontbreekt — zo
+// blijft de parsing ook werken als de kolomvolgorde in de sheet ooit verandert, zolang de headers zelf
+// niet hernoemd worden. De 7 statistiek-kolommen (Gele kaarten/Duels gewonnen/Duels verloren/Kopballen/
+// Recoveries/Grote kansen/Bonuspunten) staan in die exacte volgorde na de bestaande Name/Team/Position/
+// Price-kolommen, vandaar hun fallback-index 4-10. Rijen zonder naam (lege of malformed rijen, of de
+// header-rij zelf) worden stilzwijgend genegeerd i.p.v. te crashen.
 export function parsePlayerDatabaseCsv(text) {
   const rows = parseCsvRows(text).filter(row => row.some(cell => (cell ?? '').trim() !== ''));
   if (rows.length === 0) return [];
@@ -420,6 +556,13 @@ export function parsePlayerDatabaseCsv(text) {
   const teamCol = columnIndex('Team', 1);
   const positionCol = columnIndex('Position', 2);
   const priceCol = columnIndex('Price', 3);
+  const yellowCardsCol = columnIndex('Gele kaarten', 4);
+  const duelsWonCol = columnIndex('Duels gewonnen', 5);
+  const duelsLostCol = columnIndex('Duels verloren', 6);
+  const headersCol = columnIndex('Kopballen', 7);
+  const recoveriesCol = columnIndex('Recoveries', 8);
+  const bigChancesCol = columnIndex('Grote kansen', 9);
+  const bonusPointsCol = columnIndex('Bonuspunten', 10);
 
   return dataRows
     .map(row => {
@@ -427,7 +570,16 @@ export function parsePlayerDatabaseCsv(text) {
       const teamCode = (row[teamCol] ?? '').trim().toUpperCase();
       const position = (row[positionCol] ?? '').trim().toUpperCase();
       const team = TEAMS.find(t => t.code === teamCode);
-      return { name, teamCode, teamName: team?.name ?? teamCode, position, price: parsePriceValue(row[priceCol]) };
+      return {
+        name, teamCode, teamName: team?.name ?? teamCode, position, price: parsePriceValue(row[priceCol]),
+        yellowCards: parseStatValue(row[yellowCardsCol]),
+        duelsWon: parseStatValue(row[duelsWonCol]),
+        duelsLost: parseStatValue(row[duelsLostCol]),
+        headers: parseStatValue(row[headersCol]),
+        recoveries: parseStatValue(row[recoveriesCol]),
+        bigChances: parseStatValue(row[bigChancesCol]),
+        bonusPoints: parseStatValue(row[bonusPointsCol]),
+      };
     })
     .filter(p => p.name);
 }

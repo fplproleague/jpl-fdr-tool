@@ -8,6 +8,7 @@
 import { useState, useRef, useEffect, useCallback, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { Search } from 'lucide-react';
+import { COLORS } from '../theme';
 
 const dropdownItemStyle = {
   display: 'flex', alignItems: 'center', gap: '8px', width: '100%', textAlign: 'left',
@@ -32,7 +33,7 @@ function findMatches(players, query, filterPosition) {
 }
 
 export const PlayerSearchInput = memo(function PlayerSearchInput({
-  value, onSelect, players, filterPosition, placeholder, disabled,
+  value, onSelect, players, filterPosition, placeholder, disabled, maxWidth = '320px',
 }) {
   // Lokale state (getypte tekst, dropdown open/dicht) is hier bewust wél toegestaan ondanks de regel
   // "alle state blijft in FDRTool.jsx" — dat gaat over domein-state die tab-wissels moet overleven
@@ -109,8 +110,15 @@ export const PlayerSearchInput = memo(function PlayerSearchInput({
   };
 
   return (
-    <div ref={containerRef} style={{ position: 'relative' }}>
-      <Search size={13} color="#8F79AD" style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+    // maxWidth begrenst het veld zelf in élke ouder-context (tabelcel, grid-kolom, ...) — zonder deze
+    // cap laat een auto-layout tabelkolom of een brede grid-track (bv. de "Speler"-kolom in de 15-
+    // koppige teamtabel, of de 2-koloms-span in Watchlist's "Speler toevoegen") dit veld onbegrensd
+    // meegroeien met de resterende ruimte, wat er op brede schermen absurd lang uitziet. Optioneel
+    // overschrijfbaar via de maxWidth-prop (default 320px) — de 15-koppige roster-tabel in
+    // TeamPlannerTab.jsx geeft een kleinere waarde door, want dat veld staat daar 15× onder elkaar en
+    // hoefde niet zo breed als de eenmalige zoekvelden in Watchlist/TransferPanel.
+    <div ref={containerRef} style={{ position: 'relative', width: '100%', maxWidth }}>
+      <Search size={13} color={COLORS.textMuted} style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
       <input
         type="text"
         value={query}
@@ -150,14 +158,14 @@ export const PlayerSearchInput = memo(function PlayerSearchInput({
               <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 700 }}>
                 {p.name}
               </span>
-              <span style={{ color: '#8F79AD', fontSize: '11px', flexShrink: 0 }}>{p.teamName}</span>
+              <span style={{ color: COLORS.textMuted, fontSize: '11px', flexShrink: 0 }}>{p.teamName}</span>
               <span style={{ color: '#C9B8E0', fontSize: '11px', flexShrink: 0 }}>{p.position}</span>
               <span style={{ color: '#4ECDC4', fontSize: '11px', fontWeight: 700, flexShrink: 0 }}>
                 {p.price != null ? `${p.price.toFixed(1)}M` : '—'}
               </span>
             </button>
           )) : (
-            <div style={{ padding: '10px', color: '#8F79AD', fontSize: '12px' }}>
+            <div style={{ padding: '10px', color: COLORS.textMuted, fontSize: '12px' }}>
               Geen spelers gevonden.
             </div>
           )}

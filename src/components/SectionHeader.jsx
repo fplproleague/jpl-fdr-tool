@@ -3,7 +3,7 @@
 
 import { memo } from 'react';
 import { ChevronDown } from 'lucide-react';
-import { sectionTitleStyle } from '../constants';
+import { sectionTitleStyle, sectionTitleTextStyle } from '../constants';
 
 const sectionToggleButtonStyle = {
   display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
@@ -16,9 +16,19 @@ function chevronStyle(isOpen) {
 
 export const SectionHeader = memo(function SectionHeader({ icon: Icon, title, sectionKey, isOpen, onToggle }) {
   return (
-    <button onClick={() => onToggle(sectionKey)} style={sectionToggleButtonStyle}>
+    <button
+      onClick={() => onToggle(sectionKey)}
+      // aria-expanded vertelt schermlezers of de sectie open of dicht staat — zonder dit is de knop
+      // enkel "Mijn 15 spelers", zonder enige indicatie dat er iets in-/uitklapt. aria-controls
+      // koppelt 'm aan het paneel dat hij bestuurt (zie de id op de inhoud in de tabs).
+      aria-expanded={isOpen}
+      aria-controls={`fdr-section-${sectionKey}`}
+      className="fdr-touch-target"
+      style={sectionToggleButtonStyle}
+    >
       <h2 className="fdr-title fdr-section-title" style={sectionTitleStyle}>
-        <Icon size={18} color="#4ECDC4" /> {title}
+        <Icon size={18} color="#4ECDC4" style={{ flexShrink: 0 }} />
+        <span style={sectionTitleTextStyle}>{title}</span>
       </h2>
       {/* Vult de ruimte tussen titel en chevron; flex: 1 laat 'm meekrimpen/groeien met de knopbreedte. */}
       <span aria-hidden="true" style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)', margin: '0 8px' }} />

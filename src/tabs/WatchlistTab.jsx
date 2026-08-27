@@ -4,19 +4,19 @@
 // resetten telkens de gebruiker weg- en terugnavigeert.
 
 import { X, Plus, Eye, UserPlus, Loader2, AlertCircle, RotateCcw } from 'lucide-react';
-import { TEAMS, CURRENT_GW, FIXTURES, sectionTitleStyle } from '../constants';
+import { TEAMS, CURRENT_GW, FIXTURES, sectionTitleStyle, sectionTitleTextStyle } from '../constants';
+import { COLORS, retryButtonStyle, primaryButtonStyle } from '../theme';
 import { MiniFixtureBadge } from '../components/MiniFixtureBadge';
 import { PlayerSearchInput } from '../components/PlayerSearchInput';
 
+// Expliciete height + boxSizing: border-box i.p.v. op auto-hoogte (padding+lineHeight) te vertrouwen —
+// een <div> en een <button> gebruiken elk hun eigen browser-default line-height/box-sizing, waardoor
+// twee elementen met "dezelfde" padding/font-size toch een paar pixels konden verschillen in
+// gerenderde hoogte. Een vaste height elimineert dat verschil volledig, ongeacht welk element-type.
 const watchlistInputStyle = {
-  background: '#3D1E5C', color: '#FFF', border: '1px solid rgba(255,255,255,0.15)',
-  borderRadius: '6px', padding: '8px 10px', fontSize: '13px', width: '100%'
-};
-
-const retryButtonStyle = {
-  display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0,
-  background: 'transparent', color: '#FBEAE7', border: '1px solid rgba(251,234,231,0.4)',
-  borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px', cursor: 'pointer',
+  background: COLORS.surface, color: COLORS.text, border: '1px solid rgba(255,255,255,0.15)',
+  borderRadius: '6px', padding: '0 10px', fontSize: '13px', width: '100%',
+  height: '34px', boxSizing: 'border-box', display: 'flex', alignItems: 'center',
 };
 
 export default function WatchlistTab({
@@ -27,7 +27,7 @@ export default function WatchlistTab({
 }) {
   return (
     <>
-      <p style={{ color: '#8F79AD', fontSize: '13px', marginBottom: '16px' }}>
+      <p style={{ color: COLORS.textMuted, fontSize: '13px', marginBottom: '16px' }}>
         Houd je favoriete spelers in de gaten — voeg ze toe aan je persoonlijke watchlist, samen met hun eerstvolgende fixtures. Deze lijst slaat automatisch op in je browser.
       </p>
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '24px' }}>
@@ -37,15 +37,20 @@ export default function WatchlistTab({
             borderRadius: '10px', padding: '16px', marginBottom: '20px'
           }}>
           <h2 className="fdr-title fdr-section-title" style={{ ...sectionTitleStyle, marginBottom: '12px' }}>
-            <UserPlus size={18} color="#4ECDC4" /> Speler toevoegen
+            <UserPlus size={18} color="#4ECDC4" style={{ flexShrink: 0 }} />
+            <span style={sectionTitleTextStyle}>Speler toevoegen</span>
           </h2>
 
           {/* Laad-/foutstatus van de spelersdatabank (Google Sheet CSV, zie fetchPlayerDatabase in
               FDRTool.jsx) — zelfde patroon als Team Planner: spinner tijdens het laden, rode foutmelding
               met "opnieuw proberen"-knop bij een mislukte fetch. De zoek/autocomplete hieronder staat
               zolang op disabled (zie PlayerSearchInput). */}
+          {/* aria-live: het laden/mislukken van de spelersdatabank gebeurt asynchroon en veranderde
+              vroeger stilletjes de staat van het zoekveld (disabled) zonder dat een schermlezer daar
+              iets van meekreeg. */}
+          <div aria-live="polite">
           {playerDatabaseLoading && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#C9B8E0', fontSize: '13px', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: COLORS.textBody, fontSize: '13px', marginBottom: '12px' }}>
               <Loader2 size={16} className="fdr-spin" /> Spelersdatabank laden...
             </div>
           )}
@@ -57,17 +62,18 @@ export default function WatchlistTab({
             }}>
               <AlertCircle size={16} color="#C2402C" style={{ flexShrink: 0 }} />
               <span style={{ color: '#FBEAE7', fontSize: '13px', flex: 1 }}>{playerDatabaseError}</span>
-              <button onClick={fetchPlayerDatabase} style={retryButtonStyle}>
-                <RotateCcw size={14} /> Probeer opnieuw
+              <button onClick={fetchPlayerDatabase} className="fdr-touch-target" style={retryButtonStyle}>
+                <RotateCcw size={14} aria-hidden="true" /> Probeer opnieuw
               </button>
             </div>
           )}
+          </div>
 
           <form onSubmit={handleAddWatchlistPlayer} style={{
             display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px', alignItems: 'end'
           }}>
             <label style={{ display: 'grid', gap: '4px', gridColumn: 'span 2' }}>
-              <span style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', marginLeft: '4px'}}>Speler</span>
+              <span style={{ color: COLORS.textBody, fontSize: '11px', textTransform: 'uppercase', marginLeft: '4px'}}>Speler</span>
               {/* Zoek/autocomplete op de spelersdatabank i.p.v. vrije-tekst naam + los team-dropdown —
                   bij selectie vullen newPlayerName/-Team/-Price automatisch (zie onSelect hieronder),
                   zelfde patroon als de 15-koppige teaminvoer in TeamPlannerTab.jsx. */}
@@ -84,17 +90,31 @@ export default function WatchlistTab({
               />
             </label>
             <label style={{ display: 'grid', gap: '4px' }}>
-              <span style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', marginLeft: '4px' }}>Prijs</span>
-              <div style={{ ...watchlistInputStyle, color: newPlayerPrice !== '' ? '#FFF' : '#8F79AD', fontWeight: 700 }}>
+              <span style={{ color: COLORS.textBody, fontSize: '11px', textTransform: 'uppercase', marginLeft: '4px' }}>Prijs</span>
+              <div style={{ ...watchlistInputStyle, color: newPlayerPrice !== '' ? '#FFF' : COLORS.textMuted, fontWeight: 700 }}>
                 {newPlayerPrice !== '' ? `${Number(newPlayerPrice).toFixed(1)}M` : '—'}
               </div>
             </label>
-            <button type="submit" style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-              background: '#4ECDC4', color: '#0B2E1B', border: 'none', borderRadius: '8px',
-              padding: '9px 14px', fontWeight: 700, fontSize: '13px', cursor: 'pointer'
-            }}>
-              <Plus size={18} /> Toevoegen
+            {/* minWidth: 0 overschrijft de impliciete grid-item-vloer (min-width:auto), die anders de
+                onbreekbare knoptekst zijn EIGEN minimumbreedte laat opleggen aan de kolom — daardoor
+                werd deze kolom op smallere schermen breder dan de "Prijs"-kolom ernaast. GEEN
+                .fdr-touch-target-klasse (in tegenstelling tot de meeste knoppen op de site): die tilt
+                op aanraakschermen (@media pointer:coarse, zie FDRTool.jsx) de hoogte naar minimaal
+                44px — onzichtbaar op een muis-desktop, maar op een telefoon precies de reden waarom
+                deze knop duidelijk hoger oogde dan het "Prijs"-vakje ernaast. height + boxSizing
+                expliciet gelijk aan watchlistInputStyle gezet (i.p.v. op gelijke padding/font-size te
+                vertrouwen) — een <div> en <button> renderen elk met hun eigen browser-default
+                line-height, dus "dezelfde" padding gaf toch een paar pixels verschil. padding/fontSize/
+                gap/icoongrootte hier verkleind t.o.v. primaryButtonStyle: in de nu even smalle kolom
+                als "Prijs" verdween het "+"-icoon anders half buiten de knop op mobiel. */}
+            <button
+              type="submit"
+              style={{
+                ...primaryButtonStyle, minWidth: 0, borderRadius: '6px', height: '34px',
+                boxSizing: 'border-box', padding: '0 8px', fontSize: '11px', gap: '5px',
+              }}
+            >
+              <Plus size={16} /> Toevoegen
             </button>
           </form>
           </div>
@@ -102,10 +122,11 @@ export default function WatchlistTab({
 
         <section>
           <h2 className="fdr-title fdr-section-title" style={{ ...sectionTitleStyle, marginBottom: '12px' }}>
-            <Eye size={18} color="#4ECDC4" /> Mijn watchlist
+            <Eye size={18} color="#4ECDC4" style={{ flexShrink: 0 }} />
+            <span style={sectionTitleTextStyle}>Mijn watchlist</span>
           </h2>
           {watchlist.length === 0 ? (
-            <p style={{ color: '#6B5289', fontSize: '13px' }}>
+            <p style={{ color: COLORS.textSubtle, fontSize: '13px' }}>
               Je watchlist is nog leeg. Voeg spelers toe die je in de gaten wil houden.
             </p>
           ) : (
@@ -122,11 +143,12 @@ export default function WatchlistTab({
                   }}>
                     <button
                       onClick={() => handleRemoveWatchlistPlayer(player.id)}
-                      aria-label={`Verwijder ${player.name}`}
+                      aria-label={`Verwijder ${player.name} uit je watchlist`}
+                      className="fdr-icon-btn"
                       style={{
-                        position: 'absolute', top: '6px', right: '6px',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', width: '22px', height: '22px',
-                        background: 'transparent', color: '#8F79AD', border: 'none', borderRadius: '6px', cursor: 'pointer'
+                        position: 'absolute', top: '2px', right: '2px',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px',
+                        background: 'transparent', color: COLORS.textMuted, border: 'none', borderRadius: '6px', cursor: 'pointer'
                       }}
                     >
                       <X size={14} />
@@ -141,7 +163,7 @@ export default function WatchlistTab({
                       />
                       <div style={{ minWidth: 0, flex: 1 }}>
                         <div style={{ color: '#FFF', fontWeight: 700, fontSize: '14px', lineHeight: 1.25 }}>{player.name}</div>
-                        <div style={{ color: '#8F79AD', fontSize: '11px', marginTop: '1px' }}>{team?.name ?? player.teamCode}</div>
+                        <div style={{ color: COLORS.textMuted, fontSize: '11px', marginTop: '1px' }}>{team?.name ?? player.teamCode}</div>
                       </div>
                       {player.price != null && (
                         <span style={{
