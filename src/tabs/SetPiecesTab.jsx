@@ -118,6 +118,27 @@ export default function SetPiecesTab() {
 
   return (
     <>
+      {/* Legende + laatste update — zelfde stijl als de safety-kleurenlegende op de Predicted
+          Lineups-tab: badge + korte uitleg, zodat de P/C/FK-afkortingen zonder tooltip duidelijk
+          blijven. Bovenaan de tab, want de titel/subtitel/uitleg zijn hier bewust weggelaten. */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px',
+        marginBottom: '18px',
+      }}>
+        <div style={{
+          display: 'flex', gap: '14px', flexWrap: 'wrap', alignItems: 'center',
+          fontSize: '11px', fontWeight: 700, color: '#C9B8E0',
+        }}>
+          {CATEGORY_LEGEND.map(({ label, text }) => (
+            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <CategoryBadge label={label} />
+              {text}
+            </div>
+          ))}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ color: '#E8C547', fontWeight: 800, fontSize: '13px' }}>?</span>
+            Onzeker / niet bevestigd
+          </div>
         </div>
         {updatedGw && (
           <span style={{
@@ -128,27 +149,6 @@ export default function SetPiecesTab() {
             Updated: {updatedGw}
           </span>
         )}
-      </div>
-
-      <p style={{ color: '#8F79AD', fontSize: '13px', marginTop: '10px', marginBottom: '14px' }}>
-      </p>
-
-      {/* Legende — zelfde stijl als de safety-kleurenlegende op de Predicted Lineups-tab: badge + korte
-          uitleg, zodat de P/C/FK-afkortingen zonder tooltip duidelijk blijven. */}
-      <div style={{
-        display: 'flex', gap: '14px', flexWrap: 'wrap', alignItems: 'center',
-        fontSize: '11px', fontWeight: 700, color: '#C9B8E0', marginBottom: '18px',
-      }}>
-        {CATEGORY_LEGEND.map(({ label, text }) => (
-          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <CategoryBadge label={label} />
-            {text}
-          </div>
-        ))}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ color: '#E8C547', fontWeight: 800, fontSize: '13px' }}>?</span>
-          Onzeker / niet bevestigd
-        </div>
       </div>
 
       {loading && (
