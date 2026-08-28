@@ -1040,7 +1040,7 @@ export const PREDICTED_LINEUPS = [
         "playerTeamCode": "BEV",
         "playerPosition": "DEF",
         "playerPrice": 5,
-        "safety": "orange"
+        "safety": "darkgreen"
       },
       {
         "positionId": "LCB",
@@ -1052,7 +1052,7 @@ export const PREDICTED_LINEUPS = [
         "playerTeamCode": "BEV",
         "playerPosition": "DEF",
         "playerPrice": 5.5,
-        "safety": "green"
+        "safety": "darkgreen"
       },
       {
         "positionId": "RCB",
@@ -1084,11 +1084,11 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "MID",
         "xPercent": 33,
         "yPercent": 46,
-        "playerName": "Conde",
+        "playerName": "Slegers",
         "playerTeamCode": "BEV",
         "playerPosition": "MID",
-        "playerPrice": 5,
-        "safety": "red"
+        "playerPrice": 5.5,
+        "safety": "darkgreen"
       },
       {
         "positionId": "CAM",
@@ -1112,7 +1112,7 @@ export const PREDICTED_LINEUPS = [
         "playerTeamCode": "BEV",
         "playerPosition": "MID",
         "playerPrice": 5.5,
-        "safety": "green"
+        "safety": "darkgreen"
       },
       {
         "positionId": "LW",
@@ -1136,7 +1136,7 @@ export const PREDICTED_LINEUPS = [
         "playerTeamCode": "BEV",
         "playerPosition": "FWD",
         "playerPrice": 7.5,
-        "safety": "orange"
+        "safety": "darkgreen"
       },
       {
         "positionId": "RW",
