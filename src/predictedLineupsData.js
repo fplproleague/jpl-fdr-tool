@@ -1544,7 +1544,7 @@ export const PREDICTED_LINEUPS = [
         "playerTeamCode": "GNK",
         "playerPosition": "DEF",
         "playerPrice": 7,
-        "safety": "orange"
+        "safety": "darkgreen"
       },
       {
         "positionId": "LCB",
@@ -1628,7 +1628,7 @@ export const PREDICTED_LINEUPS = [
         "playerTeamCode": "GNK",
         "playerPosition": "MID",
         "playerPrice": 4.5,
-        "safety": "orange"
+        "safety": "darkgreen"
       },
       {
         "positionId": "ST",
