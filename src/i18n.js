@@ -37,6 +37,12 @@ const STRINGS = {
     'nav.kaarten': 'Kaarten',
     'nav.pricechanges': 'Price Changes',
     'nav.more': 'Meer',
+    // Kort label voor de vaste mobiele tab-kolommen (zie MOBILE_PRIMARY_TABS/-ICONS in FDRTool.jsx) —
+    // een enkel, kort woord dat naast een icoon past zonder af te breken; de volledige naam (nav.fdr
+    // e.a. hierboven) is voor het brede scherm en de "Meer"-dropdown.
+    'nav.compact.fdr': 'FDR',
+    'nav.compact.teamplanner': 'Planner',
+    'nav.compact.predictedlineups': "XI's",
     'route.fdr.title': 'FDR — Fixture Difficulty Rating | Fantasy Pro League Tools',
     'route.fdr.description': 'Interactieve Fixture Difficulty Rating voor alle 18 clubs van de Jupiler Pro League. Pas de ratings aan naar jouw eigen inschatting.',
     'route.teamplanner.title': 'Team Planner — plan je transfers | Fantasy Pro League Tools',
@@ -301,6 +307,9 @@ const STRINGS = {
     'nav.kaarten': 'Cartons',
     'nav.pricechanges': 'Changements de prix',
     'nav.more': 'Plus',
+    'nav.compact.fdr': 'FDR',
+    'nav.compact.teamplanner': 'Planner',
+    'nav.compact.predictedlineups': 'XI',
     'route.fdr.title': 'FDR — Difficulté des matchs | Fantasy Pro League Tools',
     'route.fdr.description': "Difficulté des matchs interactive pour les 18 clubs de Jupiler Pro League. Adaptez les évaluations à votre propre avis.",
     'route.teamplanner.title': 'Team Planner — planifiez vos transferts | Fantasy Pro League Tools',

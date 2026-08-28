@@ -5,7 +5,7 @@
 // gemount/unmount bij het wisselen van tab.
 
 import { useState, useMemo, useRef, useCallback, useEffect, lazy, Suspense } from 'react';
-import { Info, X, Check, Copy, Undo2, Loader2, ChevronDown } from 'lucide-react';
+import { Info, X, Check, Copy, Undo2, Loader2, ChevronDown, Grid2x2, Users, Shirt } from 'lucide-react';
 import {
   TEAMS, FIXTURES, GW_COUNT, CURRENT_GW, DEFAULT_GW_HORIZON_END, MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS,
   MINILEAGUE_CODE, PL_MINILEAGUE_CODE, LAST_UPDATED, GW_INDEXES, DEFAULT_RATINGS, DEFAULT_HOME_ADVANTAGE,
@@ -38,13 +38,20 @@ const SetPiecesTab = lazy(() => import('./tabs/SetPiecesTab'));
 const TABS = ROUTES;
 
 // Op mobiel (zie .fdr-tabs-mobile) blijven enkel de eerste MOBILE_PRIMARY_TAB_COUNT tabs los
-// zichtbaar; de rest komt in het "Meer"-menu. 3 is met opzet krap: bij 8 tabs passen "FDR" + "Team
-// Planner" + "Verwachte XI's" (de verkorte NL-naam van Predicted Lineups) nog net naast de "Meer"-knop
-// op een toestel van ~390px breed zonder dat er iets afgesneden wordt (gemeten met de effectief
-// gerenderde tab-breedtes) — een vierde tab past daar niet meer bij.
+// zichtbaar (elk zijn eigen kolom in een grid, zie .fdr-tab-btn-mobile-primary); de rest komt in het
+// "Meer"-menu (de laatste kolom). 3 is de grens: "FDR" + "Team Planner" + "Verwachte XI's" + "Meer"
+// zijn dan 4 gelijke kolommen. Volledige tab-labels bleken daar op een telefoon niet in te passen
+// (zelfs verkort en met 2 regels tekst brak "Verwachte" nog middenin het woord af) — vandaar het
+// icoon+kort-label-patroon hieronder i.p.v. de volledige nav.*-tekst, hetzelfde compacte patroon als
+// een bottom-nav-bar in een native app.
 const MOBILE_PRIMARY_TAB_COUNT = 3;
 const MOBILE_PRIMARY_TABS = TABS.slice(0, MOBILE_PRIMARY_TAB_COUNT);
 const MOBILE_OVERFLOW_TABS = TABS.slice(MOBILE_PRIMARY_TAB_COUNT);
+
+// Icoon per vaste mobiele tab (zie MOBILE_PRIMARY_TABS) — enkel voor deze 3, dus geen aparte
+// ROUTES-kolom nodig; Grid2x2/Users/Shirt hergebruiken bewust dezelfde iconen als de sectietitel
+// "Fixture Difficulty Rating" (FDRTab.jsx) / "Mijn selectie" (TeamPlannerTab.jsx) verderop in de site.
+const MOBILE_PRIMARY_TAB_ICONS = { fdr: Grid2x2, teamplanner: Users, predictedlineups: Shirt };
 
 // Subtiele "nieuw"-stip naast een tab-label (zie NEW_TAB_KEYS/seenNewTabs) — goud i.p.v. het teal van
 // een actieve tab, zodat de twee signalen (actief vs. nieuw) nooit door elkaar lopen.
@@ -438,23 +445,6 @@ export default function FDRTool() {
     return () => window.removeEventListener('resize', updateTabsScrollState);
   }, [updateTabsScrollState]);
 
-  // Zelfde uitfade-mask-mechanisme als hierboven, maar dan voor het mobiele "vaste tabs"-stripje (zie
-  // .fdr-tabs-mobile-primary): op smalle telefoons (~375px) passen FDR + Team Planner + Verwachte XI's
-  // net niet naast elkaar en scrollt dat stripje binnen zijn eigen begrenzing (zie de toelichting bij
-  // MOBILE_PRIMARY_TAB_COUNT) — zonder mask was daar geen enkel signaal dat Verwachte XI's nog
-  // bereikbaar is door te scrollen.
-  const mobilePrimaryTabsRef = useRef(null);
-  const [mobilePrimaryTabsAtEnd, setMobilePrimaryTabsAtEnd] = useState(false);
-  const updateMobilePrimaryTabsScrollState = useCallback(() => {
-    const el = mobilePrimaryTabsRef.current;
-    if (!el) return;
-    setMobilePrimaryTabsAtEnd(el.scrollLeft + el.clientWidth >= el.scrollWidth - 2);
-  }, []);
-  useEffect(() => {
-    updateMobilePrimaryTabsScrollState();
-    window.addEventListener('resize', updateMobilePrimaryTabsScrollState);
-    return () => window.removeEventListener('resize', updateMobilePrimaryTabsScrollState);
-  }, [updateMobilePrimaryTabsScrollState]);
 
   // Mobiele "Meer"-tabmenu (zie .fdr-tabs-mobile hieronder): op smalle schermen is er ruimte voor
   // maar 3 tabs naast elkaar (zie MOBILE_PRIMARY_TAB_COUNT) — de rest verdwijnt in een dropdown i.p.v.
@@ -1251,8 +1241,7 @@ export default function FDRTool() {
         ::-webkit-scrollbar-track { background: #3D1E5C; }
         .fdr-spin { animation: fdr-spin 0.8s linear infinite; }
         @keyframes fdr-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .fdr-tabs, .fdr-tabs-mobile-primary { scrollbar-width: none; -ms-overflow-style: none; }
-        .fdr-tabs-mobile-primary::-webkit-scrollbar { display: none; }
+        .fdr-tabs { scrollbar-width: none; -ms-overflow-style: none; }
         .fdr-tabs::-webkit-scrollbar { display: none; }
         /* De tabbalk scrollt horizontaal en de scrollbar is verborgen, dus zonder extra signaal is er
            niets dat verraadt dat er nog tabs rechts staan. Deze mask laat de laatste 28px subtiel
@@ -1266,27 +1255,28 @@ export default function FDRTool() {
           -webkit-mask-image: none;
           mask-image: none;
         }
-        /* Zelfde uitfade-mask als hierboven voor het mobiele "vaste tabs"-stripje, maar smaller (18px
-           i.p.v. 28px) — die strook is zelf al vrij compact, dus een even brede mask zou er zwaarder
-           uitzien dan de bedoeling "subtiel" is. */
-        .fdr-tabs-mobile-primary {
-          -webkit-mask-image: linear-gradient(to right, black calc(100% - 18px), transparent 100%);
-          mask-image: linear-gradient(to right, black calc(100% - 18px), transparent 100%);
-        }
-        .fdr-tabs-mobile-primary.fdr-tabs-mobile-primary--end {
-          -webkit-mask-image: none;
-          mask-image: none;
-        }
 
         /* Onder de 700px-drempel (telefoons) wisselt de tabbalk van "alle 8 tabs, horizontaal
-           scrollend" naar "3 vaste tabs + Meer-dropdown" (zie MOBILE_PRIMARY_TAB_COUNT hierboven) —
-           op dat formaat is de scroll-uitfaderand makkelijk te missen en zaten de laatste tabs
-           daardoor te diep verstopt. Boven de drempel is er ruim plaats voor alle 8, dus blijft de
-           vertrouwde scrollbalk actief. */
+           scrollend" naar "3 vaste tabs + Meer" in een grid met evenveel kolommen als items — geen
+           scroll meer nodig (zie MOBILE_PRIMARY_TAB_COUNT hierboven): een eerdere versie liet dat
+           stripje zelf ook scrollen, maar dat oogde op een telefoon gewoon als "2 tabs + Meer" zonder
+           enig duidelijk signaal dat Verwachte XI's nog een derde, verborgen tab was. Elke kolom is nu
+           altijd volledig zichtbaar; lange labels breken desnoods over 2 regels (zie
+           .fdr-tab-btn-mobile-primary). Boven de drempel is er ruim plaats voor alle 8 tabs, dus blijft
+           de vertrouwde scrollbalk daar actief. */
         .fdr-tabs-mobile { display: none; }
         @media (max-width: 700px) {
           .fdr-tabs-desktop { display: none !important; }
-          .fdr-tabs-mobile { display: flex; }
+          .fdr-tabs-mobile { display: grid; }
+        }
+        /* Icoon boven een kort label, zelfde verticale opbouw als een bottom-nav-bar in een native app
+           — gekozen nadat het vroegere patroon (volledige tab-naam, evt. over 2 regels) op smalle
+           telefoons alsnog middenin woorden ("Verwachte" -> "Verwa/chte") bleek af te breken. */
+        .fdr-tab-btn-mobile-primary {
+          display: flex; flex-direction: column; align-items: center; justify-content: center;
+          gap: 3px; text-align: center; white-space: nowrap !important; line-height: 1.1;
+          min-height: 44px; min-width: 0; padding: 6px 2px !important;
+          font-size: 10px !important; letter-spacing: 0.01em !important;
         }
 
         /* Zichtbare toetsenbord-focus. De browserstandaard is op deze donkerpaarse achtergrond
@@ -1772,52 +1762,52 @@ export default function FDRTool() {
           className="fdr-tabs-mobile"
           aria-label={t('nav.aria')}
           style={{
-            gap: '4px', marginBottom: '18px', borderBottom: `1px solid ${COLORS.borderSubtle}`,
+            gridTemplateColumns: `repeat(${MOBILE_PRIMARY_TABS.length + 1}, minmax(0, 1fr))`, gap: '2px',
+            marginBottom: '18px', borderBottom: `1px solid ${COLORS.borderSubtle}`,
           }}
         >
-          {/* Eigen scroll-container voor enkel de vaste tabs, los van de "Meer"-knop: op de meeste
-              telefoons passen FDR + Team Planner + Verwachte XI's naast elkaar, maar op smallere
-              toestellen (bv. 375px) is dat net te krap. I.p.v. de knoptekst daarvoor in te korten of de
-              "Meer"-knop mee te laten verdringen, scrollt enkel dít stripje dan binnen zijn eigen
-              begrenzing — de "Meer"-knop (buiten deze container, zie flexShrink hieronder) blijft
-              altijd volledig zichtbaar en klikbaar. */}
-          <div
-            ref={mobilePrimaryTabsRef}
-            className={`fdr-tabs-mobile-primary${mobilePrimaryTabsAtEnd ? ' fdr-tabs-mobile-primary--end' : ''}`}
-            onScroll={updateMobilePrimaryTabsScrollState}
-            style={{
-              display: 'flex', gap: '4px', overflowX: 'auto', overflowY: 'hidden', flexWrap: 'nowrap', minWidth: 0,
-            }}
-          >
-            {MOBILE_PRIMARY_TABS.map(tab => {
-              const isActive = activeTab === tab.key;
-              return (
-                <a
-                  key={tab.key}
-                  href={tab.path}
-                  onClick={(e) => {
-                    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
-                    e.preventDefault();
-                    navigateToTab(tab.key);
-                  }}
-                  className="fdr-title fdr-tab-btn"
-                  aria-current={isActive ? 'page' : undefined}
-                  style={{
-                    color: isActive ? '#4ECDC4' : COLORS.textBody,
-                    borderBottom: isActive ? '2px solid #4ECDC4' : '2px solid transparent',
-                    display: 'inline-flex', alignItems: 'center', gap: '5px', textDecoration: 'none', flexShrink: 0,
-                  }}
-                >
-                  {t(`nav.${tab.key}`)}
-                </a>
-              );
-            })}
-          </div>
+          {/* Vaste-breedte kolommen i.p.v. de eerdere scrollbare strook: die bleek op een telefoon geen
+              duidelijk "hier kan je scrollen"-signaal te geven en oogde gewoon als 2 tabs + Meer, met
+              Verwachte XI's onzichtbaar. Een grid met evenveel kolommen als items (3 vaste tabs + Meer)
+              garandeert dat alle 4 altijd volledig zichtbaar zijn, zonder scrollen. Icoon + kort label
+              i.p.v. de volledige tab-naam (zie MOBILE_PRIMARY_TAB_ICONS/nav.compact.* hierboven): die
+              volledige labels bleken op een telefoon niet leesbaar in te passen, zelfs niet over 2
+              regels. */}
+          {MOBILE_PRIMARY_TABS.map(tab => {
+            const isActive = activeTab === tab.key;
+            const Icon = MOBILE_PRIMARY_TAB_ICONS[tab.key];
+            return (
+              <a
+                key={tab.key}
+                href={tab.path}
+                onClick={(e) => {
+                  if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                  e.preventDefault();
+                  navigateToTab(tab.key);
+                }}
+                className="fdr-title fdr-tab-btn fdr-tab-btn-mobile-primary"
+                aria-current={isActive ? 'page' : undefined}
+                aria-label={t(`nav.${tab.key}`)}
+                title={t(`nav.${tab.key}`)}
+                style={{
+                  color: isActive ? '#4ECDC4' : COLORS.textBody,
+                  borderBottom: isActive ? '2px solid #4ECDC4' : '2px solid transparent',
+                  textDecoration: 'none',
+                }}
+              >
+                {Icon && <Icon size={17} aria-hidden="true" />}
+                {t(`nav.compact.${tab.key}`)}
+              </a>
+            );
+          })}
 
-          <div ref={moreMenuRef} style={{ position: 'relative', marginLeft: 'auto', flexShrink: 0 }}>
+          <div ref={moreMenuRef} style={{ position: 'relative' }}>
             {(() => {
-              const activeOverflowTab = MOBILE_OVERFLOW_TABS.find(tab => tab.key === activeTab);
-              const isActive = Boolean(activeOverflowTab);
+              // isActive/de teal-onderlijning volstaan om te tonen dat de huidige tab ergens in de
+              // Meer-lijst zit; de knop toont daarnaast altijd gewoon "Meer" (i.p.v. voorheen de naam
+              // van die actieve tab) — sommige tab-namen (bv. "Bonuspunten") zijn te lang voor deze
+              // kolombreedte, en het label zelf hoeft niet te wisselen om toch duidelijk te blijven.
+              const isActive = MOBILE_OVERFLOW_TABS.some(tab => tab.key === activeTab);
               // De Meer-knop krijgt zelf één stip zolang er nog minstens één nieuwe tab (Bonuspunten/
               // Set Pieces/Kaarten) verstopt zit in het dropdown-menu erachter — niet elk item apart,
               // dat is precies wat het "Meer"-niveau al samenvat.
@@ -1828,17 +1818,18 @@ export default function FDRTool() {
                   onClick={() => setMoreMenuOpen(open => !open)}
                   aria-haspopup="true"
                   aria-expanded={moreMenuOpen}
-                  className="fdr-title fdr-tab-btn"
+                  className="fdr-title fdr-tab-btn fdr-tab-btn-mobile-primary"
                   style={{
                     color: isActive ? '#4ECDC4' : COLORS.textBody,
                     borderBottom: isActive ? '2px solid #4ECDC4' : '2px solid transparent',
-                    display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none',
-                    border: 'none', borderRadius: 0, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
+                    background: 'none', border: 'none', borderBottomColor: isActive ? '#4ECDC4' : 'transparent',
+                    borderBottomWidth: '2px', borderBottomStyle: 'solid', borderRadius: 0, cursor: 'pointer',
+                    fontFamily: 'inherit', width: '100%', position: 'relative',
                   }}
                 >
-                  {activeOverflowTab ? t(`nav.${activeOverflowTab.key}`) : t('nav.more')}
-                  {hasUnseenNewTab && !activeOverflowTab && <span style={newTabDotStyle} aria-hidden="true" />}
-                  <ChevronDown size={14} style={{ transform: moreMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} aria-hidden="true" />
+                  <ChevronDown size={17} style={{ transform: moreMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} aria-hidden="true" />
+                  {t('nav.more')}
+                  {hasUnseenNewTab && <span style={{ ...newTabDotStyle, position: 'absolute', top: '2px', right: 'calc(50% - 26px)' }} aria-hidden="true" />}
                 </button>
               );
             })()}
