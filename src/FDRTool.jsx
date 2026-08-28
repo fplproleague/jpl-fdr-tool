@@ -438,6 +438,24 @@ export default function FDRTool() {
     return () => window.removeEventListener('resize', updateTabsScrollState);
   }, [updateTabsScrollState]);
 
+  // Zelfde uitfade-mask-mechanisme als hierboven, maar dan voor het mobiele "vaste tabs"-stripje (zie
+  // .fdr-tabs-mobile-primary): op smalle telefoons (~375px) passen FDR + Team Planner + Verwachte XI's
+  // net niet naast elkaar en scrollt dat stripje binnen zijn eigen begrenzing (zie de toelichting bij
+  // MOBILE_PRIMARY_TAB_COUNT) — zonder mask was daar geen enkel signaal dat Verwachte XI's nog
+  // bereikbaar is door te scrollen.
+  const mobilePrimaryTabsRef = useRef(null);
+  const [mobilePrimaryTabsAtEnd, setMobilePrimaryTabsAtEnd] = useState(false);
+  const updateMobilePrimaryTabsScrollState = useCallback(() => {
+    const el = mobilePrimaryTabsRef.current;
+    if (!el) return;
+    setMobilePrimaryTabsAtEnd(el.scrollLeft + el.clientWidth >= el.scrollWidth - 2);
+  }, []);
+  useEffect(() => {
+    updateMobilePrimaryTabsScrollState();
+    window.addEventListener('resize', updateMobilePrimaryTabsScrollState);
+    return () => window.removeEventListener('resize', updateMobilePrimaryTabsScrollState);
+  }, [updateMobilePrimaryTabsScrollState]);
+
   // Mobiele "Meer"-tabmenu (zie .fdr-tabs-mobile hieronder): op smalle schermen is er ruimte voor
   // maar 3 tabs naast elkaar (zie MOBILE_PRIMARY_TAB_COUNT) — de rest verdwijnt in een dropdown i.p.v.
   // enkel te vertrouwen op de horizontale scroll die de brede/desktop-tabbalk wél gebruikt, want die
@@ -1248,6 +1266,17 @@ export default function FDRTool() {
           -webkit-mask-image: none;
           mask-image: none;
         }
+        /* Zelfde uitfade-mask als hierboven voor het mobiele "vaste tabs"-stripje, maar smaller (18px
+           i.p.v. 28px) — die strook is zelf al vrij compact, dus een even brede mask zou er zwaarder
+           uitzien dan de bedoeling "subtiel" is. */
+        .fdr-tabs-mobile-primary {
+          -webkit-mask-image: linear-gradient(to right, black calc(100% - 18px), transparent 100%);
+          mask-image: linear-gradient(to right, black calc(100% - 18px), transparent 100%);
+        }
+        .fdr-tabs-mobile-primary.fdr-tabs-mobile-primary--end {
+          -webkit-mask-image: none;
+          mask-image: none;
+        }
 
         /* Onder de 700px-drempel (telefoons) wisselt de tabbalk van "alle 8 tabs, horizontaal
            scrollend" naar "3 vaste tabs + Meer-dropdown" (zie MOBILE_PRIMARY_TAB_COUNT hierboven) —
@@ -1752,9 +1781,14 @@ export default function FDRTool() {
               "Meer"-knop mee te laten verdringen, scrollt enkel dít stripje dan binnen zijn eigen
               begrenzing — de "Meer"-knop (buiten deze container, zie flexShrink hieronder) blijft
               altijd volledig zichtbaar en klikbaar. */}
-          <div className="fdr-tabs-mobile-primary" style={{
-            display: 'flex', gap: '4px', overflowX: 'auto', overflowY: 'hidden', flexWrap: 'nowrap', minWidth: 0,
-          }}>
+          <div
+            ref={mobilePrimaryTabsRef}
+            className={`fdr-tabs-mobile-primary${mobilePrimaryTabsAtEnd ? ' fdr-tabs-mobile-primary--end' : ''}`}
+            onScroll={updateMobilePrimaryTabsScrollState}
+            style={{
+              display: 'flex', gap: '4px', overflowX: 'auto', overflowY: 'hidden', flexWrap: 'nowrap', minWidth: 0,
+            }}
+          >
             {MOBILE_PRIMARY_TABS.map(tab => {
               const isActive = activeTab === tab.key;
               return (
