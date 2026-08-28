@@ -1144,11 +1144,11 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "FWD",
         "xPercent": 84,
         "yPercent": 21,
-        "playerName": "Margaritha",
+        "playerName": "Abrahams",
         "playerTeamCode": "BEV",
         "playerPosition": "MID",
         "playerPrice": 6.5,
-        "safety": "red"
+        "safety": "darkgreen"
       },
       {
         "positionId": "_unassigned",
@@ -1160,7 +1160,7 @@ export const PREDICTED_LINEUPS = [
         "playerTeamCode": "BEV",
         "playerPosition": "MID",
         "playerPrice": 5.5,
-        "safety": "green"
+        "safety": "darkgreen"
       },
       {
         "positionId": "_unassigned",
