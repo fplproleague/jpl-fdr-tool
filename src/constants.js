@@ -124,7 +124,7 @@ export const DEFAULT_GW_HORIZON_END = 7;
 // mainTableMinWidth (zie FDRTool) evenredig van afschaalt bij een kleinere horizon.
 export const MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS = 760;
 export const MINILEAGUE_CODE = '19WN75';
-export const LAST_UPDATED = '24 augustus 2026';
+export const LAST_UPDATED = '28 augustus 2026';
 
 // Code voor de PERSOONLIJKE Fantasy Premier League-minileague (het echte, Engelse FPL-spel) — los van
 // MINILEAGUE_CODE hierboven, dat is voor DEZE site (Fantasy Pro League, de Belgische competitie). Wordt
