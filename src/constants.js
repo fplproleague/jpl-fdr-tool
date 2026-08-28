@@ -214,7 +214,7 @@ export const GW_DEADLINES = Object.fromEntries(
 // werken samen met die data. Zolang deze waarde ACHTERLOOPT op CURRENT_GW toont de Predicted
 // Lineups-tab een expliciete waarschuwing dat de opstellingen van een vorige speeldag zijn — zo kan
 // verouderde team-info nooit meer stilzwijgend als actueel gepresenteerd worden.
-export const PREDICTED_LINEUPS_GW = 2;
+export const PREDICTED_LINEUPS_GW = 4;
 
 // Recente vorm per team in de hoofdtabel van de FDR-tab: max. 5 laatste GESPEELDE wedstrijden, oudste
 // eerst en nieuwste laatst ('W' winst, 'G' gelijkspel, 'V' verlies). Handmatig bij te werken na elke
