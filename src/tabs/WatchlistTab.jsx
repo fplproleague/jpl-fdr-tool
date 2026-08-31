@@ -4,7 +4,7 @@
 // resetten telkens de gebruiker weg- en terugnavigeert.
 
 import { X, Plus, Eye, UserPlus, Loader2, AlertCircle, RotateCcw } from 'lucide-react';
-import { TEAMS, CURRENT_GW, FIXTURES, sectionTitleStyle, sectionTitleTextStyle } from '../constants';
+import { TEAMS, CURRENT_GW, FIXTURES, DEFAULT_GW_HORIZON_END, sectionTitleStyle, sectionTitleTextStyle } from '../constants';
 import { COLORS, retryButtonStyle, primaryButtonStyle } from '../theme';
 import { MiniFixtureBadge } from '../components/MiniFixtureBadge';
 import { PlayerSearchInput } from '../components/PlayerSearchInput';
@@ -115,9 +115,12 @@ export default function WatchlistTab({
             <div style={{ display: 'grid', gap: '8px' }}>
               {watchlist.map(player => {
                 const team = TEAMS.find(team => team.code === player.teamCode);
-                // Eerstvolgende (max. 5) fixtures vanaf CURRENT_GW — .slice() geeft vanzelf minder
-                // terug als het seizoen bijna afloopt, dus geen aparte "resterende fixtures"-logica nodig.
-                const upcomingFixtures = (FIXTURES[player.teamCode] ?? []).slice(CURRENT_GW - 1, CURRENT_GW - 1 + 5);
+                // Eerstvolgende fixtures vanaf CURRENT_GW, nooit voorbij DEFAULT_GW_HORIZON_END (GW7) —
+                // vanaf GW8 krijgen spelers onbeperkte gratis transfers en begint dus een nieuwe periode
+                // (zelfde grens als "Beste fixture runs" op de FDR-tab, zie rangeEnd in FDRTool.jsx).
+                // .slice() geeft vanzelf minder terug als CURRENT_GW dicht bij die grens zit, dus geen
+                // aparte "resterende fixtures"-logica nodig.
+                const upcomingFixtures = (FIXTURES[player.teamCode] ?? []).slice(CURRENT_GW - 1, DEFAULT_GW_HORIZON_END);
                 return (
                   <div key={player.id} style={{
                     position: 'relative', background: 'rgba(255,255,255,0.04)',

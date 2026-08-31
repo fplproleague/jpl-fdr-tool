@@ -468,12 +468,14 @@ export default function FDRTool() {
   }, [moreMenuOpen]);
   const [ratings, setRatings] = useState(() => loadRatingsFromURL() || loadStoredRatings() || DEFAULT_RATINGS);
   const [homeAdvantage, setHomeAdvantage] = useState(() => loadHomeAdvantageFromURL() || loadStoredHomeAdvantage() || DEFAULT_HOME_ADVANTAGE);
-  // Beide starten standaard op CURRENT_GW (i.p.v. hardcoded GW1) zodat de default range vanzelf
+  // rangeStart start standaard op CURRENT_GW (i.p.v. hardcoded GW1) zodat de default range vanzelf
   // meeschuift bij het wekelijks bijwerken van CURRENT_GW in constants.js — geen aparte aanpassing
-  // hier nodig. Math.min met GW_COUNT voorkomt een out-of-range eind mocht CURRENT_GW ooit dicht bij
-  // GW_COUNT liggen.
+  // hier nodig. rangeEnd gebruikt DEFAULT_GW_HORIZON_END (=7) i.p.v. een CURRENT_GW-afhankelijke
+  // formule: vanaf GW8 krijgen spelers onbeperkte gratis transfers (zie DEFAULT_GW_HORIZON_END in
+  // constants.js) en begint dus een nieuw "seizoen" qua planning, dus "Beste fixture runs" hoort
+  // nooit voorbij GW7 te kijken in de standaardweergave.
   const [rangeStart, setRangeStart] = useState(CURRENT_GW);
-  const [rangeEnd, setRangeEnd] = useState(Math.min(CURRENT_GW + 4, GW_COUNT));
+  const [rangeEnd, setRangeEnd] = useState(DEFAULT_GW_HORIZON_END);
   // GW-horizon van de hoofdtabel (Fixture Difficulty Rating) — los van rangeStart/rangeEnd hierboven,
   // die enkel "Beste fixture runs" sturen. Start standaard op CURRENT_GW-DEFAULT_GW_HORIZON_END (schuift
   // vanzelf mee met CURRENT_GW, zelfde redenering als rangeStart hierboven); de gebruiker kan dit zelf

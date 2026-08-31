@@ -265,6 +265,7 @@ const STRINGS = {
     'bonuspunten.section.bigChances': 'Grote kansen gecreëerd (> 1)',
     'bonuspunten.section.bonusPoints': 'Meeste bonuspunten',
     'bonuspunten.duelsSubtitle': '{{won}} gewonnen · {{lost}} verloren',
+    'bonuspunten.updatedLabel': 'Updated: GW{{gw}}',
 
     // --- Set Pieces-tab ---
     'setpieces.legend.penalty': 'Penalty',
@@ -283,6 +284,7 @@ const STRINGS = {
     'kaarten.emptyNoData': 'Nog geen kaarten-gegevens beschikbaar — kom binnenkort terug.',
     'kaarten.emptyNoQualifying': 'Nog geen enkele speler met {{min}}+ gele kaarten — kom later in het seizoen terug.',
     'kaarten.cardsUnit': 'gele kaarten',
+    'kaarten.suspensionExplainer': 'Het aantal gele kaarten dat meetelt voor een mogelijke schorsing: bij 5 gele kaarten volgt een schorsing, en opnieuw bij 10. Een tweede gele kaart in dezelfde wedstrijd (met rode kaart tot gevolg) telt niet mee in deze telling.',
 
     // --- Gedeelde statussen (loading/error, meerdere tabs) ---
     'shared.loading': 'Laden...',
@@ -521,6 +523,7 @@ const STRINGS = {
     'bonuspunten.section.bigChances': 'Grosses occasions créées (> 1)',
     'bonuspunten.section.bonusPoints': 'Plus de points bonus',
     'bonuspunten.duelsSubtitle': '{{won}} gagnés · {{lost}} perdus',
+    'bonuspunten.updatedLabel': 'Mis à jour : J{{gw}}',
 
     // --- Onglet Coups de pied arrêtés ---
     'setpieces.legend.penalty': 'Penalty',
@@ -539,6 +542,7 @@ const STRINGS = {
     'kaarten.emptyNoData': 'Pas encore de données de cartons disponibles — revenez bientôt.',
     'kaarten.emptyNoQualifying': "Aucun joueur avec {{min}}+ cartons jaunes pour l'instant — revenez plus tard dans la saison.",
     'kaarten.cardsUnit': 'cartons jaunes',
+    'kaarten.suspensionExplainer': "Le nombre de cartons jaunes qui comptent pour une suspension éventuelle : à 5 cartons jaunes, une suspension suit, puis à nouveau à 10. Un deuxième carton jaune dans le même match (entraînant un carton rouge) ne compte pas dans ce total.",
 
     'shared.loading': 'Chargement...',
     'shared.loadError': "Impossible de charger la base de joueurs, réessayez.",
