@@ -124,7 +124,6 @@ export const DEFAULT_GW_HORIZON_END = 7;
 // mainTableMinWidth (zie FDRTool) evenredig van afschaalt bij een kleinere horizon.
 export const MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS = 760;
 export const MINILEAGUE_CODE = '19WN75';
-export const LAST_UPDATED = '28 augustus 2026';
 
 // Code voor de PERSOONLIJKE Fantasy Premier League-minileague (het echte, Engelse FPL-spel) — los van
 // MINILEAGUE_CODE hierboven, dat is voor DEZE site (Fantasy Pro League, de Belgische competitie). Wordt
@@ -186,6 +185,20 @@ export function formatGwDeadline(gw) {
       .map(p => [p.type, p.value])
   );
   return `${parts.weekday} ${parts.day} ${parts.month} ${parts.hour}:${parts.minute}`;
+}
+
+// "Laatst bijgewerkt"-datum in de footer ("28 augustus 2026" / "28 août 2026") — vroeger een
+// handmatig bij te werken constante (LAST_UPDATED), die daardoor stelselmatig achterliep zodra
+// iemand vergat ze aan te passen. Nu altijd de echte datum van vandaag, in Belgische tijdzone (zelfde
+// redenering als BELGIAN_TIME_ZONE hierboven bij de GW-deadlines) en in de taal van de bezoeker.
+const TODAY_FORMATTERS = {
+  nl: new Intl.DateTimeFormat('nl-BE', { timeZone: BELGIAN_TIME_ZONE, day: 'numeric', month: 'long', year: 'numeric' }),
+  fr: new Intl.DateTimeFormat('fr-BE', { timeZone: BELGIAN_TIME_ZONE, day: 'numeric', month: 'long', year: 'numeric' }),
+};
+
+export function formatTodayLong(language) {
+  const formatter = TODAY_FORMATTERS[language] ?? TODAY_FORMATTERS.nl;
+  return formatter.format(new Date());
 }
 
 // De eerste GW waarvan de deadline nog niet verstreken is — dát is de gameweek waar een bezoeker mee
