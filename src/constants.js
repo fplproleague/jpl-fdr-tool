@@ -84,14 +84,14 @@ export const POSTPONED_DATES = {
 };
 
 // Nog niet zeker uitgesteld — kan verschuiven afhankelijk van Europese kwalificatie. Zelfde key-structuur als POSTPONED.
+// USG-LOM (GW6) stond hier (afhankelijk van Union SG's Europees programma), maar is intussen bevestigd
+// door te gaan zoals gepland — vandaar leeg i.p.v. verwijderd: dit blijft het mechanisme voor een
+// volgende, nog onzekere wedstrijd.
 export const POSSIBLY_POSTPONED = new Set([
-  'USG-6', // Union SG vs Lommel, GW6 — afhankelijk van Europees programma Union SG
-  'LOM-6', // Lommel vs Union SG, GW6 — afhankelijk van Europees programma Union SG
 ]);
 
 // Eén reden per wedstrijd, opgezocht via een teamcode-onafhankelijke (gesorteerde) paar-key.
 export const POSSIBLY_POSTPONED_REASONS = {
-  'LOM-USG': "mogelijk uitgesteld afhankelijk van Union SG's Europees programma",
 };
 
 export const DEFAULT_RATINGS = {
