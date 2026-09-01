@@ -29,6 +29,11 @@ const retryButtonStyle = {
 // vlag-opzet als SHOW_CLOSEST_TO_SUSPENSION_MODE in KaartenTab.jsx.
 const BONUS_POINTS_DATA_AVAILABLE = false;
 
+// Handmatig bij te werken samen met de spelersdatabank-sheet — zie het "Updated: GW.."-badge
+// hieronder. Geen automatische afleiding mogelijk (in tegenstelling tot bv. PREDICTED_LINEUPS_GW in
+// constants.js), want de gedeelde CSV heeft geen eigen "laatst bijgewerkt"-kolom.
+const BONUSPUNTEN_UPDATED_GW = 4;
+
 function RankingSection({ icon, title, sectionKey, isOpen, onToggle, children }) {
   return (
     <section style={{ marginBottom: '20px' }}>
@@ -172,6 +177,22 @@ export default function BonuspuntenTab({ t, playerDatabase, playerDatabaseLoadin
 
   return (
     <>
+      {/* Laatste-update-badge op een eigen, rechts uitgelijnde regel — zelfde badge-stijl (teal pil)
+          als de "Updated: GW.."-badge op de Set Pieces-tab. Bewust niet in dezelfde flex-rij als de
+          introtekst: die is te lang om ooit naast een badge te passen zonder toch naar een eigen regel
+          te wrappen, dus dit is voorspelbaarder. BONUSPUNTEN_UPDATED_GW is nog een handmatige constante
+          (voorlopig GW4) i.p.v. dynamisch uit de sheet gelezen, want de gedeelde spelersdatabank-CSV
+          heeft geen eigen "laatst bijgewerkt"-kolom zoals het Set Pieces-werkblad. */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
+        <span style={{
+          color: '#4ECDC4', fontWeight: 800, fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase',
+          background: 'rgba(78,205,196,0.12)', border: '1px solid rgba(78,205,196,0.3)',
+          borderRadius: '999px', padding: '5px 14px', whiteSpace: 'nowrap',
+        }}>
+          {t('bonuspunten.updatedLabel', { gw: BONUSPUNTEN_UPDATED_GW })}
+        </span>
+      </div>
+
       <p style={{ color: '#8F79AD', fontSize: '13px', marginBottom: '18px' }}>
         {t('bonuspunten.intro')}
       </p>
