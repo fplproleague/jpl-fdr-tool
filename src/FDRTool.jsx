@@ -8,7 +8,7 @@ import { useState, useMemo, useRef, useCallback, useEffect, lazy, Suspense } fro
 import { Info, X, Check, Copy, Undo2, Loader2, ChevronDown, Grid2x2, Users, Shirt } from 'lucide-react';
 import {
   TEAMS, FIXTURES, GW_COUNT, CURRENT_GW, DEFAULT_GW_HORIZON_END, MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS,
-  MINILEAGUE_CODE, PL_MINILEAGUE_CODE, formatTodayLong, GW_INDEXES, DEFAULT_RATINGS, DEFAULT_HOME_ADVANTAGE,
+  MINILEAGUE_CODE, formatTodayLong, GW_INDEXES, DEFAULT_RATINGS, DEFAULT_HOME_ADVANTAGE,
   TEAM_PLANNER_SQUAD_SIZE, TEAM_PLANNER_BENCH_SIZE, TEAM_PLANNER_SLOT_POSITIONS, VALID_FORMATIONS,
   resolveSlotPlayerAtGw, PLAYER_DATABASE_CSV_URL, parsePlayerDatabaseCsv, getFixtureScores, average,
   POSTPONED, computeTeamPlannerTransferBudget, getGwDeadlineDate,
@@ -79,10 +79,6 @@ const HOME_ADVANTAGE_STORAGE_KEY = 'fpl_proleague_fdr_home_advantage_v1';
 const WATCHLIST_STORAGE_KEY = 'fpl_proleague_watchlist_v1';
 // Onthoudt of de first-time-uitleg over Thuisvoordeel al getoond is, zodat die maar één keer ooit verschijnt.
 const HOME_ADVANTAGE_INTRO_SEEN_KEY = 'fpl_proleague_ha_intro_seen_v1';
-// Onthoudt of de eenmalige PL-minileague-popup (zie PL_MINILEAGUE_CODE, constants.js) al getoond is —
-// zelfde eenmalig-tonen-patroon als hasSeenHomeAdvantageIntro hieronder. Elke bezoeker ziet 'm precies
-// één keer, ongeacht hoe vaak ze de site nadien nog openen.
-const PL_MINILEAGUE_POPUP_SEEN_KEY = 'fpl_proleague_pl_minileague_popup_seen_v1';
 // Eigen storage key voor de Team Planner — los van de watch list hierboven.
 const TEAM_PLANNER_STORAGE_KEY = 'fpl_proleague_teamplanner_v1';
 // Onthoudt de gekozen taal (NL/FR) tussen bezoeken — zie src/i18n.js.
@@ -99,8 +95,8 @@ function loadStoredLanguage() {
 
 // Welke tabs een "nieuw"-stip krijgen in de tabbalk (zie NEW_TAB_KEYS-gebruik verderop) totdat de
 // bezoeker ze minstens één keer heeft geopend — zelfde eenmalig-tonen-opzet als
-// hasSeenHomeAdvantageIntro/PL_MINILEAGUE_POPUP_SEEN_KEY hierboven, maar dan per tab i.p.v. één
-// globale vlag: een array van reeds-bezochte tab-keys i.p.v. een simpele '1'/geen-waarde.
+// hasSeenHomeAdvantageIntro hierboven, maar dan per tab i.p.v. één globale vlag: een array van
+// reeds-bezochte tab-keys i.p.v. een simpele '1'/geen-waarde.
 const NEW_TABS_SEEN_STORAGE_KEY = 'fpl_proleague_new_tabs_seen_v1';
 const NEW_TAB_KEYS = ['bonuspunten', 'setpieces', 'kaarten'];
 
@@ -191,14 +187,6 @@ function loadStoredHomeAdvantage() {
 function hasSeenHomeAdvantageIntro() {
   try {
     return window.localStorage?.getItem(HOME_ADVANTAGE_INTRO_SEEN_KEY) === '1';
-  } catch {
-    return false;
-  }
-}
-
-function hasSeenPLMinileaguePopup() {
-  try {
-    return window.localStorage?.getItem(PL_MINILEAGUE_POPUP_SEEN_KEY) === '1';
   } catch {
     return false;
   }
@@ -492,33 +480,6 @@ export default function FDRTool() {
   const [downloading, setDownloading] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [showHomeAdvantageIntro, setShowHomeAdvantageIntro] = useState(false);
-  const [showPLMinileaguePopup, setShowPLMinileaguePopup] = useState(false);
-  const [plCodeCopied, setPlCodeCopied] = useState(false);
-  // Eenmalige PL-minileague-popup: verschijnt bij de allereerste keer dat iemand de site opent (niet
-  // getriggerd door een klik, in tegenstelling tot de Thuisvoordeel-uitleg hierboven), en daarna nooit
-  // meer — zie hasSeenPLMinileaguePopup/PL_MINILEAGUE_POPUP_SEEN_KEY.
-  useEffect(() => {
-    if (!hasSeenPLMinileaguePopup()) {
-      setShowPLMinileaguePopup(true);
-    }
-  }, []);
-  const handleClosePLMinileaguePopup = () => {
-    setShowPLMinileaguePopup(false);
-    try {
-      window.localStorage?.setItem(PL_MINILEAGUE_POPUP_SEEN_KEY, '1');
-    } catch {
-      // storage unavailable — de popup verschijnt dan gewoon opnieuw bij een volgend bezoek
-    }
-  };
-  const handleCopyPLMinileagueCode = async () => {
-    try {
-      await navigator.clipboard.writeText(PL_MINILEAGUE_CODE);
-      setPlCodeCopied(true);
-      setTimeout(() => setPlCodeCopied(false), 2000);
-    } catch {
-      // clipboard unavailable — zelfde stille fallback als handleCopyMinileagueCode
-    }
-  };
   const [openSections, setOpenSections] = useState({
     sliders: false,
     table: true,
@@ -2064,53 +2025,6 @@ export default function FDRTool() {
             <p style={{ color: '#C9B8E0', fontSize: '13px', lineHeight: 1.6, marginTop: '8px' }}>
               {t('infoModal.p3')}
             </p>
-          </div>
-        </div>
-      )}
-
-      {/* Eenmalige PL-minileague-popup — zie showPLMinileaguePopup hierboven voor de "toon precies één
-          keer ooit"-logica. Bewust vereenvoudigd tot enkel de code zelf (geen aankondigingstekst meer)
-          — PL_MINILEAGUE_POPUP_SEEN_KEY bleef ONGEWIJZIGD t.o.v. de vorige (uitgebreidere) versie, dus
-          wie die al zag krijgt deze simpelere versie niet alsnog te zien. TIJDELIJKE content: dit hele
-          blok (plus PL_MINILEAGUE_CODE in constants.js) mag weg zodra de hype rond de seizoensstart
-          voorbij is. Zelfde overlay-opzet als de "Hoe werkt dit?"-modal hierboven (klik op de
-          achtergrond sluit ook), maar met een eigen hogere zIndex zodat hij bij een eerste bezoek
-          altijd bovenop verschijnt. */}
-      {showPLMinileaguePopup && (
-        <div onClick={handleClosePLMinileaguePopup} style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex',
-          alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 70
-        }}>
-          <div onClick={e => e.stopPropagation()} style={{
-            background: '#3D1E5C', borderRadius: '14px', padding: '20px', maxWidth: '340px',
-            border: '1px solid rgba(78,205,196,0.35)',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
-              <p style={{ color: '#FFF', fontSize: '15px', fontWeight: 700, lineHeight: 1.4, margin: 0 }}>
-                {t('plPopup.body')} <span style={{ color: '#4ECDC4', letterSpacing: '0.05em' }}>{PL_MINILEAGUE_CODE}</span>
-              </p>
-              <button
-                onClick={handleClosePLMinileaguePopup}
-                aria-label={t('plPopup.closeAria')}
-                style={{ background: 'none', border: 'none', color: '#C9B8E0', cursor: 'pointer', flexShrink: 0 }}
-              >
-                <X size={18} />
-              </button>
-            </div>
-            <button
-              onClick={handleCopyPLMinileagueCode}
-              className="fdr-touch-target"
-              aria-label={t('plPopup.copyAria', { code: PL_MINILEAGUE_CODE })}
-              style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', width: '100%',
-                background: plCodeCopied ? 'transparent' : '#4ECDC4', color: plCodeCopied ? '#4ECDC4' : '#0B2E1B',
-                border: '1px solid #4ECDC4', borderRadius: '8px', padding: '8px 12px', marginTop: '14px',
-                fontWeight: 700, fontSize: '12px', fontFamily: 'inherit', cursor: 'pointer',
-              }}
-            >
-              {plCodeCopied ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
-              {plCodeCopied ? t('header.copied') : t('header.copy')}
-            </button>
           </div>
         </div>
       )}

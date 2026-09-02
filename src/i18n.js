@@ -76,9 +76,6 @@ const STRINGS = {
     'homeAdvantageToast.closeAria': 'Sluiten',
 
     // --- PL-minileague-popup ---
-    'plPopup.body': 'Fantasy Premier League code:',
-    'plPopup.closeAria': 'Melding sluiten',
-    'plPopup.copyAria': 'Minileague-code {{code}} kopiëren',
 
     // --- Undo-melding (watchlist-speler verwijderd) — enkel het achtervoegsel, de naam zelf staat al
     // vetgedrukt in een eigen <strong> ervoor (zie FDRTool.jsx), vandaar geen {{name}}-token hier.
@@ -341,9 +338,6 @@ const STRINGS = {
     'homeAdvantageToast.bodySuffix': "augmente la difficulté de 1 pour les équipes qui viennent y jouer.",
     'homeAdvantageToast.closeAria': 'Fermer',
 
-    'plPopup.body': 'Code Fantasy Premier League :',
-    'plPopup.closeAria': 'Fermer la notification',
-    'plPopup.copyAria': 'Copier le code de mini-ligue {{code}}',
 
     'undo.removedSuffix': 'retiré.',
     'undo.action': 'Annuler',
