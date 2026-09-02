@@ -61,7 +61,7 @@ const STRINGS = {
     'route.pricechanges.description': 'Prijswijzigingen in Fantasy Pro League. In het spel veranderen prijzen pas vanaf gameweek 7.',
     'footer.madeBy': 'Gemaakt door',
     'footer.season': 'Fantasy Pro League 26/27 · Data eigen analyse',
-    'footer.lastUpdated': 'Laatst bijgewerkt: {{date}}',
+    'footer.lastUpdated': 'Data bijgewerkt: {{date}}',
 
     // --- Info-modal (FDR-uitleg) ---
     'infoModal.title': 'Hoe werkt dit?',
@@ -87,6 +87,7 @@ const STRINGS = {
     'fdr.intro': 'Mijn eigen fixture difficulty ratings — pas ze aan naar jouw mening en ontdek meteen welke teams de beste runs hebben.',
     'fdr.badge.custom': 'JOUW AANGEPASTE VERSIE',
     'fdr.badge.default': 'RATING VAN @FPL_PROLEAGUE',
+    'fdr.ratingsUpdatedLabel': 'Ratings bijgewerkt: {{date}}',
     'fdr.copyLink': 'Kopieer link',
     'fdr.copyLinkShort': 'Kopieer',
     'fdr.linkCopied': 'Link gekopieerd!',
@@ -138,6 +139,7 @@ const STRINGS = {
     // --- Predicted Lineups ---
     'predictedLineups.introEmpty': 'Voorspelde opstellingen voor GW{{gw}}, samengesteld door @5YSiebee.',
     'predictedLineups.intro': 'Voorspelde opstellingen voor GW{{gw}}, samengesteld door @5YSiebee. Kies een club om de verwachte opstelling te bekijken.',
+    'predictedLineups.datasetUpdatedLabel': 'Opstellingen bijgewerkt: {{date}}',
     'predictedLineups.staleGateText': 'De opstellingen voor GW{{gw}} zijn nog niet klaar.',
     'predictedLineups.staleGateButton': 'Toon GW{{gw}} ter referentie',
     'predictedLineups.pitchGwLabel': 'GW{{gw}}',
@@ -330,7 +332,7 @@ const STRINGS = {
     'route.pricechanges.description': "Changements de prix en Fantasy Pro League. Dans le jeu, les prix ne bougent qu'à partir de la journée 7.",
     'footer.madeBy': 'Créé par',
     'footer.season': 'Fantasy Pro League 26/27 · Analyse maison',
-    'footer.lastUpdated': 'Dernière mise à jour : {{date}}',
+    'footer.lastUpdated': 'Données mises à jour : {{date}}',
 
     'infoModal.title': 'Comment ça marche ?',
     'infoModal.close': 'Fermer',
@@ -349,6 +351,7 @@ const STRINGS = {
     'fdr.intro': "Mes propres évaluations de difficulté des matchs — adaptez-les à votre avis et découvrez immédiatement les meilleurs calendriers.",
     'fdr.badge.custom': 'VERSION PERSONNALISÉE',
     'fdr.badge.default': 'SELON @FPL_PROLEAGUE',
+    'fdr.ratingsUpdatedLabel': 'Évaluations mises à jour : {{date}}',
     'fdr.copyLink': 'Copier le lien',
     'fdr.copyLinkShort': 'Copier',
     'fdr.linkCopied': 'Lien copié !',
@@ -398,6 +401,7 @@ const STRINGS = {
 
     'predictedLineups.introEmpty': 'Compositions probables pour la J{{gw}}, réalisées par @5YSiebee.',
     'predictedLineups.intro': 'Compositions probables pour la J{{gw}}, réalisées par @5YSiebee. Choisissez un club pour voir sa composition probable.',
+    'predictedLineups.datasetUpdatedLabel': 'Compositions mises à jour : {{date}}',
     'predictedLineups.staleGateText': "Les compositions pour la J{{gw}} ne sont pas encore prêtes.",
     'predictedLineups.staleGateButton': 'Afficher la J{{gw}} à titre de référence',
     'predictedLineups.pitchGwLabel': 'J{{gw}}',

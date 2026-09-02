@@ -158,6 +158,7 @@ function TeamFormBar({ results }) {
 
 export default function FDRTab({
   t,
+  dataUpdatedFdrRatings,
   ratings, homeAdvantage, updateRating, toggleHomeAdvantage,
   isCustom, saved, linkCopied, downloading,
   handleCopyLink, handleDownloadImage, handleReset, handleSave, setShowInfo,
@@ -174,6 +175,14 @@ export default function FDRTab({
     <p style={{ color: COLORS.textMuted, fontSize: '13px', marginBottom: '18px' }}>
       {t('fdr.intro')}
     </p>
+    {/* Kleine, gedempte datum-notitie — apart van de fpl-toolbar hieronder i.p.v. erin, want die
+        toolbar-breedte is al fijn afgesteld zodat NL en FR er allebei op 1 regel in passen (zie de
+        commit-geschiedenis daarover); hier tussenvoegen zou dat weer breken. */}
+    {dataUpdatedFdrRatings && (
+      <p style={{ color: COLORS.textSubtle, fontSize: '11px', marginTop: '-10px', marginBottom: '18px' }}>
+        {t('fdr.ratingsUpdatedLabel', { date: dataUpdatedFdrRatings })}
+      </p>
+    )}
     <div className="fpl-toolbar" style={{
       display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center',
       marginBottom: '24px', padding: '14px 16px', background: 'rgba(255,255,255,0.04)',
