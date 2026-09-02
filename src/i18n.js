@@ -113,6 +113,13 @@ const STRINGS = {
     'fdr.sortByDifficulty': 'Sorteer op makkelijkste run',
     'fdr.gwLabel': 'GW',
     'fdr.gwTo': 't/m',
+    // Twee onafhankelijke GW-keuzes op dezelfde pagina (tabel hierboven vs. Beste fixture runs
+    // verderop) — allebei toonden voorheen enkel het generieke "GW X t/m Y", zonder dat duidelijk was
+    // dat het om 2 aparte instellingen ging. Expliciet label per kiezer i.p.v. samenvoegen: de tabel
+    // mag tot het volledige seizoen uitgebreid worden, terwijl Beste fixture runs bewust nooit voorbij
+    // GW7 kijkt (zie DEFAULT_GW_HORIZON_END in constants.js) — samenvoegen zou dat verschil verliezen.
+    'fdr.gwRangeTableLabel': 'Bereik van deze tabel: GW',
+    'fdr.gwRangeRunsLabel': 'Bereik van Beste fixture runs: GW',
     'fdr.tapHint': 'Tik op grijze cellen of die met een * voor meer info',
     'fdr.teamColumn': 'Team',
     'fdr.rating.1': 'Makkelijkst',
@@ -120,9 +127,14 @@ const STRINGS = {
     'fdr.rating.3': 'Gemiddeld',
     'fdr.rating.4': 'Moeilijk',
     'fdr.rating.5': 'Moeilijkst',
+    'fdr.formLegend': 'Stippen onder teamcode = vorm laatste 5 wedstrijden',
     'fdr.avgDifficulty': 'Gem. moeilijkheid: {{value}}',
     'fdr.compareIntro': 'Kies tot 5 teams om hun fixtures onder elkaar te zien (vanaf GW{{gw}}).',
     'fdr.compareNoTeams': 'Nog geen teams geselecteerd.',
+    // Geen aparte "Short"-variant zoals fdr.downloadImageShort hierboven nodig: die bestaat om binnen
+    // .fpl-toolbar-secondary op smalle schermen te verkorten (zie FDRTool.jsx), maar deze knop staat
+    // niet in die container.
+    'fdr.downloadRunsImage': 'Download als afbeelding',
 
     // --- Watchlist ---
     'watchlist.intro': 'Houd je favoriete spelers in de gaten — voeg ze toe aan je persoonlijke watchlist, samen met hun eerstvolgende fixtures. Deze lijst slaat automatisch op in je browser.',
@@ -377,6 +389,8 @@ const STRINGS = {
     'fdr.sortByDifficulty': 'Trier par calendrier le plus facile',
     'fdr.gwLabel': 'J',
     'fdr.gwTo': 'à',
+    'fdr.gwRangeTableLabel': 'Plage de ce tableau : J',
+    'fdr.gwRangeRunsLabel': 'Plage des Meilleurs calendriers : J',
     'fdr.tapHint': 'Touchez les cellules grises ou marquées d’un * pour plus d’infos',
     'fdr.teamColumn': 'Équipe',
     'fdr.rating.1': 'Le plus facile',
@@ -384,9 +398,11 @@ const STRINGS = {
     'fdr.rating.3': 'Moyen',
     'fdr.rating.4': 'Difficile',
     'fdr.rating.5': 'Le plus difficile',
+    'fdr.formLegend': 'Points sous le code équipe = forme des 5 derniers matchs',
     'fdr.avgDifficulty': 'Difficulté moy. : {{value}}',
     'fdr.compareIntro': "Choisissez jusqu'à 5 équipes pour comparer leurs matchs (à partir de J{{gw}}).",
     'fdr.compareNoTeams': 'Aucune équipe sélectionnée pour le moment.',
+    'fdr.downloadRunsImage': "Télécharger l'image",
 
     'watchlist.intro': "Gardez un œil sur vos joueurs préférés — ajoutez-les à votre watchlist personnelle, avec leurs prochains matchs. Cette liste est enregistrée automatiquement dans votre navigateur.",
     'watchlist.loadingDb': 'Chargement de la base de joueurs...',

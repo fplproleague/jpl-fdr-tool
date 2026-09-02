@@ -18,6 +18,14 @@ import { PostponedIndicator, TooltipTrigger } from '../components/Tooltip';
 // tabs.
 const secondaryToolbarBtnStyle = secondaryButtonStyle;
 
+// Gedempte variant voor de destructieve "Reset FDR"-knop (zie de toelichting bij de knop zelf) — geen
+// border/achtergrond, gedempte tekstkleur, zodat hij duidelijk minder gewicht draagt dan de veilige
+// acties (Kopieer link/Download) ernaast zonder als een rode waarschuwing op te vallen.
+const mutedToolbarBtnStyle = {
+  ...secondaryButtonStyle,
+  background: 'transparent', border: '1px solid transparent', color: COLORS.textSubtle,
+};
+
 // Sticky eerste kolom voor brede, horizontaal scrollbare tabellen. De hoofdtabel gebruikte dit al;
 // nu ook de vergelijk-tabel, die anders bij het naar rechts scrollen geen enkel houvast bood over
 // welke rij bij welk team hoort. De dubbele box-shadow maskeert de border-spacing-opening links en
@@ -168,6 +176,7 @@ export default function FDRTab({
   visibleGwHeaderCells, compareGwHeaderCells, compareGwStart, mainTableMinWidth,
   displayedTeams, tableRef,
   rangeStart, setRangeStart, rangeEnd, setRangeEnd, bestRuns,
+  runsRef, downloadingRuns, handleDownloadRunsImage,
   compareTeams, toggleCompareTeam,
 }) {
   return (
@@ -211,7 +220,11 @@ export default function FDRTab({
         <span className="fdr-btn-label-full">{downloading ? t('fdr.downloading') : t('fdr.downloadImage')}</span>
         <span className="fdr-btn-label-short">{downloading ? t('fdr.downloading') : t('fdr.downloadImageShort')}</span>
       </button>
-      <button onClick={handleReset} className="fdr-toolbar-btn" style={secondaryToolbarBtnStyle}>
+      {/* Bewust GEEN secondaryToolbarBtnStyle (zoals "Kopieer link"/"Download" hierboven): Reset is de
+          enige destructieve actie in deze rij (verwijdert de eigen ratings) en verdiende niet hetzelfde
+          visuele gewicht als de veilige acties ernaast. Geen border/achtergrond en gedempte tekstkleur
+          i.p.v. rood/danger — dat zou juist méér aandacht trekken, terwijl het doel hier is: minder. */}
+      <button onClick={handleReset} className="fdr-toolbar-btn" style={mutedToolbarBtnStyle}>
         <RotateCcw size={14} />
         <span className="fdr-btn-label-full">{t('fdr.reset')}</span>
         <span className="fdr-btn-label-short">{t('fdr.resetShort')}</span>
@@ -231,90 +244,6 @@ export default function FDRTab({
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '24px' }}>
 
       <section>
-        <SectionHeader icon={Settings2} title={t('fdr.section.sliders')} sectionKey="sliders" isOpen={openSections.sliders} onToggle={toggleSection} />
-        {openSections.sliders && (
-        <div id="fdr-section-sliders" className="fdr-sliders-grid" style={{
-          display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '8px', marginBottom: '8px'
-        }}>
-          {TEAMS_ALPHA.map(team => {
-            const r = ratings[team.code];
-            const style = RATING_STYLE[r];
-            const homeAdvantageOn = !!homeAdvantage[team.code];
-            return (
-              <div key={team.code} style={{
-                background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-                borderRadius: '10px', padding: '8px 10px'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <img
-                      src={`/club-logos/${team.code}.webp`}
-                      alt=""
-                      className="club-logo"
-                      style={{ width: '16px', height: '16px', objectFit: 'contain', flexShrink: 0 }}
-                      onError={(e) => { e.target.style.display = 'none'; }}
-                    />
-                    <span style={{ color: '#FFF', fontSize: '12px', fontWeight: 600 }}>{team.code}</span>
-                  </span>
-                  <span style={{
-                    fontSize: '10px', fontWeight: 700, padding: '1px 6px', borderRadius: '999px',
-                    background: style.bg, color: style.text
-                  }}>{r}</span>
-                </div>
-                <input
-                  type="range" min={1} max={5} step={1} value={r}
-                  onChange={e => updateRating(team.code, Number(e.target.value))}
-                  style={{ width: '100%' }}
-                  aria-label={t('fdr.strengthAria', { team: team.name })}
-                />
-                {/* Thuisvoordeel: losstaand van de sterkte-slider hierboven, zie getEffectiveRating.
-                    De VOLLEDIGE rij (label + schakelaar) is nu de knop, niet enkel het schakelaartje
-                    van 30x16px. Dat was met afstand het kleinste aanraakdoel op de site, en er staan
-                    er achttien van op één scherm — twee kolommen naast elkaar op een telefoon. De
-                    .fdr-touch-target-klasse tilt de rij op aanraakapparaten naar 44px hoogte. */}
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={homeAdvantageOn}
-                  aria-label={t('fdr.homeAdvantageAria', { team: team.name })}
-                  onClick={() => toggleHomeAdvantage(team.code)}
-                  className="fdr-touch-target"
-                  style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px',
-                    width: '100%', marginTop: '6px', padding: '4px 0',
-                    background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                  }}
-                >
-                  <span style={{ color: COLORS.textBody, fontSize: '10px' }}>{t('fdr.homeAdvantage')}</span>
-                  {/* De knop verschoof voorheen via justifyContent (flex-start/flex-end) — dat is geen
-                      animeerbare CSS-property, dus de knop "sprong" abrupt naar de overkant terwijl
-                      enkel de achtergrondkleur vloeiend overging, wat als een flits oogde. Nu blijft
-                      justifyContent weg en schuift de knop zelf via een getransitionde transform. */}
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      position: 'relative', display: 'inline-flex', alignItems: 'center',
-                      width: '34px', height: '18px', borderRadius: '999px', flexShrink: 0,
-                      background: homeAdvantageOn ? '#4ECDC4' : 'rgba(255,255,255,0.15)',
-                      transition: 'background 0.15s ease',
-                    }}
-                  >
-                    <span style={{
-                      position: 'absolute', top: '2px', left: '2px',
-                      width: '14px', height: '14px', borderRadius: '50%', background: '#FFFFFF', display: 'block',
-                      transform: homeAdvantageOn ? 'translateX(16px)' : 'translateX(0)',
-                      transition: 'transform 0.15s ease',
-                    }} />
-                  </span>
-                </button>
-              </div>
-            );
-          })}
-        </div>
-        )}
-      </section>
-
-      <section>
         <SectionHeader icon={Grid2x2} title={t('fdr.section.table')} sectionKey="table" isOpen={openSections.table} onToggle={toggleSection} />
         {openSections.table && (
         <div style={{
@@ -330,8 +259,11 @@ export default function FDRTab({
             {sortByDifficulty ? t('fdr.sortByDifficultySorted') : t('fdr.sortByDifficulty')}
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+            {/* Expliciet "Bereik VAN DEZE TABEL" i.p.v. het generieke "GW" — er staat verderop nog een
+                tweede, onafhankelijke GW-kiezer bij Beste fixture runs (zie fdr.gwRangeRunsLabel), en
+                zonder dit label leken het twee keer dezelfde instelling. */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <label style={{ color: COLORS.textBody, fontSize: '12px' }}>{t('fdr.gwLabel')}</label>
+              <label style={{ color: COLORS.textBody, fontSize: '12px' }}>{t('fdr.gwRangeTableLabel')}</label>
               <select value={gwHorizonStart} onChange={e => setGwHorizonStart(Number(e.target.value))} style={selectStyle}>
                 {gwOptionElements}
               </select>
@@ -420,6 +352,19 @@ export default function FDRTab({
               <span style={{ color: COLORS.textBody, fontSize: '11px' }}>{t(`fdr.rating.${r}`)}</span>
             </div>
           ))}
+          {/* Legt uit wat de stippenrij onder elke teamcode betekent (zie TeamFormBar hierboven) —
+              voorheen stond dat nergens, dus oogden ze als willekeurige versiering. */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ display: 'inline-flex', gap: '2px' }}>
+              {['W', 'G', 'V'].map(r => (
+                <span key={r} aria-hidden="true" style={{
+                  width: '6px', height: '6px', borderRadius: '50%', display: 'inline-block',
+                  background: FORM_RESULT_STYLE[r].bg,
+                }} />
+              ))}
+            </span>
+            <span style={{ color: COLORS.textBody, fontSize: '11px' }}>{t('fdr.formLegend')}</span>
+          </div>
         </div>
         )}
         </div>
@@ -429,16 +374,37 @@ export default function FDRTab({
         <SectionHeader icon={TrendingUp} title={t('fdr.section.runs')} sectionKey="runs" isOpen={openSections.runs} onToggle={toggleSection} />
         {openSections.runs && (
         <div id="fdr-section-runs">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
-          <label style={{ color: COLORS.textBody, fontSize: '12px' }}>{t('fdr.gwLabel')}</label>
-          <select value={rangeStart} onChange={e => setRangeStart(Number(e.target.value))} style={selectStyle}>
-            {gwOptionElements}
-          </select>
-          <span style={{ color: COLORS.textBody, fontSize: '12px' }}>{t('fdr.gwTo')}</span>
-          <select value={rangeEnd} onChange={e => setRangeEnd(Number(e.target.value))} style={selectStyle}>
-            {gwOptionElements}
-          </select>
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          flexWrap: 'wrap', gap: '10px', marginBottom: '12px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            {/* "Bereik VAN BESTE FIXTURE RUNS" — zie de toelichting bij fdr.gwRangeTableLabel
+                hierboven: dit is een losstaande GW-keuze van die van de tabel, met opzet (Beste fixture
+                runs kijkt standaard nooit voorbij GW7, de tabel mag wel het hele seizoen tonen). */}
+            <label style={{ color: COLORS.textBody, fontSize: '12px' }}>{t('fdr.gwRangeRunsLabel')}</label>
+            <select value={rangeStart} onChange={e => setRangeStart(Number(e.target.value))} style={selectStyle}>
+              {gwOptionElements}
+            </select>
+            <span style={{ color: COLORS.textBody, fontSize: '12px' }}>{t('fdr.gwTo')}</span>
+            <select value={rangeEnd} onChange={e => setRangeEnd(Number(e.target.value))} style={selectStyle}>
+              {gwOptionElements}
+            </select>
+          </div>
+          {/* Eigen exportknop, zelfde watermerk-logica als de hoofdtabel hierboven (zie
+              captureSectionAsImage in FDRTool.jsx) — Beste fixture runs is de sectie die een bezoeker
+              het vaakst effectief wil delen ("welk team plan ik?"), en had voorheen geen eigen
+              downloadknop. */}
+          <button onClick={handleDownloadRunsImage} disabled={downloadingRuns} className="fdr-toolbar-btn" style={{
+            ...secondaryToolbarBtnStyle,
+            cursor: downloadingRuns ? 'default' : 'pointer',
+            opacity: downloadingRuns ? 0.6 : 1
+          }}>
+            <Download size={14} />
+            {downloadingRuns ? t('fdr.downloading') : t('fdr.downloadRunsImage')}
+          </button>
         </div>
+        <div ref={runsRef} id="fdr-runs-capture-wrapper">
         <div style={{ display: 'grid', gap: '8px' }}>
           {bestRuns.map((team, idx) => (
             <div key={team.code} style={{
@@ -478,6 +444,7 @@ export default function FDRTab({
               </div>
             </div>
           ))}
+        </div>
         </div>
         </div>
         )}
@@ -577,6 +544,96 @@ export default function FDRTab({
         </div>
         )}
       </section>
+
+      {/* Team-sterkte instellen: bewust helemaal ONDERAAN en standaard dicht (zie openSections
+          hierboven). Dit zijn 18 sliders die de tabel/Beste fixture runs/Vergelijk teams hierboven
+          allemaal voeden, maar een instellingenpaneel hoort na het product te komen, niet ervoor —
+          voorheen stond deze sectie als allereerste, dus begon de pagina met configuratie in plaats
+          van met iets dat meteen een antwoord geeft. */}
+      <section>
+        <SectionHeader icon={Settings2} title={t('fdr.section.sliders')} sectionKey="sliders" isOpen={openSections.sliders} onToggle={toggleSection} />
+        {openSections.sliders && (
+        <div id="fdr-section-sliders" className="fdr-sliders-grid" style={{
+          display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '8px', marginBottom: '8px'
+        }}>
+          {TEAMS_ALPHA.map(team => {
+            const r = ratings[team.code];
+            const style = RATING_STYLE[r];
+            const homeAdvantageOn = !!homeAdvantage[team.code];
+            return (
+              <div key={team.code} style={{
+                background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: '10px', padding: '8px 10px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <img
+                      src={`/club-logos/${team.code}.webp`}
+                      alt=""
+                      className="club-logo"
+                      style={{ width: '16px', height: '16px', objectFit: 'contain', flexShrink: 0 }}
+                      onError={(e) => { e.target.style.display = 'none'; }}
+                    />
+                    <span style={{ color: '#FFF', fontSize: '12px', fontWeight: 600 }}>{team.code}</span>
+                  </span>
+                  <span style={{
+                    fontSize: '10px', fontWeight: 700, padding: '1px 6px', borderRadius: '999px',
+                    background: style.bg, color: style.text
+                  }}>{r}</span>
+                </div>
+                <input
+                  type="range" min={1} max={5} step={1} value={r}
+                  onChange={e => updateRating(team.code, Number(e.target.value))}
+                  style={{ width: '100%' }}
+                  aria-label={t('fdr.strengthAria', { team: team.name })}
+                />
+                {/* Thuisvoordeel: losstaand van de sterkte-slider hierboven, zie getEffectiveRating.
+                    De VOLLEDIGE rij (label + schakelaar) is nu de knop, niet enkel het schakelaartje
+                    van 30x16px. Dat was met afstand het kleinste aanraakdoel op de site, en er staan
+                    er achttien van op één scherm — twee kolommen naast elkaar op een telefoon. De
+                    .fdr-touch-target-klasse tilt de rij op aanraakapparaten naar 44px hoogte. */}
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={homeAdvantageOn}
+                  aria-label={t('fdr.homeAdvantageAria', { team: team.name })}
+                  onClick={() => toggleHomeAdvantage(team.code)}
+                  className="fdr-touch-target"
+                  style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px',
+                    width: '100%', marginTop: '6px', padding: '4px 0',
+                    background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                  }}
+                >
+                  <span style={{ color: COLORS.textBody, fontSize: '10px' }}>{t('fdr.homeAdvantage')}</span>
+                  {/* De knop verschoof voorheen via justifyContent (flex-start/flex-end) — dat is geen
+                      animeerbare CSS-property, dus de knop "sprong" abrupt naar de overkant terwijl
+                      enkel de achtergrondkleur vloeiend overging, wat als een flits oogde. Nu blijft
+                      justifyContent weg en schuift de knop zelf via een getransitionde transform. */}
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      position: 'relative', display: 'inline-flex', alignItems: 'center',
+                      width: '34px', height: '18px', borderRadius: '999px', flexShrink: 0,
+                      background: homeAdvantageOn ? '#4ECDC4' : 'rgba(255,255,255,0.15)',
+                      transition: 'background 0.15s ease',
+                    }}
+                  >
+                    <span style={{
+                      position: 'absolute', top: '2px', left: '2px',
+                      width: '14px', height: '14px', borderRadius: '50%', background: '#FFFFFF', display: 'block',
+                      transform: homeAdvantageOn ? 'translateX(16px)' : 'translateX(0)',
+                      transition: 'transform 0.15s ease',
+                    }} />
+                  </span>
+                </button>
+              </div>
+            );
+          })}
+        </div>
+        )}
+      </section>
+
     </div>
     </>
   );

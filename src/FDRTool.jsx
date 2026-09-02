@@ -487,7 +487,10 @@ export default function FDRTool() {
   const [openSections, setOpenSections] = useState({
     sliders: false,
     table: true,
-    runs: false,
+    // Standaard open (was false): "Beste fixture runs" is de sectie die de tabel hierboven omzet in
+    // een concrete beslissing (welk team plannen?), maar stond voorheen helemaal onderaan, ingeklapt —
+    // zie de UX-audit-toelichting bij de sectievolgorde hieronder in FDRTab.jsx.
+    runs: true,
     compare: false,
     teamPlannerRoster: true,
     teamPlannerTransfers: false,
@@ -495,6 +498,11 @@ export default function FDRTool() {
   const [sortByDifficulty, setSortByDifficulty] = useState(false);
   const [compareTeams, setCompareTeams] = useState([]);
   const tableRef = useRef(null);
+  // Eigen ref + downloading-state voor de "Download als afbeelding"-knop van Beste fixture runs
+  // (zie captureSectionAsImage hieronder) — losstaand van tableRef/downloading hierboven, want de
+  // twee secties kunnen onafhankelijk van elkaar open/dicht staan en een download triggeren.
+  const runsRef = useRef(null);
+  const [downloadingRuns, setDownloadingRuns] = useState(false);
 
   // --- Watch list (Watch List-tab), los van de FDR-state hierboven ---
   const [watchlist, setWatchlist] = useState(() => loadStoredWatchlist());
@@ -610,15 +618,19 @@ export default function FDRTool() {
     }
   };
 
-  const handleDownloadImage = async () => {
-    if (!tableRef.current) return;
-    setDownloading(true);
-    const el = tableRef.current;
+  // Gedeeld door de "Download als afbeelding"-knoppen van zowel de hoofdtabel als Beste fixture runs
+  // (zie handleDownloadImage/handleDownloadRunsImage hieronder) — zelfde watermerk-logica voor beide,
+  // enkel de ref/sectionKey/bestandsnaam/downloading-setter verschillen. Voorheen stond dit blok hier
+  // letterlijk dubbel toen de runs-sectie punt 6 van de UX-audit haar eigen exportknop kreeg.
+  const captureSectionAsImage = async ({ ref, sectionKey, filename, setDownloadingState }) => {
+    if (!ref.current) return;
+    setDownloadingState(true);
+    const el = ref.current;
     const scrollEl = el.querySelector('.fdr-table-scroll');
 
-    const wasOpen = openSections.table;
+    const wasOpen = openSections[sectionKey];
     if (!wasOpen) {
-      setOpenSections(prev => ({ ...prev, table: true }));
+      setOpenSections(prev => ({ ...prev, [sectionKey]: true }));
       await new Promise(resolve => {
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
@@ -665,7 +677,7 @@ export default function FDRTool() {
       ctx.fillText('@fpl_proleague', finalCanvas.width / 2, canvas.height + watermarkHeight / 2);
 
       const link = document.createElement('a');
-      link.download = 'fdr-tabel-fpl-proleague.png';
+      link.download = filename;
       link.href = finalCanvas.toDataURL('image/png');
       link.click();
     } catch {
@@ -677,11 +689,19 @@ export default function FDRTool() {
         scrollEl.style.overflow = prevOverflow;
       }
       if (!wasOpen) {
-        setOpenSections(prev => ({ ...prev, table: false }));
+        setOpenSections(prev => ({ ...prev, [sectionKey]: false }));
       }
-      setDownloading(false);
+      setDownloadingState(false);
     }
   };
+
+  const handleDownloadImage = () => captureSectionAsImage({
+    ref: tableRef, sectionKey: 'table', filename: 'fdr-tabel-fpl-proleague.png', setDownloadingState: setDownloading,
+  });
+
+  const handleDownloadRunsImage = () => captureSectionAsImage({
+    ref: runsRef, sectionKey: 'runs', filename: 'beste-fixture-runs-fpl-proleague.png', setDownloadingState: setDownloadingRuns,
+  });
 
   const toggleSection = useCallback((key) => {
     setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
@@ -1929,6 +1949,9 @@ export default function FDRTool() {
             rangeEnd={rangeEnd}
             setRangeEnd={setRangeEnd}
             bestRuns={bestRuns}
+            runsRef={runsRef}
+            downloadingRuns={downloadingRuns}
+            handleDownloadRunsImage={handleDownloadRunsImage}
             compareTeams={compareTeams}
             toggleCompareTeam={toggleCompareTeam}
           />
