@@ -193,7 +193,7 @@ export default function BonuspuntenTab({ t, playerDatabase, playerDatabaseLoadin
         </span>
       </div>
 
-      <p style={{ color: '#8F79AD', fontSize: '13px', marginBottom: '18px' }}>
+      <p className="fdr-tab-intro" style={{ color: '#8F79AD', fontSize: '13px', marginBottom: '18px' }}>
         {t('bonuspunten.intro')}
       </p>
 

@@ -18,7 +18,7 @@ export default function WatchlistTab({
 }) {
   return (
     <>
-      <p style={{ color: COLORS.textMuted, fontSize: '13px', marginBottom: '16px' }}>
+      <p className="fdr-tab-intro" style={{ color: COLORS.textMuted, fontSize: '13px', marginBottom: '16px' }}>
         {t('watchlist.intro')}
       </p>
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '24px' }}>

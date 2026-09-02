@@ -1236,6 +1236,27 @@ export default function FDRTool() {
           .fdr-tabs-desktop { display: none !important; }
           .fdr-tabs-mobile { display: grid; }
         }
+
+        /* Zelfde CSS-toggle-patroon als hierboven bij .fdr-tabs-desktop/.fdr-tabs-mobile (twee volledige
+           varianten in de DOM, CSS bepaalt welke zichtbaar is — geen JS-breakpointdetectie nodig).
+           Onder de 700px-drempel woog de volle header (merk + titel + tagline + 3 chips) ~745px, dus
+           begon de eerste tabelrij van de FDR-tool pas na een heel scherm branding. De compacte
+           mobiele header houdt enkel merk + titel + de tijdskritische deadline-klok over; tagline,
+           minileague-chip en taal-toggle verhuizen naar de footer (zie .fdr-footer-mobile-extras
+           hieronder), die op mobiel nog steeds bereikbaar blijft, gewoon niet meer als eerste. */
+        .fdr-header-mobile { display: none; }
+        .fdr-footer-mobile-extras { display: none; }
+        @media (max-width: 700px) {
+          .fdr-header-desktop { display: none !important; }
+          .fdr-header-mobile { display: flex; }
+          .fdr-footer-mobile-extras { display: flex; }
+          /* Per-tab introtekst (bv. "fdr.intro", "watchlist.intro") kost op mobiel een extra
+             schermregel of twee vóór het eigenlijke tool-content zichtbaar wordt, terwijl ze vooral
+             uitleg is die een terugkerende bezoeker al kent. Volledig verborgen (ook voor
+             schermlezers) is hier bewust: het is toelichtende tekst, geen functionele info — op
+             desktop is er ruimte genoeg en blijft ze gewoon staan. */
+          .fdr-tab-intro { display: none !important; }
+        }
         /* Icoon boven een kort label, zelfde verticale opbouw als een bottom-nav-bar in een native app
            — gekozen nadat het vroegere patroon (volledige tab-naam, evt. over 2 regels) op smalle
            telefoons alsnog middenin woorden ("Verwachte" -> "Verwa/chte") bleek af te breken. */
@@ -1356,22 +1377,10 @@ export default function FDRTool() {
           .fpl-toolbar-secondary .fdr-btn-label-short {
             display: inline !important;
           }
-          .fdr-header {
-            flex-direction: column !important;
-            align-items: flex-start !important;
-            gap: 10px !important;
-          }
-          .fdr-header img {
-            margin-top: 0 !important;
-          }
-          /* Logo boven de titeltekst i.p.v. ernaast — op mobiel duwde het logo (44px + 14px gap) de
-             titel zo ver naar rechts dat "FPL Pro League Tools" over 3 regels brak. Zonder het logo
-             ernaast heeft de tekst de volle breedte en wrapt ze compacter. */
-          .fdr-brand {
-            flex-direction: column !important;
-            align-items: flex-start !important;
-            gap: 8px !important;
-          }
+          /* Geen .fdr-header/.fdr-brand-stacking meer hier: onder de 700px-drempel is .fdr-header-desktop
+             sowieso volledig verborgen (zie .fdr-header-desktop/.fdr-header-mobile hierboven) ten
+             voordele van de aparte, compacte .fdr-header-mobile — deze regels bleven hier dus dode code
+             op precies de breedte waarvoor ze bedoeld waren. */
           .fdr-content {
             padding-top: 16px !important;
           }
@@ -1547,7 +1556,7 @@ export default function FDRTool() {
             (marginTop: -36px op het logo, -18px op het minileague-blok). Die trokken elementen
             handmatig omhoog en werden maar deels teruggezet in de mobiele media query, wat de
             verticale ritmiek afhankelijk maakte van de schermbreedte. */}
-        <header className="fdr-header" style={{
+        <header className="fdr-header fdr-header-desktop" style={{
           marginBottom: '18px', display: 'flex', alignItems: 'flex-start',
           justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap',
         }}>
@@ -1678,6 +1687,54 @@ export default function FDRTool() {
               })}
             </div>
           </div>
+        </header>
+
+        {/* Compacte mobiele header (zie .fdr-header-desktop/.fdr-header-mobile hierboven): op een
+            telefoon woog de volledige header (merk + titel + tagline + 3 chips) ~745px, dus begon de
+            eerste rij van de FDR-tabel pas na een heel scherm branding. Hier enkel merk, titel en de
+            tijdskritische deadline-aftelklok — één rij van hooguit ~90px. Tagline, minileague-chip en
+            taal-toggle staan niet meer bovenaan maar in de footer (.fdr-footer-mobile-extras
+            hieronder), nog steeds bereikbaar, gewoon niet meer de eerste indruk. */}
+        <header className="fdr-header-mobile" style={{
+          marginBottom: '14px', alignItems: 'center', justifyContent: 'space-between', gap: '10px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+            <img
+              src="/app-icon-mark.png"
+              alt=""
+              style={{ width: '28px', height: '28px', borderRadius: '2px', flexShrink: 0 }}
+              onError={(e) => { e.target.style.display = 'none'; }}
+            />
+            <h1 className="fdr-title" style={{
+              color: '#FFFFFF', fontSize: '17px', fontWeight: 900, textTransform: 'uppercase',
+              lineHeight: 1.15, margin: 0, letterSpacing: '-0.01em', minWidth: 0,
+            }}>
+              FPL Pro League <span style={{ color: '#4ECDC4' }}>Tools</span>
+            </h1>
+          </div>
+
+          {/* Zelfde deadline-chip als in de desktop-header — bewust op elke tab zichtbaar, ook mobiel
+              (zie de toelichting bij de desktop-variant hierboven). */}
+          {deadlineRemaining && (
+            <div aria-live="off" style={{
+              display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0,
+              background: 'rgba(255,255,255,0.04)', border: `1px solid ${COLORS.borderSubtle}`,
+              borderRadius: '999px', height: HEADER_CHIP_HEIGHT, boxSizing: 'border-box', padding: '0 10px',
+            }}>
+              <span style={{
+                color: COLORS.textMuted, fontSize: '10px', textTransform: 'uppercase',
+                letterSpacing: '0.05em', fontWeight: 700, whiteSpace: 'nowrap',
+              }}>
+                {t('header.deadlineLabel', { gw: CURRENT_GW })}
+              </span>
+              <span className="fdr-title" style={{
+                color: deadlineRemaining.totalMinutes <= 180 ? COLORS.warning : '#4ECDC4',
+                fontSize: '13px', fontWeight: 900, lineHeight: 1, whiteSpace: 'nowrap',
+              }}>
+                {formatCountdown(deadlineRemaining)}
+              </span>
+            </div>
+          )}
         </header>
 
         {/* role="tablist" is bewust NIET gebruikt: dit zijn echte links naar echte URL's, geen
@@ -1996,6 +2053,78 @@ export default function FDRTool() {
         )}
 
         <footer style={{ marginTop: '28px', textAlign: 'center', color: COLORS.textSubtle, fontSize: '12px', lineHeight: 1.5 }}>
+          {/* Enkel zichtbaar onder de 700px-drempel (zie .fdr-footer-mobile-extras hierboven) — op
+              desktop staan tagline, minileague-chip en taal-toggle nog gewoon in de header. Dezelfde
+              chip-opmaak/handlers als de desktop-header (handleCopyMinileagueCode, changeLanguage,
+              LANGUAGES), enkel gecentreerd i.p.v. rechts uitgelijnd naast de titel. */}
+          <div className="fdr-footer-mobile-extras" style={{
+            flexDirection: 'column', alignItems: 'center', gap: '10px', marginBottom: '18px',
+          }}>
+            <p style={{ color: '#C9B8E0', fontSize: '13px', margin: 0, maxWidth: '420px' }}>
+              {t('header.tagline')}
+            </p>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap',
+                width: 'fit-content', maxWidth: '100%',
+                background: 'rgba(255,255,255,0.04)', border: `1px solid ${COLORS.borderSubtle}`, borderRadius: '999px',
+                height: HEADER_CHIP_HEIGHT, boxSizing: 'border-box', padding: '0 3px 0 10px',
+              }}>
+                <span style={{ color: COLORS.textMuted, fontSize: '12px' }}>
+                  {t('header.minileagueLabel')} <strong style={{ color: '#4ECDC4', fontWeight: 700, letterSpacing: '0.05em' }}>{MINILEAGUE_CODE}</strong>
+                </span>
+                <button
+                  onClick={handleCopyMinileagueCode}
+                  aria-label={t('header.copyMinileagueAria', { code: MINILEAGUE_CODE })}
+                  className="fdr-touch-target"
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                    background: 'transparent', color: COLORS.textBody, border: `1px solid ${COLORS.border}`,
+                    borderRadius: '999px', padding: '0 10px', fontWeight: 700, fontSize: '12px',
+                    fontFamily: 'inherit', cursor: 'pointer', boxSizing: 'border-box',
+                  }}
+                >
+                  {minileagueCodeCopied ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
+                  {minileagueCodeCopied ? t('header.copied') : t('header.copy')}
+                </button>
+              </div>
+
+              <div
+                role="group"
+                aria-label={t('header.languageToggleAria', { lang: language.toUpperCase() })}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', height: HEADER_CHIP_HEIGHT, boxSizing: 'border-box',
+                  background: 'rgba(255,255,255,0.04)', border: `1px solid ${COLORS.borderSubtle}`,
+                  borderRadius: '999px', padding: '3px', gap: '2px', flexShrink: 0,
+                }}
+              >
+                {LANGUAGES.map(lang => {
+                  const isActive = language === lang;
+                  return (
+                    <button
+                      key={lang}
+                      type="button"
+                      onClick={() => changeLanguage(lang)}
+                      aria-pressed={isActive}
+                      className="fdr-touch-target"
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        height: '100%', minWidth: '28px', padding: '0 8px', borderRadius: '999px',
+                        border: 'none', fontFamily: 'inherit', fontSize: '11px', fontWeight: 700,
+                        letterSpacing: '0.03em', cursor: isActive ? 'default' : 'pointer',
+                        background: isActive ? '#4ECDC4' : 'transparent',
+                        color: isActive ? '#0B2E1B' : COLORS.textBody,
+                      }}
+                    >
+                      {lang.toUpperCase()}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
           {t('footer.madeBy')}{' '}
           <a href="https://x.com/fpl_proleague" target="_blank" rel="noopener noreferrer" className="fdr-footer-link">
             <img src="/x-logo.png" alt="" style={{ width: '12px', height: '12px', verticalAlign:'-2px' }} />

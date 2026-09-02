@@ -665,7 +665,7 @@ export default function TeamPlannerTab({
 
   return (
     <>
-      <p style={{ color: COLORS.textMuted, fontSize: '13px', marginBottom: '16px' }}>
+      <p className="fdr-tab-intro" style={{ color: COLORS.textMuted, fontSize: '13px', marginBottom: '16px' }}>
         {t('teamPlanner.intro')}
       </p>
       <TeamScreenshotUpload
