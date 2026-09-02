@@ -22,7 +22,7 @@ const STRINGS = {
     // --- Chrome: header, nav, footer, taal-toggle ---
     'header.tagline': 'Interactieve tools voor Fantasy Pro League — gemaakt door @fpl_proleague.',
     'header.deadlineLabel': 'Deadline GW{{gw}}',
-    'header.minileagueLabel': 'Minileague:',
+    'header.minileagueLabel': 'Fantasy Pro League minileague:',
     'header.copy': 'Kopieer',
     'header.copied': 'Gekopieerd!',
     'header.copyMinileagueAria': 'Minileague-code {{code}} kopiëren',
@@ -291,7 +291,7 @@ const STRINGS = {
   fr: {
     'header.tagline': "Outils interactifs pour Fantasy Pro League — créés par @fpl_proleague.",
     'header.deadlineLabel': 'Deadline J{{gw}}',
-    'header.minileagueLabel': 'Mini-ligue :',
+    'header.minileagueLabel': 'Mini-ligue Fantasy Pro League :',
     'header.copy': 'Copier',
     'header.copied': 'Copié !',
     'header.copyMinileagueAria': 'Copier le code de mini-ligue {{code}}',
