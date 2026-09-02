@@ -181,18 +181,59 @@ export function formatGwDeadline(gw) {
   return `${parts.weekday} ${parts.day} ${parts.month} ${parts.hour}:${parts.minute}`;
 }
 
-// "Laatst bijgewerkt"-datum in de footer ("28 augustus 2026" / "28 août 2026") — vroeger een
-// handmatig bij te werken constante (LAST_UPDATED), die daardoor stelselmatig achterliep zodra
-// iemand vergat ze aan te passen. Nu altijd de echte datum van vandaag, in Belgische tijdzone (zelfde
-// redenering als BELGIAN_TIME_ZONE hierboven bij de GW-deadlines) en in de taal van de bezoeker.
-const TODAY_FORMATTERS = {
+// --- "Data bijgewerkt"-datums: wanneer is elke databron voor het laatst manueel nagekeken? ---
+//
+// Losstaand van CURRENT_GW/GW_DEADLINE_ISO hierboven (die gaan over WANNEER we in het seizoen zijn) —
+// dit gaat over wanneer de data ZELF voor het laatst bijgewerkt is. Voorheen toonde de footer altijd
+// "vandaag" via new Date() (formatTodayLong, ondertussen verwijderd): dat is geen "laatst bijgewerkt",
+// dat is gewoon de klok van de bezoeker, en sprak de site soms letterlijk tegen (de footer zei
+// "vandaag bijgewerkt" terwijl de Verwachte XI-tab zijn eigen verouderd-waarschuwing toonde).
+//
+// HANDMATIG bij te werken telkens de bijhorende data verandert — zelfde discipline als
+// GW_DEADLINE_ISO hierboven. Beginwaarden bepaald via de laatste commit die elke dataset écht wijzigde
+// (git log -1 --format=%cs -S<zoekterm> op het relevante bestand, zie de UX-audit-taak). null = datum
+// niet betrouwbaar vast te stellen — toon dan expliciet niets i.p.v. een gegokte datum.
+export const DATA_UPDATED_ISO = {
+  fdrRatings: '2026-08-23T00:00:00+02:00', // laatste DEFAULT_RATINGS-wijziging (ZWA/LLV)
+  teamForm: '2026-08-31T00:00:00+02:00', // laatste TEAM_FORM-aanvulling
+  predictedLineups: '2026-08-28T00:00:00+02:00', // laatste wijziging in predictedLineupsData.js
+  postponed: '2026-09-01T00:00:00+02:00', // laatste POSTPONED/POSSIBLY_POSTPONED-wijziging
+};
+
+const LONG_DATE_FORMATTERS = {
   nl: new Intl.DateTimeFormat('nl-BE', { timeZone: BELGIAN_TIME_ZONE, day: 'numeric', month: 'long', year: 'numeric' }),
   fr: new Intl.DateTimeFormat('fr-BE', { timeZone: BELGIAN_TIME_ZONE, day: 'numeric', month: 'long', year: 'numeric' }),
 };
 
-export function formatTodayLong(language) {
-  const formatter = TODAY_FORMATTERS[language] ?? TODAY_FORMATTERS.nl;
-  return formatter.format(new Date());
+function parseDataUpdatedDate(key) {
+  const iso = DATA_UPDATED_ISO[key];
+  if (!iso) return null;
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatLongDate(date, language) {
+  const formatter = LONG_DATE_FORMATTERS[language] ?? LONG_DATE_FORMATTERS.nl;
+  return formatter.format(date);
+}
+
+// Formatteert de "laatst bijgewerkt"-datum voor één dataset (fdrRatings/teamForm/predictedLineups/
+// postponed), of null als die datum niet gekend is — gebruikt voor de kleine, gedempte datum-notities
+// per tool (bv. bij de FDR-rating-badge, bij Verwachte XI's).
+export function formatDataUpdated(key, language) {
+  const date = parseDataUpdatedDate(key);
+  return date ? formatLongDate(date, language) : null;
+}
+
+// De OUDSTE bekende datum over alle datasets heen — voor de globale footer-regel "Data bijgewerkt:
+// …", die per definitie enkel eerlijk is als hij de meest verouderde bron toont, niet de meest
+// recente (anders verhult een net-bijgewerkte dataset dat een andere al weken stilligt). null (dus:
+// toon niets in de footer) als geen enkele datum gekend is.
+export function formatOldestDataUpdated(language) {
+  const dates = Object.keys(DATA_UPDATED_ISO).map(parseDataUpdatedDate).filter(Boolean);
+  if (dates.length === 0) return null;
+  const oldest = dates.reduce((a, b) => (a < b ? a : b));
+  return formatLongDate(oldest, language);
 }
 
 // De eerste GW waarvan de deadline nog niet verstreken is — dát is de gameweek waar een bezoeker mee

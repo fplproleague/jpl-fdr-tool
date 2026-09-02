@@ -8,7 +8,7 @@ import { useState, useMemo, useRef, useCallback, useEffect, lazy, Suspense } fro
 import { Info, X, Check, Copy, Undo2, Loader2, ChevronDown, Grid2x2, Users, Shirt } from 'lucide-react';
 import {
   TEAMS, FIXTURES, GW_COUNT, CURRENT_GW, DEFAULT_GW_HORIZON_END, MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS,
-  MINILEAGUE_CODE, formatTodayLong, GW_INDEXES, DEFAULT_RATINGS, DEFAULT_HOME_ADVANTAGE,
+  MINILEAGUE_CODE, formatOldestDataUpdated, formatDataUpdated, GW_INDEXES, DEFAULT_RATINGS, DEFAULT_HOME_ADVANTAGE,
   TEAM_PLANNER_SQUAD_SIZE, TEAM_PLANNER_BENCH_SIZE, TEAM_PLANNER_SLOT_POSITIONS, VALID_FORMATIONS,
   resolveSlotPlayerAtGw, PLAYER_DATABASE_CSV_URL, parsePlayerDatabaseCsv, getFixtureScores, average,
   POSTPONED, computeTeamPlannerTransferBudget, getGwDeadlineDate,
@@ -364,6 +364,10 @@ export default function FDRTool() {
   // overal translate(language, 'key') te herhalen.
   const [language, setLanguage] = useState(() => loadStoredLanguage() ?? DEFAULT_LANGUAGE);
   const t = useCallback((key, vars) => translate(language, key, vars), [language]);
+  // Oudste bekende "data bijgewerkt"-datum (zie DATA_UPDATED_ISO/formatOldestDataUpdated in
+  // constants.js) — voor de footer. null zolang geen enkele datum gekend is; de footer toont dan
+  // gewoon niets i.p.v. een verzonnen datum.
+  const oldestDataUpdatedText = useMemo(() => formatOldestDataUpdated(language), [language]);
   const changeLanguage = useCallback((next) => {
     setLanguage(next);
     try {
@@ -1834,6 +1838,7 @@ export default function FDRTool() {
         {activeTab === 'fdr' && (
           <FDRTab
             t={t}
+            dataUpdatedFdrRatings={formatDataUpdated('fdrRatings', language)}
             ratings={ratings}
             homeAdvantage={homeAdvantage}
             updateRating={updateRating}
@@ -1937,7 +1942,7 @@ export default function FDRTool() {
 
         {activeTab === 'predictedlineups' && (
           <Suspense fallback={<TabLoading text={t('shared.loading')} />}>
-            <PredictedLineupsTab t={t} />
+            <PredictedLineupsTab t={t} dataUpdatedPredictedLineups={formatDataUpdated('predictedLineups', language)} />
           </Suspense>
         )}
 
@@ -1996,8 +2001,11 @@ export default function FDRTool() {
             <img src="/x-logo.png" alt="" style={{ width: '12px', height: '12px', verticalAlign:'-2px' }} />
             @fpl_proleague
           </a>
-          {' '}· {t('footer.season')}<br />
-          {t('footer.lastUpdated', { date: formatTodayLong(language) })}
+          {' '}· {t('footer.season')}
+          {/* Toont de OUDSTE bekende data-update-datum (zie formatOldestDataUpdated in constants.js) —
+              bewust geen new Date()/"vandaag" meer (zie DATA_UPDATED_ISO-toelichting): liever geen
+              datum tonen (null) dan een verzonnen. */}
+          {oldestDataUpdatedText && (<><br />{t('footer.lastUpdated', { date: oldestDataUpdatedText })}</>)}
         </footer>
       </div>
 

@@ -65,7 +65,7 @@ function StaleWarning({ t }) {
   );
 }
 
-export default function PredictedLineupsTab({ t }) {
+export default function PredictedLineupsTab({ t, dataUpdatedPredictedLineups }) {
   // TEAMS-volgorde (canoniek, alfabetisch op code) i.p.v. data-invoervolgorde: nu dat niet-spelende
   // clubs (zonder eigen entry in PREDICTED_LINEUPS) ertussen gemengd moeten worden, geeft dit een
   // voorspelbare, stabiele kiezer-volgorde voor alle clubs samen i.p.v. twee losse groepjes.
@@ -81,6 +81,11 @@ export default function PredictedLineupsTab({ t }) {
         <p style={{ color: COLORS.textMuted, fontSize: '13px', marginBottom: '16px' }}>
           {t('predictedLineups.introEmpty', { gw: PREDICTED_LINEUPS_GW })}
         </p>
+        {dataUpdatedPredictedLineups && (
+          <p style={{ color: COLORS.textSubtle, fontSize: '11px', marginTop: '-12px', marginBottom: '16px' }}>
+            {t('predictedLineups.datasetUpdatedLabel', { date: dataUpdatedPredictedLineups })}
+          </p>
+        )}
         <div style={{
           background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
           borderRadius: '10px', padding: '16px',
@@ -121,6 +126,15 @@ export default function PredictedLineupsTab({ t }) {
       <p style={{ color: COLORS.textMuted, fontSize: '13px', marginBottom: '16px' }}>
         {t('predictedLineups.intro', { gw: PREDICTED_LINEUPS_GW })}
       </p>
+      {/* Datum waarop de opstellingen-dataset zelf (predictedLineupsData.js) voor het laatst
+          bijgewerkt is — apart van de per-lineup lastUpdatedLabel verderop (dat is de datum van één
+          specifieke club z'n opstelling; dit is de dataset als geheel, zie DATA_UPDATED_ISO in
+          constants.js). */}
+      {dataUpdatedPredictedLineups && (
+        <p style={{ color: COLORS.textSubtle, fontSize: '11px', marginTop: '-12px', marginBottom: '16px' }}>
+          {t('predictedLineups.datasetUpdatedLabel', { date: dataUpdatedPredictedLineups })}
+        </p>
+      )}
 
       {/* Responsief raster i.p.v. een flex-wrap van vaste 76px-blokken: op een telefoon leverde dat
           vijf rijen clublogo's op vóór je de opstelling zelf zag. auto-fill met een minimum van 58px
