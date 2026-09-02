@@ -172,7 +172,7 @@ export default function FDRTab({
 }) {
   return (
     <>
-    <p style={{ color: COLORS.textMuted, fontSize: '13px', marginBottom: '18px' }}>
+    <p className="fdr-tab-intro" style={{ color: COLORS.textMuted, fontSize: '13px', marginBottom: '18px' }}>
       {t('fdr.intro')}
     </p>
     {/* Kleine, gedempte datum-notitie — apart van de fpl-toolbar hieronder i.p.v. erin, want die

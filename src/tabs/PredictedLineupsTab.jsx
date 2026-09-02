@@ -128,7 +128,7 @@ export default function PredictedLineupsTab({ t, dataUpdatedPredictedLineups }) 
   return (
     <>
       <StaleWarning t={t} />
-      <p style={{ color: COLORS.textMuted, fontSize: '13px', marginBottom: '16px' }}>
+      <p className="fdr-tab-intro" style={{ color: COLORS.textMuted, fontSize: '13px', marginBottom: '16px' }}>
         {t('predictedLineups.intro', { gw: PREDICTED_LINEUPS_GW })}
       </p>
       {/* Datum waarop de opstellingen-dataset zelf (predictedLineupsData.js) voor het laatst
