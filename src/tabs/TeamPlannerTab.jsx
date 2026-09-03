@@ -894,6 +894,12 @@ export default function TeamPlannerTab({
                     </tbody>
                   </table>
                 </div>
+                {/* Verhuisd van de Price Changes-tab hierheen (zie de UX-audit): de vraag "waarom
+                    veranderen deze prijzen niet?" komt hier op, bij de prijskolom, niet op een aparte
+                    tab die tot GW6 sowieso niet in de navbalk staat. */}
+                <p style={{ color: COLORS.textSubtle, fontSize: '11px', marginTop: '8px' }}>
+                  {t('teamPlanner.priceChangeNote')}
+                </p>
               </div>
             )}
           </div>
