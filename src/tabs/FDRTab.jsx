@@ -147,8 +147,15 @@ const FORM_RESULT_STYLE = {
 // lineHeight op de coderegel (13px, geen browser-standaard leading) en de kleine stip (6px): 13 + 1 (gap)
 // + 6 = 20px, exact gelijk aan het logo. Rendert bewust niets zolang er geen uitslagen zijn (leeg
 // seizoenbegin) — geen lege/grijze placeholder-stippen die een uitslag lijken te suggereren die er niet is.
-function TeamFormBar({ results }) {
+//
+// maxResultsInTable (zie het gebruik verderop, afgeleid van ALLE teams in de tabel): TEAM_FORM wordt
+// handmatig bijgewerkt (zie constants.js) en loopt soms tijdelijk uit de pas — een team met 3 uitslagen
+// naast teams met al 4 zou een gemiste nederlaag/zege lijken, terwijl het gewoon nog niet bijgewerkt is.
+// Een team dat achterloopt op het hoogste aantal in DEZE tabel toont daarom liever niets dan een
+// onvolledige (en dus misleidende) rij.
+function TeamFormBar({ results, maxResultsInTable }) {
   if (!results || results.length === 0) return null;
+  if (typeof maxResultsInTable === 'number' && results.length < maxResultsInTable) return null;
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }} aria-label={`Recente vorm: ${results.join(', ')}`}>
       {results.map((r, i) => {
@@ -179,6 +186,11 @@ export default function FDRTab({
   runsRef, downloadingRuns, handleDownloadRunsImage,
   compareTeams, toggleCompareTeam,
 }) {
+  // Hoogste aantal ingevulde TEAM_FORM-uitslagen onder de teams die nu in DEZE tabel staan — zie de
+  // toelichting bij TeamFormBar hierboven. Simpele Math.max, geen useMemo: 18 teams, verwaarloosbare
+  // kost per render.
+  const maxTeamFormCount = Math.max(0, ...displayedTeams.map(team => (TEAM_FORM[team.code] || []).length));
+
   return (
     <>
     <p className="fdr-tab-intro" style={{ color: COLORS.textMuted, fontSize: '13px', marginBottom: '18px' }}>
@@ -314,7 +326,7 @@ export default function FDRTab({
                     />
                     <span style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
                       <span style={{ lineHeight: '13px' }}>{team.code}</span>
-                      <TeamFormBar results={TEAM_FORM[team.code]} />
+                      <TeamFormBar results={TEAM_FORM[team.code]} maxResultsInTable={maxTeamFormCount} />
                     </span>
                   </span>
                 </td>

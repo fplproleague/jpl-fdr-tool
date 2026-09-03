@@ -270,6 +270,15 @@ export const PREDICTED_LINEUPS_GW = 4;
 // nieuwste uitslag achteraan elke array en knip de oudste eraf zodra een team er meer dan 5 heeft. Een
 // team zonder vermelde uitslagen (het huidige, lopende seizoenbegin) krijgt een lege array — dan toont
 // de tabel simpelweg geen vormbalk voor dat team, nooit een verzonnen of geraden uitslag.
+//
+// BELANGRIJK — vul dit NOOIT zelf aan met een gegokte of afgeleide uitslag: een array die één
+// speeldag te kort is, oogt in de tabel identiek aan een team dat toevallig één wedstrijd minder
+// speelde (bv. door een uitstel), terwijl het in werkelijkheid gewoon nog niet bijgewerkt is — dat is
+// misleidend, niet neutraal. Zo'n onvolledige rij (minder resultaten dan het hoogste aantal onder de
+// andere teams) toont daarom sowieso NIETS meer in de tabel i.p.v. een halve stippenrij (zie
+// maxResultsInTable/TeamFormBar in FDRTab.jsx) — dat maakt een achterstallige update onschadelijk voor
+// de bezoeker, maar is geen vervanging voor de update zelf: werk de kortste array(s) hieronder bij
+// zodra de echte uitslag gekend is.
 export const TEAM_FORM = {
   ...Object.fromEntries(TEAMS.map(t => [t.code, []])),
   CLU: ['W', 'W', 'W', 'V'],
