@@ -437,6 +437,87 @@ export default function FDRTool() {
     return () => window.removeEventListener('resize', updateTabsScrollState);
   }, [updateTabsScrollState]);
 
+  // Hoeveel volledige-label-tabs er op de brede/desktop-navbalk (.fdr-tabs-desktop, >=700px) naast
+  // elkaar passen vóór er een "Meer"-trigger nodig is. Voorheen was dit altijd "alle tabs" op deze
+  // breedte, met horizontale scroll als vangnet — maar op 820px/1024px (1.098px nodig voor alle 8
+  // tabs) sneed dat "WATCHLI…" middenin af en viel Kaarten/Price Changes gewoon buiten beeld, met
+  // enkel een makkelijk te missen uitfade-rand als signaal dat er meer te scrollen viel. TABS.length
+  // = "alles past, geen Meer nodig". Gemeten via ResizeObserver (zie het effect hieronder) i.p.v. een
+  // vaste drempel, want de werkelijke breedte hangt af van de taal (NL/FR-labels verschillen in
+  // lengte) en het aantal tabs (zie ook punt 9 van de UX-audit, dat Price Changes soms verbergt).
+  const [desktopVisibleTabCount, setDesktopVisibleTabCount] = useState(TABS.length);
+  // Ref op de BUITENSTE <nav> (niet tabsRef, dat is de binnenste scrollbare div) — de buitenste breedte
+  // blijft stabiel ongeacht of de Meer-knop er al dan niet naast staat (flex:1 1 auto op de binnenste
+  // div laat DIE juist krimpen zodra Meer verschijnt). Zou de meting op tabsRef draaien, dan zou elke
+  // toename van desktopVisibleTabCount de beschikbare breedte laten "krimpen" zodra Meer bijkomt,
+  // waardoor de reservering voor Meer twee keer meetelt (eenmaal via de echte flex-layout, eenmaal via
+  // de moreWidth-schatting hieronder) en er onnodig minder tabs getoond worden dan er eigenlijk passen.
+  const desktopNavRef = useRef(null);
+  const desktopTabsMeasureRef = useRef(null);
+  const desktopMoreMeasureRef = useRef(null);
+  useEffect(() => {
+    const navEl = desktopNavRef.current;
+    const measureEl = desktopTabsMeasureRef.current;
+    const moreEl = desktopMoreMeasureRef.current;
+    if (!navEl || !measureEl || !moreEl) return;
+
+    const recompute = () => {
+      const availableWidth = navEl.clientWidth;
+      const itemEls = Array.from(measureEl.children);
+      const itemWidths = itemEls.map(el => el.offsetWidth);
+      const gap = 4; // zelfde gap als de echte nav hieronder (style.gap: '4px')
+      const totalWidth = itemWidths.reduce((sum, w, i) => sum + w + (i > 0 ? gap : 0), 0);
+
+      if (totalWidth <= availableWidth) {
+        setDesktopVisibleTabCount(TABS.length);
+        return;
+      }
+
+      // Reserveer voor het langst mogelijke "Meer: <label>"-scenario (wanneer toevallig de tab met de
+      // langste titel zelf ingeklapt zit, zie de render hieronder) i.p.v. enkel voor de kortere losse
+      // "Meer"-tekst — anders zou de trigger op precies dat moment kunnen overlopen.
+      const maxLabelWidth = Math.max(...itemWidths);
+      const moreWidth = moreEl.offsetWidth + maxLabelWidth + 6;
+
+      let used = 0;
+      let count = 0;
+      for (let i = 0; i < itemWidths.length; i++) {
+        const w = itemWidths[i] + (i > 0 ? gap : 0);
+        if (used + w + gap + moreWidth > availableWidth) break;
+        used += w;
+        count += 1;
+      }
+      // Altijd minstens 1 tab tonen — anders oogt de balk als enkel "Meer" zonder iets ernaast.
+      setDesktopVisibleTabCount(Math.max(1, count));
+    };
+
+    recompute();
+    const ro = new ResizeObserver(recompute);
+    ro.observe(navEl);
+    // Lettertype-wissel (Archivo/Inter, zie index.html) kan labelbreedtes na de eerste meting nog
+    // wijzigen — de ResizeObserver alleen vangt dat niet op, want de beschikbare breedte zelf
+    // verandert daardoor niet.
+    document.fonts?.ready?.then(recompute).catch(() => {});
+    return () => ro.disconnect();
+  }, [language]);
+
+  // Apart van moreMenuOpen/moreMenuRef hieronder (die sturen het MOBIELE Meer-menu aan): de brede/
+  // desktop-navbalk hierboven kan zijn eigen Meer-dropdown tonen, onafhankelijk open/dicht.
+  const [desktopMoreMenuOpen, setDesktopMoreMenuOpen] = useState(false);
+  const desktopMoreMenuRef = useRef(null);
+  useEffect(() => {
+    if (!desktopMoreMenuOpen) return;
+    const handleOutside = (e) => {
+      if (desktopMoreMenuRef.current && !desktopMoreMenuRef.current.contains(e.target)) setDesktopMoreMenuOpen(false);
+    };
+    const handleEscape = (e) => { if (e.key === 'Escape') setDesktopMoreMenuOpen(false); };
+    document.addEventListener('mousedown', handleOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [desktopMoreMenuOpen]);
 
   // Mobiele "Meer"-tabmenu (zie .fdr-tabs-mobile hieronder): op smalle schermen is er ruimte voor
   // maar 3 tabs naast elkaar (zie MOBILE_PRIMARY_TAB_COUNT) — de rest verdwijnt in een dropdown i.p.v.
@@ -1759,47 +1840,151 @@ export default function FDRTool() {
 
         {/* role="tablist" is bewust NIET gebruikt: dit zijn echte links naar echte URL's, geen
             ARIA-tabs. Een <nav> met aria-current geeft schermlezers de juiste boodschap.
-            Twee varianten: de brede/desktop-balk toont alle tabs met horizontale scroll (zie
-            .fdr-tabs hierboven), de mobiele balk (.fdr-tabs-mobile) toont enkel de eerste paar tabs
-            plus een "Meer"-dropdown. Welke van de twee zichtbaar is, bepaalt de @media-regel bij
-            .fdr-tabs-desktop/.fdr-tabs-mobile hieronder — geen JS-breakpointdetectie nodig. */}
-        <nav
-          ref={tabsRef}
-          className={`fdr-tabs fdr-tabs-desktop${tabsAtEnd ? ' fdr-tabs--end' : ''}`}
-          aria-label={t('nav.aria')}
-          onScroll={updateTabsScrollState}
-          style={{
-            display: 'flex', gap: '4px', marginBottom: '18px', borderBottom: `1px solid ${COLORS.borderSubtle}`,
-            overflowX: 'auto', overflowY: 'hidden', flexWrap: 'nowrap'
-          }}
-        >
-          {TABS.map(tab => {
-            const isActive = activeTab === tab.key;
-            const isNewUnseen = NEW_TAB_KEYS.includes(tab.key) && !seenNewTabs.has(tab.key);
+            Twee varianten: de brede/desktop-balk (.fdr-tabs-desktop) toont zoveel mogelijk tabs met
+            volledig label plus, zodra ze niet allemaal passen, een "Meer"-dropdown voor de rest (zie
+            desktopVisibleTabCount hierboven — gemeten, geen vaste drempel); de mobiele balk
+            (.fdr-tabs-mobile) toont een vaste 3+Meer-indeling met icoon+kort label. Welke van de twee
+            zichtbaar is, bepaalt de @media-regel bij .fdr-tabs-desktop/.fdr-tabs-mobile hieronder. De
+            horizontale scroll + uitfade-mask blijven als vangnet staan (tabsAtEnd) voor het geval de
+            meting ooit nipt misgaat, maar zijn in de praktijk overbodig geworden: bij elke breedte
+            waarop niet alles past, kiest desktopVisibleTabCount al een aantal dat wél past.
+            De Meer-knop + dropdown staan bewust BUITEN de scrollbare binnen-div (die heeft
+            overflowY:hidden voor de horizontale-scroll-mask hierboven) — anders zou die overflowY de
+            dropdown mee afsnijden zodra hij onder de navbalk uitsteekt. De buitenste <nav> zelf heeft
+            geen overflow-restrictie, dus de dropdown kan daar gewoon los boven de rest van de pagina
+            zweven. */}
+        <nav ref={desktopNavRef} className="fdr-tabs-desktop" aria-label={t('nav.aria')} style={{
+          position: 'relative', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '18px',
+          borderBottom: `1px solid ${COLORS.borderSubtle}`,
+        }}>
+          <div
+            ref={tabsRef}
+            className={`fdr-tabs${tabsAtEnd ? ' fdr-tabs--end' : ''}`}
+            onScroll={updateTabsScrollState}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '4px',
+              overflowX: 'auto', overflowY: 'hidden', flexWrap: 'nowrap', flex: '1 1 auto', minWidth: 0,
+            }}
+          >
+            {/* Verborgen meetrij voor het ResizeObserver-effect hierboven: dezelfde labels/opmaak als
+                hieronder, altijd voluit (nooit ingekort) en met position:fixed buiten beeld — enkel om
+                de natuurlijke breedte van elke tab te kennen, los van hoeveel er nu echt zichtbaar zijn.
+                position:fixed i.p.v. absolute: zo telt dit niet mee in de scrollWidth van deze div (die
+                overflowX:auto heeft, zie tabsAtEnd hierboven). */}
+            <div ref={desktopTabsMeasureRef} aria-hidden="true" style={{
+              position: 'fixed', top: '-9999px', left: '-9999px', visibility: 'hidden', pointerEvents: 'none',
+              display: 'flex', gap: '4px', whiteSpace: 'nowrap',
+            }}>
+              {TABS.map(tab => (
+                <span key={tab.key} className="fdr-title fdr-tab-btn" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                  {t(`nav.${tab.key}`)}
+                </span>
+              ))}
+            </div>
+            <div ref={desktopMoreMeasureRef} aria-hidden="true" style={{
+              position: 'fixed', top: '-9999px', left: '-9999px', visibility: 'hidden', pointerEvents: 'none', whiteSpace: 'nowrap',
+            }}>
+              <span className="fdr-title fdr-tab-btn" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <ChevronDown size={17} aria-hidden="true" /> {t('nav.more')}
+              </span>
+            </div>
+
+            {(desktopVisibleTabCount >= TABS.length ? TABS : TABS.slice(0, desktopVisibleTabCount)).map(tab => {
+              const isActive = activeTab === tab.key;
+              const isNewUnseen = NEW_TAB_KEYS.includes(tab.key) && !seenNewTabs.has(tab.key);
+              return (
+                <a
+                  key={tab.key}
+                  href={tab.path}
+                  // Echte href zodat midden-klik / "open in nieuw tabblad" / delen gewoon werken, maar
+                  // een gewone klik wordt onderschept zodat de app niet volledig herlaadt.
+                  onClick={(e) => {
+                    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                    e.preventDefault();
+                    navigateToTab(tab.key);
+                  }}
+                  className="fdr-title fdr-tab-btn"
+                  aria-current={isActive ? 'page' : undefined}
+                  style={{
+                    color: isActive ? '#4ECDC4' : COLORS.textBody,
+                    borderBottom: isActive ? '2px solid #4ECDC4' : '2px solid transparent',
+                    display: 'inline-flex', alignItems: 'center', gap: '5px', textDecoration: 'none', flexShrink: 0,
+                  }}
+                >
+                  {t(`nav.${tab.key}`)}
+                  {isNewUnseen && <span style={newTabDotStyle} aria-hidden="true" />}
+                </a>
+              );
+            })}
+          </div>
+
+          {desktopVisibleTabCount < TABS.length && (() => {
+            const overflowTabs = TABS.slice(desktopVisibleTabCount);
+            const activeOverflowTab = overflowTabs.find(tab => tab.key === activeTab);
+            const isActive = !!activeOverflowTab;
+            const hasUnseenNewTab = overflowTabs.some(tab => NEW_TAB_KEYS.includes(tab.key) && !seenNewTabs.has(tab.key));
             return (
-              <a
-                key={tab.key}
-                href={tab.path}
-                // Echte href zodat midden-klik / "open in nieuw tabblad" / delen gewoon werken, maar
-                // een gewone klik wordt onderschept zodat de app niet volledig herlaadt.
-                onClick={(e) => {
-                  if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
-                  e.preventDefault();
-                  navigateToTab(tab.key);
-                }}
-                className="fdr-title fdr-tab-btn"
-                aria-current={isActive ? 'page' : undefined}
-                style={{
-                  color: isActive ? '#4ECDC4' : COLORS.textBody,
-                  borderBottom: isActive ? '2px solid #4ECDC4' : '2px solid transparent',
-                  display: 'inline-flex', alignItems: 'center', gap: '5px', textDecoration: 'none',
-                }}
-              >
-                {t(`nav.${tab.key}`)}
-                {isNewUnseen && <span style={newTabDotStyle} aria-hidden="true" />}
-              </a>
+              <div ref={desktopMoreMenuRef} style={{ position: 'relative', flexShrink: 0 }}>
+                {/* Toont "Meer: <naam>" i.p.v. enkel "Meer" zodra de actieve tab zelf ingeklapt zit —
+                    anders zou op deze breedtes (820/1024px) niets in de balk verraden welk tool open
+                    staat, precies de klacht uit de UX-audit ("enkel MEER licht op voor Kaarten"). */}
+                <button
+                  type="button"
+                  onClick={() => setDesktopMoreMenuOpen(open => !open)}
+                  aria-haspopup="true"
+                  aria-expanded={desktopMoreMenuOpen}
+                  className="fdr-title fdr-tab-btn"
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap',
+                    color: isActive ? '#4ECDC4' : COLORS.textBody,
+                    borderBottom: isActive ? '2px solid #4ECDC4' : '2px solid transparent',
+                    background: 'none', border: 'none', borderBottomColor: isActive ? '#4ECDC4' : 'transparent',
+                    borderBottomWidth: '2px', borderBottomStyle: 'solid', borderRadius: 0, cursor: 'pointer',
+                    fontFamily: 'inherit', position: 'relative',
+                  }}
+                >
+                  <ChevronDown size={17} style={{ transform: desktopMoreMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} aria-hidden="true" />
+                  {isActive ? `${t('nav.more')}: ${t(`nav.${activeOverflowTab.key}`)}` : t('nav.more')}
+                  {hasUnseenNewTab && <span style={newTabDotStyle} aria-hidden="true" />}
+                </button>
+
+                {desktopMoreMenuOpen && (
+                  <div style={{
+                    position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 45, minWidth: '190px',
+                    background: '#2A1547', border: `1px solid ${COLORS.border}`, borderRadius: '10px',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.4)', overflow: 'hidden',
+                  }}>
+                    {overflowTabs.map(tab => {
+                      const tabIsActive = activeTab === tab.key;
+                      const isNewUnseenItem = NEW_TAB_KEYS.includes(tab.key) && !seenNewTabs.has(tab.key);
+                      return (
+                        <a
+                          key={tab.key}
+                          href={tab.path}
+                          onClick={(e) => {
+                            setDesktopMoreMenuOpen(false);
+                            if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                            e.preventDefault();
+                            navigateToTab(tab.key);
+                          }}
+                          aria-current={tabIsActive ? 'page' : undefined}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 14px',
+                            fontSize: '13px', fontWeight: 700,
+                            color: tabIsActive ? '#4ECDC4' : '#FFF', textDecoration: 'none',
+                            background: tabIsActive ? 'rgba(78,205,196,0.1)' : 'none',
+                          }}
+                        >
+                          {t(`nav.${tab.key}`)}
+                          {isNewUnseenItem && <span style={newTabDotStyle} aria-hidden="true" />}
+                        </a>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             );
-          })}
+          })()}
         </nav>
 
         <nav
