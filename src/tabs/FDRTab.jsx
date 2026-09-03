@@ -250,7 +250,7 @@ export default function FDRTab({
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           flexWrap: 'wrap', gap: '10px', marginBottom: '10px'
         }}>
-          <button onClick={(e) => { e.stopPropagation(); setSortByDifficulty(s => !s); }} style={{
+          <button onClick={(e) => { e.stopPropagation(); setSortByDifficulty(s => !s); }} className="fdr-touch-target" style={{
             display: 'flex', alignItems: 'center', gap: '6px', background: 'transparent',
             color: COLORS.textBody, border: '1px solid rgba(255,255,255,0.2)',
             borderRadius: '8px', padding: '8px 14px', fontWeight: 700, fontSize: '13px', cursor: 'pointer'

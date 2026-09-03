@@ -1391,6 +1391,18 @@ export default function FDRTool() {
           .fdr-touch-target {
             min-height: 44px;
           }
+          /* UX-audit punt 8: op 390px met touch bleken de twee GW-selects (45x26), de 4 knoppen in de
+             fpl-toolbar (Kopieer link/Download/Reset/Bewaar, ~30-32px) en de "Sorteer op makkelijkste
+             run"-knop allemaal onder de 44px hoogte te vallen. select/.fdr-toolbar-btn droegen geen van
+             de bestaande touch-doel-klassen, dus die krijgen hier hun eigen regel — !important nodig
+             omdat het gaat om INLINE styles (selectStyle/buttonBase in theme.js) die anders altijd
+             winnen van een externe class-regel. Enkel verticale padding erbij, geen nieuwe componenten. */
+          select {
+            min-height: 44px !important;
+          }
+          .fdr-toolbar-btn {
+            min-height: 44px !important;
+          }
         }
         .fdr-footer-link {
           color: inherit;
@@ -1968,6 +1980,7 @@ export default function FDRTool() {
                             navigateToTab(tab.key);
                           }}
                           aria-current={tabIsActive ? 'page' : undefined}
+                          className="fdr-touch-target"
                           style={{
                             display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 14px',
                             fontSize: '13px', fontWeight: 700,
@@ -2082,8 +2095,9 @@ export default function FDRTool() {
                         navigateToTab(tab.key);
                       }}
                       aria-current={isActive ? 'page' : undefined}
+                      className="fdr-touch-target"
                       style={{
-                        display: 'block', padding: '10px 14px', fontSize: '13px', fontWeight: 700,
+                        display: 'flex', alignItems: 'center', padding: '10px 14px', fontSize: '13px', fontWeight: 700,
                         color: isActive ? '#4ECDC4' : '#FFF', textDecoration: 'none',
                         background: isActive ? 'rgba(78,205,196,0.1)' : 'none',
                       }}
