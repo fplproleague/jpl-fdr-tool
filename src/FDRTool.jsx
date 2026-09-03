@@ -34,8 +34,18 @@ const KaartenTab = lazy(() => import('./tabs/KaartenTab'));
 const SetPiecesTab = lazy(() => import('./tabs/SetPiecesTab'));
 
 // Tab-navigatie bovenaan de pagina. De lijst zelf (labels, paden, per-tab titel/omschrijving) staat
-// in src/routes.js, zodat de URL-afhandeling en de zichtbare tabs nooit uit elkaar kunnen lopen.
+// in src/routes.js, zodat de URL-afhandeling en de zichtbare tabs nooit uit elkaar kunnen lopen. TABS
+// blijft de VOLLEDIGE lijst (incl. Price Changes) — routeKeyFromPath/routeByKey/build-routes.mjs
+// moeten elke route altijd kunnen herkennen, ook als hij niet in de navbalk staat.
 const TABS = ROUTES;
+
+// UX-audit punt 9: Price Changes toont tot GW6 enkel één zin ("prijzen veranderen pas vanaf GW7") en
+// dan de footer — een navigatie-item dat naar een zo goed als lege pagina leidt, laat de andere 8
+// tools half afgewerkt ogen. Enkel het NAV-ITEM verdwijnt hier zolang CURRENT_GW < 6: de route zelf
+// (/price-changes) blijft via TABS/ROUTES hierboven gewoon bereikbaar, dus een al gedeelde link 404't
+// niet. NAV_TABS i.p.v. TABS filteren op de plek van gebruik: zo blijft er precies één plek die bepaalt
+// wélke tabs in de balk staan.
+const NAV_TABS = CURRENT_GW >= 6 ? TABS : TABS.filter(tab => tab.key !== 'pricechanges');
 
 // Op mobiel (zie .fdr-tabs-mobile) blijven enkel de eerste MOBILE_PRIMARY_TAB_COUNT tabs los
 // zichtbaar (elk zijn eigen kolom in een grid, zie .fdr-tab-btn-mobile-primary); de rest komt in het
@@ -45,8 +55,8 @@ const TABS = ROUTES;
 // icoon+kort-label-patroon hieronder i.p.v. de volledige nav.*-tekst, hetzelfde compacte patroon als
 // een bottom-nav-bar in een native app.
 const MOBILE_PRIMARY_TAB_COUNT = 3;
-const MOBILE_PRIMARY_TABS = TABS.slice(0, MOBILE_PRIMARY_TAB_COUNT);
-const MOBILE_OVERFLOW_TABS = TABS.slice(MOBILE_PRIMARY_TAB_COUNT);
+const MOBILE_PRIMARY_TABS = NAV_TABS.slice(0, MOBILE_PRIMARY_TAB_COUNT);
+const MOBILE_OVERFLOW_TABS = NAV_TABS.slice(MOBILE_PRIMARY_TAB_COUNT);
 
 // Icoon per vaste mobiele tab (zie MOBILE_PRIMARY_TABS) — enkel voor deze 3, dus geen aparte
 // ROUTES-kolom nodig; Grid2x2/Users/Shirt hergebruiken bewust dezelfde iconen als de sectietitel
@@ -445,7 +455,7 @@ export default function FDRTool() {
   // = "alles past, geen Meer nodig". Gemeten via ResizeObserver (zie het effect hieronder) i.p.v. een
   // vaste drempel, want de werkelijke breedte hangt af van de taal (NL/FR-labels verschillen in
   // lengte) en het aantal tabs (zie ook punt 9 van de UX-audit, dat Price Changes soms verbergt).
-  const [desktopVisibleTabCount, setDesktopVisibleTabCount] = useState(TABS.length);
+  const [desktopVisibleTabCount, setDesktopVisibleTabCount] = useState(NAV_TABS.length);
   // Ref op de BUITENSTE <nav> (niet tabsRef, dat is de binnenste scrollbare div) — de buitenste breedte
   // blijft stabiel ongeacht of de Meer-knop er al dan niet naast staat (flex:1 1 auto op de binnenste
   // div laat DIE juist krimpen zodra Meer verschijnt). Zou de meting op tabsRef draaien, dan zou elke
@@ -469,7 +479,7 @@ export default function FDRTool() {
       const totalWidth = itemWidths.reduce((sum, w, i) => sum + w + (i > 0 ? gap : 0), 0);
 
       if (totalWidth <= availableWidth) {
-        setDesktopVisibleTabCount(TABS.length);
+        setDesktopVisibleTabCount(NAV_TABS.length);
         return;
       }
 
@@ -1887,7 +1897,7 @@ export default function FDRTool() {
               position: 'fixed', top: '-9999px', left: '-9999px', visibility: 'hidden', pointerEvents: 'none',
               display: 'flex', gap: '4px', whiteSpace: 'nowrap',
             }}>
-              {TABS.map(tab => (
+              {NAV_TABS.map(tab => (
                 <span key={tab.key} className="fdr-title fdr-tab-btn" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                   {t(`nav.${tab.key}`)}
                 </span>
@@ -1901,7 +1911,7 @@ export default function FDRTool() {
               </span>
             </div>
 
-            {(desktopVisibleTabCount >= TABS.length ? TABS : TABS.slice(0, desktopVisibleTabCount)).map(tab => {
+            {(desktopVisibleTabCount >= NAV_TABS.length ? NAV_TABS : NAV_TABS.slice(0, desktopVisibleTabCount)).map(tab => {
               const isActive = activeTab === tab.key;
               const isNewUnseen = NEW_TAB_KEYS.includes(tab.key) && !seenNewTabs.has(tab.key);
               return (
@@ -1930,8 +1940,8 @@ export default function FDRTool() {
             })}
           </div>
 
-          {desktopVisibleTabCount < TABS.length && (() => {
-            const overflowTabs = TABS.slice(desktopVisibleTabCount);
+          {desktopVisibleTabCount < NAV_TABS.length && (() => {
+            const overflowTabs = NAV_TABS.slice(desktopVisibleTabCount);
             const activeOverflowTab = overflowTabs.find(tab => tab.key === activeTab);
             const isActive = !!activeOverflowTab;
             const hasUnseenNewTab = overflowTabs.some(tab => NEW_TAB_KEYS.includes(tab.key) && !seenNewTabs.has(tab.key));
@@ -2261,13 +2271,13 @@ export default function FDRTool() {
               background: 'rgba(255,255,255,0.04)', border: `1px solid ${COLORS.borderSubtle}`,
               borderRadius: '10px', padding: '16px'
             }}>
-              {/* Expliciet vermelden wanneer prijzen überhaupt beginnen te bewegen: zonder die
-                  context lijkt een lege tab op een onafgewerkte tool, terwijl er in het spel simpelweg
-                  nog niets te tonen valt. */}
-              <p style={{ color: COLORS.textBody, fontSize: '13px', margin: 0, lineHeight: 1.6 }}>
-                {t('priceChanges.p1')}
-              </p>
-              <p style={{ color: COLORS.textSubtle, fontSize: '13px', margin: '8px 0 0', lineHeight: 1.6 }}>
+              {/* De uitleg over WANNEER prijzen beginnen te bewegen (priceChanges.p1) staat sinds de
+                  UX-audit niet meer hier maar bij de prijskolom in Team Planner (zie
+                  teamPlanner.priceChangeNote) — deze tab zit tot GW6 sowieso niet in de navbalk (zie
+                  NAV_TABS hierboven), dus de vraag "waarom is dit leeg?" stelt zich in de praktijk daar,
+                  niet op deze route. Deze route zelf blijft wel bereikbaar (een al gedeelde link naar
+                  /price-changes 404't niet), met enkel nog de vooruitblik naar GW7. */}
+              <p style={{ color: COLORS.textSubtle, fontSize: '13px', margin: 0, lineHeight: 1.6 }}>
                 {t('priceChanges.p2')}
               </p>
             </div>

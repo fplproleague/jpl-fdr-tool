@@ -178,7 +178,6 @@ const STRINGS = {
     'screenshotUpload.retry': 'Probeer opnieuw',
 
     // --- Price Changes ---
-    'priceChanges.p1': 'In Fantasy Pro League veranderen spelersprijzen pas vanaf gameweek 7. Tot dan blijft elke prijs gelijk aan de startprijs, dus valt er nog niets te melden.',
     'priceChanges.p2': 'Vanaf GW7 documenteren we hier alle stijgers en dalers.',
 
     // --- Team Planner ---
@@ -198,6 +197,9 @@ const STRINGS = {
     'teamPlanner.colPlayer': 'Speler',
     'teamPlanner.colPosition': 'Positie',
     'teamPlanner.colPrice': 'Prijs (M)',
+    // Verhuisd van de (tot GW6 verborgen) Price Changes-tab — zie UX-audit punt 9: de vraag "waarom
+    // verandert deze prijs niet?" komt op bij de prijskolom hierboven, niet op een aparte tab.
+    'teamPlanner.priceChangeNote': 'In Fantasy Pro League veranderen spelersprijzen pas vanaf gameweek 7 — tot dan blijft elke prijs gelijk aan de startprijs.',
     'teamPlanner.searchLoadingPlaceholder': 'Databank laden...',
     'teamPlanner.searchPositionPlaceholder': 'Zoek {{position}}...',
     'teamPlanner.pitch': 'Veld',
@@ -442,7 +444,6 @@ const STRINGS = {
     'screenshotUpload.cancel': 'Annuler',
     'screenshotUpload.retry': 'Réessayer',
 
-    'priceChanges.p1': "En Fantasy Pro League, les prix des joueurs ne changent qu'à partir de la journée 7. Jusque-là, chaque prix reste égal au prix de départ, il n'y a donc encore rien à signaler.",
     'priceChanges.p2': "À partir de la J7, nous documenterons ici toutes les hausses et les baisses.",
 
     // --- Team Planner ---
@@ -462,6 +463,7 @@ const STRINGS = {
     'teamPlanner.colPlayer': 'Joueur',
     'teamPlanner.colPosition': 'Poste',
     'teamPlanner.colPrice': 'Prix (M)',
+    'teamPlanner.priceChangeNote': "En Fantasy Pro League, les prix des joueurs ne changent qu'à partir de la journée 7 — jusque-là, chaque prix reste égal au prix de départ.",
     'teamPlanner.searchLoadingPlaceholder': 'Chargement de la base...',
     'teamPlanner.searchPositionPlaceholder': 'Rechercher {{position}}...',
     'teamPlanner.pitch': 'Terrain',
