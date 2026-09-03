@@ -306,7 +306,7 @@ export default function FDRTab({
                 }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <img
-                      src={`/club-logos/${team.code}.png`}
+                      src={`/club-logos/${team.code}.webp`}
                       alt=""
                       className="club-logo"
                       style={{ width: '20px', height: '20px', objectFit: 'contain', flexShrink: 0 }}
@@ -417,7 +417,7 @@ export default function FDRTab({
                   color: idx === 0 ? '#4ECDC4' : '#C9B8E0', fontWeight: 900, fontSize: '18px', width: '24px', flexShrink: 0
                 }}>{idx + 1}</span>
                 <img
-                  src={`/club-logos/${team.code}.png`}
+                  src={`/club-logos/${team.code}.webp`}
                   alt=""
                   className="club-logo"
                   style={{ width: '24px', height: '24px', objectFit: 'contain', flexShrink: 0 }}
@@ -475,7 +475,7 @@ export default function FDRTab({
                 cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.5 : 1
               }}>
                 <img
-                  src={`/club-logos/${team.code}.png`}
+                  src={`/club-logos/${team.code}.webp`}
                   alt=""
                   className="club-logo"
                   style={{ width: '14px', height: '14px', objectFit: 'contain', flexShrink: 0 }}
@@ -506,7 +506,7 @@ export default function FDRTab({
                       <td style={{ color: '#FFF', fontWeight: 700, fontSize: '13px', padding: '6px 8px', whiteSpace: 'nowrap', ...stickyTeamCellStyle }}>
                         <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <img
-                            src={`/club-logos/${team.code}.png`}
+                            src={`/club-logos/${team.code}.webp`}
                             alt=""
                             className="club-logo"
                             style={{ width: '20px', height: '20px', objectFit: 'contain', flexShrink: 0 }}
@@ -569,7 +569,7 @@ export default function FDRTab({
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <img
-                      src={`/club-logos/${team.code}.png`}
+                      src={`/club-logos/${team.code}.webp`}
                       alt=""
                       className="club-logo"
                       style={{ width: '16px', height: '16px', objectFit: 'contain', flexShrink: 0 }}

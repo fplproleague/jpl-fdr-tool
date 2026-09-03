@@ -61,7 +61,7 @@ export default function PlayerSearchPanel({ players, onSelect, onManualAdd, acti
                   }}
                 >
                   <img
-                    src={`/club-logos/${p.teamCode}.png`}
+                    src={`/club-logos/${p.teamCode}.webp`}
                     alt=""
                     style={{ width: '18px', height: '18px', objectFit: 'contain', flexShrink: 0 }}
                     onError={(e) => { e.target.style.display = 'none'; }}

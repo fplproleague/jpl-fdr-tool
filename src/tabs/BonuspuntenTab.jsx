@@ -86,7 +86,7 @@ function PlayerBonusCard({ t, entry, onDismiss }) {
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
         <img
-          src={`/club-logos/${entry.clubCode}.png`}
+          src={`/club-logos/${entry.clubCode}.webp`}
           alt=""
           style={{ width: '26px', height: '26px', objectFit: 'contain', flexShrink: 0 }}
           onError={(e) => { e.target.style.display = 'none'; }}

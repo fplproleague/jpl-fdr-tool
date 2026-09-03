@@ -243,7 +243,7 @@ function PlayerPitchCard({ player, gw, ratings, homeAdvantage, isBenched, isCapt
       >
         {player.teamCode && (
           <img
-            src={`/club-logos/${player.teamCode}.png`}
+            src={`/club-logos/${player.teamCode}.webp`}
             alt=""
             className="club-logo fdr-pitch-card-logo"
             style={{ width: '24px', height: '24px', objectFit: 'contain' }}
@@ -279,7 +279,7 @@ function TransferPlayerCard({ player, highlight }) {
     }}>
       {player.teamCode && (
         <img
-          src={`/club-logos/${player.teamCode}.png`}
+          src={`/club-logos/${player.teamCode}.webp`}
           alt=""
           className="club-logo"
           style={{ width: '22px', height: '22px', objectFit: 'contain' }}
@@ -1369,7 +1369,7 @@ export default function TeamPlannerTab({
                             borderRadius: '8px', padding: '8px 10px'
                           }}>
                             <img
-                              src={`/club-logos/${entry.outPlayer.teamCode}.png`}
+                              src={`/club-logos/${entry.outPlayer.teamCode}.webp`}
                               alt=""
                               className="club-logo"
                               style={{ width: '18px', height: '18px', objectFit: 'contain', flexShrink: 0 }}
@@ -1381,7 +1381,7 @@ export default function TeamPlannerTab({
                             </span>
                             <ArrowRight size={14} color="#4ECDC4" style={{ flexShrink: 0 }} />
                             <img
-                              src={`/club-logos/${entry.inPlayer.teamCode}.png`}
+                              src={`/club-logos/${entry.inPlayer.teamCode}.webp`}
                               alt=""
                               className="club-logo"
                               style={{ width: '18px', height: '18px', objectFit: 'contain', flexShrink: 0 }}

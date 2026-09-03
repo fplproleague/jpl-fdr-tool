@@ -140,7 +140,7 @@ export default function WatchlistTab({
                     </button>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingRight: '24px' }}>
                       <img
-                        src={`/club-logos/${player.teamCode}.png`}
+                        src={`/club-logos/${player.teamCode}.webp`}
                         alt=""
                         className="club-logo"
                         style={{ width: '24px', height: '24px', objectFit: 'contain', flexShrink: 0 }}

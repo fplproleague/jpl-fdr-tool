@@ -175,7 +175,7 @@ export default function PredictedLineupsTab({ t, dataUpdatedPredictedLineups }) 
               aria-pressed={isSelected}
             >
               <img
-                src={`/club-logos/${code}.png`}
+                src={`/club-logos/${code}.webp`}
                 alt=""
                 style={{ width: '24px', height: '24px', objectFit: 'contain' }}
                 onError={(e) => { e.target.style.display = 'none'; }}
@@ -233,7 +233,7 @@ export default function PredictedLineupsTab({ t, dataUpdatedPredictedLineups }) 
           }}>
             {club && (
               <img
-                src={`/club-logos/${club.code}.png`}
+                src={`/club-logos/${club.code}.webp`}
                 alt=""
                 style={{ width: '48px', height: '48px', objectFit: 'contain', opacity: 0.6 }}
                 onError={(e) => { e.target.style.display = 'none'; }}
