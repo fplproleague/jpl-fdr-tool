@@ -66,7 +66,7 @@ function SetPieceCard({ entry }) {
       }}>
         {entry.clubCode && (
           <img
-            src={`/club-logos/${entry.clubCode}.png`}
+            src={`/club-logos/${entry.clubCode}.webp`}
             alt=""
             style={{ width: '22px', height: '22px', objectFit: 'contain', flexShrink: 0 }}
             onError={(e) => { e.target.style.display = 'none'; }}

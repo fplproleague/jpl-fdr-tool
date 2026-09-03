@@ -149,7 +149,7 @@ export const PlayerSearchInput = memo(function PlayerSearchInput({
               style={dropdownItemStyle}
             >
               <img
-                src={`/club-logos/${p.teamCode}.png`}
+                src={`/club-logos/${p.teamCode}.webp`}
                 alt=""
                 className="club-logo"
                 style={{ width: '18px', height: '18px', objectFit: 'contain', flexShrink: 0 }}
