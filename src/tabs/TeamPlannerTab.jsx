@@ -765,9 +765,11 @@ export default function TeamPlannerTab({
                 )}
 
                 {/* Laad-/foutstatus van de spelersdatabank (Google Sheet CSV, zie fetchPlayerDatabase in
-                    FDRTool.jsx) — zelfde patroon als de Spelerstatus-tab: spinner tijdens het laden, rode
-                    foutmelding met "opnieuw proberen"-knop bij een mislukte fetch. Zolang de databank niet
-                    geladen is, staat de zoek/autocomplete hieronder op disabled (zie PlayerSearchInput). */}
+                    FDRTool.jsx). Zolang de databank niet geladen is, kan geen enkele rij hieronder iets
+                    zinvols doen (zoeken/autocomplete werkt pas met de databank) — bij een mislukte fetch
+                    toont deze sectie daarom een eigen lege-toestand i.p.v. de 15 dode zoekrijen: een
+                    formulier dat er functioneel uitziet maar niets doet, is misleidender dan gewoon
+                    zeggen dat de databank tijdelijk onbereikbaar is. */}
                 {playerDatabaseLoading && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: COLORS.textBody, fontSize: '13px', marginBottom: '16px' }}>
                     <Loader2 size={16} className="fdr-spin" /> {t('teamPlanner.loadingDb')}
@@ -775,18 +777,22 @@ export default function TeamPlannerTab({
                 )}
                 {!playerDatabaseLoading && playerDatabaseError && (
                   <div style={{
-                    display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
-                    background: 'rgba(194,64,44,0.12)', border: '1px solid rgba(194,64,44,0.4)',
-                    borderRadius: '10px', padding: '12px 14px', marginBottom: '16px'
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', textAlign: 'center',
+                    background: 'rgba(194,64,44,0.08)', border: '1px solid rgba(194,64,44,0.3)',
+                    borderRadius: '10px', padding: '40px 24px',
                   }}>
-                    <AlertCircle size={16} color="#C2402C" style={{ flexShrink: 0 }} />
-                    <span style={{ color: '#FBEAE7', fontSize: '13px', flex: 1 }}>{playerDatabaseError}</span>
-                    <button onClick={fetchPlayerDatabase} style={retryButtonStyle}>
+                    <AlertCircle size={28} color="#C2402C" aria-hidden="true" />
+                    <p style={{ color: '#FBEAE7', fontSize: '14px', fontWeight: 700, margin: 0, maxWidth: '420px' }}>
+                      {t('teamPlanner.playerDbUnavailable')}
+                    </p>
+                    <button onClick={fetchPlayerDatabase} className="fdr-touch-target" style={retryButtonStyle}>
                       <RotateCcw size={14} /> {t('shared.retry')}
                     </button>
                   </div>
                 )}
 
+                {!playerDatabaseError && (
+                <>
                 {/* Validatie-overzicht: aantal ingevulde spelers en resterend budget, tellend vanaf
                     TEAM_PLANNER_BUDGET (100M) — zelfde weergave als de echte FPL-app ("Squad: x/15" +
                     "In the bank"), i.p.v. een "besteed/totaal"-framing. Buiten een Recharge-bewerking
@@ -900,6 +906,8 @@ export default function TeamPlannerTab({
                 <p style={{ color: COLORS.textSubtle, fontSize: '11px', marginTop: '8px' }}>
                   {t('teamPlanner.priceChangeNote')}
                 </p>
+                </>
+                )}
               </div>
             )}
           </div>

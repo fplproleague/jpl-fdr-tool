@@ -190,6 +190,10 @@ const STRINGS = {
     'teamPlanner.confirmRecharge': 'Bevestig recharge',
     'teamPlanner.cancel': 'Annuleer',
     'teamPlanner.loadingDb': 'Spelersdatabank laden...',
+    // Vervangt sinds de UX-audit de 15 dode zoekrijen + klein rood vlak: bij een mislukte fetch toont
+    // deze hele sectie enkel nog deze lege-toestand i.p.v. een formulier dat er functioneel uitziet
+    // maar niets doet.
+    'teamPlanner.playerDbUnavailable': 'De spelersdatabank is tijdelijk onbereikbaar. Je team blijft bewaard — probeer het later opnieuw om spelers te zoeken of te wijzigen.',
     'teamPlanner.squadCount': 'Spelers: {{count}}/{{total}}',
     'teamPlanner.remainingBudget': 'Resterend budget: {{value}}M',
     'teamPlanner.overCapClubs': 'Max {{max}} per club: {{clubs}}',
@@ -456,6 +460,7 @@ const STRINGS = {
     'teamPlanner.confirmRecharge': 'Confirmer la recharge',
     'teamPlanner.cancel': 'Annuler',
     'teamPlanner.loadingDb': 'Chargement de la base de joueurs...',
+    'teamPlanner.playerDbUnavailable': "La base de joueurs est temporairement inaccessible. Votre équipe reste sauvegardée — réessayez plus tard pour rechercher ou modifier des joueurs.",
     'teamPlanner.squadCount': 'Joueurs : {{count}}/{{total}}',
     'teamPlanner.remainingBudget': 'Budget restant : {{value}}M',
     'teamPlanner.overCapClubs': 'Max {{max}} par club : {{clubs}}',
