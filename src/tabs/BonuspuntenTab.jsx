@@ -21,10 +21,10 @@ const retryButtonStyle = {
   borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px', cursor: 'pointer',
 };
 
-// Tijdelijk (t/m GW4) — enkel de Bonuspunten-kolom (de 5e, algemene "meeste bonuspunten"-
+// Tijdelijk (t/m GW5) — enkel de Bonuspunten-kolom (de 5e, algemene "meeste bonuspunten"-
 // rangschikking) staat nog op 0 voor iedereen; Duels/Kopballen/Recoveries/Grote kansen zijn al wél
 // ingevuld en tonen dus gewoon normaal. Zolang dit op false staat, toont enkel de "Meeste bonuspunten"-
-// sectie (en de Bonuspunten-tegel in de spelerskaart) een subtiele melding ("beschikbaar na GW4")
+// sectie (en de Bonuspunten-tegel in de spelerskaart) een subtiele melding ("beschikbaar na GW5")
 // i.p.v. een rangschikking vol nullen. Zet op true zodra die kolom gevuld is — zelfde tijdelijke-
 // vlag-opzet als SHOW_CLOSEST_TO_SUSPENSION_MODE in KaartenTab.jsx.
 const BONUS_POINTS_DATA_AVAILABLE = false;
