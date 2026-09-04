@@ -2493,7 +2493,15 @@ export const PREDICTED_LINEUPS = [
         "playerPosition": "FWD",
         "playerPrice": 6.5,
         "safety": "green"
-"id": "70557fad-4070-4254-92e1-713f2fffcee8",
+      }
+    ],
+    "notes": "",
+    "label": "",
+    "createdAt": 1788552000000,
+    "updatedAt": 1788552000000
+  },
+  {
+    "id": "70557fad-4070-4254-92e1-713f2fffcee8",
     "clubCode": "AND",
     "opponentCode": "GNK",
     "formationKey": "4-3-3",
@@ -2783,7 +2791,7 @@ export const PREDICTED_LINEUPS = [
   {
     "id": "d9c1eea1-b894-4907-b0d3-08a62b48ac50",
     "clubCode": "ANT",
-    "opponentCode": "GNK",
+    "opponentCode": "STA",
     "formationKey": "4-4-2",
     "slots": [
       {
@@ -4607,7 +4615,7 @@ export const PREDICTED_LINEUPS = [
   {
     "id": "5a9cfa0d-d913-453c-861a-4ae7c90e6a7a",
     "clubCode": "STA",
-    "opponentCode": "",
+    "opponentCode": "ANT",
     "formationKey": "4-3-3",
     "slots": [
       {
@@ -4895,7 +4903,7 @@ export const PREDICTED_LINEUPS = [
   {
     "id": "53d555d6-20c7-4bc0-9d5f-6f2c66a9ad1c",
     "clubCode": "KVM",
-    "opponentCode": "",
+    "opponentCode": "WES",
     "formationKey": "5-3-2",
     "slots": [
       {
@@ -5051,7 +5059,7 @@ export const PREDICTED_LINEUPS = [
   {
     "id": "1b24ca8c-01a0-457c-a777-5e9c80ccdb78",
     "clubCode": "CLU",
-    "opponentCode": "",
+    "opponentCode": "LOM",
     "formationKey": "4-3-3",
     "slots": [
       {

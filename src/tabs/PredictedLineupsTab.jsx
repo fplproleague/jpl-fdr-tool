@@ -103,7 +103,13 @@ export default function PredictedLineupsTab({ t }) {
   // niet berekend; de placeholder-tak hieronder gebruikt enkel club/postponedMessage.
   const isNotPlaying = notPlayingClubCodes.includes(selectedClubCode);
   const club = TEAMS.find(team => team.code === selectedClubCode);
-  const lineup = !isNotPlaying ? (readyLineups.find(l => l.clubCode === selectedClubCode) ?? readyLineups[0]) : null;
+  // findLast i.p.v. find: predictedLineupsData.js wordt week na week AANGEVULD (nieuwe update voor een
+  // club komt er gewoon achteraan bij, de oude entry van vorige GW blijft gewoon staan), dus zodra een
+  // club twee entries heeft, is de LAATSTE altijd de meest recente. find() pakte hier voorheen
+  // ongemerkt de EERSTE (oudste) entry — onschadelijk zolang de stale-gate hierboven toch alles
+  // verborg, maar zou zodra PREDICTED_LINEUPS_GW wordt bijgewerkt gewoon de vorige speeldag als actueel
+  // tonen voor elke club met een dubbele entry.
+  const lineup = !isNotPlaying ? (readyLineups.findLast(l => l.clubCode === selectedClubCode) ?? readyLineups[0]) : null;
   const opponent = lineup?.opponentCode ? TEAMS.find(team => team.code === lineup.opponentCode) : null;
   const formationLabel = lineup
     ? (lineup.formationLabelOverride?.trim() || FORMATIONS[lineup.formationKey]?.label || lineup.formationKey)
