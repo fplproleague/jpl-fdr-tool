@@ -87,6 +87,11 @@ const PitchField = forwardRef(function PitchField({
   // afhandeling van de container zelf weg. Standaard false: de privé Predicted XI Builder (die deze
   // prop nooit meegeeft) is hierdoor op geen enkele manier veranderd.
   readOnly = false,
+  // Optioneel badge-label (bv. "GW4") naast de formatie-pil — enkel voor de publieke Predicted
+  // Lineups-tab, die dit meegeeft zodat een screenshot van het veld (die buiten de site rondgaat op
+  // X, los van elke pagina-context) zijn eigen speeldag meedraagt. null = niets extra tonen; de privé
+  // Predicted XI Builder geeft dit nooit mee en is dus op geen enkele manier veranderd.
+  gwLabel = null,
 }, ref) {
   const pitchSlots = slots.filter(s => s.positionId !== '_unassigned');
   const pitchInnerRef = useRef(null);
@@ -196,7 +201,7 @@ const PitchField = forwardRef(function PitchField({
         }}>
           {club && (
             <img
-              src={`/club-logos/${club.code}.png`}
+              src={`/club-logos/${club.code}.webp`}
               alt=""
               className="pxi-field-logo"
               style={{
@@ -218,11 +223,18 @@ const PitchField = forwardRef(function PitchField({
           }}>
             {formationLabel}
           </div>
+          {gwLabel && (
+            <div style={{
+              color: '#8F79AD', fontWeight: 700, fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase',
+            }}>
+              {gwLabel}
+            </div>
+          )}
           {opponent && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ color: '#A794C2', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>vs</span>
               <img
-                src={`/club-logos/${opponent.code}.png`}
+                src={`/club-logos/${opponent.code}.webp`}
                 alt=""
                 className="pxi-field-opp-logo"
                 style={{ width: '18px', height: '18px', objectFit: 'contain' }}

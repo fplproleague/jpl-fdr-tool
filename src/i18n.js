@@ -22,7 +22,7 @@ const STRINGS = {
     // --- Chrome: header, nav, footer, taal-toggle ---
     'header.tagline': 'Interactieve tools voor Fantasy Pro League — gemaakt door @fpl_proleague.',
     'header.deadlineLabel': 'Deadline GW{{gw}}',
-    'header.minileagueLabel': 'Minileague:',
+    'header.minileagueLabel': 'Fantasy Pro League minileague:',
     'header.copy': 'Kopieer',
     'header.copied': 'Gekopieerd!',
     'header.copyMinileagueAria': 'Minileague-code {{code}} kopiëren',
@@ -138,6 +138,9 @@ const STRINGS = {
     // --- Predicted Lineups ---
     'predictedLineups.introEmpty': 'Voorspelde opstellingen voor GW{{gw}}, samengesteld door @5YSiebee.',
     'predictedLineups.intro': 'Voorspelde opstellingen voor GW{{gw}}, samengesteld door @5YSiebee. Kies een club om de verwachte opstelling te bekijken.',
+    'predictedLineups.staleGateText': 'De opstellingen voor GW{{gw}} zijn nog niet klaar.',
+    'predictedLineups.staleGateButton': 'Toon GW{{gw}} ter referentie',
+    'predictedLineups.pitchGwLabel': 'GW{{gw}}',
     'predictedLineups.staleWarning': 'Let op: dit zijn de opstellingen van GW{{predictedGw}}, niet van de komende GW{{currentGw}}.',
     'predictedLineups.pickClubAria': 'Kies een club',
     'predictedLineups.notPlayingTitle': '{{club}} — geen wedstrijd deze speeldag',
@@ -291,7 +294,7 @@ const STRINGS = {
   fr: {
     'header.tagline': "Outils interactifs pour Fantasy Pro League — créés par @fpl_proleague.",
     'header.deadlineLabel': 'Deadline J{{gw}}',
-    'header.minileagueLabel': 'Mini-ligue :',
+    'header.minileagueLabel': 'Mini-ligue Fantasy Pro League :',
     'header.copy': 'Copier',
     'header.copied': 'Copié !',
     'header.copyMinileagueAria': 'Copier le code de mini-ligue {{code}}',
@@ -395,6 +398,9 @@ const STRINGS = {
 
     'predictedLineups.introEmpty': 'Compositions probables pour la J{{gw}}, réalisées par @5YSiebee.',
     'predictedLineups.intro': 'Compositions probables pour la J{{gw}}, réalisées par @5YSiebee. Choisissez un club pour voir sa composition probable.',
+    'predictedLineups.staleGateText': "Les compositions pour la J{{gw}} ne sont pas encore prêtes.",
+    'predictedLineups.staleGateButton': 'Afficher la J{{gw}} à titre de référence',
+    'predictedLineups.pitchGwLabel': 'J{{gw}}',
     'predictedLineups.staleWarning': "Attention : ceci est la composition de la J{{predictedGw}}, pas de la prochaine J{{currentGw}}.",
     'predictedLineups.pickClubAria': 'Choisissez un club',
     'predictedLineups.notPlayingTitle': '{{club}} — pas de match cette journée',

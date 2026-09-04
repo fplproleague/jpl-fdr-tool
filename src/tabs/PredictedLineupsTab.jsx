@@ -73,6 +73,11 @@ export default function PredictedLineupsTab({ t }) {
     readyLineups.some(l => l.clubCode === code) || notPlayingClubCodes.includes(code)
   );
   const [selectedClubCode, setSelectedClubCode] = useState(availableClubCodes[0] ?? '');
+  // Zolang de opstellingen verouderd zijn (isStale), blijft het veld zelf verborgen achter een
+  // expliciete klik — de banner alleen missen een bezoeker gemakkelijk, en dan stelt die zijn team op
+  // met data van vorige week. Bewust transiënte UI-state (geen localStorage): bij een volgend bezoek
+  // moet de keuze weer bewust gemaakt worden, net als bij een niet-weg-te-klikken banner.
+  const [showStaleReference, setShowStaleReference] = useState(false);
 
   if (availableClubCodes.length === 0) {
     return (
@@ -156,7 +161,7 @@ export default function PredictedLineupsTab({ t }) {
               aria-pressed={isSelected}
             >
               <img
-                src={`/club-logos/${code}.png`}
+                src={`/club-logos/${code}.webp`}
                 alt=""
                 style={{ width: '24px', height: '24px', objectFit: 'contain' }}
                 onError={(e) => { e.target.style.display = 'none'; }}
@@ -174,7 +179,35 @@ export default function PredictedLineupsTab({ t }) {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
-        {isNotPlaying ? (
+        {isStale && !showStaleReference ? (
+          /* Het veld zelf blijft verborgen zolang de data verouderd is (zie showStaleReference
+             hierboven) — enkel de StaleWarning-banner missen is voor een fantasymanager schadelijker
+             dan geen team-info krijgen, want een verouderd veld ziet er identiek uit aan een actueel
+             veld. De clubkiezer blijft wél gewoon werken, zodat een bezoeker al kan kiezen welke club
+             hij straks (na de klik) wil zien. */
+          <div style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px',
+            background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: '10px', padding: '40px 24px', width: '100%', maxWidth: '420px', textAlign: 'center',
+          }}>
+            <CalendarOff size={22} color={COLORS.textSubtle} aria-hidden="true" />
+            <p style={{ color: COLORS.textBody, fontSize: '14px', fontWeight: 700, margin: 0 }}>
+              {t('predictedLineups.staleGateText', { gw: CURRENT_GW })}
+            </p>
+            <button
+              onClick={() => setShowStaleReference(true)}
+              className="fdr-touch-target"
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                background: 'transparent', color: '#4ECDC4', border: '1px solid #4ECDC4',
+                borderRadius: '8px', padding: '8px 16px', marginTop: '4px',
+                fontWeight: 700, fontSize: '12px', fontFamily: 'inherit', cursor: 'pointer',
+              }}
+            >
+              {t('predictedLineups.staleGateButton', { gw: PREDICTED_LINEUPS_GW })}
+            </button>
+          </div>
+        ) : isNotPlaying ? (
           /* Placeholder i.p.v. PitchField: er is voor deze club simpelweg geen wedstrijd (dus geen
              opstelling) deze speeldag — zie notPlayingClubCodes/postponedMessage hierboven. Zelfde
              kaart-look als de "nog geen lineups"-lege-staat verderop in dit bestand, maar dan
@@ -186,7 +219,7 @@ export default function PredictedLineupsTab({ t }) {
           }}>
             {club && (
               <img
-                src={`/club-logos/${club.code}.png`}
+                src={`/club-logos/${club.code}.webp`}
                 alt=""
                 style={{ width: '48px', height: '48px', objectFit: 'contain', opacity: 0.6 }}
                 onError={(e) => { e.target.style.display = 'none'; }}
@@ -225,6 +258,7 @@ export default function PredictedLineupsTab({ t }) {
               club={club}
               opponent={opponent}
               formationLabel={formationLabel}
+              gwLabel={t('predictedLineups.pitchGwLabel', { gw: PREDICTED_LINEUPS_GW })}
               slots={lineup.slots}
               activeSlotIndex={null}
               onSlotClick={noop}

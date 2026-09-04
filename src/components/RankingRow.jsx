@@ -34,7 +34,7 @@ export function RankingRow({ rank, clubCode, player, subtitle, value, valueSub, 
       </span>
       {clubCode && (
         <img
-          src={`/club-logos/${clubCode}.png`}
+          src={`/club-logos/${clubCode}.webp`}
           alt=""
           style={{ width: '22px', height: '22px', objectFit: 'contain', flexShrink: 0 }}
           onError={(e) => { e.target.style.display = 'none'; }}

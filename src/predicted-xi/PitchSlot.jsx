@@ -188,7 +188,7 @@ export default function PitchSlot({
                   </button>
                 )}
                 <img
-                  src={`/club-shirts/${effectiveTeamCode}.png`}
+                  src={`/club-shirts/${effectiveTeamCode}.webp`}
                   alt=""
                   // Standaard native-draggable <img>'s zouden anders de eigen "sleep om te verplaatsen"-
                   // handler van de kaart (draggable hierboven, op de ouder-div) kunnen kapen.
