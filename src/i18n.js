@@ -61,7 +61,7 @@ const STRINGS = {
     'route.pricechanges.description': 'Prijswijzigingen in Fantasy Pro League. In het spel veranderen prijzen pas vanaf gameweek 7.',
     'footer.madeBy': 'Gemaakt door',
     'footer.season': 'Fantasy Pro League 26/27 · Data eigen analyse',
-    'footer.lastUpdated': 'Laatst bijgewerkt: {{date}}',
+    'footer.lastUpdated': 'Data bijgewerkt: {{date}}',
 
     // --- Info-modal (FDR-uitleg) ---
     'infoModal.title': 'Hoe werkt dit?',
@@ -87,6 +87,7 @@ const STRINGS = {
     'fdr.intro': 'Mijn eigen fixture difficulty ratings — pas ze aan naar jouw mening en ontdek meteen welke teams de beste runs hebben.',
     'fdr.badge.custom': 'JOUW AANGEPASTE VERSIE',
     'fdr.badge.default': 'RATING VAN @FPL_PROLEAGUE',
+    'fdr.ratingsUpdatedLabel': 'Ratings bijgewerkt: {{date}}',
     'fdr.copyLink': 'Kopieer link',
     'fdr.copyLinkShort': 'Kopieer',
     'fdr.linkCopied': 'Link gekopieerd!',
@@ -112,6 +113,13 @@ const STRINGS = {
     'fdr.sortByDifficulty': 'Sorteer op makkelijkste run',
     'fdr.gwLabel': 'GW',
     'fdr.gwTo': 't/m',
+    // Twee onafhankelijke GW-keuzes op dezelfde pagina (tabel hierboven vs. Beste fixture runs
+    // verderop) — allebei toonden voorheen enkel het generieke "GW X t/m Y", zonder dat duidelijk was
+    // dat het om 2 aparte instellingen ging. Expliciet label per kiezer i.p.v. samenvoegen: de tabel
+    // mag tot het volledige seizoen uitgebreid worden, terwijl Beste fixture runs bewust nooit voorbij
+    // GW7 kijkt (zie DEFAULT_GW_HORIZON_END in constants.js) — samenvoegen zou dat verschil verliezen.
+    'fdr.gwRangeTableLabel': 'Bereik van deze tabel: GW',
+    'fdr.gwRangeRunsLabel': 'Bereik van Beste fixture runs: GW',
     'fdr.tapHint': 'Tik op grijze cellen of die met een * voor meer info',
     'fdr.teamColumn': 'Team',
     'fdr.rating.1': 'Makkelijkst',
@@ -119,9 +127,14 @@ const STRINGS = {
     'fdr.rating.3': 'Gemiddeld',
     'fdr.rating.4': 'Moeilijk',
     'fdr.rating.5': 'Moeilijkst',
+    'fdr.formLegend': 'Stippen onder teamcode = vorm laatste 5 wedstrijden',
     'fdr.avgDifficulty': 'Gem. moeilijkheid: {{value}}',
     'fdr.compareIntro': 'Kies tot 5 teams om hun fixtures onder elkaar te zien (vanaf GW{{gw}}).',
     'fdr.compareNoTeams': 'Nog geen teams geselecteerd.',
+    // Geen aparte "Short"-variant zoals fdr.downloadImageShort hierboven nodig: die bestaat om binnen
+    // .fpl-toolbar-secondary op smalle schermen te verkorten (zie FDRTool.jsx), maar deze knop staat
+    // niet in die container.
+    'fdr.downloadRunsImage': 'Download als afbeelding',
 
     // --- Watchlist ---
     'watchlist.intro': 'Houd je favoriete spelers in de gaten — voeg ze toe aan je persoonlijke watchlist, samen met hun eerstvolgende fixtures. Deze lijst slaat automatisch op in je browser.',
@@ -138,6 +151,7 @@ const STRINGS = {
     // --- Predicted Lineups ---
     'predictedLineups.introEmpty': 'Voorspelde opstellingen voor GW{{gw}}, samengesteld door @5YSiebee.',
     'predictedLineups.intro': 'Voorspelde opstellingen voor GW{{gw}}, samengesteld door @5YSiebee. Kies een club om de verwachte opstelling te bekijken.',
+    'predictedLineups.datasetUpdatedLabel': 'Opstellingen bijgewerkt: {{date}}',
     'predictedLineups.staleGateText': 'De opstellingen voor GW{{gw}} zijn nog niet klaar.',
     'predictedLineups.staleGateButton': 'Toon GW{{gw}} ter referentie',
     'predictedLineups.pitchGwLabel': 'GW{{gw}}',
@@ -164,7 +178,6 @@ const STRINGS = {
     'screenshotUpload.retry': 'Probeer opnieuw',
 
     // --- Price Changes ---
-    'priceChanges.p1': 'In Fantasy Pro League veranderen spelersprijzen pas vanaf gameweek 7. Tot dan blijft elke prijs gelijk aan de startprijs, dus valt er nog niets te melden.',
     'priceChanges.p2': 'Vanaf GW7 documenteren we hier alle stijgers en dalers.',
 
     // --- Team Planner ---
@@ -177,6 +190,10 @@ const STRINGS = {
     'teamPlanner.confirmRecharge': 'Bevestig recharge',
     'teamPlanner.cancel': 'Annuleer',
     'teamPlanner.loadingDb': 'Spelersdatabank laden...',
+    // Vervangt sinds de UX-audit de 15 dode zoekrijen + klein rood vlak: bij een mislukte fetch toont
+    // deze hele sectie enkel nog deze lege-toestand i.p.v. een formulier dat er functioneel uitziet
+    // maar niets doet.
+    'teamPlanner.playerDbUnavailable': 'De spelersdatabank is tijdelijk onbereikbaar. Je team blijft bewaard — probeer het later opnieuw om spelers te zoeken of te wijzigen.',
     'teamPlanner.squadCount': 'Spelers: {{count}}/{{total}}',
     'teamPlanner.remainingBudget': 'Resterend budget: {{value}}M',
     'teamPlanner.overCapClubs': 'Max {{max}} per club: {{clubs}}',
@@ -184,6 +201,9 @@ const STRINGS = {
     'teamPlanner.colPlayer': 'Speler',
     'teamPlanner.colPosition': 'Positie',
     'teamPlanner.colPrice': 'Prijs (M)',
+    // Verhuisd van de (tot GW6 verborgen) Price Changes-tab — zie UX-audit punt 9: de vraag "waarom
+    // verandert deze prijs niet?" komt op bij de prijskolom hierboven, niet op een aparte tab.
+    'teamPlanner.priceChangeNote': 'In Fantasy Pro League veranderen spelersprijzen pas vanaf gameweek 7 — tot dan blijft elke prijs gelijk aan de startprijs.',
     'teamPlanner.searchLoadingPlaceholder': 'Databank laden...',
     'teamPlanner.searchPositionPlaceholder': 'Zoek {{position}}...',
     'teamPlanner.pitch': 'Veld',
@@ -330,7 +350,7 @@ const STRINGS = {
     'route.pricechanges.description': "Changements de prix en Fantasy Pro League. Dans le jeu, les prix ne bougent qu'à partir de la journée 7.",
     'footer.madeBy': 'Créé par',
     'footer.season': 'Fantasy Pro League 26/27 · Analyse maison',
-    'footer.lastUpdated': 'Dernière mise à jour : {{date}}',
+    'footer.lastUpdated': 'Données mises à jour : {{date}}',
 
     'infoModal.title': 'Comment ça marche ?',
     'infoModal.close': 'Fermer',
@@ -349,6 +369,7 @@ const STRINGS = {
     'fdr.intro': "Mes propres évaluations de difficulté des matchs — adaptez-les à votre avis et découvrez immédiatement les meilleurs calendriers.",
     'fdr.badge.custom': 'VERSION PERSONNALISÉE',
     'fdr.badge.default': 'SELON @FPL_PROLEAGUE',
+    'fdr.ratingsUpdatedLabel': 'Évaluations mises à jour : {{date}}',
     'fdr.copyLink': 'Copier le lien',
     'fdr.copyLinkShort': 'Copier',
     'fdr.linkCopied': 'Lien copié !',
@@ -374,6 +395,8 @@ const STRINGS = {
     'fdr.sortByDifficulty': 'Trier par calendrier le plus facile',
     'fdr.gwLabel': 'J',
     'fdr.gwTo': 'à',
+    'fdr.gwRangeTableLabel': 'Plage de ce tableau : J',
+    'fdr.gwRangeRunsLabel': 'Plage des Meilleurs calendriers : J',
     'fdr.tapHint': 'Touchez les cellules grises ou marquées d’un * pour plus d’infos',
     'fdr.teamColumn': 'Équipe',
     'fdr.rating.1': 'Le plus facile',
@@ -381,9 +404,11 @@ const STRINGS = {
     'fdr.rating.3': 'Moyen',
     'fdr.rating.4': 'Difficile',
     'fdr.rating.5': 'Le plus difficile',
+    'fdr.formLegend': 'Points sous le code équipe = forme des 5 derniers matchs',
     'fdr.avgDifficulty': 'Difficulté moy. : {{value}}',
     'fdr.compareIntro': "Choisissez jusqu'à 5 équipes pour comparer leurs matchs (à partir de J{{gw}}).",
     'fdr.compareNoTeams': 'Aucune équipe sélectionnée pour le moment.',
+    'fdr.downloadRunsImage': "Télécharger l'image",
 
     'watchlist.intro': "Gardez un œil sur vos joueurs préférés — ajoutez-les à votre watchlist personnelle, avec leurs prochains matchs. Cette liste est enregistrée automatiquement dans votre navigateur.",
     'watchlist.loadingDb': 'Chargement de la base de joueurs...',
@@ -398,6 +423,7 @@ const STRINGS = {
 
     'predictedLineups.introEmpty': 'Compositions probables pour la J{{gw}}, réalisées par @5YSiebee.',
     'predictedLineups.intro': 'Compositions probables pour la J{{gw}}, réalisées par @5YSiebee. Choisissez un club pour voir sa composition probable.',
+    'predictedLineups.datasetUpdatedLabel': 'Compositions mises à jour : {{date}}',
     'predictedLineups.staleGateText': "Les compositions pour la J{{gw}} ne sont pas encore prêtes.",
     'predictedLineups.staleGateButton': 'Afficher la J{{gw}} à titre de référence',
     'predictedLineups.pitchGwLabel': 'J{{gw}}',
@@ -422,7 +448,6 @@ const STRINGS = {
     'screenshotUpload.cancel': 'Annuler',
     'screenshotUpload.retry': 'Réessayer',
 
-    'priceChanges.p1': "En Fantasy Pro League, les prix des joueurs ne changent qu'à partir de la journée 7. Jusque-là, chaque prix reste égal au prix de départ, il n'y a donc encore rien à signaler.",
     'priceChanges.p2': "À partir de la J7, nous documenterons ici toutes les hausses et les baisses.",
 
     // --- Team Planner ---
@@ -435,6 +460,7 @@ const STRINGS = {
     'teamPlanner.confirmRecharge': 'Confirmer la recharge',
     'teamPlanner.cancel': 'Annuler',
     'teamPlanner.loadingDb': 'Chargement de la base de joueurs...',
+    'teamPlanner.playerDbUnavailable': "La base de joueurs est temporairement inaccessible. Votre équipe reste sauvegardée — réessayez plus tard pour rechercher ou modifier des joueurs.",
     'teamPlanner.squadCount': 'Joueurs : {{count}}/{{total}}',
     'teamPlanner.remainingBudget': 'Budget restant : {{value}}M',
     'teamPlanner.overCapClubs': 'Max {{max}} par club : {{clubs}}',
@@ -442,6 +468,7 @@ const STRINGS = {
     'teamPlanner.colPlayer': 'Joueur',
     'teamPlanner.colPosition': 'Poste',
     'teamPlanner.colPrice': 'Prix (M)',
+    'teamPlanner.priceChangeNote': "En Fantasy Pro League, les prix des joueurs ne changent qu'à partir de la journée 7 — jusque-là, chaque prix reste égal au prix de départ.",
     'teamPlanner.searchLoadingPlaceholder': 'Chargement de la base...',
     'teamPlanner.searchPositionPlaceholder': 'Rechercher {{position}}...',
     'teamPlanner.pitch': 'Terrain',
