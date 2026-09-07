@@ -32,7 +32,7 @@ const BONUS_POINTS_DATA_AVAILABLE = false;
 // Handmatig bij te werken samen met de spelersdatabank-sheet — zie het "Updated: GW.."-badge
 // hieronder. Geen automatische afleiding mogelijk (in tegenstelling tot bv. PREDICTED_LINEUPS_GW in
 // constants.js), want de gedeelde CSV heeft geen eigen "laatst bijgewerkt"-kolom.
-const BONUSPUNTEN_UPDATED_GW = 4;
+const BONUSPUNTEN_UPDATED_GW = 5;
 
 function RankingSection({ icon, title, sectionKey, isOpen, onToggle, children }) {
   return (
