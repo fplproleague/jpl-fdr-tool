@@ -234,7 +234,7 @@ export const TEAM_FORM = {
   CLU: ['W', 'W', 'W', 'V', 'W'],
   ANT: ['W', 'W', 'G', 'V', 'V'],
   GNT: ['W', 'W', 'W', 'W', 'W'],
-  CHA: ['W', 'W', 'W', 'W'' 'V'],
+  CHA: ['W', 'W', 'W', 'W', 'V'],
   STA: ['G', 'G', 'W', 'W', 'W'],
   USG: ['W', 'G', 'W', 'W', 'W'],
   ZWA: ['W', 'G', 'W', 'G', 'W'],
