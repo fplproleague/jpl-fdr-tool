@@ -231,7 +231,7 @@ export const PREDICTED_LINEUPS_GW = 5;
 // de tabel simpelweg geen vormbalk voor dat team, nooit een verzonnen of geraden uitslag.
 export const TEAM_FORM = {
   ...Object.fromEntries(TEAMS.map(t => [t.code, []])),
-  CLU: ['W', 'W', 'W', 'V, 'W'],
+  CLU: ['W', 'W', 'W', 'V', 'W'],
   ANT: ['W', 'W', 'G', 'V', 'V'],
   GNT: ['W', 'W', 'W', 'W', 'W'],
   CHA: ['W', 'W', 'W', 'W'' 'V'],
