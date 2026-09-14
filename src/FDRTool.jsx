@@ -8,7 +8,7 @@ import { useState, useMemo, useRef, useCallback, useEffect, lazy, Suspense } fro
 import { Info, X, Check, Copy, Undo2, Loader2, ChevronDown, Grid2x2, Users, Shirt } from 'lucide-react';
 import {
   TEAMS, FIXTURES, GW_COUNT, CURRENT_GW, DEFAULT_GW_HORIZON_END, MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS,
-  MINILEAGUE_CODE, formatTodayLong, GW_INDEXES, DEFAULT_RATINGS, DEFAULT_HOME_ADVANTAGE,
+  MINILEAGUE_CODE, formatOldestDataUpdated, formatDataUpdated, GW_INDEXES, DEFAULT_RATINGS, DEFAULT_HOME_ADVANTAGE,
   TEAM_PLANNER_SQUAD_SIZE, TEAM_PLANNER_BENCH_SIZE, TEAM_PLANNER_SLOT_POSITIONS, VALID_FORMATIONS,
   resolveSlotPlayerAtGw, PLAYER_DATABASE_CSV_URL, parsePlayerDatabaseCsv, getFixtureScores, average,
   POSTPONED, computeTeamPlannerTransferBudget, getGwDeadlineDate,
@@ -34,8 +34,18 @@ const KaartenTab = lazy(() => import('./tabs/KaartenTab'));
 const SetPiecesTab = lazy(() => import('./tabs/SetPiecesTab'));
 
 // Tab-navigatie bovenaan de pagina. De lijst zelf (labels, paden, per-tab titel/omschrijving) staat
-// in src/routes.js, zodat de URL-afhandeling en de zichtbare tabs nooit uit elkaar kunnen lopen.
+// in src/routes.js, zodat de URL-afhandeling en de zichtbare tabs nooit uit elkaar kunnen lopen. TABS
+// blijft de VOLLEDIGE lijst (incl. Price Changes) — routeKeyFromPath/routeByKey/build-routes.mjs
+// moeten elke route altijd kunnen herkennen, ook als hij niet in de navbalk staat.
 const TABS = ROUTES;
+
+// UX-audit punt 9: Price Changes toont tot GW6 enkel één zin ("prijzen veranderen pas vanaf GW7") en
+// dan de footer — een navigatie-item dat naar een zo goed als lege pagina leidt, laat de andere 8
+// tools half afgewerkt ogen. Enkel het NAV-ITEM verdwijnt hier zolang CURRENT_GW < 6: de route zelf
+// (/price-changes) blijft via TABS/ROUTES hierboven gewoon bereikbaar, dus een al gedeelde link 404't
+// niet. NAV_TABS i.p.v. TABS filteren op de plek van gebruik: zo blijft er precies één plek die bepaalt
+// wélke tabs in de balk staan.
+const NAV_TABS = CURRENT_GW >= 6 ? TABS : TABS.filter(tab => tab.key !== 'pricechanges');
 
 // Op mobiel (zie .fdr-tabs-mobile) blijven enkel de eerste MOBILE_PRIMARY_TAB_COUNT tabs los
 // zichtbaar (elk zijn eigen kolom in een grid, zie .fdr-tab-btn-mobile-primary); de rest komt in het
@@ -45,8 +55,8 @@ const TABS = ROUTES;
 // icoon+kort-label-patroon hieronder i.p.v. de volledige nav.*-tekst, hetzelfde compacte patroon als
 // een bottom-nav-bar in een native app.
 const MOBILE_PRIMARY_TAB_COUNT = 3;
-const MOBILE_PRIMARY_TABS = TABS.slice(0, MOBILE_PRIMARY_TAB_COUNT);
-const MOBILE_OVERFLOW_TABS = TABS.slice(MOBILE_PRIMARY_TAB_COUNT);
+const MOBILE_PRIMARY_TABS = NAV_TABS.slice(0, MOBILE_PRIMARY_TAB_COUNT);
+const MOBILE_OVERFLOW_TABS = NAV_TABS.slice(MOBILE_PRIMARY_TAB_COUNT);
 
 // Icoon per vaste mobiele tab (zie MOBILE_PRIMARY_TABS) — enkel voor deze 3, dus geen aparte
 // ROUTES-kolom nodig; Grid2x2/Users/Shirt hergebruiken bewust dezelfde iconen als de sectietitel
@@ -364,6 +374,10 @@ export default function FDRTool() {
   // overal translate(language, 'key') te herhalen.
   const [language, setLanguage] = useState(() => loadStoredLanguage() ?? DEFAULT_LANGUAGE);
   const t = useCallback((key, vars) => translate(language, key, vars), [language]);
+  // Oudste bekende "data bijgewerkt"-datum (zie DATA_UPDATED_ISO/formatOldestDataUpdated in
+  // constants.js) — voor de footer. null zolang geen enkele datum gekend is; de footer toont dan
+  // gewoon niets i.p.v. een verzonnen datum.
+  const oldestDataUpdatedText = useMemo(() => formatOldestDataUpdated(language), [language]);
   const changeLanguage = useCallback((next) => {
     setLanguage(next);
     try {
@@ -433,6 +447,87 @@ export default function FDRTool() {
     return () => window.removeEventListener('resize', updateTabsScrollState);
   }, [updateTabsScrollState]);
 
+  // Hoeveel volledige-label-tabs er op de brede/desktop-navbalk (.fdr-tabs-desktop, >=700px) naast
+  // elkaar passen vóór er een "Meer"-trigger nodig is. Voorheen was dit altijd "alle tabs" op deze
+  // breedte, met horizontale scroll als vangnet — maar op 820px/1024px (1.098px nodig voor alle 8
+  // tabs) sneed dat "WATCHLI…" middenin af en viel Kaarten/Price Changes gewoon buiten beeld, met
+  // enkel een makkelijk te missen uitfade-rand als signaal dat er meer te scrollen viel. TABS.length
+  // = "alles past, geen Meer nodig". Gemeten via ResizeObserver (zie het effect hieronder) i.p.v. een
+  // vaste drempel, want de werkelijke breedte hangt af van de taal (NL/FR-labels verschillen in
+  // lengte) en het aantal tabs (zie ook punt 9 van de UX-audit, dat Price Changes soms verbergt).
+  const [desktopVisibleTabCount, setDesktopVisibleTabCount] = useState(NAV_TABS.length);
+  // Ref op de BUITENSTE <nav> (niet tabsRef, dat is de binnenste scrollbare div) — de buitenste breedte
+  // blijft stabiel ongeacht of de Meer-knop er al dan niet naast staat (flex:1 1 auto op de binnenste
+  // div laat DIE juist krimpen zodra Meer verschijnt). Zou de meting op tabsRef draaien, dan zou elke
+  // toename van desktopVisibleTabCount de beschikbare breedte laten "krimpen" zodra Meer bijkomt,
+  // waardoor de reservering voor Meer twee keer meetelt (eenmaal via de echte flex-layout, eenmaal via
+  // de moreWidth-schatting hieronder) en er onnodig minder tabs getoond worden dan er eigenlijk passen.
+  const desktopNavRef = useRef(null);
+  const desktopTabsMeasureRef = useRef(null);
+  const desktopMoreMeasureRef = useRef(null);
+  useEffect(() => {
+    const navEl = desktopNavRef.current;
+    const measureEl = desktopTabsMeasureRef.current;
+    const moreEl = desktopMoreMeasureRef.current;
+    if (!navEl || !measureEl || !moreEl) return;
+
+    const recompute = () => {
+      const availableWidth = navEl.clientWidth;
+      const itemEls = Array.from(measureEl.children);
+      const itemWidths = itemEls.map(el => el.offsetWidth);
+      const gap = 4; // zelfde gap als de echte nav hieronder (style.gap: '4px')
+      const totalWidth = itemWidths.reduce((sum, w, i) => sum + w + (i > 0 ? gap : 0), 0);
+
+      if (totalWidth <= availableWidth) {
+        setDesktopVisibleTabCount(NAV_TABS.length);
+        return;
+      }
+
+      // Reserveer voor het langst mogelijke "Meer: <label>"-scenario (wanneer toevallig de tab met de
+      // langste titel zelf ingeklapt zit, zie de render hieronder) i.p.v. enkel voor de kortere losse
+      // "Meer"-tekst — anders zou de trigger op precies dat moment kunnen overlopen.
+      const maxLabelWidth = Math.max(...itemWidths);
+      const moreWidth = moreEl.offsetWidth + maxLabelWidth + 6;
+
+      let used = 0;
+      let count = 0;
+      for (let i = 0; i < itemWidths.length; i++) {
+        const w = itemWidths[i] + (i > 0 ? gap : 0);
+        if (used + w + gap + moreWidth > availableWidth) break;
+        used += w;
+        count += 1;
+      }
+      // Altijd minstens 1 tab tonen — anders oogt de balk als enkel "Meer" zonder iets ernaast.
+      setDesktopVisibleTabCount(Math.max(1, count));
+    };
+
+    recompute();
+    const ro = new ResizeObserver(recompute);
+    ro.observe(navEl);
+    // Lettertype-wissel (Archivo/Inter, zie index.html) kan labelbreedtes na de eerste meting nog
+    // wijzigen — de ResizeObserver alleen vangt dat niet op, want de beschikbare breedte zelf
+    // verandert daardoor niet.
+    document.fonts?.ready?.then(recompute).catch(() => {});
+    return () => ro.disconnect();
+  }, [language]);
+
+  // Apart van moreMenuOpen/moreMenuRef hieronder (die sturen het MOBIELE Meer-menu aan): de brede/
+  // desktop-navbalk hierboven kan zijn eigen Meer-dropdown tonen, onafhankelijk open/dicht.
+  const [desktopMoreMenuOpen, setDesktopMoreMenuOpen] = useState(false);
+  const desktopMoreMenuRef = useRef(null);
+  useEffect(() => {
+    if (!desktopMoreMenuOpen) return;
+    const handleOutside = (e) => {
+      if (desktopMoreMenuRef.current && !desktopMoreMenuRef.current.contains(e.target)) setDesktopMoreMenuOpen(false);
+    };
+    const handleEscape = (e) => { if (e.key === 'Escape') setDesktopMoreMenuOpen(false); };
+    document.addEventListener('mousedown', handleOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [desktopMoreMenuOpen]);
 
   // Mobiele "Meer"-tabmenu (zie .fdr-tabs-mobile hieronder): op smalle schermen is er ruimte voor
   // maar 3 tabs naast elkaar (zie MOBILE_PRIMARY_TAB_COUNT) — de rest verdwijnt in een dropdown i.p.v.
@@ -483,7 +578,10 @@ export default function FDRTool() {
   const [openSections, setOpenSections] = useState({
     sliders: false,
     table: true,
-    runs: false,
+    // Standaard open (was false): "Beste fixture runs" is de sectie die de tabel hierboven omzet in
+    // een concrete beslissing (welk team plannen?), maar stond voorheen helemaal onderaan, ingeklapt —
+    // zie de UX-audit-toelichting bij de sectievolgorde hieronder in FDRTab.jsx.
+    runs: true,
     compare: false,
     teamPlannerRoster: true,
     teamPlannerTransfers: false,
@@ -491,6 +589,11 @@ export default function FDRTool() {
   const [sortByDifficulty, setSortByDifficulty] = useState(false);
   const [compareTeams, setCompareTeams] = useState([]);
   const tableRef = useRef(null);
+  // Eigen ref + downloading-state voor de "Download als afbeelding"-knop van Beste fixture runs
+  // (zie captureSectionAsImage hieronder) — losstaand van tableRef/downloading hierboven, want de
+  // twee secties kunnen onafhankelijk van elkaar open/dicht staan en een download triggeren.
+  const runsRef = useRef(null);
+  const [downloadingRuns, setDownloadingRuns] = useState(false);
 
   // --- Watch list (Watch List-tab), los van de FDR-state hierboven ---
   const [watchlist, setWatchlist] = useState(() => loadStoredWatchlist());
@@ -606,15 +709,19 @@ export default function FDRTool() {
     }
   };
 
-  const handleDownloadImage = async () => {
-    if (!tableRef.current) return;
-    setDownloading(true);
-    const el = tableRef.current;
+  // Gedeeld door de "Download als afbeelding"-knoppen van zowel de hoofdtabel als Beste fixture runs
+  // (zie handleDownloadImage/handleDownloadRunsImage hieronder) — zelfde watermerk-logica voor beide,
+  // enkel de ref/sectionKey/bestandsnaam/downloading-setter verschillen. Voorheen stond dit blok hier
+  // letterlijk dubbel toen de runs-sectie punt 6 van de UX-audit haar eigen exportknop kreeg.
+  const captureSectionAsImage = async ({ ref, sectionKey, filename, setDownloadingState }) => {
+    if (!ref.current) return;
+    setDownloadingState(true);
+    const el = ref.current;
     const scrollEl = el.querySelector('.fdr-table-scroll');
 
-    const wasOpen = openSections.table;
+    const wasOpen = openSections[sectionKey];
     if (!wasOpen) {
-      setOpenSections(prev => ({ ...prev, table: true }));
+      setOpenSections(prev => ({ ...prev, [sectionKey]: true }));
       await new Promise(resolve => {
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
@@ -661,7 +768,7 @@ export default function FDRTool() {
       ctx.fillText('@fpl_proleague', finalCanvas.width / 2, canvas.height + watermarkHeight / 2);
 
       const link = document.createElement('a');
-      link.download = 'fdr-tabel-fpl-proleague.png';
+      link.download = filename;
       link.href = finalCanvas.toDataURL('image/png');
       link.click();
     } catch {
@@ -673,11 +780,19 @@ export default function FDRTool() {
         scrollEl.style.overflow = prevOverflow;
       }
       if (!wasOpen) {
-        setOpenSections(prev => ({ ...prev, table: false }));
+        setOpenSections(prev => ({ ...prev, [sectionKey]: false }));
       }
-      setDownloading(false);
+      setDownloadingState(false);
     }
   };
+
+  const handleDownloadImage = () => captureSectionAsImage({
+    ref: tableRef, sectionKey: 'table', filename: 'fdr-tabel-fpl-proleague.png', setDownloadingState: setDownloading,
+  });
+
+  const handleDownloadRunsImage = () => captureSectionAsImage({
+    ref: runsRef, sectionKey: 'runs', filename: 'beste-fixture-runs-fpl-proleague.png', setDownloadingState: setDownloadingRuns,
+  });
 
   const toggleSection = useCallback((key) => {
     setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
@@ -1232,6 +1347,27 @@ export default function FDRTool() {
           .fdr-tabs-desktop { display: none !important; }
           .fdr-tabs-mobile { display: grid; }
         }
+
+        /* Zelfde CSS-toggle-patroon als hierboven bij .fdr-tabs-desktop/.fdr-tabs-mobile (twee volledige
+           varianten in de DOM, CSS bepaalt welke zichtbaar is — geen JS-breakpointdetectie nodig).
+           Onder de 700px-drempel woog de volle header (merk + titel + tagline + 3 chips) ~745px, dus
+           begon de eerste tabelrij van de FDR-tool pas na een heel scherm branding. De compacte
+           mobiele header houdt enkel merk + titel + de tijdskritische deadline-klok over; tagline,
+           minileague-chip en taal-toggle verhuizen naar de footer (zie .fdr-footer-mobile-extras
+           hieronder), die op mobiel nog steeds bereikbaar blijft, gewoon niet meer als eerste. */
+        .fdr-header-mobile { display: none; }
+        .fdr-footer-mobile-extras { display: none; }
+        @media (max-width: 700px) {
+          .fdr-header-desktop { display: none !important; }
+          .fdr-header-mobile { display: flex; }
+          .fdr-footer-mobile-extras { display: flex; }
+          /* Per-tab introtekst (bv. "fdr.intro", "watchlist.intro") kost op mobiel een extra
+             schermregel of twee vóór het eigenlijke tool-content zichtbaar wordt, terwijl ze vooral
+             uitleg is die een terugkerende bezoeker al kent. Volledig verborgen (ook voor
+             schermlezers) is hier bewust: het is toelichtende tekst, geen functionele info — op
+             desktop is er ruimte genoeg en blijft ze gewoon staan. */
+          .fdr-tab-intro { display: none !important; }
+        }
         /* Icoon boven een kort label, zelfde verticale opbouw als een bottom-nav-bar in een native app
            — gekozen nadat het vroegere patroon (volledige tab-naam, evt. over 2 regels) op smalle
            telefoons alsnog middenin woorden ("Verwachte" -> "Verwa/chte") bleek af te breken. */
@@ -1264,6 +1400,18 @@ export default function FDRTool() {
           }
           .fdr-touch-target {
             min-height: 44px;
+          }
+          /* UX-audit punt 8: op 390px met touch bleken de twee GW-selects (45x26), de 4 knoppen in de
+             fpl-toolbar (Kopieer link/Download/Reset/Bewaar, ~30-32px) en de "Sorteer op makkelijkste
+             run"-knop allemaal onder de 44px hoogte te vallen. select/.fdr-toolbar-btn droegen geen van
+             de bestaande touch-doel-klassen, dus die krijgen hier hun eigen regel — !important nodig
+             omdat het gaat om INLINE styles (selectStyle/buttonBase in theme.js) die anders altijd
+             winnen van een externe class-regel. Enkel verticale padding erbij, geen nieuwe componenten. */
+          select {
+            min-height: 44px !important;
+          }
+          .fdr-toolbar-btn {
+            min-height: 44px !important;
           }
         }
         .fdr-footer-link {
@@ -1352,22 +1500,10 @@ export default function FDRTool() {
           .fpl-toolbar-secondary .fdr-btn-label-short {
             display: inline !important;
           }
-          .fdr-header {
-            flex-direction: column !important;
-            align-items: flex-start !important;
-            gap: 10px !important;
-          }
-          .fdr-header img {
-            margin-top: 0 !important;
-          }
-          /* Logo boven de titeltekst i.p.v. ernaast — op mobiel duwde het logo (44px + 14px gap) de
-             titel zo ver naar rechts dat "FPL Pro League Tools" over 3 regels brak. Zonder het logo
-             ernaast heeft de tekst de volle breedte en wrapt ze compacter. */
-          .fdr-brand {
-            flex-direction: column !important;
-            align-items: flex-start !important;
-            gap: 8px !important;
-          }
+          /* Geen .fdr-header/.fdr-brand-stacking meer hier: onder de 700px-drempel is .fdr-header-desktop
+             sowieso volledig verborgen (zie .fdr-header-desktop/.fdr-header-mobile hierboven) ten
+             voordele van de aparte, compacte .fdr-header-mobile — deze regels bleven hier dus dode code
+             op precies de breedte waarvoor ze bedoeld waren. */
           .fdr-content {
             padding-top: 16px !important;
           }
@@ -1543,7 +1679,7 @@ export default function FDRTool() {
             (marginTop: -36px op het logo, -18px op het minileague-blok). Die trokken elementen
             handmatig omhoog en werden maar deels teruggezet in de mobiele media query, wat de
             verticale ritmiek afhankelijk maakte van de schermbreedte. */}
-        <header className="fdr-header" style={{
+        <header className="fdr-header fdr-header-desktop" style={{
           marginBottom: '18px', display: 'flex', alignItems: 'flex-start',
           justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap',
         }}>
@@ -1676,49 +1812,202 @@ export default function FDRTool() {
           </div>
         </header>
 
+        {/* Compacte mobiele header (zie .fdr-header-desktop/.fdr-header-mobile hierboven): op een
+            telefoon woog de volledige header (merk + titel + tagline + 3 chips) ~745px, dus begon de
+            eerste rij van de FDR-tabel pas na een heel scherm branding. Hier enkel merk, titel en de
+            tijdskritische deadline-aftelklok — één rij van hooguit ~90px. Tagline, minileague-chip en
+            taal-toggle staan niet meer bovenaan maar in de footer (.fdr-footer-mobile-extras
+            hieronder), nog steeds bereikbaar, gewoon niet meer de eerste indruk. */}
+        <header className="fdr-header-mobile" style={{
+          marginBottom: '14px', alignItems: 'center', justifyContent: 'space-between', gap: '10px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+            <img
+              src="/app-icon-mark.png"
+              alt=""
+              style={{ width: '28px', height: '28px', borderRadius: '2px', flexShrink: 0 }}
+              onError={(e) => { e.target.style.display = 'none'; }}
+            />
+            <h1 className="fdr-title" style={{
+              color: '#FFFFFF', fontSize: '17px', fontWeight: 900, textTransform: 'uppercase',
+              lineHeight: 1.15, margin: 0, letterSpacing: '-0.01em', minWidth: 0,
+            }}>
+              FPL Pro League <span style={{ color: '#4ECDC4' }}>Tools</span>
+            </h1>
+          </div>
+
+          {/* Zelfde deadline-chip als in de desktop-header — bewust op elke tab zichtbaar, ook mobiel
+              (zie de toelichting bij de desktop-variant hierboven). */}
+          {deadlineRemaining && (
+            <div aria-live="off" style={{
+              display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0,
+              background: 'rgba(255,255,255,0.04)', border: `1px solid ${COLORS.borderSubtle}`,
+              borderRadius: '999px', height: HEADER_CHIP_HEIGHT, boxSizing: 'border-box', padding: '0 10px',
+            }}>
+              <span style={{
+                color: COLORS.textMuted, fontSize: '10px', textTransform: 'uppercase',
+                letterSpacing: '0.05em', fontWeight: 700, whiteSpace: 'nowrap',
+              }}>
+                {t('header.deadlineLabel', { gw: CURRENT_GW })}
+              </span>
+              <span className="fdr-title" style={{
+                color: deadlineRemaining.totalMinutes <= 180 ? COLORS.warning : '#4ECDC4',
+                fontSize: '13px', fontWeight: 900, lineHeight: 1, whiteSpace: 'nowrap',
+              }}>
+                {formatCountdown(deadlineRemaining)}
+              </span>
+            </div>
+          )}
+        </header>
+
         {/* role="tablist" is bewust NIET gebruikt: dit zijn echte links naar echte URL's, geen
             ARIA-tabs. Een <nav> met aria-current geeft schermlezers de juiste boodschap.
-            Twee varianten: de brede/desktop-balk toont alle tabs met horizontale scroll (zie
-            .fdr-tabs hierboven), de mobiele balk (.fdr-tabs-mobile) toont enkel de eerste paar tabs
-            plus een "Meer"-dropdown. Welke van de twee zichtbaar is, bepaalt de @media-regel bij
-            .fdr-tabs-desktop/.fdr-tabs-mobile hieronder — geen JS-breakpointdetectie nodig. */}
-        <nav
-          ref={tabsRef}
-          className={`fdr-tabs fdr-tabs-desktop${tabsAtEnd ? ' fdr-tabs--end' : ''}`}
-          aria-label={t('nav.aria')}
-          onScroll={updateTabsScrollState}
-          style={{
-            display: 'flex', gap: '4px', marginBottom: '18px', borderBottom: `1px solid ${COLORS.borderSubtle}`,
-            overflowX: 'auto', overflowY: 'hidden', flexWrap: 'nowrap'
-          }}
-        >
-          {TABS.map(tab => {
-            const isActive = activeTab === tab.key;
-            const isNewUnseen = NEW_TAB_KEYS.includes(tab.key) && !seenNewTabs.has(tab.key);
+            Twee varianten: de brede/desktop-balk (.fdr-tabs-desktop) toont zoveel mogelijk tabs met
+            volledig label plus, zodra ze niet allemaal passen, een "Meer"-dropdown voor de rest (zie
+            desktopVisibleTabCount hierboven — gemeten, geen vaste drempel); de mobiele balk
+            (.fdr-tabs-mobile) toont een vaste 3+Meer-indeling met icoon+kort label. Welke van de twee
+            zichtbaar is, bepaalt de @media-regel bij .fdr-tabs-desktop/.fdr-tabs-mobile hieronder. De
+            horizontale scroll + uitfade-mask blijven als vangnet staan (tabsAtEnd) voor het geval de
+            meting ooit nipt misgaat, maar zijn in de praktijk overbodig geworden: bij elke breedte
+            waarop niet alles past, kiest desktopVisibleTabCount al een aantal dat wél past.
+            De Meer-knop + dropdown staan bewust BUITEN de scrollbare binnen-div (die heeft
+            overflowY:hidden voor de horizontale-scroll-mask hierboven) — anders zou die overflowY de
+            dropdown mee afsnijden zodra hij onder de navbalk uitsteekt. De buitenste <nav> zelf heeft
+            geen overflow-restrictie, dus de dropdown kan daar gewoon los boven de rest van de pagina
+            zweven. */}
+        <nav ref={desktopNavRef} className="fdr-tabs-desktop" aria-label={t('nav.aria')} style={{
+          position: 'relative', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '18px',
+          borderBottom: `1px solid ${COLORS.borderSubtle}`,
+        }}>
+          <div
+            ref={tabsRef}
+            className={`fdr-tabs${tabsAtEnd ? ' fdr-tabs--end' : ''}`}
+            onScroll={updateTabsScrollState}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '4px',
+              overflowX: 'auto', overflowY: 'hidden', flexWrap: 'nowrap', flex: '1 1 auto', minWidth: 0,
+            }}
+          >
+            {/* Verborgen meetrij voor het ResizeObserver-effect hierboven: dezelfde labels/opmaak als
+                hieronder, altijd voluit (nooit ingekort) en met position:fixed buiten beeld — enkel om
+                de natuurlijke breedte van elke tab te kennen, los van hoeveel er nu echt zichtbaar zijn.
+                position:fixed i.p.v. absolute: zo telt dit niet mee in de scrollWidth van deze div (die
+                overflowX:auto heeft, zie tabsAtEnd hierboven). */}
+            <div ref={desktopTabsMeasureRef} aria-hidden="true" style={{
+              position: 'fixed', top: '-9999px', left: '-9999px', visibility: 'hidden', pointerEvents: 'none',
+              display: 'flex', gap: '4px', whiteSpace: 'nowrap',
+            }}>
+              {NAV_TABS.map(tab => (
+                <span key={tab.key} className="fdr-title fdr-tab-btn" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                  {t(`nav.${tab.key}`)}
+                </span>
+              ))}
+            </div>
+            <div ref={desktopMoreMeasureRef} aria-hidden="true" style={{
+              position: 'fixed', top: '-9999px', left: '-9999px', visibility: 'hidden', pointerEvents: 'none', whiteSpace: 'nowrap',
+            }}>
+              <span className="fdr-title fdr-tab-btn" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <ChevronDown size={17} aria-hidden="true" /> {t('nav.more')}
+              </span>
+            </div>
+
+            {(desktopVisibleTabCount >= NAV_TABS.length ? NAV_TABS : NAV_TABS.slice(0, desktopVisibleTabCount)).map(tab => {
+              const isActive = activeTab === tab.key;
+              const isNewUnseen = NEW_TAB_KEYS.includes(tab.key) && !seenNewTabs.has(tab.key);
+              return (
+                <a
+                  key={tab.key}
+                  href={tab.path}
+                  // Echte href zodat midden-klik / "open in nieuw tabblad" / delen gewoon werken, maar
+                  // een gewone klik wordt onderschept zodat de app niet volledig herlaadt.
+                  onClick={(e) => {
+                    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                    e.preventDefault();
+                    navigateToTab(tab.key);
+                  }}
+                  className="fdr-title fdr-tab-btn"
+                  aria-current={isActive ? 'page' : undefined}
+                  style={{
+                    color: isActive ? '#4ECDC4' : COLORS.textBody,
+                    borderBottom: isActive ? '2px solid #4ECDC4' : '2px solid transparent',
+                    display: 'inline-flex', alignItems: 'center', gap: '5px', textDecoration: 'none', flexShrink: 0,
+                  }}
+                >
+                  {t(`nav.${tab.key}`)}
+                  {isNewUnseen && <span style={newTabDotStyle} aria-hidden="true" />}
+                </a>
+              );
+            })}
+          </div>
+
+          {desktopVisibleTabCount < NAV_TABS.length && (() => {
+            const overflowTabs = NAV_TABS.slice(desktopVisibleTabCount);
+            const activeOverflowTab = overflowTabs.find(tab => tab.key === activeTab);
+            const isActive = !!activeOverflowTab;
+            const hasUnseenNewTab = overflowTabs.some(tab => NEW_TAB_KEYS.includes(tab.key) && !seenNewTabs.has(tab.key));
             return (
-              <a
-                key={tab.key}
-                href={tab.path}
-                // Echte href zodat midden-klik / "open in nieuw tabblad" / delen gewoon werken, maar
-                // een gewone klik wordt onderschept zodat de app niet volledig herlaadt.
-                onClick={(e) => {
-                  if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
-                  e.preventDefault();
-                  navigateToTab(tab.key);
-                }}
-                className="fdr-title fdr-tab-btn"
-                aria-current={isActive ? 'page' : undefined}
-                style={{
-                  color: isActive ? '#4ECDC4' : COLORS.textBody,
-                  borderBottom: isActive ? '2px solid #4ECDC4' : '2px solid transparent',
-                  display: 'inline-flex', alignItems: 'center', gap: '5px', textDecoration: 'none',
-                }}
-              >
-                {t(`nav.${tab.key}`)}
-                {isNewUnseen && <span style={newTabDotStyle} aria-hidden="true" />}
-              </a>
+              <div ref={desktopMoreMenuRef} style={{ position: 'relative', flexShrink: 0 }}>
+                {/* Toont "Meer: <naam>" i.p.v. enkel "Meer" zodra de actieve tab zelf ingeklapt zit —
+                    anders zou op deze breedtes (820/1024px) niets in de balk verraden welk tool open
+                    staat, precies de klacht uit de UX-audit ("enkel MEER licht op voor Kaarten"). */}
+                <button
+                  type="button"
+                  onClick={() => setDesktopMoreMenuOpen(open => !open)}
+                  aria-haspopup="true"
+                  aria-expanded={desktopMoreMenuOpen}
+                  className="fdr-title fdr-tab-btn"
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap',
+                    color: isActive ? '#4ECDC4' : COLORS.textBody,
+                    borderBottom: isActive ? '2px solid #4ECDC4' : '2px solid transparent',
+                    background: 'none', border: 'none', borderBottomColor: isActive ? '#4ECDC4' : 'transparent',
+                    borderBottomWidth: '2px', borderBottomStyle: 'solid', borderRadius: 0, cursor: 'pointer',
+                    fontFamily: 'inherit', position: 'relative',
+                  }}
+                >
+                  <ChevronDown size={17} style={{ transform: desktopMoreMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} aria-hidden="true" />
+                  {isActive ? `${t('nav.more')}: ${t(`nav.${activeOverflowTab.key}`)}` : t('nav.more')}
+                  {hasUnseenNewTab && <span style={newTabDotStyle} aria-hidden="true" />}
+                </button>
+
+                {desktopMoreMenuOpen && (
+                  <div style={{
+                    position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 45, minWidth: '190px',
+                    background: '#2A1547', border: `1px solid ${COLORS.border}`, borderRadius: '10px',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.4)', overflow: 'hidden',
+                  }}>
+                    {overflowTabs.map(tab => {
+                      const tabIsActive = activeTab === tab.key;
+                      const isNewUnseenItem = NEW_TAB_KEYS.includes(tab.key) && !seenNewTabs.has(tab.key);
+                      return (
+                        <a
+                          key={tab.key}
+                          href={tab.path}
+                          onClick={(e) => {
+                            setDesktopMoreMenuOpen(false);
+                            if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                            e.preventDefault();
+                            navigateToTab(tab.key);
+                          }}
+                          aria-current={tabIsActive ? 'page' : undefined}
+                          className="fdr-touch-target"
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 14px',
+                            fontSize: '13px', fontWeight: 700,
+                            color: tabIsActive ? '#4ECDC4' : '#FFF', textDecoration: 'none',
+                            background: tabIsActive ? 'rgba(78,205,196,0.1)' : 'none',
+                          }}
+                        >
+                          {t(`nav.${tab.key}`)}
+                          {isNewUnseenItem && <span style={newTabDotStyle} aria-hidden="true" />}
+                        </a>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             );
-          })}
+          })()}
         </nav>
 
         <nav
@@ -1816,8 +2105,9 @@ export default function FDRTool() {
                         navigateToTab(tab.key);
                       }}
                       aria-current={isActive ? 'page' : undefined}
+                      className="fdr-touch-target"
                       style={{
-                        display: 'block', padding: '10px 14px', fontSize: '13px', fontWeight: 700,
+                        display: 'flex', alignItems: 'center', padding: '10px 14px', fontSize: '13px', fontWeight: 700,
                         color: isActive ? '#4ECDC4' : '#FFF', textDecoration: 'none',
                         background: isActive ? 'rgba(78,205,196,0.1)' : 'none',
                       }}
@@ -1834,6 +2124,7 @@ export default function FDRTool() {
         {activeTab === 'fdr' && (
           <FDRTab
             t={t}
+            dataUpdatedFdrRatings={formatDataUpdated('fdrRatings', language)}
             ratings={ratings}
             homeAdvantage={homeAdvantage}
             updateRating={updateRating}
@@ -1867,6 +2158,9 @@ export default function FDRTool() {
             rangeEnd={rangeEnd}
             setRangeEnd={setRangeEnd}
             bestRuns={bestRuns}
+            runsRef={runsRef}
+            downloadingRuns={downloadingRuns}
+            handleDownloadRunsImage={handleDownloadRunsImage}
             compareTeams={compareTeams}
             toggleCompareTeam={toggleCompareTeam}
           />
@@ -1937,7 +2231,7 @@ export default function FDRTool() {
 
         {activeTab === 'predictedlineups' && (
           <Suspense fallback={<TabLoading text={t('shared.loading')} />}>
-            <PredictedLineupsTab t={t} />
+            <PredictedLineupsTab t={t} dataUpdatedPredictedLineups={formatDataUpdated('predictedLineups', language)} />
           </Suspense>
         )}
 
@@ -1977,13 +2271,13 @@ export default function FDRTool() {
               background: 'rgba(255,255,255,0.04)', border: `1px solid ${COLORS.borderSubtle}`,
               borderRadius: '10px', padding: '16px'
             }}>
-              {/* Expliciet vermelden wanneer prijzen überhaupt beginnen te bewegen: zonder die
-                  context lijkt een lege tab op een onafgewerkte tool, terwijl er in het spel simpelweg
-                  nog niets te tonen valt. */}
-              <p style={{ color: COLORS.textBody, fontSize: '13px', margin: 0, lineHeight: 1.6 }}>
-                {t('priceChanges.p1')}
-              </p>
-              <p style={{ color: COLORS.textSubtle, fontSize: '13px', margin: '8px 0 0', lineHeight: 1.6 }}>
+              {/* De uitleg over WANNEER prijzen beginnen te bewegen (priceChanges.p1) staat sinds de
+                  UX-audit niet meer hier maar bij de prijskolom in Team Planner (zie
+                  teamPlanner.priceChangeNote) — deze tab zit tot GW6 sowieso niet in de navbalk (zie
+                  NAV_TABS hierboven), dus de vraag "waarom is dit leeg?" stelt zich in de praktijk daar,
+                  niet op deze route. Deze route zelf blijft wel bereikbaar (een al gedeelde link naar
+                  /price-changes 404't niet), met enkel nog de vooruitblik naar GW7. */}
+              <p style={{ color: COLORS.textSubtle, fontSize: '13px', margin: 0, lineHeight: 1.6 }}>
                 {t('priceChanges.p2')}
               </p>
             </div>
@@ -1991,13 +2285,88 @@ export default function FDRTool() {
         )}
 
         <footer style={{ marginTop: '28px', textAlign: 'center', color: COLORS.textSubtle, fontSize: '12px', lineHeight: 1.5 }}>
+          {/* Enkel zichtbaar onder de 700px-drempel (zie .fdr-footer-mobile-extras hierboven) — op
+              desktop staan tagline, minileague-chip en taal-toggle nog gewoon in de header. Dezelfde
+              chip-opmaak/handlers als de desktop-header (handleCopyMinileagueCode, changeLanguage,
+              LANGUAGES), enkel gecentreerd i.p.v. rechts uitgelijnd naast de titel. */}
+          <div className="fdr-footer-mobile-extras" style={{
+            flexDirection: 'column', alignItems: 'center', gap: '10px', marginBottom: '18px',
+          }}>
+            <p style={{ color: '#C9B8E0', fontSize: '13px', margin: 0, maxWidth: '420px' }}>
+              {t('header.tagline')}
+            </p>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap',
+                width: 'fit-content', maxWidth: '100%',
+                background: 'rgba(255,255,255,0.04)', border: `1px solid ${COLORS.borderSubtle}`, borderRadius: '999px',
+                height: HEADER_CHIP_HEIGHT, boxSizing: 'border-box', padding: '0 3px 0 10px',
+              }}>
+                <span style={{ color: COLORS.textMuted, fontSize: '12px' }}>
+                  {t('header.minileagueLabel')} <strong style={{ color: '#4ECDC4', fontWeight: 700, letterSpacing: '0.05em' }}>{MINILEAGUE_CODE}</strong>
+                </span>
+                <button
+                  onClick={handleCopyMinileagueCode}
+                  aria-label={t('header.copyMinileagueAria', { code: MINILEAGUE_CODE })}
+                  className="fdr-touch-target"
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                    background: 'transparent', color: COLORS.textBody, border: `1px solid ${COLORS.border}`,
+                    borderRadius: '999px', padding: '0 10px', fontWeight: 700, fontSize: '12px',
+                    fontFamily: 'inherit', cursor: 'pointer', boxSizing: 'border-box',
+                  }}
+                >
+                  {minileagueCodeCopied ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
+                  {minileagueCodeCopied ? t('header.copied') : t('header.copy')}
+                </button>
+              </div>
+
+              <div
+                role="group"
+                aria-label={t('header.languageToggleAria', { lang: language.toUpperCase() })}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', height: HEADER_CHIP_HEIGHT, boxSizing: 'border-box',
+                  background: 'rgba(255,255,255,0.04)', border: `1px solid ${COLORS.borderSubtle}`,
+                  borderRadius: '999px', padding: '3px', gap: '2px', flexShrink: 0,
+                }}
+              >
+                {LANGUAGES.map(lang => {
+                  const isActive = language === lang;
+                  return (
+                    <button
+                      key={lang}
+                      type="button"
+                      onClick={() => changeLanguage(lang)}
+                      aria-pressed={isActive}
+                      className="fdr-touch-target"
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        height: '100%', minWidth: '28px', padding: '0 8px', borderRadius: '999px',
+                        border: 'none', fontFamily: 'inherit', fontSize: '11px', fontWeight: 700,
+                        letterSpacing: '0.03em', cursor: isActive ? 'default' : 'pointer',
+                        background: isActive ? '#4ECDC4' : 'transparent',
+                        color: isActive ? '#0B2E1B' : COLORS.textBody,
+                      }}
+                    >
+                      {lang.toUpperCase()}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
           {t('footer.madeBy')}{' '}
           <a href="https://x.com/fpl_proleague" target="_blank" rel="noopener noreferrer" className="fdr-footer-link">
             <img src="/x-logo.png" alt="" style={{ width: '12px', height: '12px', verticalAlign:'-2px' }} />
             @fpl_proleague
           </a>
-          {' '}· {t('footer.season')}<br />
-          {t('footer.lastUpdated', { date: formatTodayLong(language) })}
+          {' '}· {t('footer.season')}
+          {/* Toont de OUDSTE bekende data-update-datum (zie formatOldestDataUpdated in constants.js) —
+              bewust geen new Date()/"vandaag" meer (zie DATA_UPDATED_ISO-toelichting): liever geen
+              datum tonen (null) dan een verzonnen. */}
+          {oldestDataUpdatedText && (<><br />{t('footer.lastUpdated', { date: oldestDataUpdatedText })}</>)}
         </footer>
       </div>
 
