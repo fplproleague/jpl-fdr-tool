@@ -21,13 +21,10 @@ const retryButtonStyle = {
   borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px', cursor: 'pointer',
 };
 
-// Tijdelijk (t/m GW6) — enkel de Bonuspunten-kolom (de 5e, algemene "meeste bonuspunten"-
-// rangschikking) staat nog op 0 voor iedereen; Duels/Kopballen/Recoveries/Grote kansen zijn al wél
-// ingevuld en tonen dus gewoon normaal. Zolang dit op false staat, toont enkel de "Meeste bonuspunten"-
-// sectie (en de Bonuspunten-tegel in de spelerskaart) een subtiele melding ("beschikbaar na GW6")
-// i.p.v. een rangschikking vol nullen. Zet op true zodra die kolom gevuld is — zelfde tijdelijke-
-// vlag-opzet als SHOW_CLOSEST_TO_SUSPENSION_MODE in KaartenTab.jsx.
-const BONUS_POINTS_DATA_AVAILABLE = false;
+// De Bonuspunten-kolom (de 5e, algemene "meeste bonuspunten"-rangschikking) is sinds GW6 gevuld — zet
+// terug op false (zelfde tijdelijke-vlag-opzet als SHOW_CLOSEST_TO_SUSPENSION_MODE in KaartenTab.jsx)
+// mocht die kolom ooit weer leeg komen te staan.
+const BONUS_POINTS_DATA_AVAILABLE = true;
 
 // Handmatig bij te werken samen met de spelersdatabank-sheet — zie het "Updated: GW.."-badge
 // hieronder. Geen automatische afleiding mogelijk (in tegenstelling tot bv. PREDICTED_LINEUPS_GW in
