@@ -14,7 +14,7 @@ import {
   POSTPONED, computeTeamPlannerTransferBudget, getGwDeadlineDate,
 } from './constants';
 import { COLORS } from './theme';
-import { ROUTES, routeKeyFromPath, routeByKey, urlForRoute } from './routes';
+import { ROUTES, routeKeyFromPath, urlForRoute, pathForRoute, languageFromPath, SUPPORTED_LANGUAGES } from './routes';
 import { t as translate, LANGUAGES, DEFAULT_LANGUAGE } from './i18n';
 import FDRTab from './tabs/FDRTab';
 
@@ -40,6 +40,10 @@ const TABS = ROUTES;
 // De tabs die de spelersdatabank-CSV effectief nodig hebben (zie de fetch-useEffect verderop). De
 // FDR-tab staat er bewust niet bij: die rendert volledig uit constants.js.
 const PLAYER_DATABASE_TABS = new Set(['watchlist', 'teamplanner', 'bonuspunten', 'kaarten']);
+
+// Eén plek voor de canonieke oorsprong van de site; stond eerder als letterlijke string in de
+// title/canonical-useEffect en moet nu ook door de hreflang-alternates gebruikt worden.
+const SITE_ORIGIN = 'https://fplproleague.vercel.app';
 
 // Op mobiel (zie .fdr-tabs-mobile) blijven enkel de eerste MOBILE_PRIMARY_TAB_COUNT tabs los
 // zichtbaar (elk zijn eigen kolom in een grid, zie .fdr-tab-btn-mobile-primary); de rest komt in het
@@ -378,15 +382,46 @@ export default function FDRTool() {
   // is; default Nederlands, de oorspronkelijke (en enige) taal vóór deze toggle. `t` is een simpele
   // curried helper zodat de rest van deze component en alle tabs gewoon t('key') kunnen aanroepen i.p.v.
   // overal translate(language, 'key') te herhalen.
-  const [language, setLanguage] = useState(() => loadStoredLanguage() ?? DEFAULT_LANGUAGE);
+  //
+  // De URL gaat vóór op de opgeslagen voorkeur: wie een /fr/...-link krijgt doorgestuurd hoort die in
+  // het Frans te zien, ook als hij hier ooit zelf op NL stond. Enkel wanneer de URL niets over de taal
+  // zegt (alle Nederlandse paden) telt localStorage.
+  const [language, setLanguage] = useState(() => {
+    if (typeof window === 'undefined') return DEFAULT_LANGUAGE;
+    return languageFromPath(window.location.pathname) ?? loadStoredLanguage() ?? DEFAULT_LANGUAGE;
+  });
   const t = useCallback((key, vars) => translate(language, key, vars), [language]);
+
+  // Van taal wisselen is nu een echte navigatie: /fdr <-> /fr/fdr. Dat is het hele punt van de
+  // taal-URL's — zonder pushState blijft de adresbalk hetzelfde en valt er nog altijd geen Franse
+  // pagina te delen of te bookmarken. De query-string blijft behouden, net als bij het wisselen van tab
+  // (?r= en ?ha= dragen de aangepaste FDR-ratings).
   const changeLanguage = useCallback((next) => {
+    if (!SUPPORTED_LANGUAGES.includes(next)) return;
     setLanguage(next);
     try {
       window.localStorage?.setItem(LANGUAGE_STORAGE_KEY, next);
     } catch {
       // storage unavailable — taalkeuze werkt nog wel deze sessie, onthoudt 'm enkel niet
     }
+    if (typeof window === 'undefined') return;
+    const url = urlForRoute(routeKeyFromPath(window.location.pathname), window.location.search, next);
+    if (url !== window.location.pathname + window.location.search) {
+      window.history.pushState({ lang: next }, '', url);
+    }
+  }, []);
+
+  // Iemand met FR als opgeslagen voorkeur die op een Nederlands pad binnenkomt, krijgt de Franse
+  // interface op een Nederlandse URL — inhoud en adres lopen dan uiteen. replaceState (geen pushState)
+  // zet het adres recht zonder een extra stap in de terug-knop-geschiedenis en zonder netwerkverkeer.
+  // Crawlers hebben geen localStorage en komen hier dus nooit terecht: de canonicals blijven onaangeroerd.
+  useEffect(() => {
+    if (language === DEFAULT_LANGUAGE) return;
+    if (languageFromPath(window.location.pathname)) return;
+    const url = urlForRoute(routeKeyFromPath(window.location.pathname), window.location.search, language);
+    window.history.replaceState({ lang: language }, '', url);
+    // Alleen bij het laden relevant; daarna houdt changeLanguage de URL zelf bij.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Tab wisselen = een echte navigatie. De query-string blijft bewust behouden: de FDR-tab codeert
@@ -394,15 +429,25 @@ export default function FDRTool() {
   const navigateToTab = useCallback((key) => {
     setActiveTab(key);
     if (typeof window === 'undefined') return;
-    const url = urlForRoute(key, window.location.search);
+    const url = urlForRoute(key, window.location.search, language);
     if (url !== window.location.pathname + window.location.search) {
       window.history.pushState({ tab: key }, '', url);
     }
-  }, []);
+  }, [language]);
 
-  // Terug-/vooruitknop van de browser.
+  // Terug-/vooruitknop van de browser. Leest ook de taal terug uit het pad, zodat terugkeren naar een
+  // /fr-URL de interface weer in het Frans zet i.p.v. een Franse URL met Nederlandse inhoud.
+  //
+  // Hier bewust GEEN terugval op de opgeslagen voorkeur (anders dan bij het eerste laden): tijdens
+  // terug-/vooruitnavigatie is de URL de enige waarheid. Met een terugval bleef de site Frans na een
+  // terugknop-stap naar een Nederlandse URL — Frans scherm, Nederlands adres, Franse canonical.
+  // De opgeslagen voorkeur wordt hier ook niet overschreven: die hoort bij wat de gebruiker expliciet
+  // koos met de toggle, niet bij waar de terugknop toevallig uitkomt.
   useEffect(() => {
-    const handlePopState = () => setActiveTab(routeKeyFromPath(window.location.pathname));
+    const handlePopState = () => {
+      setActiveTab(routeKeyFromPath(window.location.pathname));
+      setLanguage(languageFromPath(window.location.pathname) ?? DEFAULT_LANGUAGE);
+    };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
@@ -417,13 +462,20 @@ export default function FDRTool() {
   // Documenttitel en meta-description volgen de actieve tab, zodat een gedeelde link niet langer
   // altijd "FDR Tool" als preview toont en elke tool apart indexeerbaar is.
   useEffect(() => {
-    const route = routeByKey(activeTab);
     document.title = t(`route.${activeTab}.title`);
     const meta = document.querySelector('meta[name="description"]');
     if (meta) meta.setAttribute('content', t(`route.${activeTab}.description`));
     const canonical = document.querySelector('link[rel="canonical"]');
-    if (canonical) canonical.setAttribute('href', `https://fplproleague.vercel.app${route.path}`);
-  }, [activeTab, t]);
+    if (canonical) canonical.setAttribute('href', `${SITE_ORIGIN}${pathForRoute(activeTab, language)}`);
+    // De hreflang-alternates staan statisch in de gegenereerde HTML (zie scripts/build-routes.mjs),
+    // maar wijzen dan nog naar de route waarop de bezoeker binnenkwam. Bij client-side navigatie
+    // schuiven ze mee, zodat ze ook na een paar tabwissels nog kloppen.
+    document.querySelectorAll('link[rel="alternate"][hreflang]').forEach(link => {
+      const hreflang = link.getAttribute('hreflang');
+      const targetLanguage = hreflang === 'fr-BE' ? 'fr' : 'nl';
+      link.setAttribute('href', `${SITE_ORIGIN}${pathForRoute(activeTab, targetLanguage)}`);
+    });
+  }, [activeTab, language, t]);
 
   // --- Deadline-aftelklok in de header ---
   // Tikt elke 30 seconden. De minuutweergave is daarmee hooguit een halve minuut oud, en we vermijden
@@ -1790,7 +1842,7 @@ export default function FDRTool() {
             return (
               <a
                 key={tab.key}
-                href={tab.path}
+                href={pathForRoute(tab.key, language)}
                 // Echte href zodat midden-klik / "open in nieuw tabblad" / delen gewoon werken, maar
                 // een gewone klik wordt onderschept zodat de app niet volledig herlaadt.
                 onClick={(e) => {
@@ -1834,7 +1886,7 @@ export default function FDRTool() {
             return (
               <a
                 key={tab.key}
-                href={tab.path}
+                href={pathForRoute(tab.key, language)}
                 onClick={(e) => {
                   if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
                   e.preventDefault();
@@ -1900,7 +1952,7 @@ export default function FDRTool() {
                   return (
                     <a
                       key={tab.key}
-                      href={tab.path}
+                      href={pathForRoute(tab.key, language)}
                       onClick={(e) => {
                         setMoreMenuOpen(false);
                         if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;

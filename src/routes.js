@@ -72,12 +72,50 @@ export const ROUTES = [
 
 export const DEFAULT_ROUTE_KEY = 'fdr';
 
-// Pad -> tabsleutel. "/" valt terug op de FDR-tab, zodat de bestaande homepage-URL (en alle links die
-// daar al naar verwijzen) blijft werken zoals voorheen.
+// --- Taal in de URL ---
+//
+// De NL/FR-toggle veranderde tot nu toe alleen React-state: de URL bleef in beide talen identiek. Dat
+// heeft één groot gevolg dat niets met de code te maken heeft — voor een zoekmachine BESTAAT de Franse
+// versie dan niet. Er is geen URL om te indexeren, geen hreflang om naar te verwijzen, en geen link om
+// te delen die in het Frans opent. In een land waar de helft van de competitie Franstalig is, is dat
+// het grootste stuk publiek dat deze site onbenut laat.
+//
+// Nederlands blijft op de kale paden (/fdr, /team-planner, ...) — geen enkele bestaande link verandert.
+// Frans krijgt hetzelfde pad met een /fr-voorvoegsel (/fr/fdr, /fr/team-planner, ...).
+export const SUPPORTED_LANGUAGES = ['nl', 'fr'];
+export const DEFAULT_ROUTE_LANGUAGE = 'nl';
+const LANGUAGE_PREFIX = { nl: '', fr: '/fr' };
+
+export function prefixForLanguage(language) {
+  return LANGUAGE_PREFIX[language] ?? '';
+}
+
+function normalizePath(pathname) {
+  return (pathname || '/').replace(/\/+$/, '') || '/';
+}
+
+// Splitst een pad in taal + resterend pad. Onbekende voorvoegsels blijven gewoon deel van het pad en
+// vallen dus door naar de bestaande Nederlandse afhandeling.
+export function splitLanguageFromPath(pathname) {
+  const normalized = normalizePath(pathname);
+  if (normalized === '/fr' || normalized.startsWith('/fr/')) {
+    return { language: 'fr', path: normalized.slice(3) || '/' };
+  }
+  return { language: DEFAULT_ROUTE_LANGUAGE, path: normalized };
+}
+
+// De taal die bij een URL hoort. Geeft null terug als de URL er niets over zegt (alle Nederlandse
+// paden) — de aanroeper mag dan zelf beslissen, bv. op basis van een eerder opgeslagen voorkeur.
+export function languageFromPath(pathname) {
+  return splitLanguageFromPath(pathname).language === 'fr' ? 'fr' : null;
+}
+
+// Pad -> tabsleutel. "/" (en "/fr") vallen terug op de FDR-tab, zodat de bestaande homepage-URL (en
+// alle links die daar al naar verwijzen) blijft werken zoals voorheen.
 export function routeKeyFromPath(pathname) {
-  const normalized = (pathname || '/').replace(/\/+$/, '') || '/';
-  if (normalized === '/') return DEFAULT_ROUTE_KEY;
-  const match = ROUTES.find(r => r.path === normalized);
+  const { path } = splitLanguageFromPath(pathname);
+  if (path === '/') return DEFAULT_ROUTE_KEY;
+  const match = ROUTES.find(r => r.path === path);
   return match ? match.key : DEFAULT_ROUTE_KEY;
 }
 
@@ -85,9 +123,16 @@ export function routeByKey(key) {
   return ROUTES.find(r => r.key === key) ?? ROUTES[0];
 }
 
+// Het pad van een tab in een bepaalde taal, zonder query-string. Gedeeld door de client-side navigatie
+// en door scripts/build-routes.mjs, zodat de gegenereerde HTML-bestanden en de links in de app nooit
+// uit elkaar kunnen lopen.
+export function pathForRoute(key, language = DEFAULT_ROUTE_LANGUAGE) {
+  return `${prefixForLanguage(language)}${routeByKey(key).path}`;
+}
+
 // Bouwt de volledige URL voor een tab, mét behoud van de bestaande query-parameters. Dat laatste is
 // essentieel: de FDR-tab codeert aangepaste ratings in ?r= en thuisvoordeel in ?ha=, en die mogen
 // niet verloren gaan wanneer iemand van tab wisselt.
-export function urlForRoute(key, search = '') {
-  return `${routeByKey(key).path}${search || ''}`;
+export function urlForRoute(key, search = '', language = DEFAULT_ROUTE_LANGUAGE) {
+  return `${pathForRoute(key, language)}${search || ''}`;
 }

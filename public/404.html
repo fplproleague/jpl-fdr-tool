@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="nl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pagina niet gevonden | Fantasy Pro League Tools</title>
+    <meta name="robots" content="noindex, follow" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <meta name="theme-color" content="#2A1440" />
+    <!--
+      Vercel serveert dit bestand automatisch voor elk pad dat niet bestaat. Zonder deze pagina kreeg
+      een bezoeker de standaard zwarte Vercel-foutpagina: Engelstalig, zonder enige link terug naar de
+      site, en met "View documentation / Copy debug prompt" eronder — ontwikkelaarsgereedschap op een
+      pagina die een fantasyspeler te zien krijgt na één verkeerd getypte of verouderde link.
+
+      Bewust platte HTML met inline CSS, geen React: deze pagina moet net werken op het moment dat er
+      iets misloopt, dus ze mag van niets afhangen. Kleuren/lettertypes komen overeen met de rest van
+      de site (zie de merkkleuren in src/theme.js); het lettertype valt terug op de systeem-sans als
+      Google Fonts niet laadt.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;900&family=Inter:wght@400;600&display=swap" />
+    <style>
+      :root { color-scheme: dark; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        box-sizing: border-box;
+        background: #2E1547;
+        color: #FFFFFF;
+        font-family: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+        text-align: center;
+      }
+      .card { max-width: 460px; }
+      .code {
+        font-family: Archivo, system-ui, sans-serif;
+        font-weight: 900;
+        font-size: 64px;
+        line-height: 1;
+        color: #4ECDC4;
+        margin: 0 0 8px;
+      }
+      h1 {
+        font-family: Archivo, system-ui, sans-serif;
+        font-weight: 900;
+        font-size: 24px;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        margin: 0 0 12px;
+      }
+      p { color: #C9B8E0; font-size: 14px; line-height: 1.6; margin: 0 0 8px; }
+      p.fr { color: #8F79AD; font-size: 13px; margin-bottom: 24px; }
+      .links { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+      a {
+        display: inline-block;
+        border-radius: 8px;
+        padding: 10px 16px;
+        font-size: 13px;
+        font-weight: 600;
+        text-decoration: none;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        color: #FFFFFF;
+      }
+      a.primary { background: #4ECDC4; border-color: #4ECDC4; color: #0B2E1B; font-weight: 700; }
+      a:focus-visible { outline: 2px solid #4ECDC4; outline-offset: 2px; }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <p class="code">404</p>
+      <h1>Deze pagina bestaat niet</h1>
+      <p>De link is verouderd of er staat een tikfout in. Alle tools staan gewoon nog op hun plaats.</p>
+      <p class="fr">Cette page n’existe pas — tous les outils sont toujours disponibles ci-dessous.</p>
+      <div class="links">
+        <a class="primary" href="/fdr">FDR</a>
+        <a href="/team-planner">Team Planner</a>
+        <a href="/predicted-lineups">Verwachte XI’s</a>
+        <a href="/bonuspunten">Bonuspunten</a>
+        <a href="/set-pieces">Set Pieces</a>
+        <a href="/watchlist">Watchlist</a>
+        <a href="/kaarten">Kaarten</a>
+        <a href="/price-changes">Price Changes</a>
+      </div>
+    </main>
+  </body>
+</html>
