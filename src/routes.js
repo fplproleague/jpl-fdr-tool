@@ -136,3 +136,50 @@ export function pathForRoute(key, language = DEFAULT_ROUTE_LANGUAGE) {
 export function urlForRoute(key, search = '', language = DEFAULT_ROUTE_LANGUAGE) {
   return `${pathForRoute(key, language)}${search || ''}`;
 }
+
+// --- Deelbare detailpagina's (speler en club) ---
+//
+// De sheets uit PR 3 en 5 hadden geen eigen adres: een spelerskaart kon je enkel beschrijven, niet
+// doorsturen. Met een eigen pad wordt zo'n kaart iets wat je op X kan pósten, en gaat de site van acht
+// indexeerbare pagina's naar enkele honderden.
+//
+// De segmenten blijven in beide talen hetzelfde ("/fr/speler/...", niet "/fr/joueur/..."): één
+// vertaling minder om uit elkaar te laten lopen, en een gedeelde link blijft herkenbaar wanneer iemand
+// hem van taal wisselt.
+export const SHEET_SEGMENTS = { player: 'speler', club: 'club' };
+
+// Naam -> URL-veilig stuk pad. Accenten worden hun kale letter ("Doku" en "Dokú" mogen niet twee
+// verschillende URL's opleveren), al de rest wordt een koppelteken.
+export function slugify(value) {
+  return (value ?? '')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+// De clubcode staat vooraan in de slug, niet enkel omdat twee clubs een speler met dezelfde naam
+// kunnen hebben, maar ook omdat de slug daardoor zonder spelersdatabank al verraadt over welke club
+// het gaat — het build-script kan er zo een pagina voor genereren zonder de live CSV op te halen.
+export function playerSlug(name, teamCode) {
+  return `${(teamCode ?? '').toLowerCase()}-${slugify(name)}`;
+}
+
+export function pathForSheet(sheet, language = DEFAULT_ROUTE_LANGUAGE) {
+  const prefix = prefixForLanguage(language);
+  if (sheet?.kind === 'club') return `${prefix}/${SHEET_SEGMENTS.club}/${(sheet.code ?? '').toLowerCase()}`;
+  if (sheet?.kind === 'player') return `${prefix}/${SHEET_SEGMENTS.player}/${playerSlug(sheet.name, sheet.teamCode)}`;
+  return null;
+}
+
+// Pad -> welk detailpaneel er hoort te openen. Geeft null voor elk gewoon tab-pad, zodat de bestaande
+// afhandeling ongemoeid blijft. De spelersnaam valt niet uit de slug af te leiden (accenten en
+// leestekens zijn eruit), dus die wordt hier enkel doorgegeven — de app zoekt hem op.
+export function sheetFromPath(pathname) {
+  const { path } = splitLanguageFromPath(pathname);
+  const [, segment, param] = path.split('/');
+  if (!param) return null;
+  if (segment === SHEET_SEGMENTS.club) return { kind: 'club', code: param.toUpperCase() };
+  if (segment === SHEET_SEGMENTS.player) return { kind: 'player', slug: param.toLowerCase() };
+  return null;
+}

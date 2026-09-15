@@ -16,8 +16,12 @@ import {
 import { SET_PIECES_CSV_URL } from './constants';
 import { parseSetPiecesCsv } from './setPieces';
 import { COLORS } from './theme';
-import { ROUTES, routeKeyFromPath, urlForRoute, pathForRoute, languageFromPath, SUPPORTED_LANGUAGES } from './routes';
+import {
+  ROUTES, routeKeyFromPath, urlForRoute, pathForRoute, languageFromPath, SUPPORTED_LANGUAGES,
+  pathForSheet, sheetFromPath, playerSlug,
+} from './routes';
 import { t as translate, LANGUAGES, DEFAULT_LANGUAGE } from './i18n';
+import { PREDICTED_LINEUPS } from './predictedLineupsData';
 import FDRTab from './tabs/FDRTab';
 
 // Enkel de FDR-tab (de standaardweergave) zit in de hoofdbundle. De andere tabs worden pas
@@ -150,6 +154,24 @@ const HEADER_CHIP_HEIGHT = '28px';
 // Zonder onSortGw levert dit de gewone, niet-klikbare koppen (de vergelijk-tabel heeft geen eigen
 // sortering). Mét onSortGw wordt elke kop een knop die op die ene speeldag sorteert; aria-sort vertelt
 // een screenreader op welke kolom de tabel op dit moment geordend staat.
+// Zoekt bij een slug uit de URL de echte speler. De naam valt niet uit de slug af te leiden (accenten
+// en leestekens zijn eruit), dus we slugificeren de kandidaten en vergelijken. De spelersdatabank komt
+// pas na een fetch binnen; PREDICTED_LINEUPS staat meteen klaar, dus een gedeelde link opent al vóór
+// die fetch. Geeft null als niets past — dan blijft gewoon de onderliggende tab staan i.p.v. een lege
+// kaart te tonen voor een verzonnen URL.
+function resolvePlayerSlug(slug, playerDatabase) {
+  const fromDatabase = playerDatabase.find(p => playerSlug(p.name, p.teamCode) === slug);
+  if (fromDatabase) return { name: fromDatabase.name, teamCode: fromDatabase.teamCode };
+  for (const lineup of PREDICTED_LINEUPS) {
+    for (const slot of lineup.slots) {
+      if (!slot.playerName) continue;
+      const teamCode = slot.playerTeamCode || lineup.clubCode;
+      if (playerSlug(slot.playerName, teamCode) === slug) return { name: slot.playerName, teamCode };
+    }
+  }
+  return null;
+}
+
 function buildGwHeaderCells(t, { sortedGw = null, onSortGw = null } = {}) {
   const prefix = t('fdr.gwLabel');
   return GW_INDEXES.map(i => {
@@ -484,6 +506,11 @@ export default function FDRTool() {
     const handlePopState = () => {
       setActiveTab(routeKeyFromPath(window.location.pathname));
       setLanguage(languageFromPath(window.location.pathname) ?? DEFAULT_LANGUAGE);
+      // De sheet hoort ook bij de geschiedenis: zonder dit blijft een spelerskaart openstaan nadat de
+      // terugknop al naar de lijst eronder is teruggekeerd.
+      const fromUrl = sheetFromPath(window.location.pathname);
+      setSheet(fromUrl?.kind === 'club' ? fromUrl : null);
+      setPendingPlayerSlug(fromUrl?.kind === 'player' ? fromUrl.slug : null);
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
@@ -671,7 +698,21 @@ export default function FDRTool() {
   // Het detailpaneel dat openstaat, of null. Eén state voor speler én club: daardoor kan een sheet die
   // vanuit een sheet opent de vorige enkel vervángen, nooit erbovenop komen — op een telefoon zijn drie
   // lagen diep onbruikbaar. Vorm: { kind: 'player', name, teamCode } of { kind: 'club', code }.
-  const [sheet, setSheet] = useState(null);
+  const [sheet, setSheet] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    const fromUrl = sheetFromPath(window.location.pathname);
+    // Een club-URL kan meteen open: de clubcode staat er letterlijk in. Een speler-URL moet eerst
+    // opgezocht worden (zie pendingPlayerSlug hieronder).
+    return fromUrl?.kind === 'club' ? fromUrl : null;
+  });
+
+  // Spelers-slug uit de URL die nog een naam moet krijgen. Blijft staan tot de spelersdatabank binnen
+  // is, zodat een gedeelde link ook opent als hij vóór die fetch geopend wordt.
+  const [pendingPlayerSlug, setPendingPlayerSlug] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    const fromUrl = sheetFromPath(window.location.pathname);
+    return fromUrl?.kind === 'player' ? fromUrl.slug : null;
+  });
 
   // isCustom volgt exact of ratings/homeAdvantage hun gedeelde DEFAULT-referentie zijn
   // (zie updateRating/toggleHomeAdvantage/handleReset).
@@ -1190,21 +1231,56 @@ export default function FDRTool() {
   const isPlayerWatched = (name, teamCode) =>
     watchlist.some(p => p.name === name && p.teamCode === teamCode);
 
+  // Lost een spelers-URL op zodra er data is om in te zoeken. Draait opnieuw wanneer de
+  // spelersdatabank binnenkomt, zodat een deeplink naar iemand die niet in de verwachte opstellingen
+  // staat alsnog opent.
+  useEffect(() => {
+    if (!pendingPlayerSlug) return;
+    const found = resolvePlayerSlug(pendingPlayerSlug, playerDatabase);
+    if (!found) return;
+    setSheet({ kind: 'player', ...found });
+    setPendingPlayerSlug(null);
+  }, [pendingPlayerSlug, playerDatabase]);
+
   // Eén ingang voor alle zes de plekken die een spelerskaart kunnen openen (rij in Bonuspunten of
   // Kaarten, naam in Set Pieces, watch-list-item, Team Planner-slot, speler op het veld).
+  // Een sheet openen of sluiten is een echte navigatie: alleen zo valt een spelerskaart te delen, en
+  // brengt de terugknop je terug naar de lijst i.p.v. de site te verlaten. De query-string blijft
+  // behouden, net als bij het wisselen van tab (?r= en ?ha= dragen de aangepaste FDR-ratings).
+  const pushSheetUrl = (next) => {
+    if (typeof window === 'undefined') return;
+    const path = next
+      ? pathForSheet(next, language)
+      : pathForRoute(activeTab, language);
+    const url = `${path}${window.location.search || ''}`;
+    if (url !== window.location.pathname + window.location.search) {
+      window.history.pushState({ sheet: next?.kind ?? null }, '', url);
+    }
+  };
+
   const openPlayerSheet = (name, teamCode) => {
     if (!name || !teamCode) return;
-    setSheet({ kind: 'player', name, teamCode });
+    const next = { kind: 'player', name, teamCode };
+    setSheet(next);
+    setPendingPlayerSlug(null);
+    pushSheetUrl(next);
   };
 
   // Idem voor de clubkaart: elk clublogo in de hoofdtabel, elke kaart in Set Pieces, de clubnaam op het
   // veld en de clubnaam in een spelerskaart komen hier uit.
   const openClubSheet = (code) => {
     if (!code) return;
-    setSheet({ kind: 'club', code });
+    const next = { kind: 'club', code };
+    setSheet(next);
+    setPendingPlayerSlug(null);
+    pushSheetUrl(next);
   };
 
-  const closeSheet = () => setSheet(null);
+  const closeSheet = () => {
+    setSheet(null);
+    setPendingPlayerSlug(null);
+    pushSheetUrl(null);
+  };
 
   const handleUndoRemoveWatchlistPlayer = () => {
     if (watchlistNotice?.kind !== 'removed') return;
