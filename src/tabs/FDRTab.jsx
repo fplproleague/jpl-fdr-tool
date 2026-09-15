@@ -34,9 +34,39 @@ const gwOptionElements = GW_INDEXES.map(i => (
   <option key={i} value={i + 1}>{i + 1}</option>
 ));
 
+// Zichtbaar moeilijkheidscijfer (1-5) in de rechterbovenhoek van een fixture-cel. Tot nu toe zat de
+// moeilijkheid uitsluitend in de achtergrondkleur; dat maakt de tabel onleesbaar voor wie rood en
+// groen niet uit elkaar houdt, en onbestaand voor een screenreader. Het cijfer is bewust klein en
+// halftransparant zodat de kleur het hoofdsignaal blijft (en de gedownloade afbeelding er niet
+// drukker uit gaat zien), maar het staat er wél. currentColor i.p.v. een vaste kleur: elke
+// RATING_STYLE-combinatie heeft z'n eigen tekstkleur die al op contrast gecontroleerd is.
+function CellRating({ rating }) {
+  if (!rating) return null;
+  return <span className="fdr-cell-rating" aria-hidden="true">{rating}</span>;
+}
+
+// Bouwt de toegankelijke naam van een fixture-cel. Zit hier (en niet inline in de JSX) omdat alle vier
+// de cel-varianten — normaal, mogelijk uitgesteld, uitgesteld en DGW — hem nodig hebben.
+function buildFixtureCellAriaLabel(t, info) {
+  const venueLabel = (venue) => t(venue === 'H' ? 'fdr.venue.home' : 'fdr.venue.away');
+  if (info.isPostponed) return t('fdr.cellPostponedAria');
+  if (info.isDoubleGameweek) {
+    const legs = info.legs
+      .map(leg => t('fdr.cellAria', { opp: leg.opp, venue: venueLabel(leg.venue), rating: leg.rating }))
+      .join('; ');
+    return t('fdr.cellDgwAria', { legs });
+  }
+  const base = t('fdr.cellAria', { opp: info.opp, venue: venueLabel(info.venue), rating: info.rating });
+  // Bij een mogelijk uitgestelde wedstrijd blijft de uitleg over dat uitstel onderdeel van de naam —
+  // anders verdwijnt de betekenis van het "*" volledig voor wie de tabel niet ziet.
+  return info.isPossiblyPostponed && info.possiblyPostponedText
+    ? `${base}. ${info.possiblyPostponedText}`
+    : base;
+}
+
 const FixtureCell = memo(function FixtureCell({
-  opp, venue, isPostponed, isPossiblyPostponed, bg, textColor, stacked, postponedText, possiblyPostponedText,
-  isDoubleGameweek, legs
+  opp, venue, rating, isPostponed, isPossiblyPostponed, bg, textColor, stacked, postponedText, possiblyPostponedText,
+  isDoubleGameweek, legs, ariaLabel
 }) {
   const stackingStyle = stacked ? { position: 'relative', zIndex: 1 } : null;
 
@@ -46,6 +76,7 @@ const FixtureCell = memo(function FixtureCell({
         as="td"
         className="fdr-cell"
         text={postponedText}
+        ariaLabel={ariaLabel}
         style={{
           // #C2BBD1 i.p.v. het vroegere #9B93AD: dat haalde maar 3.10:1 op deze grijze achtergrond,
           // nu 4.90:1 (WCAG AA).
@@ -65,7 +96,7 @@ const FixtureCell = memo(function FixtureCell({
   // een normale enkele cel (~32px) blijven, anders wordt de hele rij (alle 8 kolommen) hoger dan de rest.
   if (isDoubleGameweek) {
     return (
-      <td className="fdr-cell" style={{ padding: 0, borderRadius: '6px', overflow: 'hidden', ...stackingStyle }}>
+      <td className="fdr-cell" aria-label={ariaLabel} style={{ padding: 0, borderRadius: '6px', overflow: 'hidden', ...stackingStyle }}>
         {legs.map((leg, i) => (
           <div key={i} style={{
             background: leg.style.bg, color: leg.style.text, textAlign: 'center',
@@ -90,6 +121,7 @@ const FixtureCell = memo(function FixtureCell({
         <span style={{ opacity: 0.75, fontWeight: 500 }}>({venue})</span>
         {isPossiblyPostponed && <span className="fdr-maybe-postponed-marker" aria-hidden="true">*</span>}
       </span>
+      <CellRating rating={rating} />
     </>
   );
 
@@ -99,6 +131,7 @@ const FixtureCell = memo(function FixtureCell({
         as="td"
         className="fdr-cell"
         text={possiblyPostponedText}
+        ariaLabel={ariaLabel}
         style={{
           background: bg, color: textColor, textAlign: 'center',
           fontSize: '12px', fontWeight: 700, borderRadius: '6px', padding: '8px 2px',
@@ -112,7 +145,7 @@ const FixtureCell = memo(function FixtureCell({
   }
 
   return (
-    <td className="fdr-cell" style={{
+    <td className="fdr-cell" aria-label={ariaLabel} style={{
       background: bg, color: textColor, textAlign: 'center',
       fontSize: '12px', fontWeight: 700, borderRadius: '6px', padding: '8px 2px',
       ...stackingStyle
@@ -323,11 +356,23 @@ export default function FDRTab({
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <label style={{ color: COLORS.textBody, fontSize: '12px' }}>{t('fdr.gwLabel')}</label>
-              <select value={gwHorizonStart} onChange={e => setGwHorizonStart(Number(e.target.value))} style={selectStyle}>
+              {/* aria-label per select: het zichtbare "GW … t/m …" is één label voor twee velden, dus
+                  zonder deze namen kondigt een screenreader allebei enkel aan als "keuzelijst". */}
+              <select
+                value={gwHorizonStart}
+                onChange={e => setGwHorizonStart(Number(e.target.value))}
+                aria-label={t('fdr.tableRangeFromAria')}
+                style={selectStyle}
+              >
                 {gwOptionElements}
               </select>
               <span style={{ color: COLORS.textBody, fontSize: '12px' }}>{t('fdr.gwTo')}</span>
-              <select value={gwHorizonEnd} onChange={e => setGwHorizonEnd(Number(e.target.value))} style={selectStyle}>
+              <select
+                value={gwHorizonEnd}
+                onChange={e => setGwHorizonEnd(Number(e.target.value))}
+                aria-label={t('fdr.tableRangeToAria')}
+                style={selectStyle}
+              >
                 {gwOptionElements}
               </select>
             </div>
@@ -346,7 +391,7 @@ export default function FDRTab({
         <table style={{ borderCollapse: 'separate', borderSpacing: '4px', minWidth: `${mainTableMinWidth}px` }}>
           <thead>
             <tr>
-              <th style={{
+              <th scope="col" style={{
                 textAlign: 'left', color: COLORS.textBody, fontSize: '11px', textTransform: 'uppercase',
                 letterSpacing: '0.05em', padding: '6px 8px', position: 'sticky', left: 0,
                 background: '#2A1440', zIndex: 3, boxShadow: '-4px 0 0 0 #2A1440, 4px 0 0 0 #2A1440'
@@ -379,13 +424,14 @@ export default function FDRTab({
 
                 {FIXTURES[team.code].slice(gwHorizonRange.start - 1, gwHorizonRange.end).map((f, i) => {
                   const gwNumber = gwHorizonRange.start + i;
-                  const { opp, venue, isPostponed, isPossiblyPostponed, style, postponedText, possiblyPostponedText, isDoubleGameweek, legs } =
-                    getFixtureInfo(team.code, f, gwNumber, ratings, homeAdvantage);
+                  const info = getFixtureInfo(team.code, f, gwNumber, ratings, homeAdvantage);
+                  const { opp, venue, rating, isPostponed, isPossiblyPostponed, style, postponedText, possiblyPostponedText, isDoubleGameweek, legs } = info;
                   return (
                     <FixtureCell
                       key={gwNumber}
                       opp={opp}
                       venue={venue}
+                      rating={rating}
                       isPostponed={isPostponed}
                       isPossiblyPostponed={isPossiblyPostponed}
                       bg={style?.bg}
@@ -394,6 +440,7 @@ export default function FDRTab({
                       possiblyPostponedText={possiblyPostponedText}
                       isDoubleGameweek={isDoubleGameweek}
                       legs={legs}
+                      ariaLabel={buildFixtureCellAriaLabel(t, info)}
                       stacked
                     />
                   );
@@ -422,11 +469,21 @@ export default function FDRTab({
         <div id="fdr-section-runs">
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
           <label style={{ color: COLORS.textBody, fontSize: '12px' }}>{t('fdr.gwLabel')}</label>
-          <select value={rangeStart} onChange={e => setRangeStart(Number(e.target.value))} style={selectStyle}>
+          <select
+            value={rangeStart}
+            onChange={e => setRangeStart(Number(e.target.value))}
+            aria-label={t('fdr.runsRangeFromAria')}
+            style={selectStyle}
+          >
             {gwOptionElements}
           </select>
           <span style={{ color: COLORS.textBody, fontSize: '12px' }}>{t('fdr.gwTo')}</span>
-          <select value={rangeEnd} onChange={e => setRangeEnd(Number(e.target.value))} style={selectStyle}>
+          <select
+            value={rangeEnd}
+            onChange={e => setRangeEnd(Number(e.target.value))}
+            aria-label={t('fdr.runsRangeToAria')}
+            style={selectStyle}
+          >
             {gwOptionElements}
           </select>
         </div>
@@ -517,7 +574,7 @@ export default function FDRTab({
             <table style={{ borderCollapse: 'separate', borderSpacing: '4px', minWidth: '600px', width: '100%' }}>
               <thead>
                 <tr>
-                  <th style={{ textAlign: 'left', color: COLORS.textBody, fontSize: '11px', textTransform: 'uppercase', padding: '6px 8px', ...stickyTeamCellStyle }}>Team</th>
+                  <th scope="col" style={{ textAlign: 'left', color: COLORS.textBody, fontSize: '11px', textTransform: 'uppercase', padding: '6px 8px', ...stickyTeamCellStyle }}>{t('fdr.teamColumn')}</th>
                   {compareGwHeaderCells}
                 </tr>
               </thead>

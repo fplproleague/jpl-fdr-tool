@@ -181,18 +181,38 @@ export function formatGwDeadline(gw) {
   return `${parts.weekday} ${parts.day} ${parts.month} ${parts.hour}:${parts.minute}`;
 }
 
-// "Laatst bijgewerkt"-datum in de footer ("28 augustus 2026" / "28 août 2026") — vroeger een
-// handmatig bij te werken constante (LAST_UPDATED), die daardoor stelselmatig achterliep zodra
-// iemand vergat ze aan te passen. Nu altijd de echte datum van vandaag, in Belgische tijdzone (zelfde
-// redenering als BELGIAN_TIME_ZONE hierboven bij de GW-deadlines) en in de taal van de bezoeker.
-const TODAY_FORMATTERS = {
+// "Laatst bijgewerkt"-datum in de footer ("28 augustus 2026" / "28 août 2026").
+//
+// Geschiedenis van deze regel, want ze is twee keer om een goede reden veranderd:
+//   1. Eerst een handmatige constante (LAST_UPDATED) — die liep stelselmatig achter zodra iemand
+//      vergat ze bij te werken.
+//   2. Daarna new Date(): nooit meer vergeten, maar de footer beweerde dan élke dag dat de site
+//      "vandaag" bijgewerkt was, ook als er al twee weken niets veranderd was. Voor een tool waarvan
+//      de hele waarde verse data is, is dat het duurste soort onjuistheid: het vertrouwenssignaal
+//      klopt niet meer, en een bezoeker kan niet zien of de cijfers van deze of van vorige speeldag
+//      zijn.
+//   3. Nu de build-datum (__BUILD_DATE__, geïnjecteerd door Vite — zie vite.config.js). Die is
+//      automatisch (dus nooit vergeten) én waar: een nieuwe deploy is precies het moment waarop de
+//      data/inhoud van de site effectief verandert. In `vite dev` bestaat de constante niet, dan
+//      vallen we terug op vandaag.
+const LAST_UPDATED_FORMATTERS = {
   nl: new Intl.DateTimeFormat('nl-BE', { timeZone: BELGIAN_TIME_ZONE, day: 'numeric', month: 'long', year: 'numeric' }),
   fr: new Intl.DateTimeFormat('fr-BE', { timeZone: BELGIAN_TIME_ZONE, day: 'numeric', month: 'long', year: 'numeric' }),
 };
 
-export function formatTodayLong(language) {
-  const formatter = TODAY_FORMATTERS[language] ?? TODAY_FORMATTERS.nl;
-  return formatter.format(new Date());
+// Losse functie i.p.v. een module-constante, zodat een ongeldige/ontbrekende __BUILD_DATE__ nooit een
+// "Invalid Date" in de footer kan zetten.
+function resolveLastUpdatedDate() {
+  if (typeof __BUILD_DATE__ === 'string') {
+    const parsed = new Date(__BUILD_DATE__);
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+  }
+  return new Date();
+}
+
+export function formatLastUpdatedLong(language) {
+  const formatter = LAST_UPDATED_FORMATTERS[language] ?? LAST_UPDATED_FORMATTERS.nl;
+  return formatter.format(resolveLastUpdatedDate());
 }
 
 // De eerste GW waarvan de deadline nog niet verstreken is — dát is de gameweek waar een bezoeker mee
@@ -319,7 +339,11 @@ export function getFixtureInfo(teamCode, fixture, gwNumber, ratings, homeAdvanta
   if (isDoubleGameweek(fixture) && !isPostponed) {
     const legs = getFixtureLegs(fixture).map(f => {
       const [opp, venue] = f.split('-');
-      return { opp, venue, style: RATING_STYLE[getEffectiveRating(opp, venue, ratings, homeAdvantage)] };
+      // `rating` (1-5) gaat mee naast `style`: de cel toont de moeilijkheid vandaag enkel via de
+      // achtergrondkleur, en kleur alleen is geen toegankelijke drager (kleurenblindheid, screenreaders).
+      // FDRTab.jsx rendert er het cijfer en het aria-label mee; zie de toelichting bij FixtureCell daar.
+      const rating = getEffectiveRating(opp, venue, ratings, homeAdvantage);
+      return { opp, venue, rating, style: RATING_STYLE[rating] };
     });
     return {
       isDoubleGameweek: true, legs,
@@ -331,10 +355,11 @@ export function getFixtureInfo(teamCode, fixture, gwNumber, ratings, homeAdvanta
   // Enkele-GW-pad (bestaand gedrag). getFixtureLegs(...)[0] pakt bij een (toevallig) POSTPONED DGW de
   // eerste wedstrijd, zodat de "was het tegen wie"-tooltiptekst nog altijd zinvol is.
   const [opp, venue] = getFixtureLegs(fixture)[0].split('-');
-  const style = isPostponed ? null : RATING_STYLE[getEffectiveRating(opp, venue, ratings, homeAdvantage)];
+  const rating = isPostponed ? null : getEffectiveRating(opp, venue, ratings, homeAdvantage);
+  const style = rating === null ? null : RATING_STYLE[rating];
   const postponedText = isPostponed ? buildPostponedTooltipText(teamCode, opp, venue) : null;
   const possiblyPostponedText = isPossiblyPostponed ? buildPossiblyPostponedTooltipText(teamCode, opp, venue) : null;
-  return { isDoubleGameweek: false, opp, venue, isPostponed, isPossiblyPostponed, style, postponedText, possiblyPostponedText };
+  return { isDoubleGameweek: false, opp, venue, rating, isPostponed, isPossiblyPostponed, style, postponedText, possiblyPostponedText };
 }
 
 // Gedeeld tussen components/SectionHeader.jsx en tabs/WatchlistTab.jsx (dat laatste spreadt het

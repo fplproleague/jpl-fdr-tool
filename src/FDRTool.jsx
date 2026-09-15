@@ -8,7 +8,7 @@ import { useState, useMemo, useRef, useCallback, useEffect, lazy, Suspense } fro
 import { Info, X, Check, Copy, Undo2, Loader2, ChevronDown, Grid2x2, Users, Shirt } from 'lucide-react';
 import {
   TEAMS, FIXTURES, GW_COUNT, CURRENT_GW, DEFAULT_GW_HORIZON_END, MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS,
-  MINILEAGUE_CODE, formatTodayLong, GW_INDEXES, DEFAULT_RATINGS, DEFAULT_HOME_ADVANTAGE,
+  MINILEAGUE_CODE, formatLastUpdatedLong, GW_INDEXES, DEFAULT_RATINGS, DEFAULT_HOME_ADVANTAGE,
   TEAM_PLANNER_SQUAD_SIZE, TEAM_PLANNER_BENCH_SIZE, TEAM_PLANNER_SLOT_POSITIONS, VALID_FORMATIONS,
   resolveSlotPlayerAtGw, PLAYER_DATABASE_CSV_URL, parsePlayerDatabaseCsv, getFixtureScores, average,
   POSTPONED, computeTeamPlannerTransferBudget, getGwDeadlineDate,
@@ -125,15 +125,27 @@ function markNewTabSeen(key, alreadySeen) {
 // ongeacht dat de ene chip enkel tekst bevat en de andere een geneste knop met eigen randen/padding.
 const HEADER_CHIP_HEIGHT = '28px';
 
-// Statische GW-headers, eenmalig opgebouwd — nodig voor visibleGwHeaderCells (hoofdtabel-horizon,
-// zie hieronder) en, geslicet vanaf CURRENT_GW, voor de vergelijk-tabel in FDRTab (compareGwHeaderCells
-// hieronder). Blijft hier i.p.v. in constants.js: dat is een .js-bestand en Vite/esbuild parsen
-// JSX-syntax enkel in .jsx-bestanden.
-const gwHeaderCells = GW_INDEXES.map(i => (
-  <th key={i} style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', padding: '6px 4px', minWidth: '58px' }}>
-    GW{i + 1}
-  </th>
-));
+// GW-headers voor de hoofdtabel en de vergelijk-tabel. Blijft hier i.p.v. in constants.js: dat is een
+// .js-bestand en Vite/esbuild parsen JSX-syntax enkel in .jsx-bestanden.
+//
+// Niet langer één statische module-constante maar een functie van de taal: het voorvoegsel stond hard
+// als "GW" in de JSX, terwijl de Franse versie overal elders "J" (journée) gebruikt — de kolomkoppen
+// waren daardoor het enige stuk van de Franse tabel dat Nederlands bleef. t('fdr.gwLabel') levert al
+// "GW"/"J", dus dezelfde bron als de selector eronder. scope="col" + aria-label maken van elke kop
+// bovendien een echte, uitgeschreven kolomkop ("Gameweek 7" i.p.v. "GW7") voor screenreaders.
+function buildGwHeaderCells(t) {
+  const prefix = t('fdr.gwLabel');
+  return GW_INDEXES.map(i => (
+    <th
+      key={i}
+      scope="col"
+      aria-label={t('fdr.gwColumnAria', { gw: i + 1 })}
+      style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', padding: '6px 4px', minWidth: '58px' }}
+    >
+      {prefix}{i + 1}
+    </th>
+  ));
+}
 
 function loadStoredRatings() {
   try {
@@ -390,6 +402,13 @@ export default function FDRTool() {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
+
+  // <html lang> volgt de taalkeuze. Stond hard op "nl" in index.html, ook nadat iemand op FR was
+  // overgeschakeld: een screenreader las de volledige Franse interface dan met Nederlandse uitspraak
+  // voor, en zoekmachines/vertaalhulpmiddelen kregen hetzelfde verkeerde signaal.
+  useEffect(() => {
+    document.documentElement.lang = language;
+  }, [language]);
 
   // Documenttitel en meta-description volgen de actieve tab, zodat een gedeelde link niet langer
   // altijd "FDR Tool" als preview toont en elke tool apart indexeerbaar is.
@@ -701,11 +720,15 @@ export default function FDRTool() {
     end: Math.max(gwHorizonStart, gwHorizonEnd),
   }), [gwHorizonStart, gwHorizonEnd]);
 
+  // Alle GW-headers voor de huidige taal, één keer per taalwissel opgebouwd; de twee tabellen slicen
+  // hier elk hun eigen bereik uit.
+  const gwHeaderCells = useMemo(() => buildGwHeaderCells(t), [t]);
+
   // Enkel de GW-headers binnen de gekozen horizon — gwHeaderCells zelf blijft ongewijzigd (ook
   // gebruikt door compareGwHeaderCells hieronder, met een eigen, vaste startpunt).
   const visibleGwHeaderCells = useMemo(
     () => gwHeaderCells.slice(gwHorizonRange.start - 1, gwHorizonRange.end),
-    [gwHorizonRange]
+    [gwHeaderCells, gwHorizonRange]
   );
 
   // "Vergelijk teams" heeft geen eigen horizon-selector: die begint gewoon altijd bij CURRENT_GW en
@@ -715,7 +738,7 @@ export default function FDRTool() {
   const compareGwStart = Math.min(CURRENT_GW, GW_COUNT);
   const compareGwHeaderCells = useMemo(
     () => gwHeaderCells.slice(compareGwStart - 1),
-    [compareGwStart]
+    [gwHeaderCells, compareGwStart]
   );
 
   // MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS (760px) is gekalibreerd voor de Team-kolom + alle GW_COUNT
@@ -1187,6 +1210,38 @@ export default function FDRTool() {
         }
         .fdr-postponed-tooltip--top::after { top: 100%; border-top-color: #3D1E5C; }
         .fdr-postponed-tooltip--bottom::after { bottom: 100%; border-bottom-color: #3D1E5C; }
+        /* Zie de skip-link bovenaan .fdr-content. Buiten beeld geparkeerd i.p.v. display:none, want
+           een element met display:none kan geen focus krijgen en zou dus nooit verschijnen. */
+        .fdr-skip-link {
+          position: absolute;
+          left: -9999px;
+          top: 0;
+          z-index: 100;
+          background: #4ECDC4;
+          color: #0B2E1B;
+          font-weight: 700;
+          font-size: 13px;
+          padding: 10px 16px;
+          border-radius: 0 0 8px 0;
+          text-decoration: none;
+        }
+        .fdr-skip-link:focus {
+          left: 0;
+        }
+        /* Moeilijkheidscijfer in de hoek van een fixture-cel — zie CellRating in tabs/FDRTab.jsx voor
+           waarom dit er staat. De cel is al position: relative (stacked), en de 0.62em/absolute
+           plaatsing houdt 'm buiten de tekstflow zodat de bestaande celbreedtes niet veranderen. */
+        .fdr-cell-rating {
+          position: absolute;
+          top: 1px;
+          right: 3px;
+          font-size: 0.62em;
+          font-weight: 900;
+          line-height: 1;
+          color: currentColor;
+          opacity: 0.65;
+          pointer-events: none;
+        }
         .fdr-maybe-postponed-marker {
           position: absolute;
           /* em-relatief i.p.v. vaste px: schaalt automatisch mee met de font-size van de omliggende
@@ -1539,6 +1594,11 @@ export default function FDRTool() {
 
       <div className="fdr-content" style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 20px 32px', position: 'relative' }}>
 
+        {/* Skip-link: onzichtbaar tot hij focus krijgt (zie .fdr-skip-link in de <style> hierboven),
+            dan het eerste wat een toetsenbordgebruiker tegenkomt. Slaat kop + taalkeuze + acht tabs
+            over. */}
+        <a href="#fdr-main" className="fdr-skip-link">{t('a11y.skipToContent')}</a>
+
         {/* De koptekst gebruikt gewone flex-uitlijning i.p.v. de vroegere negatieve marges
             (marginTop: -36px op het logo, -18px op het minileague-blok). Die trokken elementen
             handmatig omhoog en werden maar deels teruggezet in de mobiele media query, wat de
@@ -1831,6 +1891,14 @@ export default function FDRTool() {
           </div>
         </nav>
 
+        {/* Eén <main>-landmark rond alle tab-inhoud. De pagina had tot nu toe <header>, <nav> en
+            <footer> maar geen main: screenreaders en de "ga naar de inhoud"-snelkoppelingen van de
+            browser hadden daardoor geen doel om naar toe te springen, en op mobiel betekende dat elke
+            keer opnieuw door de volledige kop en de acht tabs navigeren vóór je bij de tabel was.
+            tabIndex={-1} maakt het element focusbaar voor de skip-link bovenaan zonder het in de
+            gewone tab-volgorde op te nemen. */}
+        <main id="fdr-main" tabIndex={-1} style={{ outline: 'none' }}>
+
         {activeTab === 'fdr' && (
           <FDRTab
             t={t}
@@ -1990,6 +2058,8 @@ export default function FDRTool() {
           </div>
         )}
 
+        </main>
+
         <footer style={{ marginTop: '28px', textAlign: 'center', color: COLORS.textSubtle, fontSize: '12px', lineHeight: 1.5 }}>
           {t('footer.madeBy')}{' '}
           <a href="https://x.com/fpl_proleague" target="_blank" rel="noopener noreferrer" className="fdr-footer-link">
@@ -1997,7 +2067,7 @@ export default function FDRTool() {
             @fpl_proleague
           </a>
           {' '}· {t('footer.season')}<br />
-          {t('footer.lastUpdated', { date: formatTodayLong(language) })}
+          {t('footer.lastUpdated', { date: formatLastUpdatedLong(language) })}
         </footer>
       </div>
 
