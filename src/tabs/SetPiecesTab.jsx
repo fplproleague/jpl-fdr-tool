@@ -1,14 +1,12 @@
-// Inhoud van de Set Pieces-tab: huidige strafschop-/corner-/vrijetrapnemers per club, opgehaald uit een
-// eigen werkblad in dezelfde Google Sheet als de spelersdatabank (zie SET_PIECES_CSV_URL in
-// constants.js). Zelfstandige tab (geen props vanuit FDRTool.jsx nodig, zelfde opzet als
-// PredictedLineupsTab.jsx) — maar met een eigen LIVE fetch i.p.v. statisch geïmporteerde data, want deze
-// gegevens moeten zonder codewijziging aanpasbaar zijn door gewoon de sheet te bewerken. Zelfde
-// fetch-/foutafhandelingspatroon als fetchPlayerDatabase in FDRTool.jsx (cache: 'no-store' + HTML-sniff
-// op een ingetrokken publish-link), hier lokaal herhaald omdat deze tab zijn eigen, aparte databron heeft.
-import { useCallback, useEffect, useState } from 'react';
+// Inhoud van de Set Pieces-tab: huidige strafschop-/corner-/vrijetrapnemers per club. De data komt uit
+// een eigen werkblad in dezelfde Google Sheet als de spelersdatabank (zie SET_PIECES_CSV_URL in
+// constants.js) en blijft dus zonder codewijziging aanpasbaar door de sheet te bewerken.
+//
+// Het ophalen zelf gebeurt niet meer hier maar in FDRTool.jsx: de speler-sheet toont de nemer-rol ook
+// wanneer hij vanuit Bonuspunten of Kaarten opent, en die data moet dan al binnen zijn zonder dat het
+// openen van een sheet een netwerkverzoek kost. Deze tab krijgt het resultaat dus als props, net als
+// WatchlistTab/BonuspuntenTab dat met de spelersdatabank doen.
 import { Loader2, AlertCircle, RotateCcw } from 'lucide-react';
-import { SET_PIECES_CSV_URL } from '../constants';
-import { parseSetPiecesCsv } from '../setPieces';
 
 const retryButtonStyle = {
   display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0,
@@ -31,30 +29,70 @@ function CategoryBadge({ label }) {
   );
 }
 
-// Splitst een waarde als "Sikan / Ambros / Cvetkovic ?" op de "?" zelf (die als apart element behouden
-// blijft, zie split met een capturing group) zodat enkel het vraagteken in goud gerenderd kan worden — de
-// rest van de tekst (namen, "/"-scheidingstekens, spaties) blijft ongewijzigd en in de oorspronkelijke
-// volgorde staan. Geen alfabetische herordening, geen andere symbolen i.p.v. "?".
-function formatSetPieceValue(value) {
-  return value.split(/(\?)/g).filter(part => part !== '').map((part, i) => (
-    part === '?'
-      ? <span key={i} style={{ color: '#E8C547', fontWeight: 800 }}>?</span>
-      : <span key={i}>{part}</span>
-  ));
+// De sheet gebruikt korte, leesbare namen ("Sikan"), de spelersdatabank volledige ("Danylo Sikan").
+// Zoekt binnen dezelfde club naar de speler die bij zo'n losse naam hoort, en geeft de volledige naam
+// terug — dat is waarmee de speler-sheet zijn eigen gegevens terugvindt. null als er niets bij past.
+function resolvePlayerName(rawName, clubCode, playerDatabase) {
+  const token = rawName.trim().toLowerCase();
+  if (token.length < 3) return null;
+  const match = playerDatabase.find(p =>
+    p.teamCode === clubCode &&
+    (p.name.toLowerCase() === token ||
+     p.name.toLowerCase().includes(token) ||
+     token.includes(p.name.toLowerCase())));
+  return match?.name ?? null;
 }
 
-function SetPieceRow({ label, value }) {
+// Splitst een waarde als "Sikan / Ambros / Cvetkovic ?" op de "/"-scheidingstekens en de "?" (allebei
+// als apart element behouden, zie de capturing group) zodat enkel het vraagteken in goud gerenderd kan
+// worden en elke naam apart aanklikbaar is. De tekst zelf blijft ongewijzigd en in de oorspronkelijke
+// volgorde staan. Geen alfabetische herordening, geen andere symbolen i.p.v. "?".
+//
+// Een naam wordt alleen een knop als hij ook écht een speler oplevert: een klik die op een lege kaart
+// uitkomt is een loze belofte, en deze sheet bevat ook vrije tekst die geen spelersnaam is.
+function formatSetPieceValue(value, { clubCode, playerDatabase, onOpenPlayer, t }) {
+  return value.split(/([/?])/g).filter(part => part !== '').map((part, i) => {
+    if (part === '?') return <span key={i} style={{ color: '#E8C547', fontWeight: 800 }}>?</span>;
+    if (part === '/') return <span key={i}>{part}</span>;
+    const fullName = onOpenPlayer ? resolvePlayerName(part, clubCode, playerDatabase) : null;
+    if (!fullName) return <span key={i}>{part}</span>;
+    // De omliggende spaties blijven buiten de knop staan, anders krijgt het onderstreepte
+    // klikgebied een losse spatie mee aan het begin of einde.
+    const [, before, name, after] = part.match(/^(\s*)(.*?)(\s*)$/);
+    return (
+      <span key={i}>
+        {before}
+        <button
+          type="button"
+          onClick={() => onOpenPlayer(fullName, clubCode)}
+          aria-label={t('playerSheet.openAria', { name: fullName })}
+          style={{
+            background: 'none', border: 'none', padding: 0, font: 'inherit', color: 'inherit',
+            cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'rgba(78,205,196,0.5)',
+            textUnderlineOffset: '3px',
+          }}
+        >
+          {name}
+        </button>
+        {after}
+      </span>
+    );
+  });
+}
+
+function SetPieceRow({ label, value, ...linkProps }) {
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', padding: '4px 0' }}>
       <CategoryBadge label={label} />
       <span style={{ color: '#EDE4F5', fontSize: '13px', fontWeight: 600, lineHeight: 1.45, wordBreak: 'break-word' }}>
-        {value ? formatSetPieceValue(value) : <span style={{ color: '#6B5289' }}>—</span>}
+        {value ? formatSetPieceValue(value, linkProps) : <span style={{ color: '#6B5289' }}>—</span>}
       </span>
     </div>
   );
 }
 
-function SetPieceCard({ entry }) {
+function SetPieceCard({ entry, playerDatabase, onOpenPlayer, t }) {
+  const linkProps = { clubCode: entry.clubCode, playerDatabase, onOpenPlayer, t };
   return (
     <div style={{
       background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
@@ -78,9 +116,9 @@ function SetPieceCard({ entry }) {
           {entry.clubName}
         </span>
       </div>
-      <SetPieceRow label="P" value={entry.penalties} />
-      <SetPieceRow label="C" value={entry.corners} />
-      <SetPieceRow label="FK" value={entry.freeKicks} />
+      <SetPieceRow label="P" value={entry.penalties} {...linkProps} />
+      <SetPieceRow label="C" value={entry.corners} {...linkProps} />
+      <SetPieceRow label="FK" value={entry.freeKicks} {...linkProps} />
     </div>
   );
 }
@@ -91,31 +129,9 @@ const CATEGORY_LEGEND = [
   { label: 'FK', textKey: 'setpieces.legend.freeKick' },
 ];
 
-export default function SetPiecesTab({ t }) {
-  const [{ entries, updatedGw }, setData] = useState({ entries: [], updatedGw: '' });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  const fetchSetPieces = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await fetch(SET_PIECES_CSV_URL, { cache: 'no-store' });
-      if (!response.ok) throw new Error('Netwerkfout');
-      const text = await response.text();
-      if (/^\s*<(!doctype|html)/i.test(text)) throw new Error('Onverwacht antwoord');
-      setData(parseSetPiecesCsv(text));
-    } catch {
-      setError(t('setpieces.loadError'));
-    } finally {
-      setLoading(false);
-    }
-  }, [t]);
-
-  useEffect(() => {
-    fetchSetPieces();
-  }, [fetchSetPieces]);
-
+export default function SetPiecesTab({
+  t, entries = [], updatedGw = '', loading, error, retry, onOpenPlayer, playerDatabase = [],
+}) {
   return (
     <>
       {/* Legende + laatste update — zelfde stijl als de safety-kleurenlegende op de Predicted
@@ -164,8 +180,8 @@ export default function SetPiecesTab({ t }) {
           borderRadius: '10px', padding: '12px 14px', marginBottom: '12px',
         }}>
           <AlertCircle size={16} color="#C2402C" style={{ flexShrink: 0 }} />
-          <span style={{ color: '#FBEAE7', fontSize: '13px', flex: 1 }}>{error}</span>
-          <button onClick={fetchSetPieces} style={retryButtonStyle}>
+          <span style={{ color: '#FBEAE7', fontSize: '13px', flex: 1 }}>{t(error)}</span>
+          <button onClick={retry} style={retryButtonStyle}>
             <RotateCcw size={14} /> {t('shared.retry')}
           </button>
         </div>
@@ -185,7 +201,13 @@ export default function SetPiecesTab({ t }) {
       {!loading && !error && entries.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(330px, 1fr))', gap: '12px' }}>
           {entries.map((entry, i) => (
-            <SetPieceCard key={entry.clubCode ?? `${entry.clubName}-${i}`} entry={entry} />
+            <SetPieceCard
+              key={entry.clubCode ?? `${entry.clubName}-${i}`}
+              entry={entry}
+              playerDatabase={playerDatabase}
+              onOpenPlayer={onOpenPlayer}
+              t={t}
+            />
           ))}
         </div>
       )}

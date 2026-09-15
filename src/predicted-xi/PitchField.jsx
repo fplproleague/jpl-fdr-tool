@@ -87,6 +87,9 @@ const PitchField = forwardRef(function PitchField({
   // afhandeling van de container zelf weg. Standaard false: de privé Predicted XI Builder (die deze
   // prop nooit meegeeft) is hierdoor op geen enkele manier veranderd.
   readOnly = false,
+  // Doorgegeven aan elke PitchSlot; enkel de publieke tab geeft deze mee. Zie PitchSlot.jsx.
+  onViewPlayer,
+  viewPlayerLabel,
   // Optioneel badge-label (bv. "GW4") naast de formatie-pil — enkel voor de publieke Predicted
   // Lineups-tab, die dit meegeeft zodat een screenshot van het veld (die buiten de site rondgaat op
   // X, los van elke pagina-context) zijn eigen speeldag meedraagt. null = niets extra tonen; de privé
@@ -272,6 +275,8 @@ const PitchField = forwardRef(function PitchField({
                 onCycleSafety={onCycleSafety}
                 onDragStart={onDragStart}
                 readOnly={readOnly}
+                onViewPlayer={onViewPlayer}
+                viewPlayerLabel={viewPlayerLabel}
                 teamCode={club?.code}
                 shirtWidthPx={shirtWidthPx}
               />

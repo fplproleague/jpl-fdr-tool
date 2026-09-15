@@ -205,6 +205,7 @@ const STRINGS = {
     'teamPlanner.colPlayer': 'Speler',
     'teamPlanner.colPosition': 'Positie',
     'teamPlanner.colPrice': 'Prijs (M)',
+    'teamPlanner.colViewPlayer': 'Spelerskaart',
     'teamPlanner.searchLoadingPlaceholder': 'Databank laden...',
     'teamPlanner.searchPositionPlaceholder': 'Zoek {{position}}...',
     'teamPlanner.pitch': 'Veld',
@@ -292,6 +293,24 @@ const STRINGS = {
     'bonuspunten.section.bonusPoints': 'Meeste bonuspunten',
     'bonuspunten.duelsSubtitle': '{{won}} gewonnen · {{lost}} verloren',
     'bonuspunten.updatedLabel': 'Updated: GW{{gw}}',
+
+    // --- Speler-sheet (components/PlayerSheet.jsx) — het paneel dat opent vanuit een rij, een naam
+    // in Set Pieces, een watch-list-item, een Team Planner-slot of een speler op het veld. ---
+    'playerSheet.closeAria': 'Spelerskaart sluiten',
+    'playerSheet.fixturesHeading': 'Volgende wedstrijden',
+    'playerSheet.lineupHeading': 'Startkans',
+    'playerSheet.setPiecesHeading': 'Standaardsituaties',
+    'playerSheet.cardsHeading': 'Gele kaarten',
+    'playerSheet.bonusHeading': 'Bonuspunten',
+    'playerSheet.addToWatchlist': 'Op watchlist zetten',
+    'playerSheet.onWatchlist': 'Staat op je watchlist',
+    'playerSheet.toTeamPlanner': 'Naar Team Planner',
+    'playerSheet.notInLineup': 'Niet opgenomen in de verwachte opstelling.',
+    'playerSheet.lineupFromGw': 'Uit de opstelling van GW{{gw}}, niet van de komende speeldag.',
+    'playerSheet.noSetPieces': 'Geen vermelding als nemer.',
+    'playerSheet.cardsUntilSuspension': 'nog {{count}} tot schorsing',
+    'playerSheet.noData': 'Nog geen gegevens.',
+    'playerSheet.openAria': 'Bekijk de spelerskaart van {{name}}',
 
     // --- Set Pieces-tab ---
     'setpieces.legend.penalty': 'Penalty',
@@ -481,6 +500,7 @@ const STRINGS = {
     'teamPlanner.colPlayer': 'Joueur',
     'teamPlanner.colPosition': 'Poste',
     'teamPlanner.colPrice': 'Prix (M)',
+    'teamPlanner.colViewPlayer': 'Fiche du joueur',
     'teamPlanner.searchLoadingPlaceholder': 'Chargement de la base...',
     'teamPlanner.searchPositionPlaceholder': 'Rechercher {{position}}...',
     'teamPlanner.pitch': 'Terrain',
@@ -568,6 +588,23 @@ const STRINGS = {
     'bonuspunten.section.bonusPoints': 'Plus de points bonus',
     'bonuspunten.duelsSubtitle': '{{won}} gagnés · {{lost}} perdus',
     'bonuspunten.updatedLabel': 'Mis à jour : J{{gw}}',
+
+    // --- Fiche joueur (components/PlayerSheet.jsx) ---
+    'playerSheet.closeAria': 'Fermer la fiche du joueur',
+    'playerSheet.fixturesHeading': 'Prochains matchs',
+    'playerSheet.lineupHeading': 'Chance de titularisation',
+    'playerSheet.setPiecesHeading': 'Coups de pied arrêtés',
+    'playerSheet.cardsHeading': 'Cartons jaunes',
+    'playerSheet.bonusHeading': 'Points bonus',
+    'playerSheet.addToWatchlist': 'Ajouter à la watchlist',
+    'playerSheet.onWatchlist': 'Sur votre watchlist',
+    'playerSheet.toTeamPlanner': 'Vers le Team Planner',
+    'playerSheet.notInLineup': "Pas repris dans la composition probable.",
+    'playerSheet.lineupFromGw': "D'après la composition de la J{{gw}}, pas de la prochaine journée.",
+    'playerSheet.noSetPieces': "Pas mentionné comme tireur.",
+    'playerSheet.cardsUntilSuspension': 'encore {{count}} avant suspension',
+    'playerSheet.noData': 'Pas encore de données.',
+    'playerSheet.openAria': 'Voir la fiche de {{name}}',
 
     // --- Onglet Coups de pied arrêtés ---
     'setpieces.legend.penalty': 'Penalty',
