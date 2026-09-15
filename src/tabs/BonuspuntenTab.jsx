@@ -29,7 +29,7 @@ const BONUS_POINTS_DATA_AVAILABLE = true;
 // Handmatig bij te werken samen met de spelersdatabank-sheet — zie het "Updated: GW.."-badge
 // hieronder. Geen automatische afleiding mogelijk (in tegenstelling tot bv. PREDICTED_LINEUPS_GW in
 // constants.js), want de gedeelde CSV heeft geen eigen "laatst bijgewerkt"-kolom.
-const BONUSPUNTEN_UPDATED_GW = 5;
+const BONUSPUNTEN_UPDATED_GW = 6;
 
 function RankingSection({ icon, title, sectionKey, isOpen, onToggle, children }) {
   return (
@@ -178,8 +178,8 @@ export default function BonuspuntenTab({ t, playerDatabase, playerDatabaseLoadin
           als de "Updated: GW.."-badge op de Set Pieces-tab. Bewust niet in dezelfde flex-rij als de
           introtekst: die is te lang om ooit naast een badge te passen zonder toch naar een eigen regel
           te wrappen, dus dit is voorspelbaarder. BONUSPUNTEN_UPDATED_GW is nog een handmatige constante
-          (voorlopig GW4) i.p.v. dynamisch uit de sheet gelezen, want de gedeelde spelersdatabank-CSV
-          heeft geen eigen "laatst bijgewerkt"-kolom zoals het Set Pieces-werkblad. */}
+          i.p.v. dynamisch uit de sheet gelezen, want de gedeelde spelersdatabank-CSV heeft geen eigen
+          "laatst bijgewerkt"-kolom zoals het Set Pieces-werkblad. */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
         <span style={{
           color: '#4ECDC4', fontWeight: 800, fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase',
