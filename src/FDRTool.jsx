@@ -37,6 +37,10 @@ const SetPiecesTab = lazy(() => import('./tabs/SetPiecesTab'));
 // in src/routes.js, zodat de URL-afhandeling en de zichtbare tabs nooit uit elkaar kunnen lopen.
 const TABS = ROUTES;
 
+// De tabs die de spelersdatabank-CSV effectief nodig hebben (zie de fetch-useEffect verderop). De
+// FDR-tab staat er bewust niet bij: die rendert volledig uit constants.js.
+const PLAYER_DATABASE_TABS = new Set(['watchlist', 'teamplanner', 'bonuspunten', 'kaarten']);
+
 // Op mobiel (zie .fdr-tabs-mobile) blijven enkel de eerste MOBILE_PRIMARY_TAB_COUNT tabs los
 // zichtbaar (elk zijn eigen kolom in een grid, zie .fdr-tab-btn-mobile-primary); de rest komt in het
 // "Meer"-menu (de laatste kolom). 3 is de grens: "FDR" + "Team Planner" + "Verwachte XI's" + "Meer"
@@ -801,11 +805,17 @@ export default function FDRTool() {
   // zowel de bank-teller ("Bank: x/4") als de formatie-validatie (3-4-3, 4-4-2, ...) in de tab. Een
   // reduce over het volledige spelers-array, dus hier i.p.v. lokaal in TeamPlannerTab.jsx, net als
   // teamPlannerClubCounts hierboven.
+  //
+  // Telt enkel slots waar effectief iemand in staat. Vroeger telde dit élk niet-gebankt slot, en omdat
+  // de 15 slots een vaste positie hebben (2 GK, 5 DEF, 5 MID, 3 FWD) toonde een gloednieuwe, volledig
+  // lege planner meteen "Formatie: 5-5-3" — een formatie die de gebruiker nooit gekozen heeft, bij een
+  // ploeg die nog geen enkele speler bevat. Nu groeit de telling mee met wat er ingevuld is.
   const teamPlannerFormationCounts = useMemo(() => {
     const bench = teamPlannerBenchByGw[teamPlannerGw] ?? [];
     const counts = { GK: 0, DEF: 0, MID: 0, FWD: 0 };
     teamPlannerPlayers.forEach((p, index) => {
       if (!p.position || bench.includes(index)) return;
+      if (!p.name && !p.teamCode) return;
       counts[p.position] += 1;
     });
     return counts;
@@ -912,10 +922,32 @@ export default function FDRTool() {
     }
   }, []);
 
-  // Haalt de spelersdatabank eenmalig op bij het laden van de app, los van de actieve tab — zodat ze
-  // al klaarstaat zodra de gebruiker naar Team Planner navigeert.
+  // Haalt de spelersdatabank eenmalig op bij het laden van de app. Nog steeds vooraf (los van de
+  // actieve tab), zodat ze klaarstaat zodra iemand naar Team Planner of Bonuspunten navigeert — maar
+  // niet langer midden in het eerste scherm.
+  //
+  // Waarom: de FDR-tab (de standaardweergave, en veruit het meest bezochte scherm) gebruikt deze data
+  // helemaal niet, en toch vertrok de fetch naar Google Sheets meteen bij het laden. Die kostte ~570 ms
+  // en concurreert precies op het moment dat de tabel zelf moet renderen — op mobiele data vlak vóór een
+  // deadline is dat de duurste seconde van het bezoek. requestIdleCallback wacht tot de browser klaar is
+  // met het eerste scherm; is de gebruiker al op een tab die de data wél nodig heeft, dan halen we ze
+  // zoals voorheen onmiddellijk op. De setTimeout-fallback is voor Safari-versies zonder
+  // requestIdleCallback.
   useEffect(() => {
-    fetchPlayerDatabase();
+    if (PLAYER_DATABASE_TABS.has(activeTab)) {
+      fetchPlayerDatabase();
+      return undefined;
+    }
+    if (typeof window.requestIdleCallback === 'function') {
+      const handle = window.requestIdleCallback(() => fetchPlayerDatabase(), { timeout: 3000 });
+      return () => window.cancelIdleCallback?.(handle);
+    }
+    const timer = setTimeout(fetchPlayerDatabase, 1200);
+    return () => clearTimeout(timer);
+    // activeTab bewust NIET in de dependency-lijst: fetchPlayerDatabase is idempotent qua resultaat,
+    // maar bij elke tabwissel opnieuw afvuren zou een extra netwerkrondje per klik betekenen. Deze
+    // effect draait één keer, met de tab waarop de bezoeker binnenkwam.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchPlayerDatabase]);
 
   const handleAddWatchlistPlayer = (e) => {

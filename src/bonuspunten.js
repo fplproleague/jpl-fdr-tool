@@ -31,36 +31,61 @@ export function buildBonuspuntenEntries(playerDatabase) {
 const TOP_N = 15;
 const byName = (a, b) => a.player.localeCompare(b.player);
 
-// Deterministische Top-15-rangschikkingen — elke sort-functie eindigt altijd op spelersnaam als laatste
-// tiebreaker, zodat de volgorde nooit afhangt van de (willekeurige) rijvolgorde in de sheet.
-export function rankByDuels(entries) {
-  return [...entries]
-    .sort((a, b) => b.duelDiff - a.duelDiff || b.duelsWon - a.duelsWon || byName(a, b))
+// De twee manieren waarop elke rangschikking gesorteerd kan worden.
+//
+// Waarom dit er is: de lijsten rangschikten altijd op seizoenstotaal, terwijl de tweede regel van elke
+// rij de per-wedstrijd-waarde toont. Dat zijn twee verschillende antwoorden op twee verschillende
+// vragen. Voor fantasy is de per-wedstrijd-waarde meestal de nuttigste — ze zegt iets over wat een
+// speler de VOLGENDE speeldag waarschijnlijk doet — terwijl het totaal vooral wie het meest gespeeld
+// heeft beloont. Een speler die één match miste zakte daardoor onterecht weg. De gebruiker kiest nu
+// zelf welke vraag hij stelt.
+export const SORT_MODES = { total: 'total', perMatch: 'perMatch' };
+
+// Ondergrens om in de per-wedstrijd-rangschikking mee te tellen. Zonder zo'n grens wint de lijst altijd
+// door wie precies één (goede) wedstrijd speelde: één match van 7 recoveries wordt dan 7.00/wedstrijd en
+// staat bovenaan. De helft van het hoogste aantal gespeelde wedstrijden in de data (naar boven afgerond)
+// schuift vanzelf mee met het seizoen, dus geen hardcoded getal dat elke speeldag opnieuw klopt of niet.
+export function minGamesForPerMatch(entries) {
+  const maxGames = entries.reduce((max, e) => Math.max(max, e.games ?? 0), 0);
+  return Math.max(1, Math.ceil(maxGames / 2));
+}
+
+// Gedeelde sorteerkern voor alle vijf de rangschikkingen. `pick` haalt de ruwe statistiek uit een entry.
+// In perMatch-modus vallen spelers onder de wedstrijddrempel volledig weg (niet: onderaan), want een
+// rangschikking met onbetrouwbare waarden erin is misleidender dan een kortere lijst. Het seizoenstotaal
+// blijft in beide modi de eerste tiebreaker, en de spelersnaam altijd de laatste — zodat de volgorde
+// nooit afhangt van de (willekeurige) rijvolgorde in de sheet.
+function rankBy(entries, pick, sortMode, minGames, tiebreak = () => 0) {
+  const perMatchMode = sortMode === SORT_MODES.perMatch;
+  const pool = perMatchMode ? entries.filter(e => (e.games ?? 0) >= minGames) : entries;
+  const score = perMatchMode ? (e => (e.games ? pick(e) / e.games : 0)) : pick;
+  return [...pool]
+    .sort((a, b) => score(b) - score(a) || pick(b) - pick(a) || tiebreak(a, b) || byName(a, b))
     .slice(0, TOP_N);
 }
 
-export function rankByDefensiveHeaders(entries) {
-  return [...entries]
-    .sort((a, b) => b.defensiveHeaders - a.defensiveHeaders || byName(a, b))
-    .slice(0, TOP_N);
+// sortMode/minGames zijn optioneel met een default op het oude gedrag (sorteren op seizoenstotaal),
+// zodat bestaande aanroepen met enkel `entries` ongewijzigd blijven werken.
+export function rankByDuels(entries, sortMode = SORT_MODES.total, minGames = 1) {
+  // Bij een gelijk duelverschil telt wie de meeste duels gewonnen heeft (bestaand gedrag): 41-12 is een
+  // sterkere prestatie dan 70-41, ook al is het verschil even groot.
+  return rankBy(entries, e => e.duelDiff, sortMode, minGames, (a, b) => b.duelsWon - a.duelsWon);
 }
 
-export function rankByRecoveries(entries) {
-  return [...entries]
-    .sort((a, b) => b.recoveries - a.recoveries || byName(a, b))
-    .slice(0, TOP_N);
+export function rankByDefensiveHeaders(entries, sortMode = SORT_MODES.total, minGames = 1) {
+  return rankBy(entries, e => e.defensiveHeaders, sortMode, minGames);
 }
 
-export function rankByBigChances(entries) {
-  return [...entries]
-    .sort((a, b) => b.bigChances - a.bigChances || byName(a, b))
-    .slice(0, TOP_N);
+export function rankByRecoveries(entries, sortMode = SORT_MODES.total, minGames = 1) {
+  return rankBy(entries, e => e.recoveries, sortMode, minGames);
 }
 
-export function rankByBonusPoints(entries) {
-  return [...entries]
-    .sort((a, b) => b.bonusPoints - a.bonusPoints || byName(a, b))
-    .slice(0, TOP_N);
+export function rankByBigChances(entries, sortMode = SORT_MODES.total, minGames = 1) {
+  return rankBy(entries, e => e.bigChances, sortMode, minGames);
+}
+
+export function rankByBonusPoints(entries, sortMode = SORT_MODES.total, minGames = 1) {
+  return rankBy(entries, e => e.bonusPoints, sortMode, minGames);
 }
 
 // Subtiele "per wedstrijd"-waarde naast een hoofdstatistiek (zie RankingRow's valueSub-prop en

@@ -606,7 +606,13 @@ export default function TeamPlannerTab({
   // vast op 11) — zie VALID_FORMATIONS in constants.js voor de toegestane DEF-MID-FWD-combinaties.
   const { GK: gkCount, DEF: defCount, MID: midCount, FWD: fwdCount } = teamPlannerFormationCounts;
   const matchesValidFormation = VALID_FORMATIONS.some(([d, m, f]) => d === defCount && m === midCount && f === fwdCount);
-  const isValidFormation = isBenchComplete && gkCount === 1 && matchesValidFormation;
+  // Een formatie bestaat pas zodra er elf basisspelers ingevuld zijn. Zonder deze check beweerde de
+  // pill iets over een ploeg die nog niet bestond, en verscheen de rode "ongeldige formatie"-melding
+  // al bij een halfvolle selectie — een foutmelding voor iets wat de gebruiker simpelweg nog aan het
+  // invullen was.
+  const startingCount = gkCount + defCount + midCount + fwdCount;
+  const hasFullStartingXi = startingCount === TEAM_PLANNER_SQUAD_SIZE - TEAM_PLANNER_BENCH_SIZE;
+  const isValidFormation = isBenchComplete && hasFullStartingXi && gkCount === 1 && matchesValidFormation;
 
   // Boosters zijn actief voor de bekeken GW als hun opgeslagen GW exact teamPlannerGw is (zie
   // toggleTeamPlannerBooster in FDRTool.jsx voor de vergrendel-/vervang-logica).
@@ -981,7 +987,9 @@ export default function TeamPlannerTab({
               fontSize: '12px', fontWeight: 700, padding: '4px 10px', borderRadius: '999px',
               ...formationBadgeStyle(isBenchComplete, isValidFormation)
             }}>
-              {t('teamPlanner.formation', { formation: `${defCount}-${midCount}-${fwdCount}` })}
+              {hasFullStartingXi
+                ? t('teamPlanner.formation', { formation: `${defCount}-${midCount}-${fwdCount}` })
+                : t('teamPlanner.formationIncomplete')}
             </span>
           </div>
           {!isBenchComplete && (
@@ -989,7 +997,7 @@ export default function TeamPlannerTab({
               {t('teamPlanner.chooseBenchPlayers', { count: TEAM_PLANNER_BENCH_SIZE, gw: teamPlannerGw })}
             </p>
           )}
-          {isBenchComplete && !isValidFormation && (
+          {isBenchComplete && hasFullStartingXi && !isValidFormation && (
             <p style={{ textAlign: 'center', color: '#C2402C', fontSize: '12px', margin: '0 0 12px' }}>
               {t('teamPlanner.invalidFormation', { formation: `${defCount}-${midCount}-${fwdCount}`, gk: gkCount })}
             </p>
