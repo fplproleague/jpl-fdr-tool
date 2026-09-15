@@ -156,6 +156,7 @@ export default function PredictedLineupsTab({ t }) {
             <button
               key={code}
               onClick={() => setSelectedClubCode(code)}
+              className="fdr-club-chip"
               title={clubIsNotPlaying ? t('predictedLineups.notPlayingTitle', { club: clubTeam?.name ?? code }) : (clubTeam?.name ?? code)}
               style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
