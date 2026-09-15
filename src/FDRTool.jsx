@@ -13,6 +13,8 @@ import {
   resolveSlotPlayerAtGw, PLAYER_DATABASE_CSV_URL, parsePlayerDatabaseCsv, getFixtureScores, average,
   POSTPONED, computeTeamPlannerTransferBudget, getGwDeadlineDate,
 } from './constants';
+import { SET_PIECES_CSV_URL } from './constants';
+import { parseSetPiecesCsv } from './setPieces';
 import { COLORS } from './theme';
 import { ROUTES, routeKeyFromPath, urlForRoute, pathForRoute, languageFromPath, SUPPORTED_LANGUAGES } from './routes';
 import { t as translate, LANGUAGES, DEFAULT_LANGUAGE } from './i18n';
@@ -26,6 +28,9 @@ import FDRTab from './tabs/FDRTab';
 // dus élke bezoeker downloadde dat vóór de pagina bruikbaar was, ook wie enkel de FDR-tabel kwam
 // bekijken. Voor een tool die vaak vlak vóór de deadline op mobiele data geopend wordt, is dat
 // precies de verkeerde afweging.
+// Eigen chunk: de sheet wordt vanuit meerdere lazy tabs gebruikt, dus zonder aparte lazy-import
+// zou hij in de hoofdbundel belanden en de FDR-tab (die 'm niet nodig heeft) mee laten groeien.
+const PlayerSheet = lazy(() => import('./components/PlayerSheet'));
 const WatchlistTab = lazy(() => import('./tabs/WatchlistTab'));
 const TeamPlannerTab = lazy(() => import('./tabs/TeamPlannerTab'));
 const PredictedLineupsTab = lazy(() => import('./tabs/PredictedLineupsTab'));
@@ -606,6 +611,17 @@ export default function FDRTool() {
   const [playerDatabaseLoading, setPlayerDatabaseLoading] = useState(true);
   const [playerDatabaseError, setPlayerDatabaseError] = useState(null);
 
+  // Set-pieces-sheet, hier i.p.v. in SetPiecesTab: de speler-sheet toont de nemer-rol ook wanneer hij
+  // vanuit een andere tab opent, en die data moet dan al binnen zijn (zie fetchSetPieces hieronder).
+  const [setPiecesData, setSetPiecesData] = useState({ entries: [], updatedGw: '' });
+  const [setPiecesLoading, setSetPiecesLoading] = useState(true);
+  const [setPiecesError, setSetPiecesError] = useState(null);
+
+  // De speler waarvan de sheet openstaat ({ name, teamCode }), of null. Eén state voor de hele app:
+  // daardoor kan een sheet die vanuit een sheet opent de vorige enkel vervángen, nooit erbovenop
+  // komen — op een telefoon zijn drie lagen diep onbruikbaar.
+  const [sheetPlayer, setSheetPlayer] = useState(null);
+
   // isCustom volgt exact of ratings/homeAdvantage hun gedeelde DEFAULT-referentie zijn
   // (zie updateRating/toggleHomeAdvantage/handleReset).
   const isCustom = ratings !== DEFAULT_RATINGS || homeAdvantage !== DEFAULT_HOME_ADVANTAGE;
@@ -1005,6 +1021,42 @@ export default function FDRTool() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchPlayerDatabase]);
 
+  // De set-pieces-sheet werd tot nu toe door SetPiecesTab zelf opgehaald. Die fetch staat hier omdat de
+  // speler-sheet de nemer-rol ook moet kunnen tonen wanneer hij vanuit Bonuspunten of Kaarten opent —
+  // en een sheet mag geen fetch kosten op het moment dat je 'm opent. Zelfde uitgestelde afhandeling
+  // als de spelersdatabank hierboven: meteen als de bezoeker al op de Set Pieces-tab staat, anders
+  // wanneer de browser toch niets te doen heeft.
+  const fetchSetPieces = useCallback(async () => {
+    setSetPiecesLoading(true);
+    setSetPiecesError(null);
+    try {
+      const response = await fetch(SET_PIECES_CSV_URL, { cache: 'no-store' });
+      if (!response.ok) throw new Error('Netwerkfout');
+      const text = await response.text();
+      if (/^\s*<(!doctype|html)/i.test(text)) throw new Error('Onverwacht antwoord');
+      setSetPiecesData(parseSetPiecesCsv(text));
+    } catch {
+      setSetPiecesError('setpieces.loadError');
+    } finally {
+      setSetPiecesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'setpieces') {
+      fetchSetPieces();
+      return undefined;
+    }
+    if (typeof window.requestIdleCallback === 'function') {
+      const handle = window.requestIdleCallback(() => fetchSetPieces(), { timeout: 4000 });
+      return () => window.cancelIdleCallback?.(handle);
+    }
+    const timer = setTimeout(fetchSetPieces, 1600);
+    return () => clearTimeout(timer);
+    // Zelfde reden als hierboven om activeTab weg te laten: één keer ophalen, niet per tabwissel.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchSetPieces]);
+
   const handleAddWatchlistPlayer = (e) => {
     e.preventDefault();
     const name = newPlayerName.trim();
@@ -1060,6 +1112,13 @@ export default function FDRTool() {
 
   const isPlayerWatched = (name, teamCode) =>
     watchlist.some(p => p.name === name && p.teamCode === teamCode);
+
+  // Eén ingang voor alle zes de plekken die een spelerskaart kunnen openen (rij in Bonuspunten of
+  // Kaarten, naam in Set Pieces, watch-list-item, Team Planner-slot, speler op het veld).
+  const openPlayerSheet = (name, teamCode) => {
+    if (!name || !teamCode) return;
+    setSheetPlayer({ name, teamCode });
+  };
 
   const handleUndoRemoveWatchlistPlayer = () => {
     if (watchlistNotice?.kind !== 'removed') return;
@@ -1469,6 +1528,23 @@ export default function FDRTool() {
         .fdr-toolbar-btn:not(:disabled):active, .fdr-icon-btn:not(:disabled):active,
         .fdr-ranking-row:active, .fdr-club-chip:not(:disabled):active {
           transform: translateY(1px);
+        }
+
+        /* Speler-sheet (zie components/PlayerSheet.jsx). Op desktop een gecentreerde modal, op
+           mobiel een bottom sheet: daar is de bovenkant van het scherm buiten duimbereik, en een
+           paneel dat van onder komt sluit aan bij wat een telefoongebruiker van een detailweergave
+           verwacht. Zelfde breekpunt als de rest van de mobiele opmaak. */
+        .fdr-sheet-overlay { align-items: center; padding: 20px; }
+        .fdr-sheet { border-radius: 14px; }
+        @media (max-width: 640px) {
+          .fdr-sheet-overlay { align-items: flex-end; padding: 0; }
+          .fdr-sheet {
+            border-radius: 16px 16px 0 0;
+            max-width: none;
+            max-height: 88vh;
+            /* Ruimte voor de home-indicator op toestellen zonder fysieke knop. */
+            padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+          }
         }
 
         /* Alleen de transities, niet de animaties: de enige animatie op de site is de
@@ -2134,6 +2210,7 @@ export default function FDRTool() {
             playerDatabaseLoading={playerDatabaseLoading}
             playerDatabaseError={playerDatabaseError}
             fetchPlayerDatabase={fetchPlayerDatabase}
+            onOpenPlayer={openPlayerSheet}
           />
           </Suspense>
         )}
@@ -2142,6 +2219,7 @@ export default function FDRTool() {
           <Suspense fallback={<TabLoading text={t('shared.loading')} />}>
           <TeamPlannerTab
             t={t}
+            onOpenPlayer={openPlayerSheet}
             ratings={ratings}
             homeAdvantage={homeAdvantage}
             openSections={openSections}
@@ -2180,7 +2258,7 @@ export default function FDRTool() {
 
         {activeTab === 'predictedlineups' && (
           <Suspense fallback={<TabLoading text={t('shared.loading')} />}>
-            <PredictedLineupsTab t={t} />
+            <PredictedLineupsTab t={t} onOpenPlayer={openPlayerSheet} />
           </Suspense>
         )}
 
@@ -2194,13 +2272,23 @@ export default function FDRTool() {
               fetchPlayerDatabase={fetchPlayerDatabase}
               toggleWatchlistPlayer={toggleWatchlistPlayer}
               isPlayerWatched={isPlayerWatched}
+              onOpenPlayer={openPlayerSheet}
             />
           </Suspense>
         )}
 
         {activeTab === 'setpieces' && (
           <Suspense fallback={<TabLoading text={t('shared.loading')} />}>
-            <SetPiecesTab t={t} />
+            <SetPiecesTab
+              t={t}
+              entries={setPiecesData.entries}
+              updatedGw={setPiecesData.updatedGw}
+              loading={setPiecesLoading}
+              error={setPiecesError}
+              retry={fetchSetPieces}
+              onOpenPlayer={openPlayerSheet}
+              playerDatabase={playerDatabase}
+            />
           </Suspense>
         )}
 
@@ -2214,6 +2302,7 @@ export default function FDRTool() {
               fetchPlayerDatabase={fetchPlayerDatabase}
               toggleWatchlistPlayer={toggleWatchlistPlayer}
               isPlayerWatched={isPlayerWatched}
+              onOpenPlayer={openPlayerSheet}
             />
           </Suspense>
         )}
@@ -2249,6 +2338,23 @@ export default function FDRTool() {
           {t('footer.lastUpdated', { date: formatLastUpdatedLong(language) })}
         </footer>
       </div>
+
+      {sheetPlayer && (
+        <Suspense fallback={null}>
+          <PlayerSheet
+            t={t}
+            player={sheetPlayer}
+            onClose={() => setSheetPlayer(null)}
+            playerDatabase={playerDatabase}
+            setPiecesEntries={setPiecesData.entries}
+            ratings={ratings}
+            homeAdvantage={homeAdvantage}
+            isWatched={isPlayerWatched(sheetPlayer.name, sheetPlayer.teamCode)}
+            onToggleWatch={() => toggleWatchlistPlayer(sheetPlayer)}
+            onGoToTeamPlanner={() => { setSheetPlayer(null); navigateToTab('teamplanner'); }}
+          />
+        </Suspense>
+      )}
 
       {showInfo && (
         <div onClick={() => setShowInfo(false)} style={{

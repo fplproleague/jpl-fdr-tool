@@ -5,14 +5,14 @@
 // parsePlayerDatabaseCsv in constants.js) — die is al elders in FDRTool.jsx opgehaald/geparset (zelfde
 // props als WatchlistTab/TeamPlannerTab), dus geen eigen CSV-fetch/parsing meer hier (voorheen een
 // aparte BONUSPUNTEN_CSV_URL-werkblad-fetch).
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Loader2, AlertCircle, RotateCcw, Swords, Shield, RefreshCw, Target, Award, X } from 'lucide-react';
+import { useCallback, useMemo, useState } from 'react';
+import { Loader2, AlertCircle, RotateCcw, Swords, Shield, RefreshCw, Target, Award } from 'lucide-react';
 import { SectionHeader } from '../components/SectionHeader';
 import { RankingRow, watchProps } from '../components/RankingRow';
 import { PlayerSearchInput } from '../components/PlayerSearchInput';
 import {
   buildBonuspuntenEntries, rankByDuels, rankByDefensiveHeaders, rankByRecoveries, rankByBigChances,
-  rankByBonusPoints, findPlayerBonusEntry, perGameLabel, meetsThresholdPerGame, BONUS_CRITERIA, BONUS_THRESHOLD,
+  rankByBonusPoints, perGameLabel, BONUS_CRITERIA,
   SORT_MODES, minGamesForPerMatch,
 } from '../bonuspunten';
 
@@ -83,103 +83,9 @@ function RankingSection({ icon, title, sectionKey, isOpen, onToggle, children })
   );
 }
 
-// Eén statistiek in de kaart van een opgezochte speler: de hoofdwaarde (seizoenstotaal) staat altijd
-// gewoon wit — enkel de "per wedstrijd"-waarde op de tweede regel kleurt cyaan, en dan enkel zodra die
-// PER WEDSTRIJD al minstens de bonuspunt-drempel haalt (perGameQualifies, zie meetsThresholdPerGame in
-// bonuspunten.js) — een "op koers voor dit bonuspunt"-indicator, los van de seizoenstotaal.
-function BonusStatTile({ label, value, perGame, perGameQualifies, detail, comingSoon }) {
-  return (
-    <div style={{
-      background: 'rgba(0,0,0,0.15)', border: '1px solid rgba(255,255,255,0.08)',
-      borderRadius: '8px', padding: '8px 10px',
-    }}>
-      <div style={{ color: '#8F79AD', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-        {label}
-      </div>
-      <div style={{ color: '#FFF', fontWeight: 900, fontSize: '18px', lineHeight: 1.3 }}>
-        {value}
-      </div>
-      <div style={{ color: '#8F79AD', fontSize: '11px' }}>
-        {comingSoon ? comingSoon : (
-          <>
-            {detail && `${detail} · `}
-            {perGame && (
-              <span style={{ color: perGameQualifies ? '#4ECDC4' : '#8F79AD', fontWeight: perGameQualifies ? 700 : 400 }}>
-                {perGame}
-              </span>
-            )}
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// Kaart met alle bonuspunten-info van één opgezochte speler, ongeacht of die in een top-15-sectie
-// hierboven staat. `entry` komt uit findPlayerBonusEntry (src/bonuspunten.js).
-function PlayerBonusCard({ t, entry, onDismiss }) {
-  const unit = t('bonuspunten.perMatchUnit');
-  return (
-    <div style={{
-      background: 'rgba(78,205,196,0.08)', border: '1px solid rgba(78,205,196,0.3)',
-      borderRadius: '10px', padding: '14px 16px', marginBottom: '20px',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-        <img
-          src={`/club-logos/${entry.clubCode}.webp`}
-          alt=""
-          style={{ width: '26px', height: '26px', objectFit: 'contain', flexShrink: 0 }}
-          onError={(e) => { e.target.style.display = 'none'; }}
-        />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ color: '#FFF', fontWeight: 700, fontSize: '15px' }}>{entry.player}</div>
-          <div style={{ color: '#8F79AD', fontSize: '11px' }}>{entry.clubName}</div>
-        </div>
-        <button
-          type="button"
-          onClick={onDismiss}
-          aria-label={t('bonuspunten.closeAria')}
-          style={{ background: 'none', border: 'none', color: '#C9B8E0', cursor: 'pointer', flexShrink: 0, padding: '4px' }}
-        >
-          <X size={16} />
-        </button>
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px' }}>
-        <BonusStatTile
-          label={t('bonuspunten.stat.duels')} value={`${entry.duelDiff > 0 ? '+' : ''}${entry.duelDiff}`}
-          perGame={perGameLabel(entry.duelDiff, entry.games, { showSign: true, unit })}
-          perGameQualifies={meetsThresholdPerGame(entry.duelDiff, entry.games, BONUS_THRESHOLD.duels)}
-          detail={t('bonuspunten.duelsDetail', { won: entry.duelsWon, lost: entry.duelsLost })}
-        />
-        <BonusStatTile
-          label={t('bonuspunten.stat.headers')} value={entry.defensiveHeaders}
-          perGame={perGameLabel(entry.defensiveHeaders, entry.games, { unit })}
-          perGameQualifies={meetsThresholdPerGame(entry.defensiveHeaders, entry.games, BONUS_THRESHOLD.defensiveHeaders)}
-        />
-        <BonusStatTile
-          label={t('bonuspunten.stat.recoveries')} value={entry.recoveries}
-          perGame={perGameLabel(entry.recoveries, entry.games, { unit })}
-          perGameQualifies={meetsThresholdPerGame(entry.recoveries, entry.games, BONUS_THRESHOLD.recoveries)}
-        />
-        <BonusStatTile
-          label={t('bonuspunten.stat.bigChances')} value={entry.bigChances}
-          perGame={perGameLabel(entry.bigChances, entry.games, { unit })}
-          perGameQualifies={meetsThresholdPerGame(entry.bigChances, entry.games, BONUS_THRESHOLD.bigChances)}
-        />
-        <BonusStatTile
-          label={t('bonuspunten.stat.bonusPoints')}
-          value={BONUS_POINTS_DATA_AVAILABLE ? entry.bonusPoints : '—'}
-          perGame={BONUS_POINTS_DATA_AVAILABLE ? perGameLabel(entry.bonusPoints, entry.games, { unit }) : null}
-          comingSoon={BONUS_POINTS_DATA_AVAILABLE ? null : t('bonuspunten.comingSoonShort')}
-        />
-      </div>
-    </div>
-  );
-}
-
 export default function BonuspuntenTab({
   t, playerDatabase, playerDatabaseLoading, playerDatabaseError, fetchPlayerDatabase,
-  toggleWatchlistPlayer, isPlayerWatched,
+  toggleWatchlistPlayer, isPlayerWatched, onOpenPlayer,
 }) {
   const perMatchUnit = t('bonuspunten.perMatchUnit');
   // Alle vijf de rangschikkingen krijgen dezelfde ster; één helper i.p.v. vijf keer hetzelfde.
@@ -190,24 +96,21 @@ export default function BonuspuntenTab({
   const [openSections, setOpenSections] = useState({
     duels: true, defensiveHeaders: true, recoveries: true, bigChances: true, bonusPoints: true,
   });
-  // Transiënte UI-state van de zoekbalk (zelfde precedent als openSections hierboven) — mag gerust
-  // resetten bij het weg- en terugnavigeren van deze tab.
-  const [selectedPlayer, setSelectedPlayer] = useState(null);
   // Sorteermodus van alle vijf de rangschikkingen tegelijk — bewust één schakelaar i.p.v. één per
   // sectie: de gebruiker stelt één vraag ("wie is de beste?" vs "wie is de beste per match?"), niet vijf.
   const [sortMode, setSortMode] = useState(SORT_MODES.total);
-  const playerCardRef = useRef(null);
 
   const toggleSection = useCallback((key) => {
     setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
   }, []);
 
   // Een rij in een top-15-sectie hieronder klikken doet exact hetzelfde als die speler opzoeken via de
-  // zoekbalk — zelfde kaart, zelfde state. `entry` gebruikt .player/.clubCode (bonuspunten-veldnamen),
-  // findPlayerBonusEntry verwacht .name/.teamCode (playerDatabase-veldnamen), vandaar de kleine mapping.
-  const handleSelectFromRanking = useCallback((entry) => {
-    setSelectedPlayer({ name: entry.player, teamCode: entry.clubCode });
-  }, []);
+  // zoekbalk: allebei openen ze de speler-sheet. `entry` gebruikt .player/.clubCode
+  // (bonuspunten-veldnamen), de sheet .name/.teamCode (playerDatabase-veldnamen) — vandaar de mapping.
+  const handleSelectFromRanking = useCallback(
+    (entry) => onOpenPlayer?.(entry.player, entry.clubCode),
+    [onOpenPlayer],
+  );
 
   const entries = useMemo(() => buildBonuspuntenEntries(playerDatabase), [playerDatabase]);
   const minGames = useMemo(() => minGamesForPerMatch(entries), [entries]);
@@ -227,16 +130,6 @@ export default function BonuspuntenTab({
       ? { value: perMatch, valueSub: total }
       : { value: total, valueSub: perMatch };
   }, [isPerMatch, perMatchUnit]);
-  const selectedEntry = useMemo(
-    () => findPlayerBonusEntry(entries, selectedPlayer),
-    [entries, selectedPlayer]
-  );
-
-  // Een rij diep in een sectie aanklikken toont de kaart bovenaan — zonder deze scroll zou die
-  // buiten beeld verschijnen en lijken alsof de klik niets deed.
-  useEffect(() => {
-    if (selectedEntry) playerCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }, [selectedEntry]);
 
   return (
     <>
@@ -293,21 +186,14 @@ export default function BonuspuntenTab({
 
       {!playerDatabaseLoading && !playerDatabaseError && entries.length > 0 && (
         <>
-          <div style={{ marginBottom: selectedEntry ? '12px' : '20px' }}>
+          <div style={{ marginBottom: '20px' }}>
             <PlayerSearchInput
               players={playerDatabase}
-              value={selectedPlayer?.name}
-              onSelect={setSelectedPlayer}
+              onSelect={player => onOpenPlayer?.(player.name, player.teamCode)}
               placeholder={t('bonuspunten.searchPlaceholder')}
               maxWidth="320px"
             />
           </div>
-
-          {selectedEntry && (
-            <div ref={playerCardRef}>
-              <PlayerBonusCard t={t} entry={selectedEntry} onDismiss={() => setSelectedPlayer(null)} />
-            </div>
-          )}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', margin: '4px 0 18px' }}>
             <SortModeToggle t={t} value={sortMode} onChange={setSortMode} />

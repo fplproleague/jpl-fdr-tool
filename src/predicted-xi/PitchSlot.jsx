@@ -61,6 +61,15 @@ export default function PitchSlot({
   // verwijder-knop die enkel een bewerk-actie is. Standaard false, dus de privé Predicted XI Builder is
   // hierdoor op geen enkele manier veranderd.
   readOnly = false,
+  // Enkel voor de publieke Predicted Lineups-tab: opent de speler-sheet voor de speler op dit kaartje.
+  // Staat los van readOnly, dat alle BEWERK-interactie uitschakelt — bekijken is geen bewerken. De privé
+  // Predicted XI Builder geeft dit nooit mee en blijft dus onveranderd: zonder deze prop is de kaart in
+  // readOnly-modus precies zo niet-klikbaar als voorheen.
+  onViewPlayer,
+  // Vertaalde aria-tekst als functie van de spelersnaam. Als functie i.p.v. kant-en-klare string omdat
+  // het label per kaartje verschilt; zo hoeft deze module (die ook de privé-tool bedient) zelf geen
+  // i18n te kennen.
+  viewPlayerLabel,
   // Fallback-teamcode voor het shirt-icoon (zie effectiveTeamCode hieronder) — de club waarvan dit veld
   // de opstelling toont, doorgegeven vanuit PitchField.jsx. Enkel nodig als slot.playerTeamCode leeg is
   // (bv. een handmatig ingevoerde speler die niet uit de spelersdatabank kwam, zie handleManualAdd in
@@ -74,6 +83,10 @@ export default function PitchSlot({
   shirtWidthPx = SHIRT_WIDTH_PX_IDEAL,
 }) {
   const isEmpty = !slot.playerName;
+  // Bekijken mag enkel op de publieke, read-only weergave: in de builder is een klik al een
+  // bewerk-actie (positie kiezen), en die mag niet gekaapt worden.
+  const canView = Boolean(readOnly && onViewPlayer && !isEmpty);
+  const viewLabel = canView ? viewPlayerLabel?.(slot.playerName) : undefined;
   const safety = SAFETY_STYLE[slot.safety] ?? SAFETY_STYLE.green;
   const effectiveTeamCode = slot.playerTeamCode || teamCode || '';
   const hasComputedPosition = !isEmpty && leftPx != null;
@@ -103,8 +116,21 @@ export default function PitchSlot({
       <div
         draggable={!isEmpty && !readOnly}
         onDragStart={readOnly ? undefined : (e) => onDragStart(e, index)}
-        onClick={readOnly ? undefined : () => onSlotClick(index)}
+        onClick={readOnly
+          ? (canView ? () => onViewPlayer(slot.playerName, slot.playerTeamCode || teamCode) : undefined)
+          : () => onSlotClick(index)}
         title={readOnly ? undefined : (isEmpty ? `Klik om een ${slot.role}-speler te zoeken` : 'Sleep om te verplaatsen, of klik om een positie te kiezen')}
+        role={canView ? 'button' : undefined}
+        tabIndex={canView ? 0 : undefined}
+        aria-label={canView ? viewLabel : undefined}
+        onKeyDown={canView
+          ? (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onViewPlayer(slot.playerName, slot.playerTeamCode || teamCode);
+            }
+          }
+          : undefined}
         data-player-name={isEmpty ? undefined : slot.playerName}
         // pxi-card--empty/--filled: mobiele padding-overrides staan in PitchField.jsx's MOBILE_STYLE
         // (@media max-width: 640px, dezelfde conventie als elders in de codebase) i.p.v. hier een JS-
@@ -130,7 +156,7 @@ export default function PitchSlot({
           // hebben geen naam-afhankelijke breedte, dus een simpele vaste minWidth volstaat.
           minWidth: isEmpty ? '70px' : undefined,
           width: hasComputedPosition ? `${widthPx}px` : undefined,
-          cursor: readOnly ? 'default' : (isEmpty ? 'pointer' : 'grab'),
+          cursor: readOnly ? (canView ? 'pointer' : 'default') : (isEmpty ? 'pointer' : 'grab'),
           boxShadow: isEmpty ? '0 2px 6px rgba(0,0,0,0.25)' : 'none',
         }}
       >

@@ -32,7 +32,7 @@ const MIN_VISIBLE_CARDS = 2;
 
 export default function KaartenTab({
   t, playerDatabase, playerDatabaseLoading, playerDatabaseError, fetchPlayerDatabase,
-  toggleWatchlistPlayer, isPlayerWatched,
+  toggleWatchlistPlayer, isPlayerWatched, onOpenPlayer,
 }) {
   const [sortMode, setSortMode] = useState('mostCards');
 
@@ -117,6 +117,7 @@ export default function KaartenTab({
                 subtitle={subtitle} value={value}
                 qualifies={sortMode === 'closestToSuspension' || warning}
                 warning={warning}
+                onClick={onOpenPlayer ? () => onOpenPlayer(entry.player, entry.clubCode) : undefined}
                 {...watchProps({ name: entry.player, teamCode: entry.clubCode }, { isPlayerWatched, toggleWatchlistPlayer, t })}
               />
             );
