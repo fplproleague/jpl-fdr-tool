@@ -1647,10 +1647,11 @@ export default function FDRTool() {
 
            Expliciete properties i.p.v. 'all': dat laatste laat de browser bij elke repaint élke
            eigenschap bewaken, inclusief layout-properties. */
+        button, select, [role="button"],
         .fdr-toolbar-btn, .fdr-icon-btn, .fdr-tab-btn, .fdr-touch-target,
         .fdr-ranking-row, .fdr-club-chip {
           transition: background-color .15s ease, border-color .15s ease,
-                      color .15s ease, transform .12s ease;
+                      color .15s ease, transform .12s ease, filter .15s ease;
         }
 
         /* Hover ALLEEN achter deze guard. Zonder (hover: hover) blijft een hover-staat op touch
@@ -1685,10 +1686,32 @@ export default function FDRTool() {
           }
         }
 
+        /* Alles wat klikbaar is krijgt feedback, ook zonder eigen klasse. De regels hierboven werken
+           per klasse, en dat bleek in de praktijk het grootste deel van de site te missen: ruim
+           zeventig knoppen verspreid over twintig bestanden, plus de keuzelijsten van de GW-horizon
+           en de spelerskaartjes op het veld. Die stuk voor stuk een klasse geven betekent dat elke
+           nieuwe knop het opnieuw vergeet, dus staat deze laag op elementniveau.
+
+           filter: brightness i.p.v. een eigen achtergrondkleur, om twee redenen. Achtergrond, rand en
+           tekstkleur komen hier overal uit inline style-objecten, en een klasse-regel verliest het
+           daarvan — brightness werkt op het gerenderde resultaat en heeft dus geen !important nodig.
+           En het past zich vanzelf aan de knop aan: een transparante icoonknop, een ingevulde teal
+           chip en een spelerskaartje op het veld lichten er alle drie herkenbaar van op, zonder dat
+           deze regel hun kleuren hoeft te kennen. */
+        @media (hover: hover) and (pointer: fine) {
+          button:not(:disabled):hover,
+          select:not(:disabled):hover,
+          [role="button"]:not([aria-disabled="true"]):hover {
+            filter: brightness(1.22);
+          }
+        }
+
         /* Werkt óók op touch, en dat is hier de eigenlijke winst: een tap gaf tot nu toe geen
            enkele bevestiging dat er iets geregistreerd was. */
-        .fdr-toolbar-btn:not(:disabled):active, .fdr-icon-btn:not(:disabled):active,
-        .fdr-ranking-row:active, .fdr-club-chip:not(:disabled):active {
+        button:not(:disabled):active,
+        select:not(:disabled):active,
+        [role="button"]:not([aria-disabled="true"]):active,
+        .fdr-ranking-row:active {
           transform: translateY(1px);
         }
 

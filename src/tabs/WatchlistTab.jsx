@@ -6,7 +6,7 @@
 import { X, Plus, Eye, UserPlus, Loader2, AlertCircle, RotateCcw } from 'lucide-react';
 import { TEAMS, CURRENT_GW, FIXTURES, DEFAULT_GW_HORIZON_END, sectionTitleStyle, sectionTitleTextStyle } from '../constants';
 import { COLORS, retryButtonStyle, primaryButtonStyle } from '../theme';
-import { MiniFixtureBadge } from '../components/MiniFixtureBadge';
+import { FixtureStrip } from '../components/FixtureStrip';
 import { PlayerSearchInput } from '../components/PlayerSearchInput';
 
 export default function WatchlistTab({
@@ -176,18 +176,17 @@ export default function WatchlistTab({
                         }}>{player.price}M</span>
                       )}
                     </div>
-                    <div className="fdr-mini-fixture-row" style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'flex-start', marginTop: '8px' }}>
-                      {upcomingFixtures.map((fixture, idx) => (
-                        <MiniFixtureBadge
-                          key={idx}
-                          teamCode={player.teamCode}
-                          fixture={fixture}
-                          gwNumber={CURRENT_GW + idx}
-                          ratings={ratings}
-                          homeAdvantage={homeAdvantage}
-                        />
-                      ))}
-                    </div>
+                    {/* marginTop van 8 naar 4: het GW-labelregeltje boven de badges brengt zelf al
+                        ~10px mee, dus zonder die correctie zou de kaart merkbaar hoger worden. */}
+                    <FixtureStrip
+                      teamCode={player.teamCode}
+                      fixtures={upcomingFixtures}
+                      startGw={CURRENT_GW}
+                      ratings={ratings}
+                      homeAdvantage={homeAdvantage}
+                      gwLabel={t('fdr.gwLabel')}
+                      style={{ marginTop: '4px' }}
+                    />
                   </div>
                 );
               })}

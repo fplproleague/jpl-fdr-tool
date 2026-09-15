@@ -19,7 +19,7 @@ import {
 import { buildKaartenEntries } from '../kaarten';
 import { PREDICTED_LINEUPS } from '../predictedLineupsData';
 import { SAFETY_STYLE } from '../predicted-xi/theme';
-import { MiniFixtureBadge } from './MiniFixtureBadge';
+import { FixtureStrip } from './FixtureStrip';
 
 // Zelfde vlag als in BonuspuntenTab: zolang de Bonuspunten-kolom niet gevuld is, toont de tegel een
 // melding i.p.v. een nul. Hier apart gehouden zodat de sheet niets uit een tab-module hoeft te
@@ -190,24 +190,24 @@ export default function PlayerSheet({
 
         <Section title={t('playerSheet.fixturesHeading')}>
           {upcoming.length > 0 ? (
-            <div className="fdr-mini-fixture-row" style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
-              {upcoming.map((fixture, i) => (
-                <MiniFixtureBadge
-                  key={i}
-                  teamCode={teamCode}
-                  fixture={fixture}
-                  gwNumber={CURRENT_GW + i}
-                  ratings={ratings}
-                  homeAdvantage={homeAdvantage}
-                />
-              ))}
-            </div>
+            <FixtureStrip
+              teamCode={teamCode}
+              fixtures={upcoming}
+              startGw={CURRENT_GW}
+              ratings={ratings}
+              homeAdvantage={homeAdvantage}
+              gwLabel={t('fdr.gwLabel')}
+            />
           ) : <p style={emptyTextStyle}>{t('playerSheet.noData')}</p>}
         </Section>
 
-        <Section title={t('playerSheet.lineupHeading')}>
-          {lineupSlot ? (
-            <>
+        {/* Enkel tonen als de opstellingen voor de KOMENDE speeldag online staan. Ze worden pas
+            kort voor de deadline gepubliceerd, dus het grootste deel van de week zou hier de
+            startkans van vórige week staan — en die leest precies hetzelfde als een actuele. Geen
+            sectie is dan eerlijker dan een sectie met een waarschuwing eronder. */}
+        {!isStaleLineup && (
+          <Section title={t('playerSheet.lineupHeading')}>
+            {lineupSlot ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{
                   width: '12px', height: '12px', borderRadius: '3px', flexShrink: 0,
@@ -217,18 +217,9 @@ export default function PlayerSheet({
                   {t(SAFETY_LABEL_KEYS[lineupSlot.safety] ?? 'playerSheet.noData')}
                 </span>
               </div>
-              {/* Zodra de opstellingen achterlopen op de speeldag die nu aan de beurt is, moet erbij
-                  staan van wanneer ze zijn. Zonder dat label leest een startkans van vorige week
-                  precies hetzelfde als een actuele — exact de verwarring die de waarschuwingsbanner
-                  op de Verwachte XI's-tab al voorkomt. */}
-              {isStaleLineup && (
-                <p style={{ ...emptyTextStyle, marginTop: '6px', color: '#E8C547' }}>
-                  {t('playerSheet.lineupFromGw', { gw: PREDICTED_LINEUPS_GW })}
-                </p>
-              )}
-            </>
-          ) : <p style={emptyTextStyle}>{t('playerSheet.notInLineup')}</p>}
-        </Section>
+            ) : <p style={emptyTextStyle}>{t('playerSheet.notInLineup')}</p>}
+          </Section>
+        )}
 
         <Section title={t('playerSheet.setPiecesHeading')}>
           {setPieceRoles.length > 0 ? (
