@@ -13,6 +13,7 @@ import { PlayerSearchInput } from '../components/PlayerSearchInput';
 import {
   buildBonuspuntenEntries, rankByDuels, rankByDefensiveHeaders, rankByRecoveries, rankByBigChances,
   rankByBonusPoints, findPlayerBonusEntry, perGameLabel, meetsThresholdPerGame, BONUS_CRITERIA, BONUS_THRESHOLD,
+  SORT_MODES, minGamesForPerMatch,
 } from '../bonuspunten';
 
 const retryButtonStyle = {
@@ -30,6 +31,48 @@ const BONUS_POINTS_DATA_AVAILABLE = true;
 // hieronder. Geen automatische afleiding mogelijk (in tegenstelling tot bv. PREDICTED_LINEUPS_GW in
 // constants.js), want de gedeelde CSV heeft geen eigen "laatst bijgewerkt"-kolom.
 const BONUSPUNTEN_UPDATED_GW = 6;
+
+// Twee-knops-schakelaar boven de rangschikkingen: sorteren op seizoenstotaal of op per-wedstrijd-
+// gemiddelde. Zie SORT_MODES in ../bonuspunten voor waarom die tweede modus er is.
+function SortModeToggle({ t, value, onChange }) {
+  const options = [
+    { mode: SORT_MODES.total, label: t('bonuspunten.sortTotal') },
+    { mode: SORT_MODES.perMatch, label: t('bonuspunten.sortPerMatch') },
+  ];
+  return (
+    <div
+      role="group"
+      aria-label={t('bonuspunten.sortLabel')}
+      style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}
+    >
+      <span style={{ color: '#8F79AD', fontSize: '12px' }}>{t('bonuspunten.sortLabel')}</span>
+      <div style={{
+        display: 'flex', gap: '2px', background: 'rgba(255,255,255,0.04)',
+        border: '1px solid rgba(255,255,255,0.08)', borderRadius: '999px', padding: '2px',
+      }}>
+        {options.map(o => {
+          const active = value === o.mode;
+          return (
+            <button
+              key={o.mode}
+              type="button"
+              onClick={() => onChange(o.mode)}
+              aria-pressed={active}
+              style={{
+                background: active ? '#4ECDC4' : 'transparent',
+                color: active ? '#0B2E1B' : '#C9B8E0',
+                border: 'none', borderRadius: '999px', padding: '5px 12px',
+                fontWeight: 700, fontSize: '12px', fontFamily: 'inherit', cursor: 'pointer',
+              }}
+            >
+              {o.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 function RankingSection({ icon, title, sectionKey, isOpen, onToggle, children }) {
   return (
@@ -142,6 +185,9 @@ export default function BonuspuntenTab({ t, playerDatabase, playerDatabaseLoadin
   // Transiënte UI-state van de zoekbalk (zelfde precedent als openSections hierboven) — mag gerust
   // resetten bij het weg- en terugnavigeren van deze tab.
   const [selectedPlayer, setSelectedPlayer] = useState(null);
+  // Sorteermodus van alle vijf de rangschikkingen tegelijk — bewust één schakelaar i.p.v. één per
+  // sectie: de gebruiker stelt één vraag ("wie is de beste?" vs "wie is de beste per match?"), niet vijf.
+  const [sortMode, setSortMode] = useState(SORT_MODES.total);
   const playerCardRef = useRef(null);
 
   const toggleSection = useCallback((key) => {
@@ -156,11 +202,23 @@ export default function BonuspuntenTab({ t, playerDatabase, playerDatabaseLoadin
   }, []);
 
   const entries = useMemo(() => buildBonuspuntenEntries(playerDatabase), [playerDatabase]);
-  const duelsRanking = useMemo(() => rankByDuels(entries), [entries]);
-  const headersRanking = useMemo(() => rankByDefensiveHeaders(entries), [entries]);
-  const recoveriesRanking = useMemo(() => rankByRecoveries(entries), [entries]);
-  const bigChancesRanking = useMemo(() => rankByBigChances(entries), [entries]);
-  const bonusRanking = useMemo(() => rankByBonusPoints(entries), [entries]);
+  const minGames = useMemo(() => minGamesForPerMatch(entries), [entries]);
+  const isPerMatch = sortMode === SORT_MODES.perMatch;
+  const duelsRanking = useMemo(() => rankByDuels(entries, sortMode, minGames), [entries, sortMode, minGames]);
+  const headersRanking = useMemo(() => rankByDefensiveHeaders(entries, sortMode, minGames), [entries, sortMode, minGames]);
+  const recoveriesRanking = useMemo(() => rankByRecoveries(entries, sortMode, minGames), [entries, sortMode, minGames]);
+  const bigChancesRanking = useMemo(() => rankByBigChances(entries, sortMode, minGames), [entries, sortMode, minGames]);
+  const bonusRanking = useMemo(() => rankByBonusPoints(entries, sortMode, minGames), [entries, sortMode, minGames]);
+
+  // In per-wedstrijd-modus wisselen hoofdwaarde en subregel van plaats: de waarde waarop gesorteerd
+  // wordt hoort het grootst te staan, anders lijkt de volgorde willekeurig ("waarom staat 16 boven 17?").
+  const rankingValues = useCallback((value, games, { showSign = false } = {}) => {
+    const perMatch = perGameLabel(value, games, { showSign, unit: perMatchUnit });
+    const total = `${showSign && value > 0 ? '+' : ''}${value}`;
+    return isPerMatch && perMatch
+      ? { value: perMatch, valueSub: total }
+      : { value: total, valueSub: perMatch };
+  }, [isPerMatch, perMatchUnit]);
   const selectedEntry = useMemo(
     () => findPlayerBonusEntry(entries, selectedPlayer),
     [entries, selectedPlayer]
@@ -243,16 +301,27 @@ export default function BonuspuntenTab({ t, playerDatabase, playerDatabaseLoadin
             </div>
           )}
 
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', margin: '4px 0 18px' }}>
+            <SortModeToggle t={t} value={sortMode} onChange={setSortMode} />
+            {isPerMatch && (
+              <p style={{ color: '#8F79AD', fontSize: '11px', margin: 0, lineHeight: 1.5 }}>
+                {t('bonuspunten.sortPerMatchNote', { minGames })}
+              </p>
+            )}
+          </div>
+
           <RankingSection
             icon={Swords} title={t('bonuspunten.section.duels')} sectionKey="duels"
             isOpen={openSections.duels} onToggle={toggleSection}
           >
+            {/* De clubnaam stond hier als enige van de vijf lijsten niet bij: de subregel was volledig
+                opgegaan aan het duelsaldo, waardoor je van de nummer 1 niet kon zien voor wie hij speelt
+                — net wat je nodig hebt om te beoordelen of hij in je ploeg past. */}
             {duelsRanking.map((entry, idx) => (
               <RankingRow
                 key={entry.player} rank={idx + 1} clubCode={entry.clubCode} player={entry.player}
-                subtitle={t('bonuspunten.duelsSubtitle', { won: entry.duelsWon, lost: entry.duelsLost })}
-                value={`${entry.duelDiff > 0 ? '+' : ''}${entry.duelDiff}`}
-                valueSub={perGameLabel(entry.duelDiff, entry.games, { showSign: true, unit: perMatchUnit })}
+                subtitle={[entry.clubName, t('bonuspunten.duelsSubtitle', { won: entry.duelsWon, lost: entry.duelsLost })].filter(Boolean).join(' · ')}
+                {...rankingValues(entry.duelDiff, entry.games, { showSign: true })}
                 qualifies={BONUS_CRITERIA.duels(entry)}
                 onClick={() => handleSelectFromRanking(entry)}
               />
@@ -266,8 +335,8 @@ export default function BonuspuntenTab({ t, playerDatabase, playerDatabaseLoadin
             {headersRanking.map((entry, idx) => (
               <RankingRow
                 key={entry.player} rank={idx + 1} clubCode={entry.clubCode} player={entry.player}
-                subtitle={entry.clubName} value={entry.defensiveHeaders}
-                valueSub={perGameLabel(entry.defensiveHeaders, entry.games, { unit: perMatchUnit })}
+                subtitle={entry.clubName}
+                {...rankingValues(entry.defensiveHeaders, entry.games)}
                 qualifies={BONUS_CRITERIA.defensiveHeaders(entry)}
                 onClick={() => handleSelectFromRanking(entry)}
               />
@@ -281,8 +350,8 @@ export default function BonuspuntenTab({ t, playerDatabase, playerDatabaseLoadin
             {recoveriesRanking.map((entry, idx) => (
               <RankingRow
                 key={entry.player} rank={idx + 1} clubCode={entry.clubCode} player={entry.player}
-                subtitle={entry.clubName} value={entry.recoveries}
-                valueSub={perGameLabel(entry.recoveries, entry.games, { unit: perMatchUnit })}
+                subtitle={entry.clubName}
+                {...rankingValues(entry.recoveries, entry.games)}
                 qualifies={BONUS_CRITERIA.recoveries(entry)}
                 onClick={() => handleSelectFromRanking(entry)}
               />
@@ -296,8 +365,8 @@ export default function BonuspuntenTab({ t, playerDatabase, playerDatabaseLoadin
             {bigChancesRanking.map((entry, idx) => (
               <RankingRow
                 key={entry.player} rank={idx + 1} clubCode={entry.clubCode} player={entry.player}
-                subtitle={entry.clubName} value={entry.bigChances}
-                valueSub={perGameLabel(entry.bigChances, entry.games, { unit: perMatchUnit })}
+                subtitle={entry.clubName}
+                {...rankingValues(entry.bigChances, entry.games)}
                 qualifies={BONUS_CRITERIA.bigChances(entry)}
                 onClick={() => handleSelectFromRanking(entry)}
               />
@@ -312,8 +381,8 @@ export default function BonuspuntenTab({ t, playerDatabase, playerDatabaseLoadin
               bonusRanking.map((entry, idx) => (
                 <RankingRow
                   key={entry.player} rank={idx + 1} clubCode={entry.clubCode} player={entry.player}
-                  subtitle={entry.clubName} value={entry.bonusPoints}
-                  valueSub={perGameLabel(entry.bonusPoints, entry.games, { unit: perMatchUnit })}
+                  subtitle={entry.clubName}
+                  {...rankingValues(entry.bonusPoints, entry.games)}
                   qualifies
                   onClick={() => handleSelectFromRanking(entry)}
                 />

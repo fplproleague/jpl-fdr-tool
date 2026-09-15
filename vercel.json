@@ -8,6 +8,9 @@
     { "source": "/set-pieces", "destination": "/set-pieces.html" },
     { "source": "/watchlist", "destination": "/watchlist.html" },
     { "source": "/kaarten", "destination": "/kaarten.html" },
-    { "source": "/price-changes", "destination": "/price-changes.html" }
+    { "source": "/price-changes", "destination": "/price-changes.html" },
+
+    { "source": "/fr", "destination": "/fr/fdr.html" },
+    { "source": "/fr/:tool", "destination": "/fr/:tool.html" }
   ]
 }

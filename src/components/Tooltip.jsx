@@ -84,11 +84,16 @@ function TooltipBubble({ id, bubbleRef, coords, text }) {
 // Maakt van "as" (td/span) een klikbare/hoverbare tooltip-trigger over zijn volledige oppervlak,
 // zowel voor het grijze "/"-vakje (POSTPONED) als voor mogelijk uitgestelde cellen die hun eigen
 // FDR-kleur behouden (POSSIBLY_POSTPONED) — de popup verschijnt bij een klik/tap/hover eender waar op de cel.
-export const TooltipTrigger = memo(function TooltipTrigger({ as: Tag, text, style, className, children }) {
+// `ariaLabel`, indien meegegeven, vervangt de tooltiptekst als toegankelijke naam. Nodig voor de
+// fixture-cellen in de hoofdtabel: daar zegt de tooltiptekst alleen iets over het uitstel, terwijl een
+// screenreader-gebruiker ook de tegenstander en de moeilijkheidsgraad moet horen (die zitten voor een
+// ziende gebruiker in de celtekst en de achtergrondkleur). Zonder deze prop blijft het gedrag exact
+// zoals het was: de tooltiptekst is dan nog altijd de naam.
+export const TooltipTrigger = memo(function TooltipTrigger({ as: Tag, text, ariaLabel, style, className, children }) {
   const { triggerProps, bubbleRef, tooltipId, visible, coords } = useTooltipTrigger();
   return (
     <>
-      <Tag {...triggerProps} className={className} style={style} aria-label={text}>
+      <Tag {...triggerProps} className={className} style={style} aria-label={ariaLabel ?? text}>
         {children}
       </Tag>
       {visible && coords && <TooltipBubble id={tooltipId} bubbleRef={bubbleRef} coords={coords} text={text} />}
@@ -97,9 +102,9 @@ export const TooltipTrigger = memo(function TooltipTrigger({ as: Tag, text, styl
 });
 
 // Grijs "/"-vakje voor zeker uitgestelde wedstrijden (POSTPONED).
-export const PostponedIndicator = memo(function PostponedIndicator({ as: Tag, text, style, className }) {
+export const PostponedIndicator = memo(function PostponedIndicator({ as: Tag, text, ariaLabel, style, className }) {
   return (
-    <TooltipTrigger as={Tag} text={text} style={style} className={className}>
+    <TooltipTrigger as={Tag} text={text} ariaLabel={ariaLabel} style={style} className={className}>
       /
     </TooltipTrigger>
   );

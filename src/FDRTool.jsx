@@ -8,13 +8,13 @@ import { useState, useMemo, useRef, useCallback, useEffect, lazy, Suspense } fro
 import { Info, X, Check, Copy, Undo2, Loader2, ChevronDown, Grid2x2, Users, Shirt } from 'lucide-react';
 import {
   TEAMS, FIXTURES, GW_COUNT, CURRENT_GW, DEFAULT_GW_HORIZON_END, MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS,
-  MINILEAGUE_CODE, formatTodayLong, GW_INDEXES, DEFAULT_RATINGS, DEFAULT_HOME_ADVANTAGE,
+  MINILEAGUE_CODE, formatLastUpdatedLong, GW_INDEXES, DEFAULT_RATINGS, DEFAULT_HOME_ADVANTAGE,
   TEAM_PLANNER_SQUAD_SIZE, TEAM_PLANNER_BENCH_SIZE, TEAM_PLANNER_SLOT_POSITIONS, VALID_FORMATIONS,
   resolveSlotPlayerAtGw, PLAYER_DATABASE_CSV_URL, parsePlayerDatabaseCsv, getFixtureScores, average,
   POSTPONED, computeTeamPlannerTransferBudget, getGwDeadlineDate,
 } from './constants';
 import { COLORS } from './theme';
-import { ROUTES, routeKeyFromPath, routeByKey, urlForRoute } from './routes';
+import { ROUTES, routeKeyFromPath, urlForRoute, pathForRoute, languageFromPath, SUPPORTED_LANGUAGES } from './routes';
 import { t as translate, LANGUAGES, DEFAULT_LANGUAGE } from './i18n';
 import FDRTab from './tabs/FDRTab';
 
@@ -36,6 +36,14 @@ const SetPiecesTab = lazy(() => import('./tabs/SetPiecesTab'));
 // Tab-navigatie bovenaan de pagina. De lijst zelf (labels, paden, per-tab titel/omschrijving) staat
 // in src/routes.js, zodat de URL-afhandeling en de zichtbare tabs nooit uit elkaar kunnen lopen.
 const TABS = ROUTES;
+
+// De tabs die de spelersdatabank-CSV effectief nodig hebben (zie de fetch-useEffect verderop). De
+// FDR-tab staat er bewust niet bij: die rendert volledig uit constants.js.
+const PLAYER_DATABASE_TABS = new Set(['watchlist', 'teamplanner', 'bonuspunten', 'kaarten']);
+
+// Eén plek voor de canonieke oorsprong van de site; stond eerder als letterlijke string in de
+// title/canonical-useEffect en moet nu ook door de hreflang-alternates gebruikt worden.
+const SITE_ORIGIN = 'https://fplproleague.vercel.app';
 
 // Op mobiel (zie .fdr-tabs-mobile) blijven enkel de eerste MOBILE_PRIMARY_TAB_COUNT tabs los
 // zichtbaar (elk zijn eigen kolom in een grid, zie .fdr-tab-btn-mobile-primary); de rest komt in het
@@ -125,15 +133,27 @@ function markNewTabSeen(key, alreadySeen) {
 // ongeacht dat de ene chip enkel tekst bevat en de andere een geneste knop met eigen randen/padding.
 const HEADER_CHIP_HEIGHT = '28px';
 
-// Statische GW-headers, eenmalig opgebouwd — nodig voor visibleGwHeaderCells (hoofdtabel-horizon,
-// zie hieronder) en, geslicet vanaf CURRENT_GW, voor de vergelijk-tabel in FDRTab (compareGwHeaderCells
-// hieronder). Blijft hier i.p.v. in constants.js: dat is een .js-bestand en Vite/esbuild parsen
-// JSX-syntax enkel in .jsx-bestanden.
-const gwHeaderCells = GW_INDEXES.map(i => (
-  <th key={i} style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', padding: '6px 4px', minWidth: '58px' }}>
-    GW{i + 1}
-  </th>
-));
+// GW-headers voor de hoofdtabel en de vergelijk-tabel. Blijft hier i.p.v. in constants.js: dat is een
+// .js-bestand en Vite/esbuild parsen JSX-syntax enkel in .jsx-bestanden.
+//
+// Niet langer één statische module-constante maar een functie van de taal: het voorvoegsel stond hard
+// als "GW" in de JSX, terwijl de Franse versie overal elders "J" (journée) gebruikt — de kolomkoppen
+// waren daardoor het enige stuk van de Franse tabel dat Nederlands bleef. t('fdr.gwLabel') levert al
+// "GW"/"J", dus dezelfde bron als de selector eronder. scope="col" + aria-label maken van elke kop
+// bovendien een echte, uitgeschreven kolomkop ("Gameweek 7" i.p.v. "GW7") voor screenreaders.
+function buildGwHeaderCells(t) {
+  const prefix = t('fdr.gwLabel');
+  return GW_INDEXES.map(i => (
+    <th
+      key={i}
+      scope="col"
+      aria-label={t('fdr.gwColumnAria', { gw: i + 1 })}
+      style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', padding: '6px 4px', minWidth: '58px' }}
+    >
+      {prefix}{i + 1}
+    </th>
+  ));
+}
 
 function loadStoredRatings() {
   try {
@@ -362,15 +382,46 @@ export default function FDRTool() {
   // is; default Nederlands, de oorspronkelijke (en enige) taal vóór deze toggle. `t` is een simpele
   // curried helper zodat de rest van deze component en alle tabs gewoon t('key') kunnen aanroepen i.p.v.
   // overal translate(language, 'key') te herhalen.
-  const [language, setLanguage] = useState(() => loadStoredLanguage() ?? DEFAULT_LANGUAGE);
+  //
+  // De URL gaat vóór op de opgeslagen voorkeur: wie een /fr/...-link krijgt doorgestuurd hoort die in
+  // het Frans te zien, ook als hij hier ooit zelf op NL stond. Enkel wanneer de URL niets over de taal
+  // zegt (alle Nederlandse paden) telt localStorage.
+  const [language, setLanguage] = useState(() => {
+    if (typeof window === 'undefined') return DEFAULT_LANGUAGE;
+    return languageFromPath(window.location.pathname) ?? loadStoredLanguage() ?? DEFAULT_LANGUAGE;
+  });
   const t = useCallback((key, vars) => translate(language, key, vars), [language]);
+
+  // Van taal wisselen is nu een echte navigatie: /fdr <-> /fr/fdr. Dat is het hele punt van de
+  // taal-URL's — zonder pushState blijft de adresbalk hetzelfde en valt er nog altijd geen Franse
+  // pagina te delen of te bookmarken. De query-string blijft behouden, net als bij het wisselen van tab
+  // (?r= en ?ha= dragen de aangepaste FDR-ratings).
   const changeLanguage = useCallback((next) => {
+    if (!SUPPORTED_LANGUAGES.includes(next)) return;
     setLanguage(next);
     try {
       window.localStorage?.setItem(LANGUAGE_STORAGE_KEY, next);
     } catch {
       // storage unavailable — taalkeuze werkt nog wel deze sessie, onthoudt 'm enkel niet
     }
+    if (typeof window === 'undefined') return;
+    const url = urlForRoute(routeKeyFromPath(window.location.pathname), window.location.search, next);
+    if (url !== window.location.pathname + window.location.search) {
+      window.history.pushState({ lang: next }, '', url);
+    }
+  }, []);
+
+  // Iemand met FR als opgeslagen voorkeur die op een Nederlands pad binnenkomt, krijgt de Franse
+  // interface op een Nederlandse URL — inhoud en adres lopen dan uiteen. replaceState (geen pushState)
+  // zet het adres recht zonder een extra stap in de terug-knop-geschiedenis en zonder netwerkverkeer.
+  // Crawlers hebben geen localStorage en komen hier dus nooit terecht: de canonicals blijven onaangeroerd.
+  useEffect(() => {
+    if (language === DEFAULT_LANGUAGE) return;
+    if (languageFromPath(window.location.pathname)) return;
+    const url = urlForRoute(routeKeyFromPath(window.location.pathname), window.location.search, language);
+    window.history.replaceState({ lang: language }, '', url);
+    // Alleen bij het laden relevant; daarna houdt changeLanguage de URL zelf bij.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Tab wisselen = een echte navigatie. De query-string blijft bewust behouden: de FDR-tab codeert
@@ -378,29 +429,53 @@ export default function FDRTool() {
   const navigateToTab = useCallback((key) => {
     setActiveTab(key);
     if (typeof window === 'undefined') return;
-    const url = urlForRoute(key, window.location.search);
+    const url = urlForRoute(key, window.location.search, language);
     if (url !== window.location.pathname + window.location.search) {
       window.history.pushState({ tab: key }, '', url);
     }
-  }, []);
+  }, [language]);
 
-  // Terug-/vooruitknop van de browser.
+  // Terug-/vooruitknop van de browser. Leest ook de taal terug uit het pad, zodat terugkeren naar een
+  // /fr-URL de interface weer in het Frans zet i.p.v. een Franse URL met Nederlandse inhoud.
+  //
+  // Hier bewust GEEN terugval op de opgeslagen voorkeur (anders dan bij het eerste laden): tijdens
+  // terug-/vooruitnavigatie is de URL de enige waarheid. Met een terugval bleef de site Frans na een
+  // terugknop-stap naar een Nederlandse URL — Frans scherm, Nederlands adres, Franse canonical.
+  // De opgeslagen voorkeur wordt hier ook niet overschreven: die hoort bij wat de gebruiker expliciet
+  // koos met de toggle, niet bij waar de terugknop toevallig uitkomt.
   useEffect(() => {
-    const handlePopState = () => setActiveTab(routeKeyFromPath(window.location.pathname));
+    const handlePopState = () => {
+      setActiveTab(routeKeyFromPath(window.location.pathname));
+      setLanguage(languageFromPath(window.location.pathname) ?? DEFAULT_LANGUAGE);
+    };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
+  // <html lang> volgt de taalkeuze. Stond hard op "nl" in index.html, ook nadat iemand op FR was
+  // overgeschakeld: een screenreader las de volledige Franse interface dan met Nederlandse uitspraak
+  // voor, en zoekmachines/vertaalhulpmiddelen kregen hetzelfde verkeerde signaal.
+  useEffect(() => {
+    document.documentElement.lang = language;
+  }, [language]);
+
   // Documenttitel en meta-description volgen de actieve tab, zodat een gedeelde link niet langer
   // altijd "FDR Tool" als preview toont en elke tool apart indexeerbaar is.
   useEffect(() => {
-    const route = routeByKey(activeTab);
     document.title = t(`route.${activeTab}.title`);
     const meta = document.querySelector('meta[name="description"]');
     if (meta) meta.setAttribute('content', t(`route.${activeTab}.description`));
     const canonical = document.querySelector('link[rel="canonical"]');
-    if (canonical) canonical.setAttribute('href', `https://fplproleague.vercel.app${route.path}`);
-  }, [activeTab, t]);
+    if (canonical) canonical.setAttribute('href', `${SITE_ORIGIN}${pathForRoute(activeTab, language)}`);
+    // De hreflang-alternates staan statisch in de gegenereerde HTML (zie scripts/build-routes.mjs),
+    // maar wijzen dan nog naar de route waarop de bezoeker binnenkwam. Bij client-side navigatie
+    // schuiven ze mee, zodat ze ook na een paar tabwissels nog kloppen.
+    document.querySelectorAll('link[rel="alternate"][hreflang]').forEach(link => {
+      const hreflang = link.getAttribute('hreflang');
+      const targetLanguage = hreflang === 'fr-BE' ? 'fr' : 'nl';
+      link.setAttribute('href', `${SITE_ORIGIN}${pathForRoute(activeTab, targetLanguage)}`);
+    });
+  }, [activeTab, language, t]);
 
   // --- Deadline-aftelklok in de header ---
   // Tikt elke 30 seconden. De minuutweergave is daarmee hooguit een halve minuut oud, en we vermijden
@@ -701,11 +776,15 @@ export default function FDRTool() {
     end: Math.max(gwHorizonStart, gwHorizonEnd),
   }), [gwHorizonStart, gwHorizonEnd]);
 
+  // Alle GW-headers voor de huidige taal, één keer per taalwissel opgebouwd; de twee tabellen slicen
+  // hier elk hun eigen bereik uit.
+  const gwHeaderCells = useMemo(() => buildGwHeaderCells(t), [t]);
+
   // Enkel de GW-headers binnen de gekozen horizon — gwHeaderCells zelf blijft ongewijzigd (ook
   // gebruikt door compareGwHeaderCells hieronder, met een eigen, vaste startpunt).
   const visibleGwHeaderCells = useMemo(
     () => gwHeaderCells.slice(gwHorizonRange.start - 1, gwHorizonRange.end),
-    [gwHorizonRange]
+    [gwHeaderCells, gwHorizonRange]
   );
 
   // "Vergelijk teams" heeft geen eigen horizon-selector: die begint gewoon altijd bij CURRENT_GW en
@@ -715,7 +794,7 @@ export default function FDRTool() {
   const compareGwStart = Math.min(CURRENT_GW, GW_COUNT);
   const compareGwHeaderCells = useMemo(
     () => gwHeaderCells.slice(compareGwStart - 1),
-    [compareGwStart]
+    [gwHeaderCells, compareGwStart]
   );
 
   // MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS (760px) is gekalibreerd voor de Team-kolom + alle GW_COUNT
@@ -778,11 +857,17 @@ export default function FDRTool() {
   // zowel de bank-teller ("Bank: x/4") als de formatie-validatie (3-4-3, 4-4-2, ...) in de tab. Een
   // reduce over het volledige spelers-array, dus hier i.p.v. lokaal in TeamPlannerTab.jsx, net als
   // teamPlannerClubCounts hierboven.
+  //
+  // Telt enkel slots waar effectief iemand in staat. Vroeger telde dit élk niet-gebankt slot, en omdat
+  // de 15 slots een vaste positie hebben (2 GK, 5 DEF, 5 MID, 3 FWD) toonde een gloednieuwe, volledig
+  // lege planner meteen "Formatie: 5-5-3" — een formatie die de gebruiker nooit gekozen heeft, bij een
+  // ploeg die nog geen enkele speler bevat. Nu groeit de telling mee met wat er ingevuld is.
   const teamPlannerFormationCounts = useMemo(() => {
     const bench = teamPlannerBenchByGw[teamPlannerGw] ?? [];
     const counts = { GK: 0, DEF: 0, MID: 0, FWD: 0 };
     teamPlannerPlayers.forEach((p, index) => {
       if (!p.position || bench.includes(index)) return;
+      if (!p.name && !p.teamCode) return;
       counts[p.position] += 1;
     });
     return counts;
@@ -889,10 +974,32 @@ export default function FDRTool() {
     }
   }, []);
 
-  // Haalt de spelersdatabank eenmalig op bij het laden van de app, los van de actieve tab — zodat ze
-  // al klaarstaat zodra de gebruiker naar Team Planner navigeert.
+  // Haalt de spelersdatabank eenmalig op bij het laden van de app. Nog steeds vooraf (los van de
+  // actieve tab), zodat ze klaarstaat zodra iemand naar Team Planner of Bonuspunten navigeert — maar
+  // niet langer midden in het eerste scherm.
+  //
+  // Waarom: de FDR-tab (de standaardweergave, en veruit het meest bezochte scherm) gebruikt deze data
+  // helemaal niet, en toch vertrok de fetch naar Google Sheets meteen bij het laden. Die kostte ~570 ms
+  // en concurreert precies op het moment dat de tabel zelf moet renderen — op mobiele data vlak vóór een
+  // deadline is dat de duurste seconde van het bezoek. requestIdleCallback wacht tot de browser klaar is
+  // met het eerste scherm; is de gebruiker al op een tab die de data wél nodig heeft, dan halen we ze
+  // zoals voorheen onmiddellijk op. De setTimeout-fallback is voor Safari-versies zonder
+  // requestIdleCallback.
   useEffect(() => {
-    fetchPlayerDatabase();
+    if (PLAYER_DATABASE_TABS.has(activeTab)) {
+      fetchPlayerDatabase();
+      return undefined;
+    }
+    if (typeof window.requestIdleCallback === 'function') {
+      const handle = window.requestIdleCallback(() => fetchPlayerDatabase(), { timeout: 3000 });
+      return () => window.cancelIdleCallback?.(handle);
+    }
+    const timer = setTimeout(fetchPlayerDatabase, 1200);
+    return () => clearTimeout(timer);
+    // activeTab bewust NIET in de dependency-lijst: fetchPlayerDatabase is idempotent qua resultaat,
+    // maar bij elke tabwissel opnieuw afvuren zou een extra netwerkrondje per klik betekenen. Deze
+    // effect draait één keer, met de tab waarop de bezoeker binnenkwam.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchPlayerDatabase]);
 
   const handleAddWatchlistPlayer = (e) => {
@@ -1187,6 +1294,38 @@ export default function FDRTool() {
         }
         .fdr-postponed-tooltip--top::after { top: 100%; border-top-color: #3D1E5C; }
         .fdr-postponed-tooltip--bottom::after { bottom: 100%; border-bottom-color: #3D1E5C; }
+        /* Zie de skip-link bovenaan .fdr-content. Buiten beeld geparkeerd i.p.v. display:none, want
+           een element met display:none kan geen focus krijgen en zou dus nooit verschijnen. */
+        .fdr-skip-link {
+          position: absolute;
+          left: -9999px;
+          top: 0;
+          z-index: 100;
+          background: #4ECDC4;
+          color: #0B2E1B;
+          font-weight: 700;
+          font-size: 13px;
+          padding: 10px 16px;
+          border-radius: 0 0 8px 0;
+          text-decoration: none;
+        }
+        .fdr-skip-link:focus {
+          left: 0;
+        }
+        /* Moeilijkheidscijfer in de hoek van een fixture-cel — zie CellRating in tabs/FDRTab.jsx voor
+           waarom dit er staat. De cel is al position: relative (stacked), en de 0.62em/absolute
+           plaatsing houdt 'm buiten de tekstflow zodat de bestaande celbreedtes niet veranderen. */
+        .fdr-cell-rating {
+          position: absolute;
+          top: 1px;
+          right: 3px;
+          font-size: 0.62em;
+          font-weight: 900;
+          line-height: 1;
+          color: currentColor;
+          opacity: 0.65;
+          pointer-events: none;
+        }
         .fdr-maybe-postponed-marker {
           position: absolute;
           /* em-relatief i.p.v. vaste px: schaalt automatisch mee met de font-size van de omliggende
@@ -1539,6 +1678,11 @@ export default function FDRTool() {
 
       <div className="fdr-content" style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 20px 32px', position: 'relative' }}>
 
+        {/* Skip-link: onzichtbaar tot hij focus krijgt (zie .fdr-skip-link in de <style> hierboven),
+            dan het eerste wat een toetsenbordgebruiker tegenkomt. Slaat kop + taalkeuze + acht tabs
+            over. */}
+        <a href="#fdr-main" className="fdr-skip-link">{t('a11y.skipToContent')}</a>
+
         {/* De koptekst gebruikt gewone flex-uitlijning i.p.v. de vroegere negatieve marges
             (marginTop: -36px op het logo, -18px op het minileague-blok). Die trokken elementen
             handmatig omhoog en werden maar deels teruggezet in de mobiele media query, wat de
@@ -1698,7 +1842,7 @@ export default function FDRTool() {
             return (
               <a
                 key={tab.key}
-                href={tab.path}
+                href={pathForRoute(tab.key, language)}
                 // Echte href zodat midden-klik / "open in nieuw tabblad" / delen gewoon werken, maar
                 // een gewone klik wordt onderschept zodat de app niet volledig herlaadt.
                 onClick={(e) => {
@@ -1742,7 +1886,7 @@ export default function FDRTool() {
             return (
               <a
                 key={tab.key}
-                href={tab.path}
+                href={pathForRoute(tab.key, language)}
                 onClick={(e) => {
                   if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
                   e.preventDefault();
@@ -1808,7 +1952,7 @@ export default function FDRTool() {
                   return (
                     <a
                       key={tab.key}
-                      href={tab.path}
+                      href={pathForRoute(tab.key, language)}
                       onClick={(e) => {
                         setMoreMenuOpen(false);
                         if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
@@ -1830,6 +1974,14 @@ export default function FDRTool() {
             )}
           </div>
         </nav>
+
+        {/* Eén <main>-landmark rond alle tab-inhoud. De pagina had tot nu toe <header>, <nav> en
+            <footer> maar geen main: screenreaders en de "ga naar de inhoud"-snelkoppelingen van de
+            browser hadden daardoor geen doel om naar toe te springen, en op mobiel betekende dat elke
+            keer opnieuw door de volledige kop en de acht tabs navigeren vóór je bij de tabel was.
+            tabIndex={-1} maakt het element focusbaar voor de skip-link bovenaan zonder het in de
+            gewone tab-volgorde op te nemen. */}
+        <main id="fdr-main" tabIndex={-1} style={{ outline: 'none' }}>
 
         {activeTab === 'fdr' && (
           <FDRTab
@@ -1990,6 +2142,8 @@ export default function FDRTool() {
           </div>
         )}
 
+        </main>
+
         <footer style={{ marginTop: '28px', textAlign: 'center', color: COLORS.textSubtle, fontSize: '12px', lineHeight: 1.5 }}>
           {t('footer.madeBy')}{' '}
           <a href="https://x.com/fpl_proleague" target="_blank" rel="noopener noreferrer" className="fdr-footer-link">
@@ -1997,7 +2151,7 @@ export default function FDRTool() {
             @fpl_proleague
           </a>
           {' '}· {t('footer.season')}<br />
-          {t('footer.lastUpdated', { date: formatTodayLong(language) })}
+          {t('footer.lastUpdated', { date: formatLastUpdatedLong(language) })}
         </footer>
       </div>
 
