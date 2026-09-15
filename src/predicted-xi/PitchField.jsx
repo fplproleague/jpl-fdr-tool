@@ -90,6 +90,9 @@ const PitchField = forwardRef(function PitchField({
   // Doorgegeven aan elke PitchSlot; enkel de publieke tab geeft deze mee. Zie PitchSlot.jsx.
   onViewPlayer,
   viewPlayerLabel,
+  // Idem voor de clubnaam in de veldkop; enkel de publieke tab geeft deze mee.
+  onViewClub,
+  viewClubLabel,
   // Optioneel badge-label (bv. "GW4") naast de formatie-pil — enkel voor de publieke Predicted
   // Lineups-tab, die dit meegeeft zodat een screenshot van het veld (die buiten de site rondgaat op
   // X, los van elke pagina-context) zijn eigen speeldag meedraagt. null = niets extra tonen; de privé
@@ -214,11 +217,28 @@ const PitchField = forwardRef(function PitchField({
               onError={(e) => { e.target.style.display = 'none'; }}
             />
           )}
-          <div className="pxi-field-clubname" style={{
-            color: '#FFF', fontWeight: 900, fontSize: '20px', lineHeight: 1.1, textAlign: 'center',
-          }}>
-            {club?.name ?? 'Kies een club'}
-          </div>
+          {/* De clubnaam opent de clubkaart op de publieke tab. Als knop zonder eigen achtergrond of
+              rand, zodat het veld er identiek uitziet — ook op de screenshot die hiervan rondgaat. */}
+          {onViewClub && club ? (
+            <button
+              type="button"
+              onClick={() => onViewClub(club.code)}
+              aria-label={viewClubLabel?.(club.name)}
+              className="pxi-field-clubname"
+              style={{
+                color: '#FFF', fontWeight: 900, fontSize: '20px', lineHeight: 1.1, textAlign: 'center',
+                background: 'none', border: 'none', padding: 0, fontFamily: 'inherit', cursor: 'pointer',
+              }}
+            >
+              {club.name}
+            </button>
+          ) : (
+            <div className="pxi-field-clubname" style={{
+              color: '#FFF', fontWeight: 900, fontSize: '20px', lineHeight: 1.1, textAlign: 'center',
+            }}>
+              {club?.name ?? 'Kies een club'}
+            </div>
+          )}
           <div className="pxi-field-formation" style={{
             color: '#4ECDC4', fontWeight: 800, fontSize: '11px', letterSpacing: '0.14em', textTransform: 'uppercase',
             background: 'rgba(78,205,196,0.12)', border: '1px solid rgba(78,205,196,0.3)',

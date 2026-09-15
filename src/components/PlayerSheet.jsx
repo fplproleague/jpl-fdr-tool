@@ -8,11 +8,10 @@
 // sheet allemaal toont. Geen enkele lookup hieronder doet een netwerkverzoek: een klik vlak voor een
 // deadline mag nooit een fetch kosten (zie de fetch-afhandeling in FDRTool.jsx).
 //
-// Op desktop een gecentreerde modal (zelfde patroon als de info-modal in FDRTool.jsx), op mobiel een
-// bottom sheet — zie .fdr-sheet in het <style>-blok van FDRTool.jsx. Stapelen kan niet: FDRTool houdt
-// één sheet-state bij, dus een sheet die vanuit een sheet opent, vervangt de vorige.
-import { useEffect, useRef } from 'react';
-import { X, Star, Users } from 'lucide-react';
+// Het paneel zelf (dialoog-semantiek, focus, Escape, desktop-modal vs. bottom sheet) komt uit Sheet.jsx,
+// gedeeld met de club-sheet.
+import { Star, Users } from 'lucide-react';
+import Sheet, { SheetSection as Section, sheetEmptyTextStyle as emptyTextStyle } from './Sheet';
 import { CURRENT_GW, FIXTURES, PREDICTED_LINEUPS_GW, TEAMS } from '../constants';
 import {
   buildBonuspuntenEntries, findPlayerBonusEntry, perGameLabel, meetsThresholdPerGame, BONUS_THRESHOLD,
@@ -38,20 +37,6 @@ const SAFETY_LABEL_KEYS = {
   orange: 'predictedLineups.legend.doubtful',
   red: 'predictedLineups.legend.risk',
 };
-
-function Section({ title, children }) {
-  return (
-    <section style={{ marginTop: '16px' }}>
-      <h4 className="fdr-title" style={{
-        color: '#8F79AD', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.06em',
-        margin: '0 0 8px', fontWeight: 800,
-      }}>
-        {title}
-      </h4>
-      {children}
-    </section>
-  );
-}
 
 // Eén statistiek in de sheet: de hoofdwaarde (seizoenstotaal) staat altijd gewoon wit — enkel de "per
 // wedstrijd"-waarde op de tweede regel kleurt cyaan, en dan enkel zodra die PER WEDSTRIJD al minstens
@@ -100,28 +85,9 @@ function setPieceRolesFor(entry, playerName, t) {
 export default function PlayerSheet({
   t, player, onClose,
   playerDatabase = [], setPiecesEntries = [], ratings, homeAdvantage,
-  isWatched, onToggleWatch, onGoToTeamPlanner,
+  isWatched, onToggleWatch, onGoToTeamPlanner, onOpenClub,
 }) {
-  const dialogRef = useRef(null);
   const headingId = 'fdr-player-sheet-title';
-
-  // Focus naar de sheet bij openen en terug naar het element dat 'm opende bij sluiten. Zonder dit
-  // staat de toetsenbordfocus na het openen nog achter de sheet, en na het sluiten bovenaan de pagina
-  // i.p.v. bij de rij waar de gebruiker gebleven was.
-  useEffect(() => {
-    const opener = document.activeElement;
-    dialogRef.current?.focus();
-    return () => {
-      if (opener instanceof HTMLElement && document.contains(opener)) opener.focus();
-    };
-  }, []);
-
-  useEffect(() => {
-    const onKeyDown = (e) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
-  }, [onClose]);
-
   const { name, teamCode } = player;
   const team = TEAMS.find(x => x.code === teamCode);
   const dbEntry = playerDatabase.find(p => p.name === name && p.teamCode === teamCode) ?? null;
@@ -139,58 +105,47 @@ export default function PlayerSheet({
   const isStaleLineup = PREDICTED_LINEUPS_GW < CURRENT_GW;
   const unit = t('bonuspunten.perMatchUnit');
 
-  return (
-    <div
-      className="fdr-sheet-overlay"
-      onClick={onClose}
-      style={{
-        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 70,
-        display: 'flex', justifyContent: 'center',
-      }}
-    >
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={headingId}
-        tabIndex={-1}
-        className="fdr-sheet"
-        onClick={e => e.stopPropagation()}
-        style={{
-          background: '#3D1E5C', border: '1px solid rgba(255,255,255,0.1)',
-          width: '100%', maxWidth: '460px', maxHeight: '86vh', overflowY: 'auto',
-          padding: '20px', outline: 'none',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-          <img
-            src={`/club-logos/${teamCode}.webp`}
-            alt=""
-            style={{ width: '34px', height: '34px', objectFit: 'contain', flexShrink: 0 }}
-            onError={(e) => { e.target.style.display = 'none'; }}
-          />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <h3 id={headingId} className="fdr-title" style={{ color: '#FFF', fontSize: '17px', margin: 0 }}>
-              {name}
-            </h3>
-            <div style={{ color: '#8F79AD', fontSize: '12px', marginTop: '2px' }}>
-              {[team?.name ?? teamCode, dbEntry?.position, dbEntry?.price != null ? `${dbEntry.price}M` : null]
-                .filter(Boolean).join(' · ')}
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={t('playerSheet.closeAria')}
-            className="fdr-icon-btn"
-            style={{
-              background: 'none', border: 'none', color: '#C9B8E0', cursor: 'pointer',
-              flexShrink: 0, padding: '4px', display: 'inline-flex',
-            }}
-          >
-            <X size={18} aria-hidden="true" />
-          </button>
+  const clubName = team?.name ?? teamCode;
+  const details = [dbEntry?.position, dbEntry?.price != null ? `${dbEntry.price}M` : null].filter(Boolean);
+
+  const header = (
+    <>
+      <img
+        src={`/club-logos/${teamCode}.webp`}
+        alt=""
+        style={{ width: '34px', height: '34px', objectFit: 'contain', flexShrink: 0 }}
+        onError={(e) => { e.target.style.display = 'none'; }}
+      />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <h3 id={headingId} className="fdr-title" style={{ color: '#FFF', fontSize: '17px', margin: 0 }}>
+          {name}
+        </h3>
+        <div style={{ color: '#8F79AD', fontSize: '12px', marginTop: '2px' }}>
+          {/* De clubnaam is de doorstap naar de club-sheet. Vanuit een rangschikking is dat de
+              kortste weg naar "en hoe staat die club er eigenlijk voor?", zonder dat het logo in
+              elke rij een eigen knop hoeft te worden. */}
+          {onOpenClub ? (
+            <button
+              type="button"
+              onClick={() => onOpenClub(teamCode)}
+              aria-label={t('clubSheet.openAria', { club: clubName })}
+              style={{
+                background: 'none', border: 'none', padding: 0, font: 'inherit', color: 'inherit',
+                cursor: 'pointer', textDecoration: 'underline',
+                textDecorationColor: 'rgba(78,205,196,0.5)', textUnderlineOffset: '3px',
+              }}
+            >
+              {clubName}
+            </button>
+          ) : clubName}
+          {details.length > 0 && ` · ${details.join(' · ')}`}
         </div>
+      </div>
+    </>
+  );
+
+  return (
+    <Sheet titleId={headingId} closeLabel={t('playerSheet.closeAria')} onClose={onClose} header={header}>
 
         {/* Acties bovenaan: dit zijn de twee dingen die je met een speler wíl doen nadat je 'm
             bekeken hebt, dus ze moeten niet onder alle statistieken weggestopt zitten. */}
@@ -336,9 +291,6 @@ export default function PlayerSheet({
             </div>
           ) : <p style={emptyTextStyle}>{t('playerSheet.noData')}</p>}
         </Section>
-      </div>
-    </div>
+    </Sheet>
   );
 }
-
-const emptyTextStyle = { color: '#8F79AD', fontSize: '12px', margin: 0 };

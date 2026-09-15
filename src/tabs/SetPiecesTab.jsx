@@ -6,6 +6,7 @@
 // wanneer hij vanuit Bonuspunten of Kaarten opent, en die data moet dan al binnen zijn zonder dat het
 // openen van een sheet een netwerkverzoek kost. Deze tab krijgt het resultaat dus als props, net als
 // WatchlistTab/BonuspuntenTab dat met de spelersdatabank doen.
+import React from 'react';
 import { Loader2, AlertCircle, RotateCcw } from 'lucide-react';
 
 const retryButtonStyle = {
@@ -91,31 +92,46 @@ function SetPieceRow({ label, value, ...linkProps }) {
   );
 }
 
-function SetPieceCard({ entry, playerDatabase, onOpenPlayer, t }) {
+function SetPieceCard({ entry, playerDatabase, onOpenPlayer, onOpenClub, t }) {
   const linkProps = { clubCode: entry.clubCode, playerDatabase, onOpenPlayer, t };
   return (
     <div style={{
       background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
       borderRadius: '12px', padding: '14px 16px',
     }}>
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: '8px',
-        paddingBottom: '10px', marginBottom: '10px', borderBottom: '1px solid rgba(255,255,255,0.08)',
-      }}>
-        {entry.clubCode && (
+      {/* De kaartkop opent de clubkaart — logo en clubnaam samen, want 22px logo alleen is een te
+          klein tikdoel. Zonder onOpenClub blijft het gewoon een kop. */}
+      {React.createElement(
+        onOpenClub && entry.clubCode ? 'button' : 'div',
+        {
+          type: onOpenClub && entry.clubCode ? 'button' : undefined,
+          onClick: onOpenClub && entry.clubCode ? () => onOpenClub(entry.clubCode) : undefined,
+          'aria-label': onOpenClub && entry.clubCode ? t('clubSheet.openAria', { club: entry.clubName }) : undefined,
+          className: onOpenClub && entry.clubCode ? 'fdr-touch-target' : undefined,
+          style: {
+            display: 'flex', alignItems: 'center', gap: '8px', width: '100%',
+            paddingBottom: '10px', marginBottom: '10px',
+            borderBottom: '1px solid rgba(255,255,255,0.08)',
+            background: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none',
+            padding: '0 0 10px', textAlign: 'left', fontFamily: 'inherit',
+            cursor: onOpenClub && entry.clubCode ? 'pointer' : undefined,
+          },
+        },
+        entry.clubCode ? (
           <img
+            key="logo"
             src={`/club-logos/${entry.clubCode}.webp`}
             alt=""
             style={{ width: '22px', height: '22px', objectFit: 'contain', flexShrink: 0 }}
             onError={(e) => { e.target.style.display = 'none'; }}
           />
-        )}
-        <span style={{
+        ) : null,
+        <span key="naam" style={{
           color: '#FFF', fontWeight: 800, fontSize: '14px', textTransform: 'uppercase', letterSpacing: '0.01em',
         }}>
           {entry.clubName}
-        </span>
-      </div>
+        </span>,
+      )}
       <SetPieceRow label="P" value={entry.penalties} {...linkProps} />
       <SetPieceRow label="C" value={entry.corners} {...linkProps} />
       <SetPieceRow label="FK" value={entry.freeKicks} {...linkProps} />
@@ -130,7 +146,7 @@ const CATEGORY_LEGEND = [
 ];
 
 export default function SetPiecesTab({
-  t, entries = [], updatedGw = '', loading, error, retry, onOpenPlayer, playerDatabase = [],
+  t, entries = [], updatedGw = '', loading, error, retry, onOpenPlayer, onOpenClub, playerDatabase = [],
 }) {
   return (
     <>
@@ -206,6 +222,7 @@ export default function SetPiecesTab({
               entry={entry}
               playerDatabase={playerDatabase}
               onOpenPlayer={onOpenPlayer}
+              onOpenClub={onOpenClub}
               t={t}
             />
           ))}

@@ -5,7 +5,7 @@
 // CSV-fetch/parsing meer hier (voorheen een aparte, nooit ingevulde KAARTEN_CSV_URL-sheet).
 import { useMemo, useState } from 'react';
 import { Loader2, AlertCircle, RotateCcw } from 'lucide-react';
-import { RankingRow, watchProps } from '../components/RankingRow';
+import { RankingRow, watchProps, clubProps } from '../components/RankingRow';
 import { buildKaartenEntries, rankByMostCards, rankByClosestToSuspension, isOneCardFromSuspension } from '../kaarten';
 
 const retryButtonStyle = {
@@ -32,7 +32,7 @@ const MIN_VISIBLE_CARDS = 2;
 
 export default function KaartenTab({
   t, playerDatabase, playerDatabaseLoading, playerDatabaseError, fetchPlayerDatabase,
-  toggleWatchlistPlayer, isPlayerWatched, onOpenPlayer,
+  toggleWatchlistPlayer, isPlayerWatched, onOpenPlayer, onOpenClub,
 }) {
   const [sortMode, setSortMode] = useState('mostCards');
 
@@ -119,6 +119,7 @@ export default function KaartenTab({
                 warning={warning}
                 onClick={onOpenPlayer ? () => onOpenPlayer(entry.player, entry.clubCode) : undefined}
                 {...watchProps({ name: entry.player, teamCode: entry.clubCode }, { isPlayerWatched, toggleWatchlistPlayer, t })}
+                {...clubProps({ clubCode: entry.clubCode, clubName: entry.clubName }, { onOpenClub, t })}
               />
             );
           })}

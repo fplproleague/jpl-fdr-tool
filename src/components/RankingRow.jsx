@@ -33,12 +33,30 @@ export function watchProps({ name, teamCode }, { isPlayerWatched, toggleWatchlis
   };
 }
 
+// Het clublogo in een rij opent de clubkaart. Aparte helper naast watchProps hierboven, om dezelfde
+// reden: beide rangschikkingstabs berekenen dit identiek.
+export function clubProps({ clubCode, clubName }, { onOpenClub, t }) {
+  if (!onOpenClub || !clubCode) return {};
+  return {
+    onOpenClub,
+    clubLabel: t('clubSheet.openAria', { club: clubName ?? clubCode }),
+  };
+}
+
 export function RankingRow({
   rank, clubCode, player, subtitle, value, valueSub, qualifies, warning,
-  onClick, onToggleWatch, isWatched, watchLabel,
+  onClick, onToggleWatch, isWatched, watchLabel, onOpenClub, clubLabel,
 }) {
   const Main = onClick ? 'button' : 'div';
-  const interactive = Boolean(onClick || onToggleWatch);
+  const interactive = Boolean(onClick || onToggleWatch || onOpenClub);
+  const logo = clubCode ? (
+    <img
+      src={`/club-logos/${clubCode}.webp`}
+      alt=""
+      style={{ width: '22px', height: '22px', objectFit: 'contain', flexShrink: 0 }}
+      onError={(e) => { e.target.style.display = 'none'; }}
+    />
+  ) : null;
   return (
     <div
       // Enkel een rij waar iets te doen valt krijgt de hover-/actief-stijl (zie .fdr-ranking-row in
@@ -46,32 +64,42 @@ export function RankingRow({
       className={interactive ? 'fdr-ranking-row' : undefined}
       style={{
         background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-        borderRadius: '10px', display: 'flex', alignItems: 'center',
+        borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '12px',
+        paddingLeft: '14px', paddingRight: onToggleWatch ? 0 : '14px',
       }}
     >
+      <span className="fdr-title" style={{
+        color: rank === 1 ? '#4ECDC4' : '#C9B8E0', fontWeight: 900, fontSize: '18px', width: '22px', flexShrink: 0,
+      }}>
+        {rank}
+      </span>
+      {/* Het clublogo staat buiten de rij-knop, want het opent iets anders (de clubkaart) dan de rij
+          zelf (de spelerskaart) — en een knop in een knop mag niet. De rij-knop ernaast beslaat nog
+          altijd de naam, de waarde en alle ruimte daartussen, dus het tikdoel blijft ruim. */}
+      {logo && (onOpenClub ? (
+        <button
+          type="button"
+          onClick={() => onOpenClub(clubCode)}
+          aria-label={clubLabel}
+          title={clubLabel}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            alignSelf: 'stretch', padding: '10px 0', background: 'none', border: 'none', cursor: 'pointer',
+          }}
+        >
+          {logo}
+        </button>
+      ) : logo)}
       <Main
         type={onClick ? 'button' : undefined}
         onClick={onClick}
         style={{
           flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '12px',
-          padding: '10px 14px', background: 'none', border: 'none',
+          padding: '10px 0', background: 'none', border: 'none',
           textAlign: onClick ? 'left' : undefined,
           fontFamily: onClick ? 'inherit' : undefined, cursor: onClick ? 'pointer' : undefined,
         }}
       >
-        <span className="fdr-title" style={{
-          color: rank === 1 ? '#4ECDC4' : '#C9B8E0', fontWeight: 900, fontSize: '18px', width: '22px', flexShrink: 0,
-        }}>
-          {rank}
-        </span>
-        {clubCode && (
-          <img
-            src={`/club-logos/${clubCode}.webp`}
-            alt=""
-            style={{ width: '22px', height: '22px', objectFit: 'contain', flexShrink: 0 }}
-            onError={(e) => { e.target.style.display = 'none'; }}
-          />
-        )}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
             color: '#FFF', fontWeight: 700, fontSize: '14px',
