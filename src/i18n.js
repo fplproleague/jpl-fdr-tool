@@ -279,7 +279,7 @@ const STRINGS = {
     'bonuspunten.sortLabel': 'Sorteer op',
     'bonuspunten.sortTotal': 'Totaal',
     'bonuspunten.sortPerMatch': 'Per wedstrijd',
-    'bonuspunten.sortPerMatchNote': 'Enkel spelers met minstens {{minGames}} gespeelde wedstrijden, zodat één sterke invalbeurt de lijst niet overneemt.',
+    'bonuspunten.sortPerMatchNote': 'Enkel spelers met minstens {{minGames}} gespeelde wedstrijden.',
     'bonuspunten.perMatchUnit': '/wedstrijd',
     'bonuspunten.section.duels': 'Duels (gewonnen > verloren)',
     'bonuspunten.section.headers': 'Verdedigende kopballen (> 3)',
