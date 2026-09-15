@@ -10,7 +10,7 @@
 import { useState, useRef, useEffect } from 'react';
 import {
   Users, Shirt, ChevronLeft, ChevronRight, Loader2, AlertCircle, RotateCcw,
-  ArrowLeftRight, ArrowRight, X, Wand2, Armchair, Zap, Star, RefreshCw, Trash2, ArrowUpDown,
+  ArrowLeftRight, ArrowRight, X, Wand2, Armchair, Zap, Star, RefreshCw, Trash2, ArrowUpDown, Eye,
 } from 'lucide-react';
 import {
   TEAMS, FIXTURES, GW_COUNT, GW_DEADLINES, CURRENT_GW,
@@ -463,7 +463,7 @@ function TransferPanel({ t, gw, resolvedIndexedPlayers, playerDatabase, playerDa
 }
 
 export default function TeamPlannerTab({
-  t,
+  t, onOpenPlayer,
   ratings, homeAdvantage, openSections, toggleSection,
   teamPlannerPlayers, updateTeamPlannerPlayer, toggleTeamPlannerBench,
   teamPlannerBenchByGw, teamPlannerCaptainByGw, setTeamPlannerCaptain,
@@ -839,6 +839,9 @@ export default function TeamPlannerTab({
                         <th style={thStyle}>{t('teamPlanner.colPlayer')}</th>
                         <th style={thStyle}>{t('teamPlanner.colPosition')}</th>
                         <th style={thStyle}>{t('teamPlanner.colPrice')}</th>
+                        {/* Kolomkop bewust leeg: de knop eronder draagt zijn betekenis al in zijn
+                            aria-label, en een kop erboven zou de tabel enkel breder maken. */}
+                        <th style={thStyle} aria-label={t('teamPlanner.colViewPlayer')} />
                       </tr>
                     </thead>
                     <tbody>
@@ -893,6 +896,25 @@ export default function TeamPlannerTab({
                             </td>
                             <td style={{ padding: '4px 6px', width: '80px', color: '#FFF', fontSize: '13px', fontWeight: 700, background: rowBg }}>
                               {formatPrice(player.price)}
+                            </td>
+                            <td style={{ padding: '4px 6px', width: '44px', background: rowBg }}>
+                              {/* Enkel op een ingevuld slot: een leeg slot heeft geen speler om te tonen. */}
+                              {onOpenPlayer && player.name && player.teamCode && (
+                                <button
+                                  type="button"
+                                  onClick={() => onOpenPlayer(player.name, player.teamCode)}
+                                  aria-label={t('playerSheet.openAria', { name: player.name })}
+                                  className="fdr-icon-btn"
+                                  style={{
+                                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                    width: '30px', height: '30px', background: 'transparent',
+                                    color: COLORS.textBody, border: '1px solid rgba(255,255,255,0.15)',
+                                    borderRadius: '6px', cursor: 'pointer',
+                                  }}
+                                >
+                                  <Eye size={14} aria-hidden="true" />
+                                </button>
+                              )}
                             </td>
                           </tr>
                         );

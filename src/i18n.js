@@ -115,6 +115,10 @@ const STRINGS = {
     'fdr.gwTo': 't/m',
     'fdr.tapHint': 'Tik op grijze cellen of die met een * voor meer info',
     'fdr.teamColumn': 'Team',
+    // Filteren op moeilijkheidsgraad (de legende onder de hoofdtabel) + sorteren per kolom.
+    'fdr.filterByRating': 'Filter op moeilijkheid',
+    'fdr.filterClearAll': 'Toon alles',
+    'fdr.sortByGwAria': 'Sorteer op moeilijkheid van GW{{gw}}',
     // --- Toegankelijkheid van de hoofdtabel ---
     // De moeilijkheidsgraad van een fixture zat tot nu toe enkel in de achtergrondkleur van de cel.
     // Kleur alleen is geen bruikbare drager: rood-groen-kleurenblindheid komt bij ~8% van de mannen
@@ -151,6 +155,10 @@ const STRINGS = {
     'watchlist.myWatchlist': 'Mijn watchlist',
     'watchlist.empty': 'Je watchlist is nog leeg. Voeg spelers toe die je in de gaten wil houden.',
     'watchlist.removeAria': 'Verwijder {{name}} uit je watchlist',
+    // Ster op een rij in Bonuspunten/Kaarten. De bevestiging is enkel het achtervoegsel: de naam zelf
+    // staat al vetgedrukt in een eigen <strong> ervoor (zelfde opzet als undo.removedSuffix).
+    'watchlist.addAria': 'Voeg {{name}} toe aan je watchlist',
+    'watchlist.addedSuffix': 'toegevoegd aan je watchlist.',
 
     // --- Predicted Lineups ---
     'predictedLineups.introEmpty': 'Voorspelde opstellingen voor GW{{gw}}, samengesteld door @5YSiebee.',
@@ -201,6 +209,7 @@ const STRINGS = {
     'teamPlanner.colPlayer': 'Speler',
     'teamPlanner.colPosition': 'Positie',
     'teamPlanner.colPrice': 'Prijs (M)',
+    'teamPlanner.colViewPlayer': 'Spelerskaart',
     'teamPlanner.searchLoadingPlaceholder': 'Databank laden...',
     'teamPlanner.searchPositionPlaceholder': 'Zoek {{position}}...',
     'teamPlanner.pitch': 'Veld',
@@ -288,6 +297,42 @@ const STRINGS = {
     'bonuspunten.section.bonusPoints': 'Meeste bonuspunten',
     'bonuspunten.duelsSubtitle': '{{won}} gewonnen · {{lost}} verloren',
     'bonuspunten.updatedLabel': 'Updated: GW{{gw}}',
+
+    // --- Speler-sheet (components/PlayerSheet.jsx) — het paneel dat opent vanuit een rij, een naam
+    // in Set Pieces, een watch-list-item, een Team Planner-slot of een speler op het veld. ---
+    'playerSheet.closeAria': 'Spelerskaart sluiten',
+    'playerSheet.fixturesHeading': 'Volgende wedstrijden',
+    'playerSheet.lineupHeading': 'Startkans',
+    'playerSheet.setPiecesHeading': 'Standaardsituaties',
+    'playerSheet.cardsHeading': 'Gele kaarten',
+    'playerSheet.bonusHeading': 'Bonuspunten',
+    'playerSheet.addToWatchlist': 'Op watchlist zetten',
+    'playerSheet.onWatchlist': 'Staat op je watchlist',
+    'playerSheet.toTeamPlanner': 'Naar Team Planner',
+    'playerSheet.notInLineup': 'Niet opgenomen in de verwachte opstelling.',
+    'playerSheet.lineupFromGw': 'Uit de opstelling van GW{{gw}}, niet van de komende speeldag.',
+    'playerSheet.noSetPieces': 'Geen vermelding als nemer.',
+    'playerSheet.cardsUntilSuspension': 'nog {{count}} tot schorsing',
+    'playerSheet.noData': 'Nog geen gegevens.',
+    'playerSheet.openAria': 'Bekijk de spelerskaart van {{name}}',
+
+    // Titel/omschrijving van de gegenereerde speler- en clubpagina's (scripts/build-routes.mjs). Een
+    // social preview toont deze tekst, dus naam en club horen er letterlijk in te staan.
+    'route.player.title': '{{name}} ({{club}}) — Fantasy Pro League Tools',
+    'route.player.description': 'Bonuspunten, gele kaarten, standaardsituaties, startkans en de komende wedstrijden van {{name}} ({{club}}) in de Jupiler Pro League.',
+    'route.club.title': '{{club}} — fixtures, opstelling en set pieces | Fantasy Pro League Tools',
+    'route.club.description': 'De komende wedstrijden van {{club}} met hun moeilijkheidsgraad, de recente vorm, de verwachte basiself, de standaardsituatienemers en de spelers met de meeste bonuspunten.',
+
+    // --- Club-sheet (components/ClubSheet.jsx) — opent vanuit een clublogo. ---
+    'clubSheet.closeAria': 'Clubkaart sluiten',
+    'clubSheet.openAria': 'Bekijk de clubkaart van {{club}}',
+    'clubSheet.fixturesHeading': 'Volgende wedstrijden',
+    'clubSheet.setPiecesHeading': 'Standaardsituaties',
+    'clubSheet.lineupHeading': 'Verwachte opstelling',
+    'clubSheet.topPlayersHeading': 'Meeste bonuspunten',
+    'clubSheet.formAria': 'Recente vorm: {{results}}',
+    'clubSheet.noLineup': 'Nog geen verwachte opstelling voor deze club.',
+    'clubSheet.noData': 'Nog geen gegevens.',
 
     // --- Set Pieces-tab ---
     'setpieces.legend.penalty': 'Penalty',
@@ -399,6 +444,9 @@ const STRINGS = {
     'fdr.gwTo': 'à',
     'fdr.tapHint': 'Touchez les cellules grises ou marquées d’un * pour plus d’infos',
     'fdr.teamColumn': 'Équipe',
+    'fdr.filterByRating': 'Filtrer par difficulté',
+    'fdr.filterClearAll': 'Tout afficher',
+    'fdr.sortByGwAria': 'Trier par difficulté de la J{{gw}}',
     'fdr.venue.home': 'à domicile',
     'fdr.venue.away': 'à l’extérieur',
     'fdr.cellAria': '{{opp}} {{venue}} — difficulté {{rating}} sur 5',
@@ -428,6 +476,8 @@ const STRINGS = {
     'watchlist.myWatchlist': 'Ma watchlist',
     'watchlist.empty': 'Votre watchlist est encore vide. Ajoutez des joueurs que vous voulez suivre.',
     'watchlist.removeAria': 'Retirer {{name}} de votre watchlist',
+    'watchlist.addAria': 'Ajouter {{name}} à votre watchlist',
+    'watchlist.addedSuffix': 'ajouté à votre watchlist.',
 
     'predictedLineups.introEmpty': 'Compositions probables pour la J{{gw}}, réalisées par @5YSiebee.',
     'predictedLineups.intro': 'Compositions probables pour la J{{gw}}, réalisées par @5YSiebee. Choisissez un club pour voir sa composition probable.',
@@ -475,6 +525,7 @@ const STRINGS = {
     'teamPlanner.colPlayer': 'Joueur',
     'teamPlanner.colPosition': 'Poste',
     'teamPlanner.colPrice': 'Prix (M)',
+    'teamPlanner.colViewPlayer': 'Fiche du joueur',
     'teamPlanner.searchLoadingPlaceholder': 'Chargement de la base...',
     'teamPlanner.searchPositionPlaceholder': 'Rechercher {{position}}...',
     'teamPlanner.pitch': 'Terrain',
@@ -562,6 +613,39 @@ const STRINGS = {
     'bonuspunten.section.bonusPoints': 'Plus de points bonus',
     'bonuspunten.duelsSubtitle': '{{won}} gagnés · {{lost}} perdus',
     'bonuspunten.updatedLabel': 'Mis à jour : J{{gw}}',
+
+    // --- Fiche joueur (components/PlayerSheet.jsx) ---
+    'playerSheet.closeAria': 'Fermer la fiche du joueur',
+    'playerSheet.fixturesHeading': 'Prochains matchs',
+    'playerSheet.lineupHeading': 'Chance de titularisation',
+    'playerSheet.setPiecesHeading': 'Coups de pied arrêtés',
+    'playerSheet.cardsHeading': 'Cartons jaunes',
+    'playerSheet.bonusHeading': 'Points bonus',
+    'playerSheet.addToWatchlist': 'Ajouter à la watchlist',
+    'playerSheet.onWatchlist': 'Sur votre watchlist',
+    'playerSheet.toTeamPlanner': 'Vers le Team Planner',
+    'playerSheet.notInLineup': "Pas repris dans la composition probable.",
+    'playerSheet.lineupFromGw': "D'après la composition de la J{{gw}}, pas de la prochaine journée.",
+    'playerSheet.noSetPieces': "Pas mentionné comme tireur.",
+    'playerSheet.cardsUntilSuspension': 'encore {{count}} avant suspension',
+    'playerSheet.noData': 'Pas encore de données.',
+    'playerSheet.openAria': 'Voir la fiche de {{name}}',
+
+    'route.player.title': '{{name}} ({{club}}) — Fantasy Pro League Tools',
+    'route.player.description': "Points bonus, cartons jaunes, coups de pied arrêtés, chance de titularisation et prochains matchs de {{name}} ({{club}}) en Jupiler Pro League.",
+    'route.club.title': '{{club}} — matchs, composition et coups de pied arrêtés | Fantasy Pro League Tools',
+    'route.club.description': "Les prochains matchs de {{club}} avec leur difficulté, la forme récente, la composition probable, les tireurs de coups de pied arrêtés et les joueurs avec le plus de points bonus.",
+
+    // --- Fiche club (components/ClubSheet.jsx) ---
+    'clubSheet.closeAria': 'Fermer la fiche du club',
+    'clubSheet.openAria': 'Voir la fiche du club {{club}}',
+    'clubSheet.fixturesHeading': 'Prochains matchs',
+    'clubSheet.setPiecesHeading': 'Coups de pied arrêtés',
+    'clubSheet.lineupHeading': 'Composition probable',
+    'clubSheet.topPlayersHeading': 'Plus de points bonus',
+    'clubSheet.formAria': 'Forme récente : {{results}}',
+    'clubSheet.noLineup': "Pas encore de composition probable pour ce club.",
+    'clubSheet.noData': 'Pas encore de données.',
 
     // --- Onglet Coups de pied arrêtés ---
     'setpieces.legend.penalty': 'Penalty',

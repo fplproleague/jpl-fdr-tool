@@ -5,7 +5,7 @@
 // CSV-fetch/parsing meer hier (voorheen een aparte, nooit ingevulde KAARTEN_CSV_URL-sheet).
 import { useMemo, useState } from 'react';
 import { Loader2, AlertCircle, RotateCcw } from 'lucide-react';
-import { RankingRow } from '../components/RankingRow';
+import { RankingRow, watchProps, clubProps } from '../components/RankingRow';
 import { buildKaartenEntries, rankByMostCards, rankByClosestToSuspension, isOneCardFromSuspension } from '../kaarten';
 
 const retryButtonStyle = {
@@ -30,7 +30,10 @@ const SORT_MODES = [
 // maar niemand heeft nog 2+ kaarten" (dat laatste is vroeg in het seizoen het te verwachten geval).
 const MIN_VISIBLE_CARDS = 2;
 
-export default function KaartenTab({ t, playerDatabase, playerDatabaseLoading, playerDatabaseError, fetchPlayerDatabase }) {
+export default function KaartenTab({
+  t, playerDatabase, playerDatabaseLoading, playerDatabaseError, fetchPlayerDatabase,
+  toggleWatchlistPlayer, isPlayerWatched, onOpenPlayer, onOpenClub,
+}) {
   const [sortMode, setSortMode] = useState('mostCards');
 
   const allEntries = useMemo(() => buildKaartenEntries(playerDatabase), [playerDatabase]);
@@ -114,6 +117,9 @@ export default function KaartenTab({ t, playerDatabase, playerDatabaseLoading, p
                 subtitle={subtitle} value={value}
                 qualifies={sortMode === 'closestToSuspension' || warning}
                 warning={warning}
+                onClick={onOpenPlayer ? () => onOpenPlayer(entry.player, entry.clubCode) : undefined}
+                {...watchProps({ name: entry.player, teamCode: entry.clubCode }, { isPlayerWatched, toggleWatchlistPlayer, t })}
+                {...clubProps({ clubCode: entry.clubCode, clubName: entry.clubName }, { onOpenClub, t })}
               />
             );
           })}

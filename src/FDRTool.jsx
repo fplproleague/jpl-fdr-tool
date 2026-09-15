@@ -13,9 +13,15 @@ import {
   resolveSlotPlayerAtGw, PLAYER_DATABASE_CSV_URL, parsePlayerDatabaseCsv, getFixtureScores, average,
   POSTPONED, computeTeamPlannerTransferBudget, getGwDeadlineDate,
 } from './constants';
+import { SET_PIECES_CSV_URL } from './constants';
+import { parseSetPiecesCsv } from './setPieces';
 import { COLORS } from './theme';
-import { ROUTES, routeKeyFromPath, urlForRoute, pathForRoute, languageFromPath, SUPPORTED_LANGUAGES } from './routes';
+import {
+  ROUTES, routeKeyFromPath, urlForRoute, pathForRoute, languageFromPath, SUPPORTED_LANGUAGES,
+  pathForSheet, sheetFromPath, playerSlug,
+} from './routes';
 import { t as translate, LANGUAGES, DEFAULT_LANGUAGE } from './i18n';
+import { PREDICTED_LINEUPS } from './predictedLineupsData';
 import FDRTab from './tabs/FDRTab';
 
 // Enkel de FDR-tab (de standaardweergave) zit in de hoofdbundle. De andere tabs worden pas
@@ -26,6 +32,10 @@ import FDRTab from './tabs/FDRTab';
 // dus élke bezoeker downloadde dat vóór de pagina bruikbaar was, ook wie enkel de FDR-tabel kwam
 // bekijken. Voor een tool die vaak vlak vóór de deadline op mobiele data geopend wordt, is dat
 // precies de verkeerde afweging.
+// Eigen chunk: de sheet wordt vanuit meerdere lazy tabs gebruikt, dus zonder aparte lazy-import
+// zou hij in de hoofdbundel belanden en de FDR-tab (die 'm niet nodig heeft) mee laten groeien.
+const PlayerSheet = lazy(() => import('./components/PlayerSheet'));
+const ClubSheet = lazy(() => import('./components/ClubSheet'));
 const WatchlistTab = lazy(() => import('./tabs/WatchlistTab'));
 const TeamPlannerTab = lazy(() => import('./tabs/TeamPlannerTab'));
 const PredictedLineupsTab = lazy(() => import('./tabs/PredictedLineupsTab'));
@@ -141,18 +151,67 @@ const HEADER_CHIP_HEIGHT = '28px';
 // waren daardoor het enige stuk van de Franse tabel dat Nederlands bleef. t('fdr.gwLabel') levert al
 // "GW"/"J", dus dezelfde bron als de selector eronder. scope="col" + aria-label maken van elke kop
 // bovendien een echte, uitgeschreven kolomkop ("Gameweek 7" i.p.v. "GW7") voor screenreaders.
-function buildGwHeaderCells(t) {
+// Zonder onSortGw levert dit de gewone, niet-klikbare koppen (de vergelijk-tabel heeft geen eigen
+// sortering). Mét onSortGw wordt elke kop een knop die op die ene speeldag sorteert; aria-sort vertelt
+// een screenreader op welke kolom de tabel op dit moment geordend staat.
+// Zoekt bij een slug uit de URL de echte speler. De naam valt niet uit de slug af te leiden (accenten
+// en leestekens zijn eruit), dus we slugificeren de kandidaten en vergelijken. De spelersdatabank komt
+// pas na een fetch binnen; PREDICTED_LINEUPS staat meteen klaar, dus een gedeelde link opent al vóór
+// die fetch. Geeft null als niets past — dan blijft gewoon de onderliggende tab staan i.p.v. een lege
+// kaart te tonen voor een verzonnen URL.
+function resolvePlayerSlug(slug, playerDatabase) {
+  const fromDatabase = playerDatabase.find(p => playerSlug(p.name, p.teamCode) === slug);
+  if (fromDatabase) return { name: fromDatabase.name, teamCode: fromDatabase.teamCode };
+  for (const lineup of PREDICTED_LINEUPS) {
+    for (const slot of lineup.slots) {
+      if (!slot.playerName) continue;
+      const teamCode = slot.playerTeamCode || lineup.clubCode;
+      if (playerSlug(slot.playerName, teamCode) === slug) return { name: slot.playerName, teamCode };
+    }
+  }
+  return null;
+}
+
+function buildGwHeaderCells(t, { sortedGw = null, onSortGw = null } = {}) {
   const prefix = t('fdr.gwLabel');
-  return GW_INDEXES.map(i => (
-    <th
-      key={i}
-      scope="col"
-      aria-label={t('fdr.gwColumnAria', { gw: i + 1 })}
-      style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', padding: '6px 4px', minWidth: '58px' }}
-    >
-      {prefix}{i + 1}
-    </th>
-  ));
+  return GW_INDEXES.map(i => {
+    const gw = i + 1;
+    const isSorted = sortedGw === gw;
+    const baseStyle = { color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', padding: '6px 4px', minWidth: '58px' };
+    if (!onSortGw) {
+      return (
+        <th key={i} scope="col" aria-label={t('fdr.gwColumnAria', { gw })} style={baseStyle}>
+          {prefix}{gw}
+        </th>
+      );
+    }
+    return (
+      <th
+        key={i}
+        scope="col"
+        aria-sort={isSorted ? 'ascending' : 'none'}
+        style={{ ...baseStyle, padding: 0 }}
+      >
+        <button
+          type="button"
+          onClick={() => onSortGw(gw)}
+          aria-label={t('fdr.sortByGwAria', { gw })}
+          aria-pressed={isSorted}
+          className="fdr-touch-target"
+          style={{
+            width: '100%', minHeight: '32px', padding: '6px 4px',
+            background: isSorted ? 'rgba(78,205,196,0.15)' : 'transparent',
+            color: isSorted ? '#4ECDC4' : '#C9B8E0',
+            border: isSorted ? '1px solid rgba(78,205,196,0.55)' : '1px solid transparent',
+            borderRadius: '6px', font: 'inherit', fontSize: '11px', fontWeight: 700,
+            textTransform: 'uppercase', cursor: 'pointer',
+          }}
+        >
+          {prefix}{gw}
+        </button>
+      </th>
+    );
+  });
 }
 
 function loadStoredRatings() {
@@ -447,6 +506,11 @@ export default function FDRTool() {
     const handlePopState = () => {
       setActiveTab(routeKeyFromPath(window.location.pathname));
       setLanguage(languageFromPath(window.location.pathname) ?? DEFAULT_LANGUAGE);
+      // De sheet hoort ook bij de geschiedenis: zonder dit blijft een spelerskaart openstaan nadat de
+      // terugknop al naar de lijst eronder is teruggekeerd.
+      const fromUrl = sheetFromPath(window.location.pathname);
+      setSheet(fromUrl?.kind === 'club' ? fromUrl : null);
+      setPendingPlayerSlug(fromUrl?.kind === 'player' ? fromUrl.slug : null);
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
@@ -488,9 +552,12 @@ export default function FDRTool() {
   const currentDeadline = useMemo(() => getGwDeadlineDate(CURRENT_GW), []);
   const deadlineRemaining = useMemo(() => getTimeRemaining(currentDeadline, now), [currentDeadline, now]);
 
-  // Laatst verwijderde watch-list-speler, bewaard om "ongedaan maken" mogelijk te maken (zie
-  // handleRemoveWatchlistPlayer verderop). null = geen actieve undo-melding.
-  const [recentlyRemovedPlayer, setRecentlyRemovedPlayer] = useState(null);
+  // Laatste watch-list-wijziging, als één melding onderaan het scherm. Bij het verwijderen bewaart
+  // dit ook de oorspronkelijke positie, zodat "ongedaan maken" de speler terugzet waar hij stond
+  // (zie handleRemoveWatchlistPlayer verderop). Bewust één state en niet twee: zo kan er nooit een
+  // "toegevoegd"- en een "verwijderd"-melding tegelijk over elkaar heen staan.
+  // Vorm: { kind: 'removed', player, index } of { kind: 'added', player }. null = geen melding.
+  const [watchlistNotice, setWatchlistNotice] = useState(null);
 
   // Houdt bij of de tabbalk helemaal naar rechts gescrold staat, zodat de uitfade-mask (zie de
   // .fdr-tabs-regels in de <style> hieronder) verdwijnt zodra er niets meer te ontdekken valt.
@@ -563,7 +630,26 @@ export default function FDRTool() {
     teamPlannerRoster: true,
     teamPlannerTransfers: false,
   });
-  const [sortByDifficulty, setSortByDifficulty] = useState(false);
+  // Sortering van de hoofdtabel. Vroeger een simpele boolean ("op gemiddelde run of niet"); nu kan er
+  // ook op één kolom gesorteerd worden, wat een derde toestand vereist i.p.v. aan/uit.
+  // mode: 'none' (TEAMS-volgorde) | 'avg' (gemiddelde over de horizon) | 'gw' (één speeldag).
+  const [sortBy, setSortBy] = useState({ mode: 'none', gw: null });
+
+  // Welke moeilijkheidsgraden opgelicht blijven; leeg = geen filter, alles even zichtbaar. Bewust
+  // dimmen i.p.v. verbergen: een rij waar plots cellen uit verdwijnen is niet meer te lezen als tabel.
+  const [highlightedRatings, setHighlightedRatings] = useState([]);
+  const toggleSortByAverage = () =>
+    setSortBy(prev => (prev.mode === 'avg' ? { mode: 'none', gw: null } : { mode: 'avg', gw: null }));
+
+  // Nogmaals op dezelfde kolom klikken zet de sortering weer uit — anders is er geen weg terug naar de
+  // gewone volgorde zonder de andere knop te gebruiken.
+  const toggleSortByGw = (gw) =>
+    setSortBy(prev => (prev.mode === 'gw' && prev.gw === gw ? { mode: 'none', gw: null } : { mode: 'gw', gw }));
+
+  const toggleRatingFilter = (rating) =>
+    setHighlightedRatings(prev => (prev.includes(rating) ? prev.filter(r => r !== rating) : [...prev, rating]));
+
+  const clearRatingFilter = () => setHighlightedRatings([]);
   const [compareTeams, setCompareTeams] = useState([]);
   const tableRef = useRef(null);
 
@@ -602,6 +688,31 @@ export default function FDRTool() {
   const [playerDatabase, setPlayerDatabase] = useState([]);
   const [playerDatabaseLoading, setPlayerDatabaseLoading] = useState(true);
   const [playerDatabaseError, setPlayerDatabaseError] = useState(null);
+
+  // Set-pieces-sheet, hier i.p.v. in SetPiecesTab: de speler-sheet toont de nemer-rol ook wanneer hij
+  // vanuit een andere tab opent, en die data moet dan al binnen zijn (zie fetchSetPieces hieronder).
+  const [setPiecesData, setSetPiecesData] = useState({ entries: [], updatedGw: '' });
+  const [setPiecesLoading, setSetPiecesLoading] = useState(true);
+  const [setPiecesError, setSetPiecesError] = useState(null);
+
+  // Het detailpaneel dat openstaat, of null. Eén state voor speler én club: daardoor kan een sheet die
+  // vanuit een sheet opent de vorige enkel vervángen, nooit erbovenop komen — op een telefoon zijn drie
+  // lagen diep onbruikbaar. Vorm: { kind: 'player', name, teamCode } of { kind: 'club', code }.
+  const [sheet, setSheet] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    const fromUrl = sheetFromPath(window.location.pathname);
+    // Een club-URL kan meteen open: de clubcode staat er letterlijk in. Een speler-URL moet eerst
+    // opgezocht worden (zie pendingPlayerSlug hieronder).
+    return fromUrl?.kind === 'club' ? fromUrl : null;
+  });
+
+  // Spelers-slug uit de URL die nog een naam moet krijgen. Blijft staan tot de spelersdatabank binnen
+  // is, zodat een gedeelde link ook opent als hij vóór die fetch geopend wordt.
+  const [pendingPlayerSlug, setPendingPlayerSlug] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    const fromUrl = sheetFromPath(window.location.pathname);
+    return fromUrl?.kind === 'player' ? fromUrl.slug : null;
+  });
 
   // isCustom volgt exact of ratings/homeAdvantage hun gedeelde DEFAULT-referentie zijn
   // (zie updateRating/toggleHomeAdvantage/handleReset).
@@ -782,9 +893,21 @@ export default function FDRTool() {
 
   // Enkel de GW-headers binnen de gekozen horizon — gwHeaderCells zelf blijft ongewijzigd (ook
   // gebruikt door compareGwHeaderCells hieronder, met een eigen, vaste startpunt).
+  // Aparte, sorteerbare set voor de hoofdtabel; gwHeaderCells zelf blijft de gewone, niet-klikbare
+  // versie voor de vergelijk-tabel (die heeft geen eigen sortering).
+  const sortableGwHeaderCells = useMemo(
+    () => buildGwHeaderCells(t, {
+      sortedGw: sortBy.mode === 'gw' ? sortBy.gw : null,
+      onSortGw: toggleSortByGw,
+    }),
+    // toggleSortByGw is een stabiele setState-wrapper; alleen t en sortBy bepalen de uitkomst.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [t, sortBy]
+  );
+
   const visibleGwHeaderCells = useMemo(
-    () => gwHeaderCells.slice(gwHorizonRange.start - 1, gwHorizonRange.end),
-    [gwHeaderCells, gwHorizonRange]
+    () => sortableGwHeaderCells.slice(gwHorizonRange.start - 1, gwHorizonRange.end),
+    [sortableGwHeaderCells, gwHorizonRange]
   );
 
   // "Vergelijk teams" heeft geen eigen horizon-selector: die begint gewoon altijd bij CURRENT_GW en
@@ -823,9 +946,23 @@ export default function FDRTool() {
   }, [ratings, homeAdvantage, gwHorizonRange]);
 
   const displayedTeams = useMemo(() => {
-    if (!sortByDifficulty) return TEAMS;
-    return TEAMS.slice().sort((a, b) => teamAvgDifficulty[a.code] - teamAvgDifficulty[b.code]);
-  }, [sortByDifficulty, teamAvgDifficulty]);
+    if (sortBy.mode === 'avg') {
+      return TEAMS.slice().sort((a, b) => teamAvgDifficulty[a.code] - teamAvgDifficulty[b.code]);
+    }
+    if (sortBy.mode === 'gw') {
+      // Dezelfde scoreberekening als het gemiddelde hierboven (getFixtureScores), maar dan op één
+      // speeldag — zo telt een uitgestelde GW ook hier als 5 en een DGW als 1, i.p.v. dat één kolom
+      // sorteren stilletjes andere regels zou hanteren dan "sorteer op makkelijkste run".
+      const scoreFor = code => getFixtureScores(
+        code, [FIXTURES[code][sortBy.gw - 1]], ratings, homeAdvantage, sortBy.gw,
+      )[0];
+      // Clubcode als laatste tiebreaker: zonder dat wisselt de volgorde van gelijk scorende clubs
+      // willekeurig mee bij elke hersortering.
+      return TEAMS.slice().sort((a, b) => scoreFor(a.code) - scoreFor(b.code) || a.code.localeCompare(b.code));
+    }
+    return TEAMS;
+  }, [sortBy, teamAvgDifficulty, ratings, homeAdvantage]);
+
 
   const toggleCompareTeam = (code) => {
     setCompareTeams(prev => {
@@ -1002,6 +1139,42 @@ export default function FDRTool() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchPlayerDatabase]);
 
+  // De set-pieces-sheet werd tot nu toe door SetPiecesTab zelf opgehaald. Die fetch staat hier omdat de
+  // speler-sheet de nemer-rol ook moet kunnen tonen wanneer hij vanuit Bonuspunten of Kaarten opent —
+  // en een sheet mag geen fetch kosten op het moment dat je 'm opent. Zelfde uitgestelde afhandeling
+  // als de spelersdatabank hierboven: meteen als de bezoeker al op de Set Pieces-tab staat, anders
+  // wanneer de browser toch niets te doen heeft.
+  const fetchSetPieces = useCallback(async () => {
+    setSetPiecesLoading(true);
+    setSetPiecesError(null);
+    try {
+      const response = await fetch(SET_PIECES_CSV_URL, { cache: 'no-store' });
+      if (!response.ok) throw new Error('Netwerkfout');
+      const text = await response.text();
+      if (/^\s*<(!doctype|html)/i.test(text)) throw new Error('Onverwacht antwoord');
+      setSetPiecesData(parseSetPiecesCsv(text));
+    } catch {
+      setSetPiecesError('setpieces.loadError');
+    } finally {
+      setSetPiecesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'setpieces') {
+      fetchSetPieces();
+      return undefined;
+    }
+    if (typeof window.requestIdleCallback === 'function') {
+      const handle = window.requestIdleCallback(() => fetchSetPieces(), { timeout: 4000 });
+      return () => window.cancelIdleCallback?.(handle);
+    }
+    const timer = setTimeout(fetchSetPieces, 1600);
+    return () => clearTimeout(timer);
+    // Zelfde reden als hierboven om activeTab weg te laten: één keer ophalen, niet per tabwissel.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchSetPieces]);
+
   const handleAddWatchlistPlayer = (e) => {
     e.preventDefault();
     const name = newPlayerName.trim();
@@ -1021,25 +1194,102 @@ export default function FDRTool() {
   // undo enkel de zeldzame vergissing opvangt. De verwijderde speler wordt mét zijn oorspronkelijke
   // positie bewaard, zodat herstellen 'm terugzet waar hij stond i.p.v. onderaan de lijst.
   const undoTimerRef = useRef(null);
-  const handleRemoveWatchlistPlayer = (id) => {
-    setWatchlist(prev => {
-      const index = prev.findIndex(p => p.id === id);
-      if (index === -1) return prev;
-      setRecentlyRemovedPlayer({ player: prev[index], index });
-      return prev.filter(p => p.id !== id);
-    });
+  const showWatchlistNotice = (notice) => {
+    setWatchlistNotice(notice);
     if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
-    undoTimerRef.current = setTimeout(() => setRecentlyRemovedPlayer(null), 8000);
+    undoTimerRef.current = setTimeout(() => setWatchlistNotice(null), 8000);
+  };
+
+  const handleRemoveWatchlistPlayer = (id) => {
+    const index = watchlist.findIndex(p => p.id === id);
+    if (index === -1) return;
+    setWatchlist(prev => prev.filter(p => p.id !== id));
+    showWatchlistNotice({ kind: 'removed', player: watchlist[index], index });
+  };
+
+  // Ster op een spelersrij in Bonuspunten/Kaarten: dezelfde watch list als de Watchlist-tab, maar
+  // bereikbaar tíjdens het browsen i.p.v. via het formulier op die aparte tab. Matcht op naam +
+  // clubcode, want de rangschikkingen kennen de watch-list-id niet — die bestaat pas na toevoegen.
+  // De prijs wordt hier opgezocht i.p.v. door de tab meegegeven: dan hoeft de aanroeper enkel te
+  // weten wie hij aanklikt, en blijft de spelersdatabank de enige bron voor de prijs.
+  const toggleWatchlistPlayer = ({ name, teamCode }) => {
+    if (!name || !teamCode) return;
+    const index = watchlist.findIndex(p => p.name === name && p.teamCode === teamCode);
+    if (index !== -1) {
+      // Bewust hetzelfde undo-pad als verwijderen op de Watchlist-tab: een ster is minstens even
+      // makkelijk per ongeluk aangetikt als een prullenbakje.
+      setWatchlist(prev => prev.filter((_, i) => i !== index));
+      showWatchlistNotice({ kind: 'removed', player: watchlist[index], index });
+      return;
+    }
+    const price = playerDatabase.find(p => p.name === name && p.teamCode === teamCode)?.price ?? null;
+    const added = { id: createUniqueId(), name, teamCode, price };
+    setWatchlist(prev => [...prev, added]);
+    showWatchlistNotice({ kind: 'added', player: added });
+  };
+
+  const isPlayerWatched = (name, teamCode) =>
+    watchlist.some(p => p.name === name && p.teamCode === teamCode);
+
+  // Lost een spelers-URL op zodra er data is om in te zoeken. Draait opnieuw wanneer de
+  // spelersdatabank binnenkomt, zodat een deeplink naar iemand die niet in de verwachte opstellingen
+  // staat alsnog opent.
+  useEffect(() => {
+    if (!pendingPlayerSlug) return;
+    const found = resolvePlayerSlug(pendingPlayerSlug, playerDatabase);
+    if (!found) return;
+    setSheet({ kind: 'player', ...found });
+    setPendingPlayerSlug(null);
+  }, [pendingPlayerSlug, playerDatabase]);
+
+  // Eén ingang voor alle zes de plekken die een spelerskaart kunnen openen (rij in Bonuspunten of
+  // Kaarten, naam in Set Pieces, watch-list-item, Team Planner-slot, speler op het veld).
+  // Een sheet openen of sluiten is een echte navigatie: alleen zo valt een spelerskaart te delen, en
+  // brengt de terugknop je terug naar de lijst i.p.v. de site te verlaten. De query-string blijft
+  // behouden, net als bij het wisselen van tab (?r= en ?ha= dragen de aangepaste FDR-ratings).
+  const pushSheetUrl = (next) => {
+    if (typeof window === 'undefined') return;
+    const path = next
+      ? pathForSheet(next, language)
+      : pathForRoute(activeTab, language);
+    const url = `${path}${window.location.search || ''}`;
+    if (url !== window.location.pathname + window.location.search) {
+      window.history.pushState({ sheet: next?.kind ?? null }, '', url);
+    }
+  };
+
+  const openPlayerSheet = (name, teamCode) => {
+    if (!name || !teamCode) return;
+    const next = { kind: 'player', name, teamCode };
+    setSheet(next);
+    setPendingPlayerSlug(null);
+    pushSheetUrl(next);
+  };
+
+  // Idem voor de clubkaart: elk clublogo in de hoofdtabel, elke kaart in Set Pieces, de clubnaam op het
+  // veld en de clubnaam in een spelerskaart komen hier uit.
+  const openClubSheet = (code) => {
+    if (!code) return;
+    const next = { kind: 'club', code };
+    setSheet(next);
+    setPendingPlayerSlug(null);
+    pushSheetUrl(next);
+  };
+
+  const closeSheet = () => {
+    setSheet(null);
+    setPendingPlayerSlug(null);
+    pushSheetUrl(null);
   };
 
   const handleUndoRemoveWatchlistPlayer = () => {
-    if (!recentlyRemovedPlayer) return;
+    if (watchlistNotice?.kind !== 'removed') return;
     setWatchlist(prev => {
       const restored = [...prev];
-      restored.splice(Math.min(recentlyRemovedPlayer.index, restored.length), 0, recentlyRemovedPlayer.player);
+      restored.splice(Math.min(watchlistNotice.index, restored.length), 0, watchlistNotice.player);
       return restored;
     });
-    setRecentlyRemovedPlayer(null);
+    setWatchlistNotice(null);
     if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
   };
 
@@ -1440,6 +1690,23 @@ export default function FDRTool() {
         .fdr-toolbar-btn:not(:disabled):active, .fdr-icon-btn:not(:disabled):active,
         .fdr-ranking-row:active, .fdr-club-chip:not(:disabled):active {
           transform: translateY(1px);
+        }
+
+        /* Speler-sheet (zie components/PlayerSheet.jsx). Op desktop een gecentreerde modal, op
+           mobiel een bottom sheet: daar is de bovenkant van het scherm buiten duimbereik, en een
+           paneel dat van onder komt sluit aan bij wat een telefoongebruiker van een detailweergave
+           verwacht. Zelfde breekpunt als de rest van de mobiele opmaak. */
+        .fdr-sheet-overlay { align-items: center; padding: 20px; }
+        .fdr-sheet { border-radius: 14px; }
+        @media (max-width: 640px) {
+          .fdr-sheet-overlay { align-items: flex-end; padding: 0; }
+          .fdr-sheet {
+            border-radius: 16px 16px 0 0;
+            max-width: none;
+            max-height: 88vh;
+            /* Ruimte voor de home-indicator op toestellen zonder fysieke knop. */
+            padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+          }
         }
 
         /* Alleen de transities, niet de animaties: de enige animatie op de site is de
@@ -2063,8 +2330,11 @@ export default function FDRTool() {
             setShowInfo={setShowInfo}
             openSections={openSections}
             toggleSection={toggleSection}
-            sortByDifficulty={sortByDifficulty}
-            setSortByDifficulty={setSortByDifficulty}
+            sortBy={sortBy}
+            toggleSortByAverage={toggleSortByAverage}
+            highlightedRatings={highlightedRatings}
+            toggleRatingFilter={toggleRatingFilter}
+            clearRatingFilter={clearRatingFilter}
             gwHorizonStart={gwHorizonStart}
             setGwHorizonStart={setGwHorizonStart}
             gwHorizonEnd={gwHorizonEnd}
@@ -2083,6 +2353,7 @@ export default function FDRTool() {
             bestRuns={bestRuns}
             compareTeams={compareTeams}
             toggleCompareTeam={toggleCompareTeam}
+            onOpenClub={openClubSheet}
           />
         )}
 
@@ -2105,6 +2376,7 @@ export default function FDRTool() {
             playerDatabaseLoading={playerDatabaseLoading}
             playerDatabaseError={playerDatabaseError}
             fetchPlayerDatabase={fetchPlayerDatabase}
+            onOpenPlayer={openPlayerSheet}
           />
           </Suspense>
         )}
@@ -2113,6 +2385,7 @@ export default function FDRTool() {
           <Suspense fallback={<TabLoading text={t('shared.loading')} />}>
           <TeamPlannerTab
             t={t}
+            onOpenPlayer={openPlayerSheet}
             ratings={ratings}
             homeAdvantage={homeAdvantage}
             openSections={openSections}
@@ -2151,7 +2424,7 @@ export default function FDRTool() {
 
         {activeTab === 'predictedlineups' && (
           <Suspense fallback={<TabLoading text={t('shared.loading')} />}>
-            <PredictedLineupsTab t={t} />
+            <PredictedLineupsTab t={t} onOpenPlayer={openPlayerSheet} onOpenClub={openClubSheet} />
           </Suspense>
         )}
 
@@ -2163,13 +2436,27 @@ export default function FDRTool() {
               playerDatabaseLoading={playerDatabaseLoading}
               playerDatabaseError={playerDatabaseError}
               fetchPlayerDatabase={fetchPlayerDatabase}
+              toggleWatchlistPlayer={toggleWatchlistPlayer}
+              isPlayerWatched={isPlayerWatched}
+              onOpenPlayer={openPlayerSheet}
+              onOpenClub={openClubSheet}
             />
           </Suspense>
         )}
 
         {activeTab === 'setpieces' && (
           <Suspense fallback={<TabLoading text={t('shared.loading')} />}>
-            <SetPiecesTab t={t} />
+            <SetPiecesTab
+              t={t}
+              entries={setPiecesData.entries}
+              updatedGw={setPiecesData.updatedGw}
+              loading={setPiecesLoading}
+              error={setPiecesError}
+              retry={fetchSetPieces}
+              onOpenPlayer={openPlayerSheet}
+              onOpenClub={openClubSheet}
+              playerDatabase={playerDatabase}
+            />
           </Suspense>
         )}
 
@@ -2181,6 +2468,10 @@ export default function FDRTool() {
               playerDatabaseLoading={playerDatabaseLoading}
               playerDatabaseError={playerDatabaseError}
               fetchPlayerDatabase={fetchPlayerDatabase}
+              toggleWatchlistPlayer={toggleWatchlistPlayer}
+              isPlayerWatched={isPlayerWatched}
+              onOpenPlayer={openPlayerSheet}
+              onOpenClub={openClubSheet}
             />
           </Suspense>
         )}
@@ -2217,6 +2508,39 @@ export default function FDRTool() {
         </footer>
       </div>
 
+      {sheet?.kind === 'player' && (
+        <Suspense fallback={null}>
+          <PlayerSheet
+            t={t}
+            player={sheet}
+            onClose={closeSheet}
+            playerDatabase={playerDatabase}
+            setPiecesEntries={setPiecesData.entries}
+            ratings={ratings}
+            homeAdvantage={homeAdvantage}
+            isWatched={isPlayerWatched(sheet.name, sheet.teamCode)}
+            onToggleWatch={() => toggleWatchlistPlayer(sheet)}
+            onGoToTeamPlanner={() => { closeSheet(); navigateToTab('teamplanner'); }}
+            onOpenClub={openClubSheet}
+          />
+        </Suspense>
+      )}
+
+      {sheet?.kind === 'club' && (
+        <Suspense fallback={null}>
+          <ClubSheet
+            t={t}
+            clubCode={sheet.code}
+            onClose={closeSheet}
+            playerDatabase={playerDatabase}
+            setPiecesEntries={setPiecesData.entries}
+            ratings={ratings}
+            homeAdvantage={homeAdvantage}
+            onOpenPlayer={openPlayerSheet}
+          />
+        </Suspense>
+      )}
+
       {showInfo && (
         <div onClick={() => setShowInfo(false)} style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex',
@@ -2245,9 +2569,10 @@ export default function FDRTool() {
         </div>
       )}
 
-      {/* Undo-melding na het verwijderen van een watch-list-speler. Verschijnt onderaan (binnen
-          duimbereik op mobiel) en verdwijnt vanzelf na 8 seconden. */}
-      {recentlyRemovedPlayer && (
+      {/* Melding na een watch-list-wijziging. Verschijnt onderaan (binnen duimbereik op mobiel) en
+          verdwijnt vanzelf na 8 seconden. "Ongedaan maken" hoort enkel bij een verwijdering: een
+          toevoeging draai je gewoon terug door de ster nog eens aan te tikken. */}
+      {watchlistNotice && (
         <div role="status" aria-live="polite" style={{
           position: 'fixed', left: '50%', bottom: '20px', transform: 'translateX(-50%)',
           zIndex: 60, width: 'calc(100% - 40px)', maxWidth: '360px',
@@ -2257,22 +2582,25 @@ export default function FDRTool() {
           fontFamily: "'Inter', sans-serif"
         }}>
           <span style={{ margin: 0, fontSize: '13px', lineHeight: 1.4, flex: 1, minWidth: 0 }}>
-            <strong style={{ color: '#FFFFFF' }}>{recentlyRemovedPlayer.player.name}</strong> {t('undo.removedSuffix')}
+            <strong style={{ color: '#FFFFFF' }}>{watchlistNotice.player.name}</strong>{' '}
+            {watchlistNotice.kind === 'removed' ? t('undo.removedSuffix') : t('watchlist.addedSuffix')}
           </span>
+          {watchlistNotice.kind === 'removed' && (
+            <button
+              onClick={handleUndoRemoveWatchlistPlayer}
+              className="fdr-touch-target"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '6px', flexShrink: 0,
+                background: 'transparent', color: '#4ECDC4', border: '1px solid #4ECDC4',
+                borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px',
+                fontFamily: 'inherit', cursor: 'pointer'
+              }}
+            >
+              <Undo2 size={14} aria-hidden="true" /> {t('undo.action')}
+            </button>
+          )}
           <button
-            onClick={handleUndoRemoveWatchlistPlayer}
-            className="fdr-touch-target"
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: '6px', flexShrink: 0,
-              background: 'transparent', color: '#4ECDC4', border: '1px solid #4ECDC4',
-              borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px',
-              fontFamily: 'inherit', cursor: 'pointer'
-            }}
-          >
-            <Undo2 size={14} aria-hidden="true" /> {t('undo.action')}
-          </button>
-          <button
-            onClick={() => setRecentlyRemovedPlayer(null)}
+            onClick={() => setWatchlistNotice(null)}
             aria-label={t('undo.closeAria')}
             className="fdr-icon-btn"
             style={{ background: 'transparent', border: 'none', color: COLORS.textBody, cursor: 'pointer', flexShrink: 0, padding: 0, display: 'inline-flex' }}

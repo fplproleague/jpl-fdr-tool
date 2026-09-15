@@ -65,7 +65,7 @@ function StaleWarning({ t }) {
   );
 }
 
-export default function PredictedLineupsTab({ t }) {
+export default function PredictedLineupsTab({ t, onOpenPlayer, onOpenClub }) {
   // TEAMS-volgorde (canoniek, alfabetisch op code) i.p.v. data-invoervolgorde: nu dat niet-spelende
   // clubs (zonder eigen entry in PREDICTED_LINEUPS) ertussen gemengd moeten worden, geeft dit een
   // voorspelbare, stabiele kiezer-volgorde voor alle clubs samen i.p.v. twee losse groepjes.
@@ -266,6 +266,10 @@ export default function PredictedLineupsTab({ t }) {
               opponent={opponent}
               formationLabel={formationLabel}
               gwLabel={t('predictedLineups.pitchGwLabel', { gw: PREDICTED_LINEUPS_GW })}
+              onViewPlayer={onOpenPlayer}
+              viewPlayerLabel={name => t('playerSheet.openAria', { name })}
+              onViewClub={onOpenClub}
+              viewClubLabel={clubName => t('clubSheet.openAria', { club: clubName })}
               slots={lineup.slots}
               activeSlotIndex={null}
               onSlotClick={noop}

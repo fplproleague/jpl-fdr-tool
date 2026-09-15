@@ -10,6 +10,11 @@
     { "source": "/kaarten", "destination": "/kaarten.html" },
     { "source": "/price-changes", "destination": "/price-changes.html" },
 
+    { "source": "/speler/:slug", "destination": "/speler/:slug.html" },
+    { "source": "/club/:code", "destination": "/club/:code.html" },
+    { "source": "/fr/speler/:slug", "destination": "/fr/speler/:slug.html" },
+    { "source": "/fr/club/:code", "destination": "/fr/club/:code.html" },
+
     { "source": "/fr", "destination": "/fr/fdr.html" },
     { "source": "/fr/:tool", "destination": "/fr/:tool.html" }
   ]

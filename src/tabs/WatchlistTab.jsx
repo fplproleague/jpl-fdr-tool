@@ -10,7 +10,7 @@ import { MiniFixtureBadge } from '../components/MiniFixtureBadge';
 import { PlayerSearchInput } from '../components/PlayerSearchInput';
 
 export default function WatchlistTab({
-  t,
+  t, onOpenPlayer,
   ratings, homeAdvantage,
   watchlist, newPlayerName, setNewPlayerName, newPlayerTeam, setNewPlayerTeam, newPlayerPrice, setNewPlayerPrice,
   handleAddWatchlistPlayer, handleRemoveWatchlistPlayer,
@@ -147,7 +147,26 @@ export default function WatchlistTab({
                         onError={(e) => { e.target.style.display = 'none'; }}
                       />
                       <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ color: '#FFF', fontWeight: 700, fontSize: '14px', lineHeight: 1.25 }}>{player.name}</div>
+                        {/* Enkel de naam is de knop, niet de hele kaart: die bevat al een
+                            verwijder-knop, en een knop in een knop mag niet. */}
+                        {onOpenPlayer ? (
+                          <button
+                            type="button"
+                            onClick={() => onOpenPlayer(player.name, player.teamCode)}
+                            aria-label={t('playerSheet.openAria', { name: player.name })}
+                            style={{
+                              display: 'block', textAlign: 'left', width: '100%',
+                              background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                              color: '#FFF', fontWeight: 700, fontSize: '14px', lineHeight: 1.25,
+                              fontFamily: 'inherit', textDecoration: 'underline',
+                              textDecorationColor: 'rgba(78,205,196,0.5)', textUnderlineOffset: '3px',
+                            }}
+                          >
+                            {player.name}
+                          </button>
+                        ) : (
+                          <div style={{ color: '#FFF', fontWeight: 700, fontSize: '14px', lineHeight: 1.25 }}>{player.name}</div>
+                        )}
                         <div style={{ color: COLORS.textMuted, fontSize: '11px', marginTop: '1px' }}>{team?.name ?? player.teamCode}</div>
                       </div>
                       {player.price != null && (
