@@ -20,6 +20,9 @@ export function RankingRow({ rank, clubCode, player, subtitle, value, valueSub, 
     <Wrapper
       type={onClick ? 'button' : undefined}
       onClick={onClick}
+      // Enkel een klikbare rij krijgt de hover-/actief-stijl (zie .fdr-ranking-row in FDRTool.jsx):
+      // een rij die nergens heen leidt mag ook niet doen alsof.
+      className={onClick ? 'fdr-ranking-row' : undefined}
       style={{
         background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
         borderRadius: '10px', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '12px',

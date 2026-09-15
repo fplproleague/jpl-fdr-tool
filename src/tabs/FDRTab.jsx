@@ -546,7 +546,11 @@ export default function FDRTab({
             const selected = compareTeams.includes(team.code);
             const disabled = !selected && compareTeams.length >= 5;
             return (
-              <button key={team.code} onClick={() => toggleCompareTeam(team.code)} disabled={disabled} style={{
+              // aria-pressed maakt voor een screenreader het verschil tussen "geselecteerd" en
+              // "niet geselecteerd" hoorbaar — dat zat tot nu toe enkel in de achtergrondkleur — en
+              // is meteen de haak waarmee .fdr-club-chip een al gekozen chip met rust laat.
+              <button key={team.code} onClick={() => toggleCompareTeam(team.code)} disabled={disabled}
+                className="fdr-club-chip" aria-pressed={selected} style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
                 background: selected ? '#4ECDC4' : 'rgba(255,255,255,0.04)',
                 color: selected ? '#0B2E1B' : disabled ? COLORS.textDisabled : '#FFF',

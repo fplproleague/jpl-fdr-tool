@@ -1389,6 +1389,68 @@ export default function FDRTool() {
           border-radius: 4px;
         }
 
+        /* --- Interactielaag -------------------------------------------------------------
+           Tot hiertoe had de site precies twee hover-regels, allebei op .fdr-footer-link, terwijl
+           alleen de FDR-pagina al zo'n 150 aanklikbare elementen telt en Bonuspunten 75 klikbare
+           rijen. Eén gedeeld transitie-vocabulaire, hier op één plek, i.p.v. per component iets
+           eigens te verzinnen.
+
+           Expliciete properties i.p.v. 'all': dat laatste laat de browser bij elke repaint élke
+           eigenschap bewaken, inclusief layout-properties. */
+        .fdr-toolbar-btn, .fdr-icon-btn, .fdr-tab-btn, .fdr-touch-target,
+        .fdr-ranking-row, .fdr-club-chip {
+          transition: background-color .15s ease, border-color .15s ease,
+                      color .15s ease, transform .12s ease;
+        }
+
+        /* Hover ALLEEN achter deze guard. Zonder (hover: hover) blijft een hover-staat op touch
+           "plakken" na een tap, tot de gebruiker ergens anders tikt — precies wat een site stuk
+           laat aanvoelen op mobiel.
+
+           De !important hieronder is geen luiheid maar noodzaak: achtergrond, rand en tekstkleur
+           van deze knoppen komen uit inline style-objecten (zie theme.js en de tab-knoppen
+           verderop in dit bestand), en een inline style wint het altijd van een klasse-regel.
+           Zonder !important zou elke regel hieronder stilletjes niets doen. */
+        @media (hover: hover) and (pointer: fine) {
+          .fdr-toolbar-btn:not(:disabled):hover, .fdr-icon-btn:not(:disabled):hover {
+            background: rgba(255,255,255,.08) !important;
+            border-color: rgba(78,205,196,.55) !important;
+            color: #FFF !important;
+          }
+          .fdr-ranking-row:hover {
+            background: rgba(255,255,255,.07) !important;
+            border-color: rgba(78,205,196,.35) !important;
+          }
+          /* Niet op de actieve tab: die staat al teal onderlijnd, en hem bij hover naar wit
+             trekken leest juist als "niet actief". */
+          .fdr-tab-btn:not([aria-current="page"]):hover {
+            color: #FFF !important;
+            border-bottom-color: rgba(78,205,196,.5) !important;
+          }
+          /* Een al geselecteerde chip houdt bewust zijn eigen staat: de vergelijk-chips in
+             FDRTab zijn dan ingevuld teal met donkere tekst, en daar een halftransparante laag
+             overheen leggen maakt die tekst onleesbaar. */
+          .fdr-club-chip:not(:disabled):not([aria-pressed="true"]):hover {
+            background: rgba(78,205,196,.2) !important;
+          }
+        }
+
+        /* Werkt óók op touch, en dat is hier de eigenlijke winst: een tap gaf tot nu toe geen
+           enkele bevestiging dat er iets geregistreerd was. */
+        .fdr-toolbar-btn:not(:disabled):active, .fdr-icon-btn:not(:disabled):active,
+        .fdr-ranking-row:active, .fdr-club-chip:not(:disabled):active {
+          transform: translateY(1px);
+        }
+
+        /* Alleen de transities, niet de animaties: de enige animatie op de site is de
+           laad-spinner (.fdr-spin), en die stilzetten maakt van een "bezig"-signaal een
+           bevroren icoontje. */
+        @media (prefers-reduced-motion: reduce) {
+          *, *::before, *::after {
+            transition-duration: .01ms !important;
+          }
+        }
+
         /* Touch-doelen. Bewust gekoppeld aan het INVOERAPPARAAT (pointer: coarse) en niet aan de
            schermbreedte: een iPad is 820-1024px breed en kreeg daardoor de volledige desktoplay-out
            mét muisformaat-knopjes, terwijl het wel degelijk een aanraakscherm is. Alles wat als
