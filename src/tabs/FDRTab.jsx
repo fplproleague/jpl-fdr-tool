@@ -10,7 +10,7 @@ import { RotateCcw, TrendingUp, Info, Link2, Download, Check, ArrowUpDown, Setti
 import { TEAMS, TEAMS_ALPHA, FIXTURES, RATING_STYLE, TEAM_FORM, GW_INDEXES, getFixtureInfo } from '../constants';
 import { COLORS, selectStyle, secondaryButtonStyle, primaryButtonStyle, iconButtonStyle } from '../theme';
 import { SectionHeader } from '../components/SectionHeader';
-import { MiniFixtureBadge } from '../components/MiniFixtureBadge';
+import { FixtureStrip } from '../components/FixtureStrip';
 import { PostponedIndicator, TooltipTrigger } from '../components/Tooltip';
 
 // Gedeelde knop-/veldstijlen komen uit ../theme (zie daar waarom). Vroeger stonden selectStyle en
@@ -585,21 +585,18 @@ export default function FDRTab({
                   <div style={{ color: COLORS.textMuted, fontSize: '11px' }}>{t('fdr.avgDifficulty', { value: team.avg.toFixed(1) })}</div>
                 </div>
               </div>
-              <div
+              {/* marginTop van 12 naar 8: het GW-labelregeltje boven de badges brengt zelf al
+                  ~10px mee, dus de rij als geheel houdt zo ongeveer dezelfde hoogte. */}
+              <FixtureStrip
                 className={`fdr-mini-fixture-row${team.fixtures.length > 6 ? ' fdr-mini-fixture-row--compact' : ''}`}
-                style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'flex-start', marginTop: '12px' }}
-              >
-                {team.fixtures.map((f, i) => (
-                  <MiniFixtureBadge
-                    key={i}
-                    teamCode={team.code}
-                    fixture={f}
-                    gwNumber={team.startGW + i}
-                    ratings={ratings}
-                    homeAdvantage={homeAdvantage}
-                  />
-                ))}
-              </div>
+                teamCode={team.code}
+                fixtures={team.fixtures}
+                startGw={team.startGW}
+                ratings={ratings}
+                homeAdvantage={homeAdvantage}
+                gwLabel={t('fdr.gwLabel')}
+                style={{ marginTop: '8px' }}
+              />
             </div>
           ))}
         </div>

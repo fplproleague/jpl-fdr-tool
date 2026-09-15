@@ -9,11 +9,11 @@
 // Deelt zijn frame (dialoog-semantiek, focus, Escape, desktop-modal vs. bottom sheet) met de
 // speler-sheet, zie Sheet.jsx. Vanuit hier een speler openen vervángt deze sheet: FDRTool.jsx houdt
 // één sheet-state bij, dus er kan nooit een stapel ontstaan.
-import { CURRENT_GW, FIXTURES, TEAM_FORM, TEAMS } from '../constants';
+import { CURRENT_GW, FIXTURES, PREDICTED_LINEUPS_GW, TEAM_FORM, TEAMS } from '../constants';
 import { buildBonuspuntenEntries, rankByBonusPoints, SORT_MODES } from '../bonuspunten';
 import { PREDICTED_LINEUPS } from '../predictedLineupsData';
 import { SAFETY_STYLE } from '../predicted-xi/theme';
-import { MiniFixtureBadge } from './MiniFixtureBadge';
+import { FixtureStrip } from './FixtureStrip';
 import Sheet, { SheetSection as Section, sheetEmptyTextStyle as emptyTextStyle } from './Sheet';
 
 // Vijf speeldagen vooruit: genoeg om een run te beoordelen, kort genoeg om naast de rest van het
@@ -68,6 +68,12 @@ export default function ClubSheet({
   const lineupPlayers = (lineup?.slots ?? [])
     .filter(s => s.positionId !== '_unassigned' && s.playerName);
 
+  // De verwachte opstellingen worden pas kort voor de deadline gepubliceerd. Staan ze nog op een
+  // vorige speeldag, dan hoort dit blok er helemaal niet te zijn: een opstelling van vorige week ziet
+  // er precies hetzelfde uit als een actuele, en is voor een fantasymanager schadelijker dan géén
+  // opstelling. Zelfde afweging als de stale-gate op de Verwachte XI's-tab.
+  const isStaleLineup = PREDICTED_LINEUPS_GW < CURRENT_GW;
+
   // Enkel de spelers van deze club, daarna dezelfde rangschikking als de Bonuspunten-tab gebruikt —
   // zo staat hier nooit een andere volgorde dan op die tab zelf.
   const topPlayers = rankByBonusPoints(
@@ -114,18 +120,14 @@ export default function ClubSheet({
     <Sheet titleId={headingId} closeLabel={t('clubSheet.closeAria')} onClose={onClose} header={header}>
       <Section title={t('clubSheet.fixturesHeading')}>
         {upcoming.length > 0 ? (
-          <div className="fdr-mini-fixture-row" style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
-            {upcoming.map((fixture, i) => (
-              <MiniFixtureBadge
-                key={i}
-                teamCode={clubCode}
-                fixture={fixture}
-                gwNumber={CURRENT_GW + i}
-                ratings={ratings}
-                homeAdvantage={homeAdvantage}
-              />
-            ))}
-          </div>
+          <FixtureStrip
+            teamCode={clubCode}
+            fixtures={upcoming}
+            startGw={CURRENT_GW}
+            ratings={ratings}
+            homeAdvantage={homeAdvantage}
+            gwLabel={t('fdr.gwLabel')}
+          />
         ) : <p style={emptyTextStyle}>{t('clubSheet.noData')}</p>}
       </Section>
 
@@ -139,33 +141,35 @@ export default function ClubSheet({
         ) : <p style={emptyTextStyle}>{t('clubSheet.noData')}</p>}
       </Section>
 
-      <Section title={t('clubSheet.lineupHeading')}>
-        {lineupPlayers.length > 0 ? (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-            {lineupPlayers.map((slot, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => onOpenPlayer?.(slot.playerName, slot.playerTeamCode || clubCode)}
-                aria-label={t('playerSheet.openAria', { name: slot.playerName })}
-                disabled={!onOpenPlayer}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '6px',
-                  background: 'rgba(255,255,255,0.05)',
-                  // Zelfde safety-kleur als de kaartrand op het veld, zodat "wie start er zeker"
-                  // hier hetzelfde leest als op de Verwachte XI's-tab.
-                  border: `1px solid ${SAFETY_STYLE[slot.safety]?.border ?? 'rgba(255,255,255,0.12)'}`,
-                  borderRadius: '999px', padding: '4px 10px',
-                  color: '#EDE4F5', fontSize: '11px', fontWeight: 700,
-                  fontFamily: 'inherit', cursor: onOpenPlayer ? 'pointer' : 'default',
-                }}
-              >
-                {slot.playerName}
-              </button>
-            ))}
-          </div>
-        ) : <p style={emptyTextStyle}>{t('clubSheet.noLineup')}</p>}
-      </Section>
+      {!isStaleLineup && (
+        <Section title={t('clubSheet.lineupHeading')}>
+          {lineupPlayers.length > 0 ? (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+              {lineupPlayers.map((slot, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => onOpenPlayer?.(slot.playerName, slot.playerTeamCode || clubCode)}
+                  aria-label={t('playerSheet.openAria', { name: slot.playerName })}
+                  disabled={!onOpenPlayer}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '6px',
+                    background: 'rgba(255,255,255,0.05)',
+                    // Zelfde safety-kleur als de kaartrand op het veld, zodat "wie start er zeker"
+                    // hier hetzelfde leest als op de Verwachte XI's-tab.
+                    border: `1px solid ${SAFETY_STYLE[slot.safety]?.border ?? 'rgba(255,255,255,0.12)'}`,
+                    borderRadius: '999px', padding: '4px 10px',
+                    color: '#EDE4F5', fontSize: '11px', fontWeight: 700,
+                    fontFamily: 'inherit', cursor: onOpenPlayer ? 'pointer' : 'default',
+                  }}
+                >
+                  {slot.playerName}
+                </button>
+              ))}
+            </div>
+          ) : <p style={emptyTextStyle}>{t('clubSheet.noLineup')}</p>}
+        </Section>
+      )}
 
       <Section title={t('clubSheet.topPlayersHeading')}>
         {topPlayers.length > 0 ? (
