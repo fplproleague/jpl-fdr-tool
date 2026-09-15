@@ -5,7 +5,7 @@
 // resetten (open secties, sortering, gekozen GW-ranges, ...) telkens de gebruiker weg- en
 // terugnavigeert.
 
-import { memo } from 'react';
+import React, { memo } from 'react';
 import { RotateCcw, TrendingUp, Info, Link2, Download, Check, ArrowUpDown, Settings2, Grid2x2, Scale } from 'lucide-react';
 import { TEAMS, TEAMS_ALPHA, FIXTURES, RATING_STYLE, TEAM_FORM, GW_INDEXES, getFixtureInfo } from '../constants';
 import { COLORS, selectStyle, secondaryButtonStyle, primaryButtonStyle, iconButtonStyle } from '../theme';
@@ -213,6 +213,7 @@ export default function FDRTab({
   displayedTeams, tableRef,
   rangeStart, setRangeStart, rangeEnd, setRangeEnd, bestRuns,
   compareTeams, toggleCompareTeam,
+  onOpenClub,
 }) {
   return (
     <>
@@ -423,19 +424,36 @@ export default function FDRTab({
                   position: 'sticky', left: 0, background: '#2A1440', whiteSpace: 'nowrap',
                   zIndex: 3, boxShadow: '-4px 0 0 0 #2A1440, 4px 0 0 0 #2A1440'
                 }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  {/* De hele team-cel opent de clubkaart. Logo en code waren tot nu toe decoratie,
+                      terwijl dit precies de plek is waar je je afvraagt hoe die club ervoor staat.
+                      Als knop i.p.v. een klikbaar logo alleen: 20px is een te klein tikdoel. */}
+                  {React.createElement(
+                    onOpenClub ? 'button' : 'span',
+                    {
+                      type: onOpenClub ? 'button' : undefined,
+                      onClick: onOpenClub ? () => onOpenClub(team.code) : undefined,
+                      'aria-label': onOpenClub ? t('clubSheet.openAria', { club: team.name }) : undefined,
+                      className: onOpenClub ? 'fdr-touch-target' : undefined,
+                      style: {
+                        display: 'flex', alignItems: 'center', gap: '6px', width: '100%',
+                        background: 'none', border: 'none', padding: 0, color: 'inherit',
+                        font: 'inherit', fontWeight: 700, textAlign: 'left',
+                        cursor: onOpenClub ? 'pointer' : undefined,
+                      },
+                    },
                     <img
+                      key="logo"
                       src={`/club-logos/${team.code}.webp`}
                       alt=""
                       className="club-logo"
                       style={{ width: '20px', height: '20px', objectFit: 'contain', flexShrink: 0 }}
                       onError={(e) => { e.target.style.display = 'none'; }}
-                    />
-                    <span style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                    />,
+                    <span key="meta" style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
                       <span style={{ lineHeight: '13px' }}>{team.code}</span>
                       <TeamFormBar results={TEAM_FORM[team.code]} />
-                    </span>
-                  </span>
+                    </span>,
+                  )}
                 </td>
 
                 {FIXTURES[team.code].slice(gwHorizonRange.start - 1, gwHorizonRange.end).map((f, i) => {

@@ -8,7 +8,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Loader2, AlertCircle, RotateCcw, Swords, Shield, RefreshCw, Target, Award } from 'lucide-react';
 import { SectionHeader } from '../components/SectionHeader';
-import { RankingRow, watchProps } from '../components/RankingRow';
+import { RankingRow, watchProps, clubProps } from '../components/RankingRow';
 import { PlayerSearchInput } from '../components/PlayerSearchInput';
 import {
   buildBonuspuntenEntries, rankByDuels, rankByDefensiveHeaders, rankByRecoveries, rankByBigChances,
@@ -85,14 +85,14 @@ function RankingSection({ icon, title, sectionKey, isOpen, onToggle, children })
 
 export default function BonuspuntenTab({
   t, playerDatabase, playerDatabaseLoading, playerDatabaseError, fetchPlayerDatabase,
-  toggleWatchlistPlayer, isPlayerWatched, onOpenPlayer,
+  toggleWatchlistPlayer, isPlayerWatched, onOpenPlayer, onOpenClub,
 }) {
   const perMatchUnit = t('bonuspunten.perMatchUnit');
   // Alle vijf de rangschikkingen krijgen dezelfde ster; één helper i.p.v. vijf keer hetzelfde.
-  const starProps = entry => watchProps(
-    { name: entry.player, teamCode: entry.clubCode },
-    { isPlayerWatched, toggleWatchlistPlayer, t },
-  );
+  const starProps = entry => ({
+    ...watchProps({ name: entry.player, teamCode: entry.clubCode }, { isPlayerWatched, toggleWatchlistPlayer, t }),
+    ...clubProps({ clubCode: entry.clubCode, clubName: entry.clubName }, { onOpenClub, t }),
+  });
   const [openSections, setOpenSections] = useState({
     duels: true, defensiveHeaders: true, recoveries: true, bigChances: true, bonusPoints: true,
   });

@@ -316,6 +316,17 @@ const STRINGS = {
     'playerSheet.noData': 'Nog geen gegevens.',
     'playerSheet.openAria': 'Bekijk de spelerskaart van {{name}}',
 
+    // --- Club-sheet (components/ClubSheet.jsx) — opent vanuit een clublogo. ---
+    'clubSheet.closeAria': 'Clubkaart sluiten',
+    'clubSheet.openAria': 'Bekijk de clubkaart van {{club}}',
+    'clubSheet.fixturesHeading': 'Volgende wedstrijden',
+    'clubSheet.setPiecesHeading': 'Standaardsituaties',
+    'clubSheet.lineupHeading': 'Verwachte opstelling',
+    'clubSheet.topPlayersHeading': 'Meeste bonuspunten',
+    'clubSheet.formAria': 'Recente vorm: {{results}}',
+    'clubSheet.noLineup': 'Nog geen verwachte opstelling voor deze club.',
+    'clubSheet.noData': 'Nog geen gegevens.',
+
     // --- Set Pieces-tab ---
     'setpieces.legend.penalty': 'Penalty',
     'setpieces.legend.corner': 'Corner',
@@ -612,6 +623,17 @@ const STRINGS = {
     'playerSheet.cardsUntilSuspension': 'encore {{count}} avant suspension',
     'playerSheet.noData': 'Pas encore de données.',
     'playerSheet.openAria': 'Voir la fiche de {{name}}',
+
+    // --- Fiche club (components/ClubSheet.jsx) ---
+    'clubSheet.closeAria': 'Fermer la fiche du club',
+    'clubSheet.openAria': 'Voir la fiche du club {{club}}',
+    'clubSheet.fixturesHeading': 'Prochains matchs',
+    'clubSheet.setPiecesHeading': 'Coups de pied arrêtés',
+    'clubSheet.lineupHeading': 'Composition probable',
+    'clubSheet.topPlayersHeading': 'Plus de points bonus',
+    'clubSheet.formAria': 'Forme récente : {{results}}',
+    'clubSheet.noLineup': "Pas encore de composition probable pour ce club.",
+    'clubSheet.noData': 'Pas encore de données.',
 
     // --- Onglet Coups de pied arrêtés ---
     'setpieces.legend.penalty': 'Penalty',

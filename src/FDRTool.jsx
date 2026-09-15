@@ -31,6 +31,7 @@ import FDRTab from './tabs/FDRTab';
 // Eigen chunk: de sheet wordt vanuit meerdere lazy tabs gebruikt, dus zonder aparte lazy-import
 // zou hij in de hoofdbundel belanden en de FDR-tab (die 'm niet nodig heeft) mee laten groeien.
 const PlayerSheet = lazy(() => import('./components/PlayerSheet'));
+const ClubSheet = lazy(() => import('./components/ClubSheet'));
 const WatchlistTab = lazy(() => import('./tabs/WatchlistTab'));
 const TeamPlannerTab = lazy(() => import('./tabs/TeamPlannerTab'));
 const PredictedLineupsTab = lazy(() => import('./tabs/PredictedLineupsTab'));
@@ -667,10 +668,10 @@ export default function FDRTool() {
   const [setPiecesLoading, setSetPiecesLoading] = useState(true);
   const [setPiecesError, setSetPiecesError] = useState(null);
 
-  // De speler waarvan de sheet openstaat ({ name, teamCode }), of null. Eén state voor de hele app:
-  // daardoor kan een sheet die vanuit een sheet opent de vorige enkel vervángen, nooit erbovenop
-  // komen — op een telefoon zijn drie lagen diep onbruikbaar.
-  const [sheetPlayer, setSheetPlayer] = useState(null);
+  // Het detailpaneel dat openstaat, of null. Eén state voor speler én club: daardoor kan een sheet die
+  // vanuit een sheet opent de vorige enkel vervángen, nooit erbovenop komen — op een telefoon zijn drie
+  // lagen diep onbruikbaar. Vorm: { kind: 'player', name, teamCode } of { kind: 'club', code }.
+  const [sheet, setSheet] = useState(null);
 
   // isCustom volgt exact of ratings/homeAdvantage hun gedeelde DEFAULT-referentie zijn
   // (zie updateRating/toggleHomeAdvantage/handleReset).
@@ -1193,8 +1194,17 @@ export default function FDRTool() {
   // Kaarten, naam in Set Pieces, watch-list-item, Team Planner-slot, speler op het veld).
   const openPlayerSheet = (name, teamCode) => {
     if (!name || !teamCode) return;
-    setSheetPlayer({ name, teamCode });
+    setSheet({ kind: 'player', name, teamCode });
   };
+
+  // Idem voor de clubkaart: elk clublogo in de hoofdtabel, elke kaart in Set Pieces, de clubnaam op het
+  // veld en de clubnaam in een spelerskaart komen hier uit.
+  const openClubSheet = (code) => {
+    if (!code) return;
+    setSheet({ kind: 'club', code });
+  };
+
+  const closeSheet = () => setSheet(null);
 
   const handleUndoRemoveWatchlistPlayer = () => {
     if (watchlistNotice?.kind !== 'removed') return;
@@ -2267,6 +2277,7 @@ export default function FDRTool() {
             bestRuns={bestRuns}
             compareTeams={compareTeams}
             toggleCompareTeam={toggleCompareTeam}
+            onOpenClub={openClubSheet}
           />
         )}
 
@@ -2337,7 +2348,7 @@ export default function FDRTool() {
 
         {activeTab === 'predictedlineups' && (
           <Suspense fallback={<TabLoading text={t('shared.loading')} />}>
-            <PredictedLineupsTab t={t} onOpenPlayer={openPlayerSheet} />
+            <PredictedLineupsTab t={t} onOpenPlayer={openPlayerSheet} onOpenClub={openClubSheet} />
           </Suspense>
         )}
 
@@ -2352,6 +2363,7 @@ export default function FDRTool() {
               toggleWatchlistPlayer={toggleWatchlistPlayer}
               isPlayerWatched={isPlayerWatched}
               onOpenPlayer={openPlayerSheet}
+              onOpenClub={openClubSheet}
             />
           </Suspense>
         )}
@@ -2366,6 +2378,7 @@ export default function FDRTool() {
               error={setPiecesError}
               retry={fetchSetPieces}
               onOpenPlayer={openPlayerSheet}
+              onOpenClub={openClubSheet}
               playerDatabase={playerDatabase}
             />
           </Suspense>
@@ -2382,6 +2395,7 @@ export default function FDRTool() {
               toggleWatchlistPlayer={toggleWatchlistPlayer}
               isPlayerWatched={isPlayerWatched}
               onOpenPlayer={openPlayerSheet}
+              onOpenClub={openClubSheet}
             />
           </Suspense>
         )}
@@ -2418,19 +2432,35 @@ export default function FDRTool() {
         </footer>
       </div>
 
-      {sheetPlayer && (
+      {sheet?.kind === 'player' && (
         <Suspense fallback={null}>
           <PlayerSheet
             t={t}
-            player={sheetPlayer}
-            onClose={() => setSheetPlayer(null)}
+            player={sheet}
+            onClose={closeSheet}
             playerDatabase={playerDatabase}
             setPiecesEntries={setPiecesData.entries}
             ratings={ratings}
             homeAdvantage={homeAdvantage}
-            isWatched={isPlayerWatched(sheetPlayer.name, sheetPlayer.teamCode)}
-            onToggleWatch={() => toggleWatchlistPlayer(sheetPlayer)}
-            onGoToTeamPlanner={() => { setSheetPlayer(null); navigateToTab('teamplanner'); }}
+            isWatched={isPlayerWatched(sheet.name, sheet.teamCode)}
+            onToggleWatch={() => toggleWatchlistPlayer(sheet)}
+            onGoToTeamPlanner={() => { closeSheet(); navigateToTab('teamplanner'); }}
+            onOpenClub={openClubSheet}
+          />
+        </Suspense>
+      )}
+
+      {sheet?.kind === 'club' && (
+        <Suspense fallback={null}>
+          <ClubSheet
+            t={t}
+            clubCode={sheet.code}
+            onClose={closeSheet}
+            playerDatabase={playerDatabase}
+            setPiecesEntries={setPiecesData.entries}
+            ratings={ratings}
+            homeAdvantage={homeAdvantage}
+            onOpenPlayer={openPlayerSheet}
           />
         </Suspense>
       )}
