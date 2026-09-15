@@ -488,9 +488,12 @@ export default function FDRTool() {
   const currentDeadline = useMemo(() => getGwDeadlineDate(CURRENT_GW), []);
   const deadlineRemaining = useMemo(() => getTimeRemaining(currentDeadline, now), [currentDeadline, now]);
 
-  // Laatst verwijderde watch-list-speler, bewaard om "ongedaan maken" mogelijk te maken (zie
-  // handleRemoveWatchlistPlayer verderop). null = geen actieve undo-melding.
-  const [recentlyRemovedPlayer, setRecentlyRemovedPlayer] = useState(null);
+  // Laatste watch-list-wijziging, als één melding onderaan het scherm. Bij het verwijderen bewaart
+  // dit ook de oorspronkelijke positie, zodat "ongedaan maken" de speler terugzet waar hij stond
+  // (zie handleRemoveWatchlistPlayer verderop). Bewust één state en niet twee: zo kan er nooit een
+  // "toegevoegd"- en een "verwijderd"-melding tegelijk over elkaar heen staan.
+  // Vorm: { kind: 'removed', player, index } of { kind: 'added', player }. null = geen melding.
+  const [watchlistNotice, setWatchlistNotice] = useState(null);
 
   // Houdt bij of de tabbalk helemaal naar rechts gescrold staat, zodat de uitfade-mask (zie de
   // .fdr-tabs-regels in de <style> hieronder) verdwijnt zodra er niets meer te ontdekken valt.
@@ -1021,25 +1024,51 @@ export default function FDRTool() {
   // undo enkel de zeldzame vergissing opvangt. De verwijderde speler wordt mét zijn oorspronkelijke
   // positie bewaard, zodat herstellen 'm terugzet waar hij stond i.p.v. onderaan de lijst.
   const undoTimerRef = useRef(null);
-  const handleRemoveWatchlistPlayer = (id) => {
-    setWatchlist(prev => {
-      const index = prev.findIndex(p => p.id === id);
-      if (index === -1) return prev;
-      setRecentlyRemovedPlayer({ player: prev[index], index });
-      return prev.filter(p => p.id !== id);
-    });
+  const showWatchlistNotice = (notice) => {
+    setWatchlistNotice(notice);
     if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
-    undoTimerRef.current = setTimeout(() => setRecentlyRemovedPlayer(null), 8000);
+    undoTimerRef.current = setTimeout(() => setWatchlistNotice(null), 8000);
   };
 
+  const handleRemoveWatchlistPlayer = (id) => {
+    const index = watchlist.findIndex(p => p.id === id);
+    if (index === -1) return;
+    setWatchlist(prev => prev.filter(p => p.id !== id));
+    showWatchlistNotice({ kind: 'removed', player: watchlist[index], index });
+  };
+
+  // Ster op een spelersrij in Bonuspunten/Kaarten: dezelfde watch list als de Watchlist-tab, maar
+  // bereikbaar tíjdens het browsen i.p.v. via het formulier op die aparte tab. Matcht op naam +
+  // clubcode, want de rangschikkingen kennen de watch-list-id niet — die bestaat pas na toevoegen.
+  // De prijs wordt hier opgezocht i.p.v. door de tab meegegeven: dan hoeft de aanroeper enkel te
+  // weten wie hij aanklikt, en blijft de spelersdatabank de enige bron voor de prijs.
+  const toggleWatchlistPlayer = ({ name, teamCode }) => {
+    if (!name || !teamCode) return;
+    const index = watchlist.findIndex(p => p.name === name && p.teamCode === teamCode);
+    if (index !== -1) {
+      // Bewust hetzelfde undo-pad als verwijderen op de Watchlist-tab: een ster is minstens even
+      // makkelijk per ongeluk aangetikt als een prullenbakje.
+      setWatchlist(prev => prev.filter((_, i) => i !== index));
+      showWatchlistNotice({ kind: 'removed', player: watchlist[index], index });
+      return;
+    }
+    const price = playerDatabase.find(p => p.name === name && p.teamCode === teamCode)?.price ?? null;
+    const added = { id: createUniqueId(), name, teamCode, price };
+    setWatchlist(prev => [...prev, added]);
+    showWatchlistNotice({ kind: 'added', player: added });
+  };
+
+  const isPlayerWatched = (name, teamCode) =>
+    watchlist.some(p => p.name === name && p.teamCode === teamCode);
+
   const handleUndoRemoveWatchlistPlayer = () => {
-    if (!recentlyRemovedPlayer) return;
+    if (watchlistNotice?.kind !== 'removed') return;
     setWatchlist(prev => {
       const restored = [...prev];
-      restored.splice(Math.min(recentlyRemovedPlayer.index, restored.length), 0, recentlyRemovedPlayer.player);
+      restored.splice(Math.min(watchlistNotice.index, restored.length), 0, watchlistNotice.player);
       return restored;
     });
-    setRecentlyRemovedPlayer(null);
+    setWatchlistNotice(null);
     if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
   };
 
@@ -2163,6 +2192,8 @@ export default function FDRTool() {
               playerDatabaseLoading={playerDatabaseLoading}
               playerDatabaseError={playerDatabaseError}
               fetchPlayerDatabase={fetchPlayerDatabase}
+              toggleWatchlistPlayer={toggleWatchlistPlayer}
+              isPlayerWatched={isPlayerWatched}
             />
           </Suspense>
         )}
@@ -2181,6 +2212,8 @@ export default function FDRTool() {
               playerDatabaseLoading={playerDatabaseLoading}
               playerDatabaseError={playerDatabaseError}
               fetchPlayerDatabase={fetchPlayerDatabase}
+              toggleWatchlistPlayer={toggleWatchlistPlayer}
+              isPlayerWatched={isPlayerWatched}
             />
           </Suspense>
         )}
@@ -2245,9 +2278,10 @@ export default function FDRTool() {
         </div>
       )}
 
-      {/* Undo-melding na het verwijderen van een watch-list-speler. Verschijnt onderaan (binnen
-          duimbereik op mobiel) en verdwijnt vanzelf na 8 seconden. */}
-      {recentlyRemovedPlayer && (
+      {/* Melding na een watch-list-wijziging. Verschijnt onderaan (binnen duimbereik op mobiel) en
+          verdwijnt vanzelf na 8 seconden. "Ongedaan maken" hoort enkel bij een verwijdering: een
+          toevoeging draai je gewoon terug door de ster nog eens aan te tikken. */}
+      {watchlistNotice && (
         <div role="status" aria-live="polite" style={{
           position: 'fixed', left: '50%', bottom: '20px', transform: 'translateX(-50%)',
           zIndex: 60, width: 'calc(100% - 40px)', maxWidth: '360px',
@@ -2257,22 +2291,25 @@ export default function FDRTool() {
           fontFamily: "'Inter', sans-serif"
         }}>
           <span style={{ margin: 0, fontSize: '13px', lineHeight: 1.4, flex: 1, minWidth: 0 }}>
-            <strong style={{ color: '#FFFFFF' }}>{recentlyRemovedPlayer.player.name}</strong> {t('undo.removedSuffix')}
+            <strong style={{ color: '#FFFFFF' }}>{watchlistNotice.player.name}</strong>{' '}
+            {watchlistNotice.kind === 'removed' ? t('undo.removedSuffix') : t('watchlist.addedSuffix')}
           </span>
+          {watchlistNotice.kind === 'removed' && (
+            <button
+              onClick={handleUndoRemoveWatchlistPlayer}
+              className="fdr-touch-target"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '6px', flexShrink: 0,
+                background: 'transparent', color: '#4ECDC4', border: '1px solid #4ECDC4',
+                borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px',
+                fontFamily: 'inherit', cursor: 'pointer'
+              }}
+            >
+              <Undo2 size={14} aria-hidden="true" /> {t('undo.action')}
+            </button>
+          )}
           <button
-            onClick={handleUndoRemoveWatchlistPlayer}
-            className="fdr-touch-target"
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: '6px', flexShrink: 0,
-              background: 'transparent', color: '#4ECDC4', border: '1px solid #4ECDC4',
-              borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px',
-              fontFamily: 'inherit', cursor: 'pointer'
-            }}
-          >
-            <Undo2 size={14} aria-hidden="true" /> {t('undo.action')}
-          </button>
-          <button
-            onClick={() => setRecentlyRemovedPlayer(null)}
+            onClick={() => setWatchlistNotice(null)}
             aria-label={t('undo.closeAria')}
             className="fdr-icon-btn"
             style={{ background: 'transparent', border: 'none', color: COLORS.textBody, cursor: 'pointer', flexShrink: 0, padding: 0, display: 'inline-flex' }}

@@ -8,7 +8,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2, AlertCircle, RotateCcw, Swords, Shield, RefreshCw, Target, Award, X } from 'lucide-react';
 import { SectionHeader } from '../components/SectionHeader';
-import { RankingRow } from '../components/RankingRow';
+import { RankingRow, watchProps } from '../components/RankingRow';
 import { PlayerSearchInput } from '../components/PlayerSearchInput';
 import {
   buildBonuspuntenEntries, rankByDuels, rankByDefensiveHeaders, rankByRecoveries, rankByBigChances,
@@ -177,8 +177,16 @@ function PlayerBonusCard({ t, entry, onDismiss }) {
   );
 }
 
-export default function BonuspuntenTab({ t, playerDatabase, playerDatabaseLoading, playerDatabaseError, fetchPlayerDatabase }) {
+export default function BonuspuntenTab({
+  t, playerDatabase, playerDatabaseLoading, playerDatabaseError, fetchPlayerDatabase,
+  toggleWatchlistPlayer, isPlayerWatched,
+}) {
   const perMatchUnit = t('bonuspunten.perMatchUnit');
+  // Alle vijf de rangschikkingen krijgen dezelfde ster; één helper i.p.v. vijf keer hetzelfde.
+  const starProps = entry => watchProps(
+    { name: entry.player, teamCode: entry.clubCode },
+    { isPlayerWatched, toggleWatchlistPlayer, t },
+  );
   const [openSections, setOpenSections] = useState({
     duels: true, defensiveHeaders: true, recoveries: true, bigChances: true, bonusPoints: true,
   });
@@ -324,6 +332,7 @@ export default function BonuspuntenTab({ t, playerDatabase, playerDatabaseLoadin
                 {...rankingValues(entry.duelDiff, entry.games, { showSign: true })}
                 qualifies={BONUS_CRITERIA.duels(entry)}
                 onClick={() => handleSelectFromRanking(entry)}
+                {...starProps(entry)}
               />
             ))}
           </RankingSection>
@@ -339,6 +348,7 @@ export default function BonuspuntenTab({ t, playerDatabase, playerDatabaseLoadin
                 {...rankingValues(entry.defensiveHeaders, entry.games)}
                 qualifies={BONUS_CRITERIA.defensiveHeaders(entry)}
                 onClick={() => handleSelectFromRanking(entry)}
+                {...starProps(entry)}
               />
             ))}
           </RankingSection>
@@ -354,6 +364,7 @@ export default function BonuspuntenTab({ t, playerDatabase, playerDatabaseLoadin
                 {...rankingValues(entry.recoveries, entry.games)}
                 qualifies={BONUS_CRITERIA.recoveries(entry)}
                 onClick={() => handleSelectFromRanking(entry)}
+                {...starProps(entry)}
               />
             ))}
           </RankingSection>
@@ -369,6 +380,7 @@ export default function BonuspuntenTab({ t, playerDatabase, playerDatabaseLoadin
                 {...rankingValues(entry.bigChances, entry.games)}
                 qualifies={BONUS_CRITERIA.bigChances(entry)}
                 onClick={() => handleSelectFromRanking(entry)}
+                {...starProps(entry)}
               />
             ))}
           </RankingSection>
@@ -385,6 +397,7 @@ export default function BonuspuntenTab({ t, playerDatabase, playerDatabaseLoadin
                   {...rankingValues(entry.bonusPoints, entry.games)}
                   qualifies
                   onClick={() => handleSelectFromRanking(entry)}
+                  {...starProps(entry)}
                 />
               ))
             ) : (

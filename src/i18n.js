@@ -151,6 +151,10 @@ const STRINGS = {
     'watchlist.myWatchlist': 'Mijn watchlist',
     'watchlist.empty': 'Je watchlist is nog leeg. Voeg spelers toe die je in de gaten wil houden.',
     'watchlist.removeAria': 'Verwijder {{name}} uit je watchlist',
+    // Ster op een rij in Bonuspunten/Kaarten. De bevestiging is enkel het achtervoegsel: de naam zelf
+    // staat al vetgedrukt in een eigen <strong> ervoor (zelfde opzet als undo.removedSuffix).
+    'watchlist.addAria': 'Voeg {{name}} toe aan je watchlist',
+    'watchlist.addedSuffix': 'toegevoegd aan je watchlist.',
 
     // --- Predicted Lineups ---
     'predictedLineups.introEmpty': 'Voorspelde opstellingen voor GW{{gw}}, samengesteld door @5YSiebee.',
@@ -428,6 +432,8 @@ const STRINGS = {
     'watchlist.myWatchlist': 'Ma watchlist',
     'watchlist.empty': 'Votre watchlist est encore vide. Ajoutez des joueurs que vous voulez suivre.',
     'watchlist.removeAria': 'Retirer {{name}} de votre watchlist',
+    'watchlist.addAria': 'Ajouter {{name}} à votre watchlist',
+    'watchlist.addedSuffix': 'ajouté à votre watchlist.',
 
     'predictedLineups.introEmpty': 'Compositions probables pour la J{{gw}}, réalisées par @5YSiebee.',
     'predictedLineups.intro': 'Compositions probables pour la J{{gw}}, réalisées par @5YSiebee. Choisissez un club pour voir sa composition probable.',
