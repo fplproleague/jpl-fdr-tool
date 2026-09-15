@@ -146,18 +146,49 @@ const HEADER_CHIP_HEIGHT = '28px';
 // waren daardoor het enige stuk van de Franse tabel dat Nederlands bleef. t('fdr.gwLabel') levert al
 // "GW"/"J", dus dezelfde bron als de selector eronder. scope="col" + aria-label maken van elke kop
 // bovendien een echte, uitgeschreven kolomkop ("Gameweek 7" i.p.v. "GW7") voor screenreaders.
-function buildGwHeaderCells(t) {
+// Zonder onSortGw levert dit de gewone, niet-klikbare koppen (de vergelijk-tabel heeft geen eigen
+// sortering). Mét onSortGw wordt elke kop een knop die op die ene speeldag sorteert; aria-sort vertelt
+// een screenreader op welke kolom de tabel op dit moment geordend staat.
+function buildGwHeaderCells(t, { sortedGw = null, onSortGw = null } = {}) {
   const prefix = t('fdr.gwLabel');
-  return GW_INDEXES.map(i => (
-    <th
-      key={i}
-      scope="col"
-      aria-label={t('fdr.gwColumnAria', { gw: i + 1 })}
-      style={{ color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', padding: '6px 4px', minWidth: '58px' }}
-    >
-      {prefix}{i + 1}
-    </th>
-  ));
+  return GW_INDEXES.map(i => {
+    const gw = i + 1;
+    const isSorted = sortedGw === gw;
+    const baseStyle = { color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', padding: '6px 4px', minWidth: '58px' };
+    if (!onSortGw) {
+      return (
+        <th key={i} scope="col" aria-label={t('fdr.gwColumnAria', { gw })} style={baseStyle}>
+          {prefix}{gw}
+        </th>
+      );
+    }
+    return (
+      <th
+        key={i}
+        scope="col"
+        aria-sort={isSorted ? 'ascending' : 'none'}
+        style={{ ...baseStyle, padding: 0 }}
+      >
+        <button
+          type="button"
+          onClick={() => onSortGw(gw)}
+          aria-label={t('fdr.sortByGwAria', { gw })}
+          aria-pressed={isSorted}
+          className="fdr-touch-target"
+          style={{
+            width: '100%', minHeight: '32px', padding: '6px 4px',
+            background: isSorted ? 'rgba(78,205,196,0.15)' : 'transparent',
+            color: isSorted ? '#4ECDC4' : '#C9B8E0',
+            border: isSorted ? '1px solid rgba(78,205,196,0.55)' : '1px solid transparent',
+            borderRadius: '6px', font: 'inherit', fontSize: '11px', fontWeight: 700,
+            textTransform: 'uppercase', cursor: 'pointer',
+          }}
+        >
+          {prefix}{gw}
+        </button>
+      </th>
+    );
+  });
 }
 
 function loadStoredRatings() {
@@ -571,7 +602,26 @@ export default function FDRTool() {
     teamPlannerRoster: true,
     teamPlannerTransfers: false,
   });
-  const [sortByDifficulty, setSortByDifficulty] = useState(false);
+  // Sortering van de hoofdtabel. Vroeger een simpele boolean ("op gemiddelde run of niet"); nu kan er
+  // ook op één kolom gesorteerd worden, wat een derde toestand vereist i.p.v. aan/uit.
+  // mode: 'none' (TEAMS-volgorde) | 'avg' (gemiddelde over de horizon) | 'gw' (één speeldag).
+  const [sortBy, setSortBy] = useState({ mode: 'none', gw: null });
+
+  // Welke moeilijkheidsgraden opgelicht blijven; leeg = geen filter, alles even zichtbaar. Bewust
+  // dimmen i.p.v. verbergen: een rij waar plots cellen uit verdwijnen is niet meer te lezen als tabel.
+  const [highlightedRatings, setHighlightedRatings] = useState([]);
+  const toggleSortByAverage = () =>
+    setSortBy(prev => (prev.mode === 'avg' ? { mode: 'none', gw: null } : { mode: 'avg', gw: null }));
+
+  // Nogmaals op dezelfde kolom klikken zet de sortering weer uit — anders is er geen weg terug naar de
+  // gewone volgorde zonder de andere knop te gebruiken.
+  const toggleSortByGw = (gw) =>
+    setSortBy(prev => (prev.mode === 'gw' && prev.gw === gw ? { mode: 'none', gw: null } : { mode: 'gw', gw }));
+
+  const toggleRatingFilter = (rating) =>
+    setHighlightedRatings(prev => (prev.includes(rating) ? prev.filter(r => r !== rating) : [...prev, rating]));
+
+  const clearRatingFilter = () => setHighlightedRatings([]);
   const [compareTeams, setCompareTeams] = useState([]);
   const tableRef = useRef(null);
 
@@ -801,9 +851,21 @@ export default function FDRTool() {
 
   // Enkel de GW-headers binnen de gekozen horizon — gwHeaderCells zelf blijft ongewijzigd (ook
   // gebruikt door compareGwHeaderCells hieronder, met een eigen, vaste startpunt).
+  // Aparte, sorteerbare set voor de hoofdtabel; gwHeaderCells zelf blijft de gewone, niet-klikbare
+  // versie voor de vergelijk-tabel (die heeft geen eigen sortering).
+  const sortableGwHeaderCells = useMemo(
+    () => buildGwHeaderCells(t, {
+      sortedGw: sortBy.mode === 'gw' ? sortBy.gw : null,
+      onSortGw: toggleSortByGw,
+    }),
+    // toggleSortByGw is een stabiele setState-wrapper; alleen t en sortBy bepalen de uitkomst.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [t, sortBy]
+  );
+
   const visibleGwHeaderCells = useMemo(
-    () => gwHeaderCells.slice(gwHorizonRange.start - 1, gwHorizonRange.end),
-    [gwHeaderCells, gwHorizonRange]
+    () => sortableGwHeaderCells.slice(gwHorizonRange.start - 1, gwHorizonRange.end),
+    [sortableGwHeaderCells, gwHorizonRange]
   );
 
   // "Vergelijk teams" heeft geen eigen horizon-selector: die begint gewoon altijd bij CURRENT_GW en
@@ -842,9 +904,23 @@ export default function FDRTool() {
   }, [ratings, homeAdvantage, gwHorizonRange]);
 
   const displayedTeams = useMemo(() => {
-    if (!sortByDifficulty) return TEAMS;
-    return TEAMS.slice().sort((a, b) => teamAvgDifficulty[a.code] - teamAvgDifficulty[b.code]);
-  }, [sortByDifficulty, teamAvgDifficulty]);
+    if (sortBy.mode === 'avg') {
+      return TEAMS.slice().sort((a, b) => teamAvgDifficulty[a.code] - teamAvgDifficulty[b.code]);
+    }
+    if (sortBy.mode === 'gw') {
+      // Dezelfde scoreberekening als het gemiddelde hierboven (getFixtureScores), maar dan op één
+      // speeldag — zo telt een uitgestelde GW ook hier als 5 en een DGW als 1, i.p.v. dat één kolom
+      // sorteren stilletjes andere regels zou hanteren dan "sorteer op makkelijkste run".
+      const scoreFor = code => getFixtureScores(
+        code, [FIXTURES[code][sortBy.gw - 1]], ratings, homeAdvantage, sortBy.gw,
+      )[0];
+      // Clubcode als laatste tiebreaker: zonder dat wisselt de volgorde van gelijk scorende clubs
+      // willekeurig mee bij elke hersortering.
+      return TEAMS.slice().sort((a, b) => scoreFor(a.code) - scoreFor(b.code) || a.code.localeCompare(b.code));
+    }
+    return TEAMS;
+  }, [sortBy, teamAvgDifficulty, ratings, homeAdvantage]);
+
 
   const toggleCompareTeam = (code) => {
     setCompareTeams(prev => {
@@ -2168,8 +2244,11 @@ export default function FDRTool() {
             setShowInfo={setShowInfo}
             openSections={openSections}
             toggleSection={toggleSection}
-            sortByDifficulty={sortByDifficulty}
-            setSortByDifficulty={setSortByDifficulty}
+            sortBy={sortBy}
+            toggleSortByAverage={toggleSortByAverage}
+            highlightedRatings={highlightedRatings}
+            toggleRatingFilter={toggleRatingFilter}
+            clearRatingFilter={clearRatingFilter}
             gwHorizonStart={gwHorizonStart}
             setGwHorizonStart={setGwHorizonStart}
             gwHorizonEnd={gwHorizonEnd}

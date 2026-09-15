@@ -115,6 +115,10 @@ const STRINGS = {
     'fdr.gwTo': 't/m',
     'fdr.tapHint': 'Tik op grijze cellen of die met een * voor meer info',
     'fdr.teamColumn': 'Team',
+    // Filteren op moeilijkheidsgraad (de legende onder de hoofdtabel) + sorteren per kolom.
+    'fdr.filterByRating': 'Filter op moeilijkheid',
+    'fdr.filterClearAll': 'Toon alles',
+    'fdr.sortByGwAria': 'Sorteer op moeilijkheid van GW{{gw}}',
     // --- Toegankelijkheid van de hoofdtabel ---
     // De moeilijkheidsgraad van een fixture zat tot nu toe enkel in de achtergrondkleur van de cel.
     // Kleur alleen is geen bruikbare drager: rood-groen-kleurenblindheid komt bij ~8% van de mannen
@@ -422,6 +426,9 @@ const STRINGS = {
     'fdr.gwTo': 'à',
     'fdr.tapHint': 'Touchez les cellules grises ou marquées d’un * pour plus d’infos',
     'fdr.teamColumn': 'Équipe',
+    'fdr.filterByRating': 'Filtrer par difficulté',
+    'fdr.filterClearAll': 'Tout afficher',
+    'fdr.sortByGwAria': 'Trier par difficulté de la J{{gw}}',
     'fdr.venue.home': 'à domicile',
     'fdr.venue.away': 'à l’extérieur',
     'fdr.cellAria': '{{opp}} {{venue}} — difficulté {{rating}} sur 5',

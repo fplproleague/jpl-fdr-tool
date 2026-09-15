@@ -64,11 +64,22 @@ function buildFixtureCellAriaLabel(t, info) {
     : base;
 }
 
+// Hoort deze cel bij de aangevinkte moeilijkheidsgraden? Leeg filter = alles hoort erbij. Een DGW telt
+// mee zodra één van de twee wedstrijden past. Een uitgestelde cel valt altijd buiten een actief filter:
+// die is grijs en draagt dus geen van de vijf kleuren waarop gefilterd wordt.
+function matchesRatingFilter(info, highlighted) {
+  if (!highlighted || highlighted.length === 0) return true;
+  if (info.isPostponed) return false;
+  if (info.isDoubleGameweek) return info.legs.some(leg => highlighted.includes(leg.rating));
+  return highlighted.includes(info.rating);
+}
+
 const FixtureCell = memo(function FixtureCell({
   opp, venue, rating, isPostponed, isPossiblyPostponed, bg, textColor, stacked, postponedText, possiblyPostponedText,
-  isDoubleGameweek, legs, ariaLabel
+  isDoubleGameweek, legs, ariaLabel, dimmed
 }) {
-  const stackingStyle = stacked ? { position: 'relative', zIndex: 1 } : null;
+  // Dimmen i.p.v. verbergen (zie de filterknoppen onder de tabel): de rij blijft leesbaar als rij.
+  const stackingStyle = { ...(stacked ? { position: 'relative', zIndex: 1 } : null), ...(dimmed ? { opacity: 0.2 } : null) };
 
   if (isPostponed) {
     return (
@@ -195,7 +206,8 @@ export default function FDRTab({
   isCustom, saved, linkCopied, downloading,
   handleCopyLink, handleDownloadImage, handleReset, handleSave, setShowInfo,
   openSections, toggleSection,
-  sortByDifficulty, setSortByDifficulty,
+  sortBy, toggleSortByAverage,
+  highlightedRatings, toggleRatingFilter, clearRatingFilter,
   gwHorizonStart, setGwHorizonStart, gwHorizonEnd, setGwHorizonEnd, gwHorizonRange,
   visibleGwHeaderCells, compareGwHeaderCells, compareGwStart, mainTableMinWidth,
   displayedTeams, tableRef,
@@ -345,13 +357,17 @@ export default function FDRTab({
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           flexWrap: 'wrap', gap: '10px', marginBottom: '10px'
         }}>
-          <button onClick={(e) => { e.stopPropagation(); setSortByDifficulty(s => !s); }} style={{
-            display: 'flex', alignItems: 'center', gap: '6px', background: 'transparent',
-            color: COLORS.textBody, border: '1px solid rgba(255,255,255,0.2)',
-            borderRadius: '8px', padding: '8px 14px', fontWeight: 700, fontSize: '13px', cursor: 'pointer'
-          }}>
+          <button
+            onClick={(e) => { e.stopPropagation(); toggleSortByAverage(); }}
+            aria-pressed={sortBy.mode === 'avg'}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '6px', background: 'transparent',
+              color: COLORS.textBody, border: '1px solid rgba(255,255,255,0.2)',
+              borderRadius: '8px', padding: '8px 14px', fontWeight: 700, fontSize: '13px', cursor: 'pointer'
+            }}
+          >
             <ArrowUpDown size={14} />
-            {sortByDifficulty ? t('fdr.sortByDifficultySorted') : t('fdr.sortByDifficulty')}
+            {sortBy.mode === 'avg' ? t('fdr.sortByDifficultySorted') : t('fdr.sortByDifficulty')}
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -441,6 +457,7 @@ export default function FDRTab({
                       isDoubleGameweek={isDoubleGameweek}
                       legs={legs}
                       ariaLabel={buildFixtureCellAriaLabel(t, info)}
+                      dimmed={!matchesRatingFilter(info, highlightedRatings)}
                       stacked
                     />
                   );
@@ -450,14 +467,55 @@ export default function FDRTab({
           </tbody>
         </table>
         </div>
+        {/* De legende was tot nu toe puur decoratief, terwijl "toon me enkel de makkelijke fixtures"
+            precies de vraag is die een FDR-tool hoort te beantwoorden. Elk blokje is nu een filter;
+            meerdere tegelijk mag. Niet-passende cellen worden gedimd, niet verborgen: de tabel moet
+            leesbaar blijven als tabel, met alle rijen en kolommen op hun plaats. */}
         {openSections.table && (
-        <div style={{ display: 'flex', gap: '10px', marginTop: '12px', flexWrap: 'wrap' }}>
-          {[1,2,3,4,5].map(r => (
-            <div key={r} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: RATING_STYLE[r].bg, display: 'inline-block' }} />
-              <span style={{ color: COLORS.textBody, fontSize: '11px' }}>{t(`fdr.rating.${r}`)}</span>
-            </div>
-          ))}
+        <div
+          role="group"
+          aria-label={t('fdr.filterByRating')}
+          style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap', alignItems: 'center' }}
+        >
+          {[1,2,3,4,5].map(r => {
+            const active = highlightedRatings.includes(r);
+            return (
+              <button
+                key={r}
+                type="button"
+                onClick={() => toggleRatingFilter(r)}
+                aria-pressed={active}
+                className="fdr-touch-target"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  background: active ? 'rgba(78,205,196,0.15)' : 'transparent',
+                  border: `1px solid ${active ? '#4ECDC4' : 'rgba(255,255,255,0.12)'}`,
+                  borderRadius: '999px', padding: '5px 12px', cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: RATING_STYLE[r].bg, display: 'inline-block', flexShrink: 0 }} />
+                <span style={{ color: active ? '#4ECDC4' : COLORS.textBody, fontSize: '11px', fontWeight: active ? 800 : 400 }}>
+                  {t(`fdr.rating.${r}`)}
+                </span>
+              </button>
+            );
+          })}
+          {highlightedRatings.length > 0 && (
+            <button
+              type="button"
+              onClick={clearRatingFilter}
+              className="fdr-touch-target"
+              style={{
+                background: 'transparent', color: COLORS.textBody,
+                border: '1px solid rgba(255,255,255,0.2)', borderRadius: '999px',
+                padding: '5px 12px', fontSize: '11px', fontWeight: 700,
+                fontFamily: 'inherit', cursor: 'pointer',
+              }}
+            >
+              {t('fdr.filterClearAll')}
+            </button>
+          )}
         </div>
         )}
         </div>
