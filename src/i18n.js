@@ -316,6 +316,13 @@ const STRINGS = {
     'playerSheet.noData': 'Nog geen gegevens.',
     'playerSheet.openAria': 'Bekijk de spelerskaart van {{name}}',
 
+    // Titel/omschrijving van de gegenereerde speler- en clubpagina's (scripts/build-routes.mjs). Een
+    // social preview toont deze tekst, dus naam en club horen er letterlijk in te staan.
+    'route.player.title': '{{name}} ({{club}}) — Fantasy Pro League Tools',
+    'route.player.description': 'Bonuspunten, gele kaarten, standaardsituaties, startkans en de komende wedstrijden van {{name}} ({{club}}) in de Jupiler Pro League.',
+    'route.club.title': '{{club}} — fixtures, opstelling en set pieces | Fantasy Pro League Tools',
+    'route.club.description': 'De komende wedstrijden van {{club}} met hun moeilijkheidsgraad, de recente vorm, de verwachte basiself, de standaardsituatienemers en de spelers met de meeste bonuspunten.',
+
     // --- Club-sheet (components/ClubSheet.jsx) — opent vanuit een clublogo. ---
     'clubSheet.closeAria': 'Clubkaart sluiten',
     'clubSheet.openAria': 'Bekijk de clubkaart van {{club}}',
@@ -623,6 +630,11 @@ const STRINGS = {
     'playerSheet.cardsUntilSuspension': 'encore {{count}} avant suspension',
     'playerSheet.noData': 'Pas encore de données.',
     'playerSheet.openAria': 'Voir la fiche de {{name}}',
+
+    'route.player.title': '{{name}} ({{club}}) — Fantasy Pro League Tools',
+    'route.player.description': "Points bonus, cartons jaunes, coups de pied arrêtés, chance de titularisation et prochains matchs de {{name}} ({{club}}) en Jupiler Pro League.",
+    'route.club.title': '{{club}} — matchs, composition et coups de pied arrêtés | Fantasy Pro League Tools',
+    'route.club.description': "Les prochains matchs de {{club}} avec leur difficulté, la forme récente, la composition probable, les tireurs de coups de pied arrêtés et les joueurs avec le plus de points bonus.",
 
     // --- Fiche club (components/ClubSheet.jsx) ---
     'clubSheet.closeAria': 'Fermer la fiche du club',
