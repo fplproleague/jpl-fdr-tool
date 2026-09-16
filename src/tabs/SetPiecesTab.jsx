@@ -67,10 +67,14 @@ function formatSetPieceValue(value, { clubCode, playerDatabase, onOpenPlayer, t 
           type="button"
           onClick={() => onOpenPlayer(fullName, clubCode)}
           aria-label={t('playerSheet.openAria', { name: fullName })}
+          // display: inline-block + verticale padding tilt het aanraakdoel van 19px naar 44px zonder
+          // de regel zelf langer te maken: de namen staan toch al per club gegroepeerd, dus de extra
+          // hoogte valt binnen de bestaande regelafstand van de kaart.
           style={{
-            background: 'none', border: 'none', padding: 0, font: 'inherit', color: 'inherit',
+            display: 'inline-block', minHeight: '44px', lineHeight: '28px',
+            background: 'none', border: 'none', padding: '8px 4px', font: 'inherit', color: 'inherit',
             cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'rgba(78,205,196,0.5)',
-            textUnderlineOffset: '3px',
+            textUnderlineOffset: '3px', boxSizing: 'border-box',
           }}
         >
           {name}

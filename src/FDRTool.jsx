@@ -613,10 +613,9 @@ export default function FDRTool() {
   // een tijdelijke weergave-instelling per sessie, geen permanente voorkeur.
   const [gwHorizonStart, setGwHorizonStart] = useState(CURRENT_GW);
   const [gwHorizonEnd, setGwHorizonEnd] = useState(DEFAULT_GW_HORIZON_END);
-  const [saved, setSaved] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   // Transiënte succes-melding na "Optimaliseer opstelling" in Team Planner — zelfde patroon als
-  // linkCopied/saved hierboven (verdwijnt vanzelf na 2s).
+  // linkCopied hierboven (verdwijnt vanzelf na 2s).
   const [teamPlannerOptimized, setTeamPlannerOptimized] = useState(false);
   const [minileagueCodeCopied, setMinileagueCodeCopied] = useState(false);
   const [downloading, setDownloading] = useState(false);
@@ -738,16 +737,24 @@ export default function FDRTool() {
     }
   };
 
-  const handleSave = () => {
+  // De FDR-ratings waren het enige wat NIET automatisch opsloeg: de watch list en de Team Planner deden
+  // dat al, maar hier was "Bewaar in browser" de enige manier waarop een aangepaste rating een
+  // herlaadbeurt overleefde. Dat is precies het soort werk dat je stil verliest. Zelfde patroon als de
+  // twee effects hierboven, en bewust vóór het weghalen van die knop toegevoegd — andersom zou elke
+  // aanpassing tussen beide wijzigingen in verdwijnen.
+  //
+  // isCustom als voorwaarde: zolang de ratings nog exact de gedeelde DEFAULT-referentie zijn valt er
+  // niets te bewaren, en zou dit bij het eerste bezoek meteen een standaardwaarde wegschrijven die
+  // handleReset net weer opruimt.
+  useEffect(() => {
+    if (!isCustom) return;
     try {
       window.localStorage?.setItem(STORAGE_KEY, JSON.stringify(ratings));
       window.localStorage?.setItem(HOME_ADVANTAGE_STORAGE_KEY, JSON.stringify(homeAdvantage));
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
     } catch {
-      // storage unavailable — silently ignore, ratings still work this session
+      // storage niet beschikbaar (privénavigatie e.d.) — de ratings werken deze sessie gewoon door
     }
-  };
+  }, [ratings, homeAdvantage, isCustom]);
 
   const handleReset = () => {
     setRatings(DEFAULT_RATINGS);
@@ -931,6 +938,15 @@ export default function FDRTool() {
   const mainTableMinWidth = useMemo(
     () => Math.round(MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS * (visibleGwHeaderCells.length + 1) / (GW_COUNT + 1)),
     [visibleGwHeaderCells]
+  );
+
+  // Zelfde evenredige berekening voor de vergelijk-tabel. Die had een harde minWidth van 600px die
+  // niet meeschoof met het aantal zichtbare GW-kolommen: met twee kolommen werd die 600px verdeeld
+  // over een teamkolom van 220px en twee fixture-kolommen, in een container van 350px. Nu krimpt hij
+  // net als de hoofdtabel mee, zodat de teamkolom in beide tabellen even breed uitkomt.
+  const compareTableMinWidth = useMemo(
+    () => Math.round(MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS * (compareGwHeaderCells.length + 1) / (GW_COUNT + 1)),
+    [compareGwHeaderCells]
   );
 
   // Gemiddelde moeilijkheid herberekend op enkel de zichtbare horizon (i.p.v. altijd GW1-GW_COUNT),
@@ -1516,6 +1532,10 @@ export default function FDRTool() {
         body { font-family: 'Inter', sans-serif; }
         .fdr-title { font-family: 'Archivo', sans-serif; }
         .fdr-cell { transition: transform 0.12s ease; }
+        /* 8px -> 6px verticaal: scheelt ~4px per rij en dus ~72px over achttien rijen. Bewust het
+           laatste wat we verkleind hebben — hieronder wordt het onaangenaam tikken, en de rijhoogte
+           wordt toch mede bepaald door de teamcel ernaast (logo + vormbalk). */
+        .fdr-cell { padding-top: 6px !important; padding-bottom: 6px !important; }
         input[type=range] { accent-color: #4ECDC4; }
         .fdr-postponed-tooltip {
           position: fixed;
@@ -1715,20 +1735,42 @@ export default function FDRTool() {
           transform: translateY(1px);
         }
 
+        /* Vergroot het AANRAAKDOEL van een klein knopje tot 44x44 zonder iets aan de lay-out te
+           veranderen. Nodig voor de chips in de header (Kopieer, NL, FR): die zijn bewust klein omdat
+           de header op een telefoon onder de 140px moet blijven, maar 20px hoog is te weinig om
+           betrouwbaar te raken. Het pseudo-element vangt de tik op; het knopje zelf blijft even groot.
+           Enkel op aanraakschermen, zodat een muisgebruiker geen onzichtbare klikzones krijgt die
+           over buurelementen heen liggen. */
+        @media (pointer: coarse) {
+          .fdr-hit-44 { position: relative; }
+          .fdr-hit-44::after {
+            content: '';
+            position: absolute;
+            top: 50%; left: 50%;
+            width: max(100%, 44px);
+            height: 44px;
+            transform: translate(-50%, -50%);
+          }
+        }
+
         /* Speler-sheet (zie components/PlayerSheet.jsx). Op desktop een gecentreerde modal, op
            mobiel een bottom sheet: daar is de bovenkant van het scherm buiten duimbereik, en een
            paneel dat van onder komt sluit aan bij wat een telefoongebruiker van een detailweergave
            verwacht. Zelfde breekpunt als de rest van de mobiele opmaak. */
         .fdr-sheet-overlay { align-items: center; padding: 20px; }
-        .fdr-sheet { border-radius: 14px; }
+        .fdr-sheet { border-radius: 16px; }
         @media (max-width: 640px) {
-          .fdr-sheet-overlay { align-items: flex-end; padding: 0; }
+          /* Gecentreerd i.p.v. vastgeplakt aan de onderrand. Als bottom sheet vulde hij het scherm tot
+             de onderste pixel, waardoor het paneel eerder aanvoelde als een nieuwe pagina dan als iets
+             dat bovenop de lijst ligt; met marge rondom en een rondom afgeronde rand blijft zichtbaar
+             dat de lijst eronder gewoon blijft staan. */
+          .fdr-sheet-overlay { align-items: center; padding: 12px; }
           .fdr-sheet {
-            border-radius: 16px 16px 0 0;
+            border-radius: 16px;
             max-width: none;
-            max-height: 88vh;
-            /* Ruimte voor de home-indicator op toestellen zonder fysieke knop. */
-            padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+            max-height: 84vh;
+            /* Respecteert de home-indicator op toestellen zonder fysieke knop. */
+            margin-bottom: env(safe-area-inset-bottom, 0px);
           }
         }
 
@@ -1805,7 +1847,15 @@ export default function FDRTool() {
             font-size: 14px !important;
             gap: 6px !important;
           }
+          /* De "RATING VAN @FPL_PROLEAGUE"-badge kostte een eigen regel in de toolbar. Sinds de ratings
+             zichzelf opslaan verschijnt het "Opgeslagen"-label precies wanneer er iets van de standaard
+             afwijkt — dus datzelfde onderscheid (standaard vs. jouw versie) blijft zichtbaar, in een
+             regel minder. Op desktop is er ruimte zat en blijft de badge gewoon staan. */
+          .fdr-status-badge { display: none !important; }
           .fpl-toolbar {
+            padding: 10px 12px !important;
+            gap: 8px !important;
+            margin-bottom: 14px !important;
             flex-direction: column !important;
             align-items: stretch !important;
             gap: 10px !important;
@@ -1817,18 +1867,23 @@ export default function FDRTool() {
             align-items: center !important;
             gap: 8px !important;
           }
+          /* Van een 2x2-raster naar één rij van drie. Dat kon pas nadat de vierde knop ("Bewaar in
+             browser") een statuslabel werd; het scheelt een volledige knoprij én maakt meteen ruimte
+             om de resterende drie op de aanbevolen 44px te brengen i.p.v. de 31px van voorheen. Het
+             blok wordt er per saldo niet hoger van. */
           .fpl-toolbar-secondary {
             flex: 1 !important;
             min-width: 0 !important;
             display: grid !important;
-            grid-template-columns: repeat(2, 1fr) !important;
+            grid-template-columns: repeat(3, 1fr) !important;
             gap: 8px !important;
           }
           .fdr-toolbar-btn {
             width: 100% !important;
           }
           .fpl-toolbar-secondary .fdr-toolbar-btn {
-            padding: 8px 6px !important;
+            min-height: 44px !important;
+            padding: 8px 4px !important;
             font-size: 12px !important;
             gap: 4px !important;
             white-space: nowrap !important;
@@ -1843,25 +1898,48 @@ export default function FDRTool() {
           .fpl-toolbar-secondary .fdr-btn-label-short {
             display: inline !important;
           }
+          /* De header nam op een telefoon 246 van de 844 beschikbare pixels in — bijna een derde van
+             het scherm, waardoor de eerste tabelrij pas op y=856 begon en je dus nul fixtures zag
+             zonder te scrollen. Alles hieronder dient dat ene doel: de header onder de 140px.
+
+             Logo en titel staan nu weer NAAST elkaar (i.p.v. gestapeld) en de titel past dankzij de
+             kleinere maat hieronder op één regel — gestapeld kostte dat twee blokken onder elkaar,
+             terwijl één regel met een kleiner logo hetzelfde zegt in de helft van de hoogte. */
           .fdr-header {
-            flex-direction: column !important;
-            align-items: flex-start !important;
-            gap: 10px !important;
-          }
-          .fdr-header img {
-            margin-top: 0 !important;
-          }
-          /* Logo boven de titeltekst i.p.v. ernaast — op mobiel duwde het logo (44px + 14px gap) de
-             titel zo ver naar rechts dat "FPL Pro League Tools" over 3 regels brak. Zonder het logo
-             ernaast heeft de tekst de volle breedte en wrapt ze compacter. */
-          .fdr-brand {
             flex-direction: column !important;
             align-items: flex-start !important;
             gap: 8px !important;
           }
-          .fdr-content {
-            padding-top: 16px !important;
+          .fdr-header img {
+            margin-top: 0 !important;
+            width: 30px !important;
+            height: 30px !important;
           }
+          .fdr-brand {
+            flex-direction: row !important;
+            align-items: center !important;
+            gap: 10px !important;
+          }
+          /* Op één regel: 28px (de ondergrens van de clamp) brak "FPL PRO LEAGUE TOOLS" nog steeds in
+             tweeën binnen 390px. */
+          .fdr-brand-title {
+            font-size: 19px !important;
+            white-space: nowrap !important;
+            letter-spacing: 0 !important;
+          }
+          /* De tagline legt uit wat de site is; dat weet je na één blik op de tabbalk eronder ook. Op
+             een telefoon is die uitleg 3 regels waard die je van de tool zelf afhouden. */
+          .fdr-tagline { display: none !important; }
+          /* Intro-tekst van de FDR-tab: zelfde afweging, en de uitleg staat sowieso al achter de
+             ⓘ-knop in de toolbar. */
+          .fdr-tab-intro { display: none !important; }
+          .fdr-content {
+            padding-top: 10px !important;
+          }
+          /* Sectiekoppen staan op een telefoon dicht op elkaar gestapeld (vier stuks boven de tabel);
+             12px eronder is daar meer lucht dan nodig. De kop zelf blijft 44px hoog, dus het
+             aanraakdoel verandert niet. */
+          .fdr-section-toggle { margin-bottom: 4px !important; }
           /* auto-fill met een minmax van 150px valt op smalle telefoons (<360px) terug op 1 kolom.
              Forceer hier altijd exact 2 kolommen zodat de 18 sliders per 2 naast elkaar staan. */
           .fdr-sliders-grid {
@@ -2051,13 +2129,13 @@ export default function FDRTool() {
               onError={(e) => { e.target.style.display = 'none'; }}
             />
             <div style={{ minWidth: 0 }}>
-              <h1 className="fdr-title" style={{
+              <h1 className="fdr-title fdr-brand-title" style={{
                 color: '#FFFFFF', fontSize: 'clamp(28px, 5vw, 44px)', fontWeight: 900,
                 textTransform: 'uppercase', lineHeight: 1.05, margin: 0, letterSpacing: '-0.01em'
               }}>
                 FPL Pro League <span style={{ color: '#4ECDC4' }}>Tools</span>
               </h1>
-              <p style={{ color: '#C9B8E0', fontSize: '15px', marginTop: '6px', maxWidth: '640px' }}>
+              <p className="fdr-tagline" style={{ color: '#C9B8E0', fontSize: '15px', marginTop: '6px', maxWidth: '640px' }}>
                 {t('header.tagline')}
               </p>
             </div>
@@ -2123,6 +2201,7 @@ export default function FDRTool() {
               <button
                 onClick={handleCopyMinileagueCode}
                 aria-label={t('header.copyMinileagueAria', { code: MINILEAGUE_CODE })}
+                className="fdr-hit-44"
                 style={{
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
                   background: 'transparent', color: COLORS.textBody, border: `1px solid ${COLORS.border}`,
@@ -2155,6 +2234,7 @@ export default function FDRTool() {
                     type="button"
                     onClick={() => changeLanguage(lang)}
                     aria-pressed={isActive}
+                    className="fdr-hit-44"
                     style={{
                       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                       height: '100%', minWidth: '28px', padding: '0 8px', borderRadius: '999px',
@@ -2343,13 +2423,11 @@ export default function FDRTool() {
             updateRating={updateRating}
             toggleHomeAdvantage={toggleHomeAdvantage}
             isCustom={isCustom}
-            saved={saved}
             linkCopied={linkCopied}
             downloading={downloading}
             handleCopyLink={handleCopyLink}
             handleDownloadImage={handleDownloadImage}
             handleReset={handleReset}
-            handleSave={handleSave}
             setShowInfo={setShowInfo}
             openSections={openSections}
             toggleSection={toggleSection}
@@ -2365,6 +2443,7 @@ export default function FDRTool() {
             gwHorizonRange={gwHorizonRange}
             visibleGwHeaderCells={visibleGwHeaderCells}
             compareGwHeaderCells={compareGwHeaderCells}
+            compareTableMinWidth={compareTableMinWidth}
             compareGwStart={compareGwStart}
             mainTableMinWidth={mainTableMinWidth}
             displayedTeams={displayedTeams}
