@@ -67,14 +67,16 @@ function formatSetPieceValue(value, { clubCode, playerDatabase, onOpenPlayer, t 
           type="button"
           onClick={() => onOpenPlayer(fullName, clubCode)}
           aria-label={t('playerSheet.openAria', { name: fullName })}
-          // display: inline-block + verticale padding tilt het aanraakdoel van 19px naar 44px zonder
-          // de regel zelf langer te maken: de namen staan toch al per club gegroepeerd, dus de extra
-          // hoogte valt binnen de bestaande regelafstand van de kaart.
+          // Puur inline, zonder eigen hoogte of padding: een naam staat middenin een zin ("Sikan /
+          // Ambros ?") en moet dus gewoon op dezelfde regel meelopen als de tekst eromheen. Een
+          // eerdere poging om het aanraakdoel te vergroten met inline-block + min-height duwde elke
+          // naam uit de lijn en maakte de kaarten ongelijk hoog. .fdr-hit-line doet dat werk via een
+          // pseudo-element en laat de lay-out volledig met rust.
+          className="fdr-hit-line"
           style={{
-            display: 'inline-block', minHeight: '44px', lineHeight: '28px',
-            background: 'none', border: 'none', padding: '8px 4px', font: 'inherit', color: 'inherit',
+            background: 'none', border: 'none', padding: 0, font: 'inherit', color: 'inherit',
             cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'rgba(78,205,196,0.5)',
-            textUnderlineOffset: '3px', boxSizing: 'border-box',
+            textUnderlineOffset: '3px',
           }}
         >
           {name}

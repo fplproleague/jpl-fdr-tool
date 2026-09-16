@@ -118,6 +118,8 @@ const STRINGS = {
     'fdr.teamColumn': 'Team',
     // Filteren op moeilijkheidsgraad (de legende onder de hoofdtabel) + sorteren per kolom.
     'fdr.filterByRating': 'Filter op moeilijkheid',
+    // Kort, zichtbaar label vóór de vijf kleurvierkantjes, zodat ze als filter herkenbaar zijn.
+    'fdr.filterLabel': 'Filter',
     'fdr.filterClearAll': 'Toon alles',
     'fdr.sortByGwAria': 'Sorteer op moeilijkheid van GW{{gw}}',
     // --- Toegankelijkheid van de hoofdtabel ---
@@ -444,6 +446,7 @@ const STRINGS = {
     'fdr.tapHint': 'Touchez les cellules grises ou marquées d’un * pour plus d’infos',
     'fdr.teamColumn': 'Équipe',
     'fdr.filterByRating': 'Filtrer par difficulté',
+    'fdr.filterLabel': 'Filtre',
     'fdr.filterClearAll': 'Tout afficher',
     'fdr.sortByGwAria': 'Trier par difficulté de la J{{gw}}',
     'fdr.venue.home': 'à domicile',

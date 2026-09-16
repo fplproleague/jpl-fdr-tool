@@ -302,6 +302,11 @@ export default function FDRTab({
                     duim nauwkeurig een 1 t/m 5 te zetten.
                     Het label "Thuisvoordeel" is daarbij naar het aria-label verhuisd — op één regel is
                     er geen plaats voor, en de schakelaar zelf draagt zijn betekenis al via role=switch. */}
+                {/* Clubcode + ratingcijfer op één regel, slider eronder, en het thuisvoordeel als
+                    eigen regel MET het woord erbij. Die tekst stond even weg om de kaart korter te
+                    maken, maar dan is een los schakelaartje niet meer te plaatsen: je ziet wel dát er
+                    iets aan staat, niet waarvoor. De kaart blijft alsnog ruim korter dan de 91px van
+                    voorheen doordat de rij geen 44px-minimum meer opgelegd krijgt. */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
                     <img
@@ -313,56 +318,55 @@ export default function FDRTab({
                     />
                     <span style={{ color: '#FFF', fontSize: '12px', fontWeight: 600 }}>{team.code}</span>
                   </span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-                    <span style={{
-                      fontSize: '10px', fontWeight: 700, padding: '1px 6px', borderRadius: '999px',
-                      background: style.bg, color: style.text
-                    }}>{r}</span>
-                    {/* Thuisvoordeel: losstaand van de sterkte-slider, zie getEffectiveRating. Het
-                        aanraakdoel is bewust groter dan het 34x18px-schakelaartje zelf (padding rondom
-                        + .fdr-touch-target), want er staan er achttien van op één scherm. */}
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={homeAdvantageOn}
-                      aria-label={t('fdr.homeAdvantageAria', { team: team.name })}
-                      title={t('fdr.homeAdvantage')}
-                      onClick={() => toggleHomeAdvantage(team.code)}
-                      className="fdr-touch-target"
-                      style={{
-                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                        padding: '6px 2px', background: 'transparent', border: 'none',
-                        cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
-                      }}
-                    >
-                      {/* De knop verschoof voorheen via justifyContent — dat is geen animeerbare
-                          property, dus hij "sprong" naar de overkant terwijl enkel de achtergrond
-                          vloeiend overging. Nu schuift hij via een getransitionde transform. */}
-                      <span
-                        aria-hidden="true"
-                        style={{
-                          position: 'relative', display: 'inline-flex', alignItems: 'center',
-                          width: '34px', height: '18px', borderRadius: '999px', flexShrink: 0,
-                          background: homeAdvantageOn ? '#4ECDC4' : 'rgba(255,255,255,0.15)',
-                          transition: 'background 0.15s ease',
-                        }}
-                      >
-                        <span style={{
-                          position: 'absolute', top: '2px', left: '2px',
-                          width: '14px', height: '14px', borderRadius: '50%', background: '#FFFFFF', display: 'block',
-                          transform: homeAdvantageOn ? 'translateX(16px)' : 'translateX(0)',
-                          transition: 'transform 0.15s ease',
-                        }} />
-                      </span>
-                    </button>
-                  </span>
+                  <span style={{
+                    fontSize: '10px', fontWeight: 700, padding: '1px 6px', borderRadius: '999px',
+                    background: style.bg, color: style.text, flexShrink: 0,
+                  }}>{r}</span>
                 </div>
                 <input
                   type="range" min={1} max={5} step={1} value={r}
                   onChange={e => updateRating(team.code, Number(e.target.value))}
-                  style={{ width: '100%', display: 'block', marginTop: '2px' }}
+                  style={{ width: '100%', display: 'block', margin: '2px 0' }}
                   aria-label={t('fdr.strengthAria', { team: team.name })}
                 />
+                {/* Thuisvoordeel: losstaand van de sterkte-slider, zie getEffectiveRating. De VOLLEDIGE
+                    rij is de knop, niet enkel het schakelaartje van 34x18px — over de volle kaartbreedte
+                    is dat een ruim aanraakdoel, zonder de kaart op te blazen met een 44px-minimum. */}
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={homeAdvantageOn}
+                  aria-label={t('fdr.homeAdvantageAria', { team: team.name })}
+                  onClick={() => toggleHomeAdvantage(team.code)}
+                  style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px',
+                    width: '100%', padding: '4px 0',
+                    background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                  }}
+                >
+                  <span style={{ color: COLORS.textBody, fontSize: '10px', whiteSpace: 'nowrap' }}>
+                    {t('fdr.homeAdvantage')}
+                  </span>
+                  {/* De knop verschoof voorheen via justifyContent — dat is geen animeerbare property,
+                      dus hij "sprong" naar de overkant terwijl enkel de achtergrond vloeiend overging.
+                      Nu schuift hij via een getransitionde transform. */}
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      position: 'relative', display: 'inline-flex', alignItems: 'center',
+                      width: '34px', height: '18px', borderRadius: '999px', flexShrink: 0,
+                      background: homeAdvantageOn ? '#4ECDC4' : 'rgba(255,255,255,0.15)',
+                      transition: 'background 0.15s ease',
+                    }}
+                  >
+                    <span style={{
+                      position: 'absolute', top: '2px', left: '2px',
+                      width: '14px', height: '14px', borderRadius: '50%', background: '#FFFFFF', display: 'block',
+                      transform: homeAdvantageOn ? 'translateX(16px)' : 'translateX(0)',
+                      transition: 'transform 0.15s ease',
+                    }} />
+                  </span>
+                </button>
               </div>
             );
           })}
@@ -460,7 +464,12 @@ export default function FDRTab({
                       type: onOpenClub ? 'button' : undefined,
                       onClick: onOpenClub ? () => onOpenClub(team.code) : undefined,
                       'aria-label': onOpenClub ? t('clubSheet.openAria', { club: team.name }) : undefined,
-                      className: onOpenClub ? 'fdr-touch-target' : undefined,
+                      // Bewust GEEN .fdr-touch-target hier: die tilt de knop op aanraakschermen naar
+                      // 44px, en omdat de team-cel de hoogste cel van de rij is trok dat élke
+                      // fixture-cel ernaast mee omhoog (rij 56px i.p.v. 32px). De cel is ~93px breed,
+                      // dus als aanraakdoel ruim voldoende; de fixture-cellen ernaast zijn niet eens
+                      // aanklikbaar en hoeven die hoogte dus zeker niet.
+                      className: undefined,
                       style: {
                         display: 'flex', alignItems: 'center', gap: '6px', width: '100%',
                         background: 'none', border: 'none', padding: 0, color: 'inherit',
@@ -522,6 +531,15 @@ export default function FDRTab({
           aria-label={t('fdr.filterByRating')}
           style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap', alignItems: 'center' }}
         >
+          {/* Zonder label leest een rij gekleurde cijfers als een legende, niet als iets wat je kan
+              aanzetten — precies de verwarring die de vorige, bredere knoppen mét tekst niet hadden.
+              Eén woord ervoor is genoeg om duidelijk te maken dat er hier iets te kiezen valt. */}
+          <span style={{
+            color: COLORS.textBody, fontSize: '11px', fontWeight: 700, textTransform: 'uppercase',
+            letterSpacing: '0.04em', flexShrink: 0,
+          }}>
+            {t('fdr.filterLabel')}
+          </span>
           {/* Vijf vierkantjes met het cijfer erin i.p.v. knoppen met het volledige label. Die labels
               maakten elke knop 81-99px breed, waardoor de rij op een telefoon naar twee regels brak,
               terwijl ze met 23px hoogte juist te laag waren om comfortabel te tikken. Het cijfer sluit

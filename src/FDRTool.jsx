@@ -1751,6 +1751,20 @@ export default function FDRTool() {
             height: 44px;
             transform: translate(-50%, -50%);
           }
+          /* Variant voor namen die MIDDENIN een tekstregel staan (de nemers op de Set Pieces-tab).
+             Daar kan 44px niet: die regels liggen 28px uit elkaar, dus zones van 44px overlappen
+             elkaar en een tik tussen twee regels zou bij de verkeerde speler uitkomen. 26px vult de
+             regelafstand zonder botsing — ruim boven de 19px van de tekst zelf, en boven de 24px die
+             WCAG als ondergrens hanteert. */
+          .fdr-hit-line { position: relative; }
+          .fdr-hit-line::after {
+            content: '';
+            position: absolute;
+            top: 50%; left: 50%;
+            width: calc(100% + 6px);
+            height: 26px;
+            transform: translate(-50%, -50%);
+          }
         }
 
         /* Speler-sheet (zie components/PlayerSheet.jsx). Op desktop een gecentreerde modal, op
