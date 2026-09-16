@@ -203,13 +203,13 @@ function TeamFormBar({ results }) {
 export default function FDRTab({
   t,
   ratings, homeAdvantage, updateRating, toggleHomeAdvantage,
-  isCustom, saved, linkCopied, downloading,
-  handleCopyLink, handleDownloadImage, handleReset, handleSave, setShowInfo,
+  isCustom, linkCopied, downloading,
+  handleCopyLink, handleDownloadImage, handleReset, setShowInfo,
   openSections, toggleSection,
   sortBy, toggleSortByAverage,
   highlightedRatings, toggleRatingFilter, clearRatingFilter,
   gwHorizonStart, setGwHorizonStart, gwHorizonEnd, setGwHorizonEnd, gwHorizonRange,
-  visibleGwHeaderCells, compareGwHeaderCells, compareGwStart, mainTableMinWidth,
+  visibleGwHeaderCells, compareGwHeaderCells, compareGwStart, mainTableMinWidth, compareTableMinWidth,
   displayedTeams, tableRef,
   rangeStart, setRangeStart, rangeEnd, setRangeEnd, bestRuns,
   compareTeams, toggleCompareTeam,
@@ -217,7 +217,7 @@ export default function FDRTab({
 }) {
   return (
     <>
-    <p style={{ color: COLORS.textMuted, fontSize: '13px', marginBottom: '18px' }}>
+    <p className="fdr-tab-intro" style={{ color: COLORS.textMuted, fontSize: '13px', marginBottom: '18px' }}>
       {t('fdr.intro')}
     </p>
     <div className="fpl-toolbar" style={{
@@ -253,16 +253,28 @@ export default function FDRTab({
         <span className="fdr-btn-label-full">{t('fdr.reset')}</span>
         <span className="fdr-btn-label-short">{t('fdr.resetShort')}</span>
       </button>
-      <button onClick={handleSave} className="fdr-toolbar-btn" style={primaryButtonStyle}>
-        <Check size={14} />
-        <span className="fdr-btn-label-full">{saved ? t('fdr.saved') : t('fdr.save')}</span>
-        <span className="fdr-btn-label-short">{saved ? t('fdr.savedShort') : t('fdr.saveShort')}</span>
-      </button>
       </span>
       <button onClick={() => setShowInfo(true)} aria-label={t('fdr.infoAria')} className="fdr-icon-btn" style={iconButtonStyle}>
         <Info size={16} />
       </button>
       </div>
+      {/* Geen "Bewaar in browser"-knop meer: de ratings slaan zichzelf op (zie het effect in
+          FDRTool.jsx). Wat rest is de bevestiging dát het gebeurd is — een knop die altijd hetzelfde
+          doet als niets doen, is een knop te veel. Enkel zichtbaar zodra er iets afwijkt van de
+          standaard; bij de standaardratings valt er niets te bewaren. */}
+      {isCustom && (
+        <span
+          role="status"
+          className="fdr-autosave-badge"
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: '5px', flexShrink: 0,
+            color: '#4ECDC4', fontSize: '12px', fontWeight: 700, whiteSpace: 'nowrap',
+          }}
+        >
+          <Check size={13} aria-hidden="true" />
+          {t('fdr.autoSaved')}
+        </span>
+      )}
     </div>
 
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '24px' }}>
@@ -280,10 +292,23 @@ export default function FDRTab({
             return (
               <div key={team.code} style={{
                 background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-                borderRadius: '10px', padding: '8px 10px'
+                borderRadius: '10px', padding: '6px 10px'
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {/* Clubcode, ratingcijfer en de thuisvoordeel-schakelaar op ÉÉN regel, met de slider
+                    eronder. Voorheen stapelde de kaart vier blokken (code, cijfer, slider, en een
+                    aparte thuisvoordeel-rij met eigen label) tot 91px hoog; achttien van die kaarten
+                    besloegen samen meer dan een volledig telefoonscherm. Nu ~58px, en de sectie past
+                    weer in beeld. Twee kolommen blijven: bij drie wordt de slider te smal om met een
+                    duim nauwkeurig een 1 t/m 5 te zetten.
+                    Het label "Thuisvoordeel" is daarbij naar het aria-label verhuisd — op één regel is
+                    er geen plaats voor, en de schakelaar zelf draagt zijn betekenis al via role=switch. */}
+                {/* Clubcode + ratingcijfer op één regel, slider eronder, en het thuisvoordeel als
+                    eigen regel MET het woord erbij. Die tekst stond even weg om de kaart korter te
+                    maken, maar dan is een los schakelaartje niet meer te plaatsen: je ziet wel dát er
+                    iets aan staat, niet waarvoor. De kaart blijft alsnog ruim korter dan de 91px van
+                    voorheen doordat de rij geen 44px-minimum meer opgelegd krijgt. */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
                     <img
                       src={`/club-logos/${team.code}.webp`}
                       alt=""
@@ -295,38 +320,36 @@ export default function FDRTab({
                   </span>
                   <span style={{
                     fontSize: '10px', fontWeight: 700, padding: '1px 6px', borderRadius: '999px',
-                    background: style.bg, color: style.text
+                    background: style.bg, color: style.text, flexShrink: 0,
                   }}>{r}</span>
                 </div>
                 <input
                   type="range" min={1} max={5} step={1} value={r}
                   onChange={e => updateRating(team.code, Number(e.target.value))}
-                  style={{ width: '100%' }}
+                  style={{ width: '100%', display: 'block', margin: '2px 0' }}
                   aria-label={t('fdr.strengthAria', { team: team.name })}
                 />
-                {/* Thuisvoordeel: losstaand van de sterkte-slider hierboven, zie getEffectiveRating.
-                    De VOLLEDIGE rij (label + schakelaar) is nu de knop, niet enkel het schakelaartje
-                    van 30x16px. Dat was met afstand het kleinste aanraakdoel op de site, en er staan
-                    er achttien van op één scherm — twee kolommen naast elkaar op een telefoon. De
-                    .fdr-touch-target-klasse tilt de rij op aanraakapparaten naar 44px hoogte. */}
+                {/* Thuisvoordeel: losstaand van de sterkte-slider, zie getEffectiveRating. De VOLLEDIGE
+                    rij is de knop, niet enkel het schakelaartje van 34x18px — over de volle kaartbreedte
+                    is dat een ruim aanraakdoel, zonder de kaart op te blazen met een 44px-minimum. */}
                 <button
                   type="button"
                   role="switch"
                   aria-checked={homeAdvantageOn}
                   aria-label={t('fdr.homeAdvantageAria', { team: team.name })}
                   onClick={() => toggleHomeAdvantage(team.code)}
-                  className="fdr-touch-target"
                   style={{
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px',
-                    width: '100%', marginTop: '6px', padding: '4px 0',
+                    width: '100%', padding: '4px 0',
                     background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                   }}
                 >
-                  <span style={{ color: COLORS.textBody, fontSize: '10px' }}>{t('fdr.homeAdvantage')}</span>
-                  {/* De knop verschoof voorheen via justifyContent (flex-start/flex-end) — dat is geen
-                      animeerbare CSS-property, dus de knop "sprong" abrupt naar de overkant terwijl
-                      enkel de achtergrondkleur vloeiend overging, wat als een flits oogde. Nu blijft
-                      justifyContent weg en schuift de knop zelf via een getransitionde transform. */}
+                  <span style={{ color: COLORS.textBody, fontSize: '10px', whiteSpace: 'nowrap' }}>
+                    {t('fdr.homeAdvantage')}
+                  </span>
+                  {/* De knop verschoof voorheen via justifyContent — dat is geen animeerbare property,
+                      dus hij "sprong" naar de overkant terwijl enkel de achtergrond vloeiend overging.
+                      Nu schuift hij via een getransitionde transform. */}
                   <span
                     aria-hidden="true"
                     style={{
@@ -368,7 +391,15 @@ export default function FDRTab({
             }}
           >
             <ArrowUpDown size={14} />
-            {sortBy.mode === 'avg' ? t('fdr.sortByDifficultySorted') : t('fdr.sortByDifficulty')}
+            {/* Kort label op smalle schermen: met de volledige tekst brak deze knop samen met de
+                GW-kiezer naar twee regels (95px), terwijl ze samen net op één rij van 44px passen.
+                Zelfde .fdr-btn-label-full/-short-patroon als de toolbar-knoppen hierboven. */}
+            <span className="fdr-btn-label-full">
+              {sortBy.mode === 'avg' ? t('fdr.sortByDifficultySorted') : t('fdr.sortByDifficulty')}
+            </span>
+            <span className="fdr-btn-label-short">
+              {sortBy.mode === 'avg' ? t('fdr.sortByDifficultySortedShort') : t('fdr.sortByDifficultyShort')}
+            </span>
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -433,7 +464,12 @@ export default function FDRTab({
                       type: onOpenClub ? 'button' : undefined,
                       onClick: onOpenClub ? () => onOpenClub(team.code) : undefined,
                       'aria-label': onOpenClub ? t('clubSheet.openAria', { club: team.name }) : undefined,
-                      className: onOpenClub ? 'fdr-touch-target' : undefined,
+                      // Bewust GEEN .fdr-touch-target hier: die tilt de knop op aanraakschermen naar
+                      // 44px, en omdat de team-cel de hoogste cel van de rij is trok dat élke
+                      // fixture-cel ernaast mee omhoog (rij 56px i.p.v. 32px). De cel is ~93px breed,
+                      // dus als aanraakdoel ruim voldoende; de fixture-cellen ernaast zijn niet eens
+                      // aanklikbaar en hoeven die hoogte dus zeker niet.
+                      className: undefined,
                       style: {
                         display: 'flex', alignItems: 'center', gap: '6px', width: '100%',
                         background: 'none', border: 'none', padding: 0, color: 'inherit',
@@ -495,27 +531,49 @@ export default function FDRTab({
           aria-label={t('fdr.filterByRating')}
           style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap', alignItems: 'center' }}
         >
+          {/* Zonder label leest een rij gekleurde cijfers als een legende, niet als iets wat je kan
+              aanzetten — precies de verwarring die de vorige, bredere knoppen mét tekst niet hadden.
+              Eén woord ervoor is genoeg om duidelijk te maken dat er hier iets te kiezen valt. */}
+          <span style={{
+            color: COLORS.textBody, fontSize: '11px', fontWeight: 700, textTransform: 'uppercase',
+            letterSpacing: '0.04em', flexShrink: 0,
+          }}>
+            {t('fdr.filterLabel')}
+          </span>
+          {/* Vijf vierkantjes met het cijfer erin i.p.v. knoppen met het volledige label. Die labels
+              maakten elke knop 81-99px breed, waardoor de rij op een telefoon naar twee regels brak,
+              terwijl ze met 23px hoogte juist te laag waren om comfortabel te tikken. Het cijfer sluit
+              aan bij de cijfers die al in de fixture-cellen staan; de omschrijving verhuist naar het
+              aria-label, zodat de betekenis voor een screenreader volledig blijft. 40x40 past ruim
+              binnen 390px en is meteen een fatsoenlijk aanraakdoel. */}
           {[1,2,3,4,5].map(r => {
             const active = highlightedRatings.includes(r);
+            const label = t(`fdr.rating.${r}`);
             return (
               <button
                 key={r}
                 type="button"
                 onClick={() => toggleRatingFilter(r)}
                 aria-pressed={active}
-                className="fdr-touch-target"
+                aria-label={label}
+                title={label}
+                // 40x40 is de gevraagde maat en past precies met z'n vijven binnen 390px, maar ligt
+                // net onder de 44px-vuistregel voor aanraken. .fdr-hit-44 vergroot enkel de
+                // aanraakzone (zie het pseudo-element in FDRTool.jsx), niet het vierkantje zelf.
+                className="fdr-hit-44"
                 style={{
-                  display: 'flex', alignItems: 'center', gap: '6px',
-                  background: active ? 'rgba(78,205,196,0.15)' : 'transparent',
-                  border: `1px solid ${active ? '#4ECDC4' : 'rgba(255,255,255,0.12)'}`,
-                  borderRadius: '999px', padding: '5px 12px', cursor: 'pointer',
-                  fontFamily: 'inherit',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  width: '40px', height: '40px', flexShrink: 0, padding: 0,
+                  background: RATING_STYLE[r].bg, color: RATING_STYLE[r].text,
+                  border: active ? '2px solid #FFFFFF' : '2px solid transparent',
+                  borderRadius: '8px', cursor: 'pointer',
+                  fontFamily: 'inherit', fontSize: '15px', fontWeight: 900,
+                  // Een gekozen filter is te herkennen aan de witte rand; de lichte buitenschaduw
+                  // maakt dat ook zichtbaar tegen de lichtste kleuren van de schaal.
+                  boxShadow: active ? '0 0 0 2px rgba(0,0,0,0.35)' : 'none',
                 }}
               >
-                <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: RATING_STYLE[r].bg, display: 'inline-block', flexShrink: 0 }} />
-                <span style={{ color: active ? '#4ECDC4' : COLORS.textBody, fontSize: '11px', fontWeight: active ? 800 : 400 }}>
-                  {t(`fdr.rating.${r}`)}
-                </span>
+                {r}
               </button>
             );
           })}
@@ -648,10 +706,13 @@ export default function FDRTab({
         )}
         {compareTeams.length > 0 && (
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ borderCollapse: 'separate', borderSpacing: '4px', minWidth: '600px', width: '100%' }}>
+            {/* Bewust GEEN width: '100%' — zie de toelichting bij mainTableMinWidth in FDRTool.jsx:
+                met table-layout: auto rekt de browser dan elke kolom uit om de container te vullen,
+                wat hier een teamkolom van 220px opleverde tegenover 93px in de hoofdtabel. */}
+            <table style={{ borderCollapse: 'separate', borderSpacing: '4px', minWidth: `${compareTableMinWidth}px` }}>
               <thead>
                 <tr>
-                  <th scope="col" style={{ textAlign: 'left', color: COLORS.textBody, fontSize: '11px', textTransform: 'uppercase', padding: '6px 8px', ...stickyTeamCellStyle }}>{t('fdr.teamColumn')}</th>
+                  <th scope="col" style={{ textAlign: 'left', color: COLORS.textBody, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', padding: '6px 8px', ...stickyTeamCellStyle }}>{t('fdr.teamColumn')}</th>
                   {compareGwHeaderCells}
                 </tr>
               </thead>

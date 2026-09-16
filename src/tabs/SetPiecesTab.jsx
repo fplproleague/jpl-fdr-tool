@@ -67,6 +67,12 @@ function formatSetPieceValue(value, { clubCode, playerDatabase, onOpenPlayer, t 
           type="button"
           onClick={() => onOpenPlayer(fullName, clubCode)}
           aria-label={t('playerSheet.openAria', { name: fullName })}
+          // Puur inline, zonder eigen hoogte of padding: een naam staat middenin een zin ("Sikan /
+          // Ambros ?") en moet dus gewoon op dezelfde regel meelopen als de tekst eromheen. Een
+          // eerdere poging om het aanraakdoel te vergroten met inline-block + min-height duwde elke
+          // naam uit de lijn en maakte de kaarten ongelijk hoog. .fdr-hit-line doet dat werk via een
+          // pseudo-element en laat de lay-out volledig met rust.
+          className="fdr-hit-line"
           style={{
             background: 'none', border: 'none', padding: 0, font: 'inherit', color: 'inherit',
             cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'rgba(78,205,196,0.5)',

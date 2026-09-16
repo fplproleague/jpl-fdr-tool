@@ -47,6 +47,16 @@ export default function Sheet({ titleId, closeLabel, onClose, header, children }
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [onClose]);
 
+  // Scroll-lock. Zonder dit schuift de lijst áchter de sheet gewoon mee zodra je op de sheet scrollt,
+  // en ben je bij het sluiten je plek in de ranglijst kwijt — op mobiel meteen merkbaar, want daar
+  // vult de sheet bijna het hele scherm. De vorige waarde wordt bewaard en teruggezet i.p.v. hard op
+  // '' gezet, zodat een eventuele andere overflow-instelling op body niet stilletjes sneuvelt.
+  useEffect(() => {
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = previous; };
+  }, []);
+
   return (
     <div
       className="fdr-sheet-overlay"

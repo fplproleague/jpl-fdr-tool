@@ -23,7 +23,7 @@ export const SectionHeader = memo(function SectionHeader({ icon: Icon, title, se
       // koppelt 'm aan het paneel dat hij bestuurt (zie de id op de inhoud in de tabs).
       aria-expanded={isOpen}
       aria-controls={`fdr-section-${sectionKey}`}
-      className="fdr-touch-target"
+      className="fdr-touch-target fdr-section-toggle"
       style={sectionToggleButtonStyle}
     >
       <h2 className="fdr-title fdr-section-title" style={sectionTitleStyle}>
