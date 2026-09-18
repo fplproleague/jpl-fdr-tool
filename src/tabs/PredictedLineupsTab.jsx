@@ -7,7 +7,6 @@ import { useState } from 'react';
 import { AlertTriangle, CalendarOff } from 'lucide-react';
 import { TEAMS, CURRENT_GW, PREDICTED_LINEUPS_GW, POSTPONED, FIXTURES, buildPostponedTooltipText } from '../constants';
 import { COLORS } from '../theme';
-import { FORMATIONS } from '../predicted-xi/formations';
 import PitchField from '../predicted-xi/PitchField';
 import { SAFETY_STYLE } from '../predicted-xi/theme';
 import { PREDICTED_LINEUPS } from '../predictedLineupsData';
@@ -99,7 +98,7 @@ export default function PredictedLineupsTab({ t, onOpenPlayer, onOpenClub }) {
   }
 
   // isNotPlaying wint altijd van een eventuele (verouderde) lineup-entry voor diezelfde club — zie
-  // notPlayingClubCodes hierboven. lineup/opponent/formationLabel hebben dan geen betekenis en worden
+  // notPlayingClubCodes hierboven. lineup/opponent hebben dan geen betekenis en worden
   // niet berekend; de placeholder-tak hieronder gebruikt enkel club/postponedMessage.
   const isNotPlaying = notPlayingClubCodes.includes(selectedClubCode);
   const club = TEAMS.find(team => team.code === selectedClubCode);
@@ -111,9 +110,6 @@ export default function PredictedLineupsTab({ t, onOpenPlayer, onOpenClub }) {
   // tonen voor elke club met een dubbele entry.
   const lineup = !isNotPlaying ? (readyLineups.findLast(l => l.clubCode === selectedClubCode) ?? readyLineups[0]) : null;
   const opponent = lineup?.opponentCode ? TEAMS.find(team => team.code === lineup.opponentCode) : null;
-  const formationLabel = lineup
-    ? (lineup.formationLabelOverride?.trim() || FORMATIONS[lineup.formationKey]?.label || lineup.formationKey)
-    : null;
   // Hergebruikt buildPostponedTooltipText (constants.js) — dezelfde functie die de FDR-hoofdtabel al
   // gebruikt voor de tooltip op een uitgestelde fixture-cel, zodat de uitleg hier ("uitgesteld naar
   // X wegens Y") altijd woordelijk consistent is met wat elders op de site al over deze wedstrijd
@@ -264,7 +260,6 @@ export default function PredictedLineupsTab({ t, onOpenPlayer, onOpenClub }) {
               readOnly
               club={club}
               opponent={opponent}
-              formationLabel={formationLabel}
               gwLabel={t('predictedLineups.pitchGwLabel', { gw: PREDICTED_LINEUPS_GW })}
               onViewPlayer={onOpenPlayer}
               viewPlayerLabel={name => t('playerSheet.openAria', { name })}

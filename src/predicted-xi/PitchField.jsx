@@ -63,7 +63,6 @@ const MOBILE_STYLE = `
     .pxi-field-header { gap: 4px !important; padding-bottom: 8px !important; }
     .pxi-field-logo { width: 26px !important; height: 26px !important; }
     .pxi-field-clubname { font-size: 15px !important; }
-    .pxi-field-formation { font-size: 9px !important; padding: 2px 8px !important; }
     .pxi-field-opp-logo { width: 13px !important; height: 13px !important; }
     .pxi-field-opp-name { font-size: 10px !important; }
     /* Speler-kaartjes (zie PitchSlot.jsx) — kleinere tekst/padding zodat de formatie leesbaar blijft
@@ -80,7 +79,7 @@ const MOBILE_STYLE = `
 `;
 
 const PitchField = forwardRef(function PitchField({
-  club, opponent, formationLabel, slots, activeSlotIndex,
+  club, opponent, slots, activeSlotIndex,
   onSlotClick, onRemove, onCycleSafety, onDragStart, onSlotDrop,
   // Puur-visuele weergave voor de publieke Predicted Lineups-tab (zie PredictedLineupsTab.jsx) — zie
   // PitchSlot.jsx voor wat dit per kaartje uitschakelt. Hier laat het bovendien de sleep-naar-veld-
@@ -239,17 +238,12 @@ const PitchField = forwardRef(function PitchField({
               {club?.name ?? 'Kies een club'}
             </div>
           )}
-          {/* pxi-no-export: de formatie blijft in de tool zelf gewoon staan (je wil tijdens het
-              opstellen zien of je op 4-3-3 of 3-5-2 zit), maar hoort niet op de afbeelding die
-              buiten de site rondgaat — die toont het veld, en daar lees je de formatie al van af.
-              Zie ignoreElements in exportImage.js; de klasse heeft verder geen eigen opmaak. */}
-          <div className="pxi-field-formation pxi-no-export" style={{
-            color: '#4ECDC4', fontWeight: 800, fontSize: '11px', letterSpacing: '0.14em', textTransform: 'uppercase',
-            background: 'rgba(78,205,196,0.12)', border: '1px solid rgba(78,205,196,0.3)',
-            borderRadius: '999px', padding: '3px 12px',
-          }}>
-            {formationLabel}
-          </div>
+          {/* Hier stond een pil met de formatie ("4-3-3"). Bewust weg, uit het veld zelf en dus uit
+              álle plekken waar dit veld getoond wordt: de publieke tab, de club- en spelerkaart, en de
+              PNG-export. Het cijfer is intern gereedschap — het hoort bij het opstellen, niet bij het
+              lezen van een opstelling. Wie kijkt, ziet de linies gewoon op het veld staan.
+              In de privé Predicted XI Builder blijft het zichtbaar waar het thuishoort: in de
+              formatie-<select> boven het veld (zie PredictedXiBuilder.jsx). */}
           {gwLabel && (
             <div style={{
               color: '#8F79AD', fontWeight: 700, fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase',

@@ -353,7 +353,6 @@ export default function PredictedXiBuilder() {
               ref={pitchRef}
               club={club}
               opponent={opponent}
-              formationLabel={FORMATIONS[formationKey].label}
               slots={slots}
               activeSlotIndex={activeSlotIndex}
               onSlotClick={handleSlotClick}
