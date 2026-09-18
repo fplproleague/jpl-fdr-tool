@@ -239,7 +239,11 @@ const PitchField = forwardRef(function PitchField({
               {club?.name ?? 'Kies een club'}
             </div>
           )}
-          <div className="pxi-field-formation" style={{
+          {/* pxi-no-export: de formatie blijft in de tool zelf gewoon staan (je wil tijdens het
+              opstellen zien of je op 4-3-3 of 3-5-2 zit), maar hoort niet op de afbeelding die
+              buiten de site rondgaat — die toont het veld, en daar lees je de formatie al van af.
+              Zie ignoreElements in exportImage.js; de klasse heeft verder geen eigen opmaak. */}
+          <div className="pxi-field-formation pxi-no-export" style={{
             color: '#4ECDC4', fontWeight: 800, fontSize: '11px', letterSpacing: '0.14em', textTransform: 'uppercase',
             background: 'rgba(78,205,196,0.12)', border: '1px solid rgba(78,205,196,0.3)',
             borderRadius: '999px', padding: '3px 12px',
