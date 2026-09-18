@@ -65,6 +65,10 @@ export default function PredictedXiBuilder() {
   const [opponentCode, setOpponentCode] = useState('');
   const [openDraftId, setOpenDraftId] = useState(null);
   const [formationKey, setFormationKey] = useState(DEFAULT_FORMATION_KEY);
+  // Handmatig ingetypte tekst die de automatische FORMATIONS[formationKey].label overschrijft op het
+  // veld/de export (zie displayedFormationLabel hieronder) — '' = geen override, val terug op de
+  // automatische label. Puur cosmetisch, verandert nooit de effectieve positielayout.
+  const [formationLabelOverride, setFormationLabelOverride] = useState('');
   const [slots, setSlots] = useState(() => generateEmptySlotsForFormation(DEFAULT_FORMATION_KEY));
   const [notes, setNotes] = useState('');
   // Slot-index die net leeg aangeklikt werd — richt het zoekpaneel op precies die plek in plaats van
@@ -87,12 +91,14 @@ export default function PredictedXiBuilder() {
     if (existing) {
       setOpenDraftId(existing.id);
       setFormationKey(existing.formationKey);
+      setFormationLabelOverride(existing.formationLabelOverride ?? '');
       setSlots(existing.slots);
       setNotes(existing.notes);
       setOpponentCode(existing.opponentCode ?? '');
     } else {
       setOpenDraftId(null);
       setFormationKey(DEFAULT_FORMATION_KEY);
+      setFormationLabelOverride('');
       setSlots(generateEmptySlotsForFormation(DEFAULT_FORMATION_KEY));
       setNotes('');
       setOpponentCode('');
@@ -109,6 +115,7 @@ export default function PredictedXiBuilder() {
   function handleFormationChange(newFormationKey) {
     setSlots(prev => remapLineupToFormation(prev, newFormationKey));
     setFormationKey(newFormationKey);
+    setFormationLabelOverride(''); // val terug op de nieuwe formatie's eigen label, tenzij opnieuw getypt
     setActiveSlotIndex(null);
   }
 
@@ -216,17 +223,17 @@ export default function PredictedXiBuilder() {
       if (openDraftId == null) {
         const id = createDraftId();
         setOpenDraftId(id);
-        next = [...prev, { id, clubCode, opponentCode, formationKey, slots, notes, label: '', createdAt: now, updatedAt: now }];
+        next = [...prev, { id, clubCode, opponentCode, formationKey, formationLabelOverride, slots, notes, label: '', createdAt: now, updatedAt: now }];
       } else if (prev.some(d => d.id === openDraftId)) {
-        next = prev.map(d => (d.id === openDraftId ? { ...d, clubCode, opponentCode, formationKey, slots, notes, updatedAt: now } : d));
+        next = prev.map(d => (d.id === openDraftId ? { ...d, clubCode, opponentCode, formationKey, formationLabelOverride, slots, notes, updatedAt: now } : d));
       } else {
-        next = [...prev, { id: openDraftId, clubCode, opponentCode, formationKey, slots, notes, label: '', createdAt: now, updatedAt: now }];
+        next = [...prev, { id: openDraftId, clubCode, opponentCode, formationKey, formationLabelOverride, slots, notes, label: '', createdAt: now, updatedAt: now }];
       }
       saveDrafts(next);
       return next;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clubCode, opponentCode, formationKey, slots, notes]);
+  }, [clubCode, opponentCode, formationKey, formationLabelOverride, slots, notes]);
 
   function handleOpenDraft(id) {
     const draft = drafts.find(d => d.id === id);
@@ -235,6 +242,7 @@ export default function PredictedXiBuilder() {
     setClubCode(draft.clubCode);
     setOpponentCode(draft.opponentCode ?? '');
     setFormationKey(draft.formationKey);
+    setFormationLabelOverride(draft.formationLabelOverride ?? '');
     setSlots(draft.slots);
     setNotes(draft.notes);
     setActiveSlotIndex(null);
@@ -252,6 +260,7 @@ export default function PredictedXiBuilder() {
       setClubCode(newDraft.clubCode);
       setOpponentCode(newDraft.opponentCode ?? '');
       setFormationKey(newDraft.formationKey);
+      setFormationLabelOverride(newDraft.formationLabelOverride ?? '');
       setSlots(newDraft.slots);
       setNotes(newDraft.notes);
       setActiveSlotIndex(null);
@@ -283,6 +292,9 @@ export default function PredictedXiBuilder() {
   const unassigned = slots.filter(s => s.positionId === '_unassigned');
   const activeSlotRole = activeSlotIndex != null ? slots[activeSlotIndex]?.role : null;
   const opponent = opponentCode ? TEAMS.find(t => t.code === opponentCode) : null;
+  // Wat effectief op het veld/de export getoond wordt: de handmatig ingetypte tekst indien aanwezig,
+  // anders de automatische label van de gekozen formatie.
+  const displayedFormationLabel = formationLabelOverride.trim() || FORMATIONS[formationKey].label;
 
   return (
     <div style={{ minHeight: '100vh', background: '#1A0E2E', padding: '24px 16px', fontFamily: 'Archivo, Arial, sans-serif' }}>
@@ -313,6 +325,15 @@ export default function PredictedXiBuilder() {
           <select value={formationKey} onChange={(e) => handleFormationChange(e.target.value)} style={selectStyle}>
             {Object.keys(FORMATIONS).map(key => <option key={key} value={key}>{FORMATIONS[key].label}</option>)}
           </select>
+          <input
+            type="text"
+            value={formationLabelOverride}
+            onChange={(e) => setFormationLabelOverride(e.target.value)}
+            placeholder={FORMATIONS[formationKey].label}
+            maxLength={20}
+            title="Overschrijf de formatietekst die op het veld en de export getoond wordt (heeft geen invloed op de positielayout)"
+            style={{ ...selectStyle, width: '110px' }}
+          />
           <button
             onClick={handleExport}
             disabled={isExporting}
@@ -353,7 +374,7 @@ export default function PredictedXiBuilder() {
               ref={pitchRef}
               club={club}
               opponent={opponent}
-              formationLabel={FORMATIONS[formationKey].label}
+              formationLabel={displayedFormationLabel}
               slots={slots}
               activeSlotIndex={activeSlotIndex}
               onSlotClick={handleSlotClick}

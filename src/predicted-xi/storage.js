@@ -72,6 +72,11 @@ function sanitizeDraft(raw) {
       ? raw.opponentCode
       : '',
     formationKey,
+    // Handmatig ingetypte formatietekst die de automatische FORMATIONS[key].label overschrijft op het
+    // veld en de export (bv. "5-3-2" typen terwijl de effectieve positielayout een andere formatie kan
+    // zijn) — enkel cosmetisch, heeft geen invloed op spelerposities. Leeg ('') = geen override, val
+    // terug op de automatische label (zie PredictedXiBuilder.jsx).
+    formationLabelOverride: typeof raw.formationLabelOverride === 'string' ? raw.formationLabelOverride : '',
     slots,
     notes: typeof raw.notes === 'string' ? raw.notes : '',
     label: typeof raw.label === 'string' ? raw.label : '',
