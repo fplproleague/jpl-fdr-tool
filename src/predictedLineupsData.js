@@ -4,8 +4,8 @@
 //
 // Elke entry heeft grotendeels dezelfde vorm als een record uit de privé Predicted XI Builder's
 // opgeslagen lineups (zie loadStoredDrafts()/sanitizeDraft() in src/predicted-xi/storage.js): clubCode,
-// opponentCode, formationKey, formationLabelOverride, slots (met per slot playerName/playerTeamCode/
-// playerPosition/playerPrice/safety/positionId/xPercent/yPercent), notes.
+// opponentCode, formationKey, slots (met per slot playerName/playerTeamCode/playerPosition/
+// playerPrice/safety/positionId/xPercent/yPercent), notes.
 //
 // Volledig vervangen (niet aangevuld) telkens een nieuwe export van de privé-tool binnenkomt — zie
 // PREDICTED_LINEUPS_GW in constants.js voor de speeldag waarvoor DEZE data geldt. Bewust een volledige
