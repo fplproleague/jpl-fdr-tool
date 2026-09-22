@@ -4,10 +4,13 @@
 // resetten telkens de gebruiker weg- en terugnavigeert.
 
 import { X, Plus, Eye, UserPlus, Loader2, AlertCircle, RotateCcw } from 'lucide-react';
-import { TEAMS, CURRENT_GW, FIXTURES, DEFAULT_GW_HORIZON_END, sectionTitleStyle, sectionTitleTextStyle } from '../constants';
+import { TEAMS, CURRENT_GW, FIXTURES, sectionTitleStyle, sectionTitleTextStyle } from '../constants';
 import { COLORS, retryButtonStyle, primaryButtonStyle } from '../theme';
 import { FixtureStrip } from '../components/FixtureStrip';
 import { PlayerSearchInput } from '../components/PlayerSearchInput';
+
+// Aantal fixture-badges per watchlist-kaartje — zie de uitleg bij upcomingFixtures verderop.
+const WATCHLIST_FIXTURES_AHEAD = 5;
 
 export default function WatchlistTab({
   t, onOpenPlayer,
@@ -115,12 +118,14 @@ export default function WatchlistTab({
             <div style={{ display: 'grid', gap: '8px' }}>
               {watchlist.map(player => {
                 const team = TEAMS.find(team => team.code === player.teamCode);
-                // Eerstvolgende fixtures vanaf CURRENT_GW, nooit voorbij DEFAULT_GW_HORIZON_END (GW7) —
-                // vanaf GW8 krijgen spelers onbeperkte gratis transfers en begint dus een nieuwe periode
-                // (zelfde grens als "Beste fixture runs" op de FDR-tab, zie rangeEnd in FDRTool.jsx).
-                // .slice() geeft vanzelf minder terug als CURRENT_GW dicht bij die grens zit, dus geen
-                // aparte "resterende fixtures"-logica nodig.
-                const upcomingFixtures = (FIXTURES[player.teamCode] ?? []).slice(CURRENT_GW - 1, DEFAULT_GW_HORIZON_END);
+                // Eerstvolgende fixtures vanaf CURRENT_GW. Bewust korter dan de horizon van de
+                // FDR-tabel (acht): een watchlist-kaartje is een snelle blik op één speler, geen
+                // planningstabel, en acht badges wikkelen op een telefoon naar een tweede regel — dan
+                // wordt elke kaart een stuk hoger en zie je er minder in één scherm. Vijf is hetzelfde
+                // aantal als de clubkaart toont (FIXTURES_AHEAD in ClubSheet.jsx) en past nog net op
+                // één regel. .slice() geeft vanzelf minder terug aan het einde van het seizoen, dus
+                // geen aparte "resterende fixtures"-logica nodig.
+                const upcomingFixtures = (FIXTURES[player.teamCode] ?? []).slice(CURRENT_GW - 1, CURRENT_GW - 1 + WATCHLIST_FIXTURES_AHEAD);
                 return (
                   <div key={player.id} style={{
                     position: 'relative', background: 'rgba(255,255,255,0.04)',

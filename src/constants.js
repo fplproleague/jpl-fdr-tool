@@ -25,30 +25,147 @@ export const TEAMS = [
   { code: 'ZWA', name: 'Zulte Waregem' },
 ];
 
+// De volledige kalender, GW1 t/m GW34, per team op array-index 0..33. Formaat per cel:
+// "TEGENSTANDER-H" (thuis) of "TEGENSTANDER-A" (uit); een array i.p.v. een string betekent een dubbele
+// speeldag (zie isDoubleGameweek hieronder). De // GW-markers achter elke regel zijn er enkel om bij
+// het handmatig nakijken niet te hoeven tellen — index 0 blijft GW1.
+//
+// GW9-34 toegevoegd na de interlandbreak van september 2026, uit de officiële kalender. Gecontroleerd
+// bij het invoeren: 306 wedstrijden, elk duel exact één keer thuis en één keer uit, elk team 17 thuis
+// en 17 uit, en per speeldag negen thuisploegen. Uitgestelde wedstrijden kunnen dit later alsnog
+// doorbreken (een blanco of een dubbele speeldag) — zie POSTPONED verderop voor hoe dat wordt gemeld.
 export const FIXTURES = {
   // AND-KOR (GW3) is door de Europese voorrondes uitgesteld naar GW4, waar het een dubbele speeldag
   // (DGW) wordt naast de oorspronkelijke GW4-tegenstander. De GW3-cel zelf blijft hieronder ongewijzigd
   // staan (nog altijd 'KOR-H'/'AND-A') — die rendert als "/" doordat de key in POSTPONED zit, zie verderop.
-  AND: ['LLV-H','BEV-A','KOR-H', ['USG-A','KOR-H'], 'GNK-H','KVM-A','ZWA-H','CER-A'],
-  ANT: ['BEV-H','KOR-A','GNK-H','STV-H','STA-A','CLU-A','USG-H','WES-A'],
-  CER: ['STA-A','STV-H','CLU-A','LOM-H','GNT-H','OHL-A','CHA-A','AND-H'],
-  CHA: ['OHL-H','LOM-A','KVM-H','KOR-A','USG-H','ZWA-A','CER-H','STA-A'],
-  CLU: ['KOR-H','OHL-A','CER-H','GNT-A','LOM-A','ANT-H','GNK-H','LLV-A'],
-  GNK: ['ZWA-A','WES-H','ANT-A','BEV-H','AND-A','GNT-H','CLU-A','KOR-H'],
+  AND: [
+    'LLV-H','BEV-A','KOR-H', ['USG-A','KOR-H'], 'GNK-H','KVM-A','ZWA-H','CER-A', // GW1-8
+    'GNT-A','WES-H','CLU-A','OHL-H','ANT-A','CHA-H','STA-A','STV-H', // GW9-16
+    'LOM-A','KOR-A','GNT-H','OHL-A','KVM-H','ZWA-A','CLU-H','WES-A', // GW17-24
+    'LOM-H','STA-H','GNK-A','BEV-H','CHA-A','CER-H','STV-A','USG-H', // GW25-32
+    'ANT-H','LLV-A', // GW33-34
+  ],
+  ANT: [
+    'BEV-H','KOR-A','GNK-H','STV-H','STA-A','CLU-A','USG-H','WES-A', // GW1-8
+    'CHA-H','CER-A','LOM-H','ZWA-A','AND-H','LLV-A','OHL-H','GNT-A', // GW9-16
+    'KVM-H','CHA-A','CLU-H','GNK-A','KOR-H','OHL-A','ZWA-H','STV-A', // GW17-24
+    'LLV-H','LOM-A','BEV-A','CER-H','USG-A','GNT-H','KVM-A','STA-H', // GW25-32
+    'AND-A','WES-H', // GW33-34
+  ],
+  CER: [
+    'STA-A','STV-H','CLU-A','LOM-H','GNT-H','OHL-A','CHA-A','AND-H', // GW1-8
+    'USG-A','ANT-H','LLV-A','WES-H','KVM-H','BEV-A','ZWA-H','KOR-A', // GW9-16
+    'GNK-H','GNT-A','STA-H','KVM-A','CHA-H','STV-A','OHL-H','ZWA-A', // GW17-24
+    'USG-H','WES-A','LLV-H','ANT-A','KOR-H','AND-A','CLU-H','GNK-A', // GW25-32
+    'BEV-H','LOM-A', // GW33-34
+  ],
+  CHA: [
+    'OHL-H','LOM-A','KVM-H','KOR-A','USG-H','ZWA-A','CER-H','STA-A', // GW1-8
+    'ANT-A','LLV-H','WES-A','STV-H','BEV-H','AND-A','GNK-H','CLU-A', // GW9-16
+    'GNT-H','ANT-H','LLV-A','WES-H','CER-A','STA-H','BEV-A','GNT-A', // GW17-24
+    'CLU-H','KVM-A','LOM-H','STV-A','AND-H','GNK-A','ZWA-H','OHL-A', // GW25-32
+    'KOR-H','USG-A', // GW33-34
+  ],
+  CLU: [
+    'KOR-H','OHL-A','CER-H','GNT-A','LOM-A','ANT-H','GNK-H','LLV-A', // GW1-8
+    'STV-H','ZWA-A','AND-H','KVM-A','STA-A','WES-H','USG-A','CHA-H', // GW9-16
+    'BEV-A','LLV-H','ANT-A','STA-H','WES-A','LOM-H','AND-A','BEV-H', // GW17-24
+    'CHA-A','GNT-H','KOR-A','OHL-H','GNK-A','USG-H','CER-A','KVM-H', // GW25-32
+    'STV-A','ZWA-H', // GW33-34
+  ],
+  GNK: [
+    'ZWA-A','WES-H','ANT-A','BEV-H','AND-A','GNT-H','CLU-A','KOR-H', // GW1-8
+    'STA-H','KVM-A','USG-A','LLV-H','STV-A','OHL-H','CHA-A','LOM-H', // GW9-16
+    'CER-A','ZWA-H','WES-A','ANT-H','BEV-A','KOR-A','USG-H','OHL-A', // GW17-24
+    'STV-H','LLV-A','AND-H','LOM-A','CLU-H','CHA-H','GNT-A','CER-H', // GW25-32
+    'STA-A','KVM-H', // GW33-34
+  ],
   // GNT-OHL (GW3) is definitief uitgesteld naar GW4 (3 september) — zelfde patroon als AND-KOR hierboven.
-  GNT: ['KVM-H','LLV-A','OHL-H', ['CLU-H','OHL-H'], 'CER-A','GNK-A','STA-H','ZWA-A'],
-  KOR: ['CLU-A','ANT-H','AND-A', ['CHA-H','AND-A'], 'ZWA-H','LLV-A','BEV-H','GNK-A'],
-  KVM: ['GNT-A','STA-H','CHA-A','LLV-A','WES-H','AND-H','LOM-A','STV-H'],
-  LOM: ['STV-A','CHA-H','WES-H','CER-A','CLU-H','USG-A','KVM-H','BEV-A'],
-  OHL: ['CHA-A','CLU-H','GNT-A', ['STA-H','GNT-A'], 'BEV-A','CER-H','LLV-H','USG-A'],
-  LLV: ['AND-A','GNT-H','STA-A','KVM-H','STV-A','KOR-H','OHL-A','CLU-H'],
-  BEV: ['ANT-A','AND-H','ZWA-A','GNK-A','OHL-H','STV-H','KOR-A','LOM-H'],
+  GNT: [
+    'KVM-H','LLV-A','OHL-H', ['CLU-H','OHL-H'], 'CER-A','GNK-A','STA-H','ZWA-A', // GW1-8
+    'AND-H','LOM-A','KOR-H','BEV-A','USG-A','STV-H','WES-A','ANT-H', // GW9-16
+    'CHA-A','CER-H','AND-A','BEV-H','STV-A','LLV-H','STA-A','CHA-H', // GW17-24
+    'ZWA-H','CLU-A','WES-H','KVM-A','LOM-H','ANT-A','GNK-H','KOR-A', // GW25-32
+    'USG-H','OHL-A', // GW33-34
+  ],
+  KOR: [
+    'CLU-A','ANT-H','AND-A', ['CHA-H','AND-A'], 'ZWA-H','LLV-A','BEV-H','GNK-A', // GW1-8
+    'KVM-H','STA-A','GNT-A','USG-H','OHL-A','LOM-H','STV-A','CER-H', // GW9-16
+    'WES-A','AND-H','BEV-A','LLV-H','ANT-A','GNK-H','LOM-A','KVM-A', // GW17-24
+    'OHL-H','ZWA-A','CLU-H','STA-H','CER-A','WES-H','USG-A','GNT-H', // GW25-32
+    'CHA-A','STV-H', // GW33-34
+  ],
+  KVM: [
+    'GNT-A','STA-H','CHA-A','LLV-A','WES-H','AND-H','LOM-A','STV-H', // GW1-8
+    'KOR-A','GNK-H','OHL-A','CLU-H','CER-A','USG-H','BEV-A','ZWA-H', // GW9-16
+    'ANT-A','LOM-H','STV-A','CER-H','AND-A','BEV-H','WES-A','KOR-H', // GW17-24
+    'STA-A','CHA-H','USG-A','GNT-H','LLV-H','ZWA-A','ANT-H','CLU-A', // GW25-32
+    'OHL-H','GNK-A', // GW33-34
+  ],
+  LOM: [
+    'STV-A','CHA-H','WES-H','CER-A','CLU-H','USG-A','KVM-H','BEV-A', // GW1-8
+    'OHL-A','GNT-H','ANT-A','STA-H','ZWA-H','KOR-A','LLV-H','GNK-A', // GW9-16
+    'AND-H','KVM-A','OHL-H','ZWA-A','USG-H','CLU-A','KOR-H','LLV-A', // GW17-24
+    'AND-A','ANT-H','CHA-A','GNK-H','GNT-A','STV-H','STA-A','BEV-H', // GW25-32
+    'WES-A','CER-H', // GW33-34
+  ],
+  OHL: [
+    'CHA-A','CLU-H','GNT-A', ['STA-H','GNT-A'], 'BEV-A','CER-H','LLV-H','USG-A', // GW1-8
+    'LOM-H','STV-A','KVM-H','AND-A','KOR-H','GNK-A','ANT-A','WES-H', // GW9-16
+    'ZWA-A','STV-H','LOM-A','AND-H','LLV-A','ANT-H','CER-A','GNK-H', // GW17-24
+    'KOR-A','USG-H','ZWA-H','CLU-A','STA-A','BEV-H','WES-A','CHA-H', // GW25-32
+    'KVM-A','GNT-H', // GW33-34
+  ],
+  LLV: [
+    'AND-A','GNT-H','STA-A','KVM-H','STV-A','KOR-H','OHL-A','CLU-H', // GW1-8
+    'ZWA-H','CHA-A','CER-H','GNK-A','WES-A','ANT-H','LOM-A','BEV-H', // GW9-16
+    'USG-A','CLU-A','CHA-H','KOR-A','OHL-H','GNT-A','STV-H','LOM-H', // GW17-24
+    'ANT-A','GNK-H','CER-A','USG-H','KVM-A','STA-H','BEV-A','WES-H', // GW25-32
+    'ZWA-A','AND-H', // GW33-34
+  ],
+  BEV: [
+    'ANT-A','AND-H','ZWA-A','GNK-A','OHL-H','STV-H','KOR-A','LOM-H', // GW1-8
+    'WES-A','USG-H','STA-A','GNT-H','CHA-A','CER-H','KVM-H','LLV-A', // GW9-16
+    'CLU-H','USG-A','KOR-H','GNT-A','GNK-H','KVM-A','CHA-H','CLU-A', // GW17-24
+    'WES-H','STV-A','ANT-H','AND-A','ZWA-H','OHL-A','LLV-H','LOM-A', // GW25-32
+    'CER-A','STA-H', // GW33-34
+  ],
   // GW4 (index 3) is voor STV en USG een dubbele speeldag (DGW): zie isDoubleGameweek() hieronder.
-  STV: ['LOM-H','CER-A','USG-H', ['ANT-A','USG-H'], 'LLV-H','BEV-A','WES-H','KVM-A'],
-  STA: ['CER-H','KVM-A','LLV-H','OHL-A','ANT-H','WES-A','GNT-A','CHA-H'],
-  USG: ['WES-A','ZWA-H','STV-A', ['AND-H','STV-A'], 'CHA-A','LOM-H','ANT-A','OHL-H'],
-  WES: ['USG-H','GNK-A','LOM-A','ZWA-H','KVM-A','STA-H','STV-A','ANT-H'],
-  ZWA: ['GNK-H','USG-A','BEV-H','WES-A','KOR-A','CHA-H','AND-A','GNT-H'],
+  STV: [
+    'LOM-H','CER-A','USG-H', ['ANT-A','USG-H'], 'LLV-H','BEV-A','WES-H','KVM-A', // GW1-8
+    'CLU-A','OHL-H','ZWA-H','CHA-A','GNK-H','GNT-A','KOR-H','AND-A', // GW9-16
+    'STA-H','OHL-A','KVM-H','USG-A','GNT-H','CER-H','LLV-A','ANT-H', // GW17-24
+    'GNK-A','BEV-H','STA-A','CHA-H','WES-A','LOM-A','AND-H','ZWA-A', // GW25-32
+    'CLU-H','KOR-A', // GW33-34
+  ],
+  STA: [
+    'CER-H','KVM-A','LLV-H','OHL-A','ANT-H','WES-A','GNT-A','CHA-H', // GW1-8
+    'GNK-A','KOR-H','BEV-H','LOM-A','CLU-H','ZWA-A','AND-H','USG-H', // GW9-16
+    'STV-A','WES-H','CER-A','CLU-A','ZWA-H','CHA-A','GNT-H','USG-A', // GW17-24
+    'KVM-H','AND-A','STV-H','KOR-A','OHL-H','LLV-A','LOM-H','ANT-A', // GW25-32
+    'GNK-H','BEV-A', // GW33-34
+  ],
+  USG: [
+    'WES-A','ZWA-H','STV-A', ['AND-H','STV-A'], 'CHA-A','LOM-H','ANT-A','OHL-H', // GW1-8
+    'CER-H','BEV-A','GNK-H','KOR-A','GNT-H','KVM-A','CLU-H','STA-A', // GW9-16
+    'LLV-H','BEV-H','ZWA-A','STV-H','LOM-A','WES-H','GNK-A','STA-H', // GW17-24
+    'CER-A','OHL-A','KVM-H','LLV-A','ANT-H','CLU-A','KOR-H','AND-A', // GW25-32
+    'GNT-A','CHA-H', // GW33-34
+  ],
+  WES: [
+    'USG-H','GNK-A','LOM-A','ZWA-H','KVM-A','STA-H','STV-A','ANT-H', // GW1-8
+    'BEV-H','AND-A','CHA-H','CER-A','LLV-H','CLU-A','GNT-H','OHL-A', // GW9-16
+    'KOR-H','STA-A','GNK-H','CHA-A','CLU-H','USG-A','KVM-H','AND-H', // GW17-24
+    'BEV-A','CER-H','GNT-A','ZWA-A','STV-H','KOR-A','OHL-H','LLV-A', // GW25-32
+    'LOM-H','ANT-A', // GW33-34
+  ],
+  ZWA: [
+    'GNK-H','USG-A','BEV-H','WES-A','KOR-A','CHA-H','AND-A','GNT-H', // GW1-8
+    'LLV-A','CLU-H','STV-A','ANT-H','LOM-A','STA-H','CER-A','KVM-A', // GW9-16
+    'OHL-H','GNK-A','USG-H','LOM-H','STA-A','AND-H','ANT-A','CER-H', // GW17-24
+    'GNT-A','KOR-H','OHL-A','WES-H','BEV-A','KVM-H','CHA-A','STV-H', // GW25-32
+    'LLV-H','CLU-A', // GW33-34
+  ],
 };
 
 // Een fixture-entry in FIXTURES is normaal een string ("OPP-VENUE" — één wedstrijd). Voor een dubbele
@@ -115,14 +232,28 @@ export const RATING_STYLE = {
   5: { bg: '#C2402C', text: '#FFFFFF', label: 'Moeilijkst' },
 };
 
-export const GW_COUNT = 8;
-// Standaard-eindpunt van de GW-horizon in de hoofdtabel: alle spelers krijgen na deze speeldag
-// onbeperkte gratis transfers, waardoor latere GW's minder relevant zijn bij het opstellen van het
-// eerste team. Gebruikers kunnen dit zelf nog verruimen tot GW_COUNT via de selector.
-export const DEFAULT_GW_HORIZON_END = 7;
-// Min-width van de hoofdtabel bij de volledige GW1-GW_COUNT-breedte — referentiewaarde waar
-// mainTableMinWidth (zie FDRTool) evenredig van afschaalt bij een kleinere horizon.
-export const MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS = 760;
+export const GW_COUNT = 34;
+
+// Hoeveel speeldagen de hoofdtabel, "Beste fixture runs", "Vergelijk teams" en de watchlist standaard
+// tonen, gerekend VANAF de huidige speeldag. Het eindpunt zelf is afgeleid (DEFAULT_GW_HORIZON_END,
+// onderaan dit bestand na CURRENT_GW) en schuift dus elke week mee, zonder dat hier iets moet wijzigen.
+//
+// Waarom acht en niet het hele seizoen: tot GW7 was dit een vast eindpunt (GW7), omdat iedereen daarna
+// onbeperkte gratis transfers kreeg en verder kijken zinloos was. Die grens is voorbij; er staan nu 34
+// speeldagen in FIXTURES. Alle 27 resterende kolommen tegelijk tonen maakt de tabel onleesbaar breed
+// (ze scrollt horizontaal, dus je ziet er nooit meer dan een handvol tegelijk) en is ook planmatig
+// weinig waard — zo ver vooruit veranderen blessures, vorm en ratings alles nog. Acht kolommen is
+// precies de breedte waarop de tabel vandaag al staat (zie TABLE_SLOT_MIN_WIDTH) en ongeveer twee
+// maanden vooruit: ver genoeg voor transferplanning, kort genoeg om te lezen. Wie verder wil kijken,
+// zet de selector gewoon op GW34.
+export const DEFAULT_GW_HORIZON_LENGTH = 8;
+
+// Min-width per tabelkolom (de Team-kolom meegeteld als één "slot"). Was vroeger één totaalbreedte
+// voor alle GW_COUNT kolommen samen; dat werkte enkel zolang GW_COUNT acht was. Met 34 speeldagen is
+// een totaal betekenisloos — de tabel toont er nooit 34 tegelijk — dus staat hier nu de breedte per
+// kolom. 84px is exact de oude kalibratie (760px gedeeld over de Team-kolom + 8 GW-kolommen), zodat de
+// tabel er bij de standaardhorizon op de pixel hetzelfde uitziet als voordien.
+export const TABLE_SLOT_MIN_WIDTH = 84;
 export const MINILEAGUE_CODE = '19WN75';
 
 // --- Gameweek-deadlines (enige handmatig bij te werken bron van waarheid voor "waar staan we") ---
@@ -134,7 +265,10 @@ export const MINILEAGUE_CODE = '19WN75';
 // precies daardoor kon de site "GW3" tonen terwijl een ander onderdeel nog op GW2 stond. Werk enkel
 // dit object bij; al de rest volgt vanzelf.
 //
-// GW8 heeft (nog) geen bekende deadline: null i.p.v. een lege string, zodat "onbekend" expliciet is.
+// Enkel GW1-7 zijn gekend; GW8 staat er expliciet als null bij en GW9-34 ontbreken gewoon. Beide
+// gevallen geven null uit getGwDeadlineDate() en een lege string uit formatGwDeadline(), dus de site
+// toont dan geen deadline en geen aftelklok i.p.v. een verzonnen datum. Vul aan zodra de kalender van
+// na de interlandbreak officieel is; CURRENT_GW en de aftelklok volgen dan vanzelf.
 export const GW_DEADLINE_ISO = {
   1: '2026-08-07T20:45:00+02:00',
   2: '2026-08-14T20:45:00+02:00',
@@ -219,17 +353,29 @@ export function formatLastUpdatedLong(language) {
 // bezig is. Valt terug op GW_COUNT zodra alle gekende deadlines voorbij zijn. `now` is injecteerbaar
 // zodat dit testbaar is en niet stiekem van de systeemklok afhangt.
 export function resolveCurrentGw(now = new Date()) {
+  let laatsteGekend = 0;
   for (let gw = 1; gw <= GW_COUNT; gw++) {
     const deadline = getGwDeadlineDate(gw);
-    if (deadline && deadline.getTime() > now.getTime()) return gw;
+    if (!deadline) continue;
+    if (deadline.getTime() > now.getTime()) return gw;
+    laatsteGekend = gw;
   }
-  return GW_COUNT;
+  // Geen enkele deadline meer in de toekomst. Terugvallen op GW_COUNT was juist zolang er acht
+  // speeldagen in dit bestand stonden, maar met 34 zou de site nu naar GW34 springen zodra de laatst
+  // ingevulde deadline verstrijkt — en dat is precies de situatie tussen twee updates in. De speeldag
+  // ná de laatste gekende deadline is het eerlijke antwoord: die is bezig of komt eraan.
+  return Math.min(GW_COUNT, laatsteGekend + 1) || 1;
 }
 
 // Afgeleid i.p.v. handmatig ingesteld (zie resolveCurrentGw hierboven). Wordt één keer bij het laden
 // van de module berekend — ruim genoeg voor een sessie, en de aftelklok in de header hertelt sowieso
 // elke seconde zelf.
 export const CURRENT_GW = resolveCurrentGw();
+
+// Het eindpunt van de standaardhorizon: de huidige speeldag plus DEFAULT_GW_HORIZON_LENGTH - 1, nooit
+// voorbij het einde van het seizoen. Afgeleid i.p.v. handmatig ingesteld, zodat het venster elke week
+// vanzelf meeschuift — vroeger stond hier een vast getal (7) dat na elke speeldag opnieuw fout stond.
+export const DEFAULT_GW_HORIZON_END = Math.min(GW_COUNT, CURRENT_GW + DEFAULT_GW_HORIZON_LENGTH - 1);
 
 // Behouden voor bestaande aanroepers (Team Planner toont dit onder de GW-navigator): nu volledig
 // afgeleid uit GW_DEADLINE_ISO i.p.v. een tweede, apart bij te werken lijst.
