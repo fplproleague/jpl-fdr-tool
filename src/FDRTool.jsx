@@ -13,7 +13,8 @@ import {
   resolveSlotPlayerAtGw, PLAYER_DATABASE_CSV_URL, parsePlayerDatabaseCsv, getFixtureScores, average,
   POSTPONED, computeTeamPlannerTransferBudget, getGwDeadlineDate, AUTO_RECHARGE_GWS,
 } from './constants';
-import { SET_PIECES_CSV_URL } from './constants';
+import { SET_PIECES_CSV_URL, TEAM_FORM_CSV_URL, TEAM_FORM } from './constants';
+import { parseTeamFormCsv, mergeTeamForm } from './teamForm';
 import { parseSetPiecesCsv } from './setPieces';
 import { COLORS } from './theme';
 import {
@@ -1138,6 +1139,39 @@ export default function FDRTool() {
   // en een sheet mag geen fetch kosten op het moment dat je 'm opent. Zelfde uitgestelde afhandeling
   // als de spelersdatabank hierboven: meteen als de bezoeker al op de Set Pieces-tab staat, anders
   // wanneer de browser toch niets te doen heeft.
+  // Vorm per club uit de Google Sheet (zie teamForm.js), met de ingebouwde TEAM_FORM als startwaarde
+  // én als terugval. Geen loading- of foutstatus: de tabel toont altijd meteen iets, en een mislukte
+  // ophaling betekent gewoon dat de ingebouwde waarden blijven staan — daar hoeft geen melding bij.
+  // Zolang TEAM_FORM_CSV_URL null is, wordt er helemaal niets opgehaald.
+  const [teamForm, setTeamForm] = useState(TEAM_FORM);
+
+  useEffect(() => {
+    if (!TEAM_FORM_CSV_URL) return undefined;
+    let geannuleerd = false;
+    const ophalen = async () => {
+      try {
+        const response = await fetch(TEAM_FORM_CSV_URL, { cache: 'no-store' });
+        if (!response.ok) return;
+        const text = await response.text();
+        // Een niet-gepubliceerd werkblad geeft een HTML-foutpagina terug i.p.v. CSV; die zou anders als
+        // één grote onzinrij geparsed worden. Zelfde controle als bij de set pieces-CSV.
+        if (/^\s*<(!doctype|html)/i.test(text)) return;
+        const uitSheet = parseTeamFormCsv(text);
+        if (!geannuleerd && Object.keys(uitSheet).length > 0) {
+          setTeamForm(mergeTeamForm(TEAM_FORM, uitSheet));
+        }
+      } catch {
+        // offline of geblokkeerd — de ingebouwde waarden blijven staan
+      }
+    };
+    if (typeof window.requestIdleCallback === 'function') {
+      const handle = window.requestIdleCallback(() => ophalen(), { timeout: 4000 });
+      return () => { geannuleerd = true; window.cancelIdleCallback?.(handle); };
+    }
+    const timer = setTimeout(ophalen, 1600);
+    return () => { geannuleerd = true; clearTimeout(timer); };
+  }, []);
+
   const fetchSetPieces = useCallback(async () => {
     setSetPiecesLoading(true);
     setSetPiecesError(null);
@@ -2472,6 +2506,7 @@ export default function FDRTool() {
             setRangeEnd={setRangeEnd}
             bestRuns={bestRuns}
             compareTeams={compareTeams}
+            teamForm={teamForm}
             toggleCompareTeam={toggleCompareTeam}
             onOpenClub={openClubSheet}
           />
@@ -2662,6 +2697,7 @@ export default function FDRTool() {
             setPiecesEntries={setPiecesData.entries}
             ratings={ratings}
             homeAdvantage={homeAdvantage}
+            teamForm={teamForm}
             onOpenPlayer={openPlayerSheet}
           />
         </Suspense>

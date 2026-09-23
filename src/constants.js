@@ -393,9 +393,13 @@ export const GW_DEADLINES = Object.fromEntries(
 export const PREDICTED_LINEUPS_GW = 7;
 
 // Recente vorm per team in de hoofdtabel van de FDR-tab: max. 5 laatste GESPEELDE wedstrijden, oudste
-// eerst en nieuwste laatst ('W' winst, 'G' gelijkspel, 'V' verlies). Handmatig bij te werken na elke
-// afgeronde speeldag (zelfde onderhoudspatroon als POSTPONED/PREDICTED_LINEUPS_GW hierboven): duw de
-// nieuwste uitslag achteraan elke array en knip de oudste eraf zodra een team er meer dan 5 heeft. Een
+// eerst en nieuwste laatst ('W' winst, 'G' gelijkspel, 'V' verlies).
+//
+// Dit is sinds TEAM_FORM_CSV_URL (verderop) de TERUGVAL, niet meer de enige bron: staat er een
+// gepubliceerd vorm-werkblad in de Google Sheet, dan wint dat, en hoeft hier niets meer bijgewerkt te
+// worden. Zolang die URL null is — of de sheet onbereikbaar/half ingevuld is — telt wat hieronder
+// staat. Handmatig bijwerken gaat zoals altijd: duw de nieuwste uitslag achteraan elke array en knip
+// de oudste eraf zodra een team er meer dan 5 heeft. Een
 // team zonder vermelde uitslagen (het huidige, lopende seizoenbegin) krijgt een lege array — dan toont
 // de tabel simpelweg geen vormbalk voor dat team, nooit een verzonnen of geraden uitslag.
 export const TEAM_FORM = {
@@ -667,6 +671,17 @@ export const PLAYER_DATABASE_CSV_URL = 'https://docs.google.com/spreadsheets/d/e
 // aparte "Publish to web"-link per werkblad). Kolommen: Club | Penalties | Corners | Free Kicks |
 // (optioneel) Updated GW.
 export const SET_PIECES_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS_PSoy3cpm-nckncN8C8lmxg0PfxYpANthYfLFccxft2UuBbmCvOa8SXrlwyJkBWUu0ek3QMBsIknU/pub?gid=1124774550&single=true&output=csv';
+
+// Vorm per club (zie src/teamForm.js): nog een werkblad in diezelfde Google Sheet, met twee kolommen
+// (Team | Form). Zolang dit null is, wordt er NIETS opgehaald en blijft TEAM_FORM hierboven de bron —
+// geen mislukte request, geen lege vormbalken. Vul de gid in zodra het werkblad via "Publish to web"
+// als CSV gepubliceerd is, dan neemt de sheet het vanzelf over:
+//
+//   export const TEAM_FORM_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS_PSoy3cpm-nckncN8C8lmxg0PfxYpANthYfLFccxft2UuBbmCvOa8SXrlwyJkBWUu0ek3QMBsIknU/pub?gid=<GID>&single=true&output=csv';
+//
+// De ingebouwde TEAM_FORM blijft daarna staan als terugval bij een netwerkfout of een half ingevuld
+// werkblad. Wat in de sheet staat wint; clubs die er niet in staan houden hun ingebouwde waarde.
+export const TEAM_FORM_CSV_URL = null;
 
 // Eenvoudige RFC4180-achtige CSV-tokenizer (i.p.v. text.split(',')): velden tussen aanhalingstekens
 // kunnen komma's en regeleindes bevatten, en "" binnen zo'n veld is een ontsnapt aanhalingsteken.

@@ -7,7 +7,7 @@
 
 import React, { memo } from 'react';
 import { RotateCcw, TrendingUp, Info, Link2, Download, Check, ArrowUpDown, Settings2, Grid2x2, Scale } from 'lucide-react';
-import { TEAMS, TEAMS_ALPHA, FIXTURES, RATING_STYLE, TEAM_FORM, GW_INDEXES, getFixtureInfo } from '../constants';
+import { TEAMS, TEAMS_ALPHA, FIXTURES, RATING_STYLE, GW_INDEXES, getFixtureInfo } from '../constants';
 import { COLORS, selectStyle, secondaryButtonStyle, primaryButtonStyle, iconButtonStyle } from '../theme';
 import { SectionHeader } from '../components/SectionHeader';
 import { FixtureStrip } from '../components/FixtureStrip';
@@ -176,7 +176,7 @@ const FORM_RESULT_STYLE = {
 };
 
 // Kleine vormindicator onder de clubcode in de hoofdtabel: max. 5 laatste uitslagen (oudste eerst), zie
-// TEAM_FORM in constants.js. De team-cel se rijhoogte wordt gedreven door het 20px-hoge clublogo (padding
+// teamForm (uit FDRTool.jsx: de sheet, of TEAM_FORM in constants.js als terugval). De team-cel se rijhoogte wordt gedreven door het 20px-hoge clublogo (padding
 // 6px boven/onder erbij = 32px, exact gelijk aan de fixture-cellen ernaast) — dus de code-regel + stippenrij
 // samen moeten binnen diezelfde 20px content-hoogte blijven, anders groeit de hele rij mee (en krijgen
 // vooral de strak-passende DGW-cellen, 2 gestapelde helften, opeens lucht). Vandaar de expliciete, krappe
@@ -213,6 +213,7 @@ export default function FDRTab({
   displayedTeams, tableRef,
   rangeStart, setRangeStart, rangeEnd, setRangeEnd, bestRuns,
   compareTeams, toggleCompareTeam,
+  teamForm,
   onOpenClub,
 }) {
   return (
@@ -487,7 +488,7 @@ export default function FDRTab({
                     />,
                     <span key="meta" style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
                       <span style={{ lineHeight: '13px' }}>{team.code}</span>
-                      <TeamFormBar results={TEAM_FORM[team.code]} />
+                      <TeamFormBar results={teamForm[team.code]} />
                     </span>,
                   )}
                 </td>
