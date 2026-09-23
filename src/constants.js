@@ -268,10 +268,10 @@ export const MINILEAGUE_CODE = '19WN75';
 // precies daardoor kon de site "GW3" tonen terwijl een ander onderdeel nog op GW2 stond. Werk enkel
 // dit object bij; al de rest volgt vanzelf.
 //
-// Enkel GW1-7 zijn gekend; GW8 staat er expliciet als null bij en GW9-34 ontbreken gewoon. Beide
-// gevallen geven null uit getGwDeadlineDate() en een lege string uit formatGwDeadline(), dus de site
-// toont dan geen deadline en geen aftelklok i.p.v. een verzonnen datum. Vul aan zodra de kalender van
-// na de interlandbreak officieel is; CURRENT_GW en de aftelklok volgen dan vanzelf.
+// De deadline is het aftrapuur van de eerste wedstrijd van de speeldag. GW1 t/m GW17 zijn gekend;
+// GW18-34 ontbreken gewoon, en een ontbrekende sleutel geeft null uit getGwDeadlineDate() en een lege
+// string uit formatGwDeadline(). De site toont dan geen deadline en geen aftelklok i.p.v. een
+// verzonnen datum. Aanvullen is genoeg: CURRENT_GW en de aftelklok volgen vanzelf.
 export const GW_DEADLINE_ISO = {
   1: '2026-08-07T20:45:00+02:00',
   2: '2026-08-14T20:45:00+02:00',
@@ -280,7 +280,19 @@ export const GW_DEADLINE_ISO = {
   5: '2026-09-04T20:45:00+02:00',
   6: '2026-09-11T20:45:00+02:00',
   7: '2026-09-18T20:45:00+02:00',
-  8: null,
+  // Vanaf hier de kalender van na de interlandbreak. Let op de offset: de zomertijd eindigt op zondag
+  // 25 oktober 2026, dus GW8 en GW9 staan nog op +02:00 (CEST) en alles daarna op +01:00 (CET). Eén
+  // verkeerde offset verschuift de aftelklok een uur zonder dat er iets zichtbaar fout lijkt.
+  8: '2026-10-09T20:45:00+02:00',
+  9: '2026-10-23T20:45:00+02:00',
+  10: '2026-10-30T20:45:00+01:00',
+  11: '2026-11-06T20:45:00+01:00',
+  12: '2026-11-20T20:45:00+01:00',
+  13: '2026-11-27T20:45:00+01:00',
+  14: '2026-12-11T20:45:00+01:00',
+  15: '2026-12-18T20:45:00+01:00',
+  16: '2026-12-26T13:30:00+01:00', // zaterdagmiddag, geen vrijdagavond — tweede kerstdag
+  17: '2027-01-15T20:45:00+01:00',
 };
 
 // Deadlines worden ALTIJD in Belgische tijd getoond, ongeacht waar de bezoeker zit. Een Fantasy Pro

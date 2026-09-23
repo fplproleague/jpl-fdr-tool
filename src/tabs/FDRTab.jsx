@@ -7,7 +7,7 @@
 
 import React, { memo } from 'react';
 import { RotateCcw, TrendingUp, Info, Link2, Download, Check, ArrowUpDown, Settings2, Grid2x2, Scale } from 'lucide-react';
-import { TEAMS, TEAMS_ALPHA, FIXTURES, RATING_STYLE, GW_INDEXES, getFixtureInfo } from '../constants';
+import { TEAMS, TEAMS_ALPHA, FIXTURES, RATING_STYLE, GW_COUNT, GW_INDEXES, getFixtureInfo } from '../constants';
 import { COLORS, selectStyle, secondaryButtonStyle, primaryButtonStyle, iconButtonStyle } from '../theme';
 import { SectionHeader } from '../components/SectionHeader';
 import { FixtureStrip } from '../components/FixtureStrip';
@@ -27,12 +27,20 @@ const stickyTeamCellStyle = {
   boxShadow: '-4px 0 0 0 #2A1440, 4px 0 0 0 #2A1440',
 };
 
-// FDR-tab-only: gebruikt voor de GW-horizon-selector, de "Beste fixture runs"-range-selectors en als
-// bron voor compareGwHeaderCells (zie FDRTool.jsx) — laatstgenoemde slicet dit vanaf CURRENT_GW, want
-// "Vergelijk teams" toont geen afgelopen GW's meer.
-const gwOptionElements = GW_INDEXES.map(i => (
-  <option key={i} value={i + 1}>{i + 1}</option>
-));
+// Opties voor een GW-kiezer, begrensd tot wat een geldige keuze oplevert: de "vanaf"-kiezer loopt
+// nooit voorbij het gekozen eindpunt, de "tot"-kiezer begint nooit vóór het gekozen beginpunt.
+//
+// Vroeger stond in alle zes de kiezers dezelfde volledige lijst 1..34, en ving een Math.min/max in
+// FDRTool.jsx een omgekeerde keuze op door de twee stilletjes om te wisselen. Dat werkte, maar het
+// verklaarde niets: je koos "van 15 tot 9" en kreeg zonder uitleg GW9-15 te zien. Een onmogelijke
+// keuze niet kunnen maken is duidelijker dan ze achteraf rechtzetten. De normalisatie in FDRTool.jsx
+// blijft staan als vangnet — voor een oude gedeelde link of een handmatig gezette waarde.
+function gwOptions(vanaf, tot) {
+  return GW_INDEXES
+    .map(i => i + 1)
+    .filter(gw => gw >= vanaf && gw <= tot)
+    .map(gw => <option key={gw} value={gw}>{gw}</option>);
+}
 
 // Zichtbaar moeilijkheidscijfer (1-5) in de rechterbovenhoek van een fixture-cel. Tot nu toe zat de
 // moeilijkheid uitsluitend in de achtergrondkleur; dat maakt de tabel onleesbaar voor wie rood en
@@ -413,7 +421,7 @@ export default function FDRTab({
                 aria-label={t('fdr.tableRangeFromAria')}
                 style={selectStyle}
               >
-                {gwOptionElements}
+                {gwOptions(1, gwHorizonEnd)}
               </select>
               <span style={{ color: COLORS.textBody, fontSize: '12px' }}>{t('fdr.gwTo')}</span>
               <select
@@ -422,7 +430,7 @@ export default function FDRTab({
                 aria-label={t('fdr.tableRangeToAria')}
                 style={selectStyle}
               >
-                {gwOptionElements}
+                {gwOptions(gwHorizonStart, GW_COUNT)}
               </select>
             </div>
             <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: COLORS.textSubtle, fontSize: '11px' }}>
@@ -610,7 +618,7 @@ export default function FDRTab({
             aria-label={t('fdr.runsRangeFromAria')}
             style={selectStyle}
           >
-            {gwOptionElements}
+            {gwOptions(1, rangeEnd)}
           </select>
           <span style={{ color: COLORS.textBody, fontSize: '12px' }}>{t('fdr.gwTo')}</span>
           <select
@@ -619,7 +627,7 @@ export default function FDRTab({
             aria-label={t('fdr.runsRangeToAria')}
             style={selectStyle}
           >
-            {gwOptionElements}
+            {gwOptions(rangeStart, GW_COUNT)}
           </select>
         </div>
         <p style={{ color: COLORS.textSubtle, fontSize: '11px', margin: '-6px 0 12px' }}>
@@ -687,7 +695,7 @@ export default function FDRTab({
             aria-label={t('fdr.compareRangeFromAria')}
             style={selectStyle}
           >
-            {gwOptionElements}
+            {gwOptions(1, rangeEnd)}
           </select>
           <span style={{ color: COLORS.textBody, fontSize: '12px' }}>{t('fdr.gwTo')}</span>
           <select
@@ -696,7 +704,7 @@ export default function FDRTab({
             aria-label={t('fdr.compareRangeToAria')}
             style={selectStyle}
           >
-            {gwOptionElements}
+            {gwOptions(rangeStart, GW_COUNT)}
           </select>
         </div>
         <p style={{ color: COLORS.textSubtle, fontSize: '11px', margin: '0 0 12px' }}>
