@@ -16,7 +16,7 @@ import {
   TEAMS, FIXTURES, GW_COUNT, GW_DEADLINES, CURRENT_GW,
   TEAM_PLANNER_BUDGET, TEAM_PLANNER_MAX_PER_CLUB, TEAM_PLANNER_BENCH_SIZE, TEAM_PLANNER_SQUAD_SIZE,
   VALID_FORMATIONS, TEAM_PLANNER_SLOT_POSITIONS, sectionTitleStyle, sectionTitleTextStyle,
-  isRechargeActiveForGw as isRechargeActiveForGwRule,
+  isRechargeActiveForGw as isRechargeActiveForGwRule, AUTO_RECHARGE_GWS,
 } from '../constants';
 import { MiniFixtureBadge } from '../components/MiniFixtureBadge';
 import { COLORS, retryButtonStyle, primaryButtonStyle, dangerButtonStyle } from '../theme';
@@ -85,15 +85,22 @@ function formationBadgeStyle(isBenchComplete, isValidFormation) {
 // op aanraakapparaten naar 44px hoog). aria-pressed maakt de aan/uit-toestand ook voor schermlezers
 // zichtbaar; de reden waarom een knop uitgeschakeld is staat als zichtbare tekst onder het label
 // i.p.v. enkel in een tooltip.
+// `state` kent vier waarden: 'active' (zelf aangezet voor deze GW, klikbaar om te annuleren),
+// 'automatic' (loopt hier voor iedereen, zie AUTO_RECHARGE_GWS — niet klikbaar, maar wél opgelicht:
+// hij is niet "op", hij is gratis), 'used-elsewhere' (al verbruikt op een andere GW) en 'available'.
 function BoosterButton({ t, icon: Icon, label, glyph, description, state, gw, onClick }) {
-  const isActive = state === 'active';
+  const isAutomatic = state === 'automatic';
+  const isActive = state === 'active' || isAutomatic;
   const isUsedElsewhere = state === 'used-elsewhere';
-  const statusText = isActive ? t('teamPlanner.booster.active', { gw }) : isUsedElsewhere ? t('teamPlanner.booster.usedElsewhere') : t('teamPlanner.booster.available');
+  const statusText = isAutomatic
+    ? t('teamPlanner.booster.automatic')
+    : isActive ? t('teamPlanner.booster.active', { gw })
+    : isUsedElsewhere ? t('teamPlanner.booster.usedElsewhere') : t('teamPlanner.booster.available');
 
   return (
     <button
-      onClick={onClick}
-      disabled={isUsedElsewhere}
+      onClick={isAutomatic ? undefined : onClick}
+      disabled={isUsedElsewhere || isAutomatic}
       aria-pressed={isActive}
       aria-label={`${label} — ${statusText}. ${description}`}
       className="fdr-touch-target"
@@ -104,7 +111,7 @@ function BoosterButton({ t, icon: Icon, label, glyph, description, state, gw, on
         color: isActive ? '#4ECDC4' : isUsedElsewhere ? COLORS.textDisabled : COLORS.textBody,
         border: `1px solid ${isActive ? '#4ECDC4' : isUsedElsewhere ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.18)'}`,
         opacity: isUsedElsewhere ? 0.7 : 1,
-        cursor: isUsedElsewhere ? 'not-allowed' : 'pointer',
+        cursor: isUsedElsewhere ? 'not-allowed' : isAutomatic ? 'default' : 'pointer',
         fontFamily: 'inherit',
       }}
     >
@@ -628,6 +635,10 @@ export default function TeamPlannerTab({
   // 'active' (loopt voor de bekeken GW), 'used-elsewhere' (al verbruikt op een andere GW, vergrendeld)
   // of 'available' (nog vrij) — zie BoosterIconButton en toggleTeamPlannerBooster (FDRTool.jsx).
   const boosterState = (key) => {
+    // Op GW8/20/27 loopt de Recharge automatisch voor iedereen (AUTO_RECHARGE_GWS in constants.js).
+    // Die toestand gaat vóór de eigen booster-state: je eigen Recharge is daar niet nodig én niet te
+    // verbruiken, terwijl de andere twee boosters gewoon bovenop mogen.
+    if (key === 'recharge' && AUTO_RECHARGE_GWS.has(teamPlannerGw)) return 'automatic';
     const usedGw = teamPlannerBoosters[key];
     if (usedGw === teamPlannerGw) return 'active';
     if (usedGw != null) return 'used-elsewhere';
@@ -1057,9 +1068,11 @@ export default function TeamPlannerTab({
             }}>
               {t('teamPlanner.boosters')}
             </h3>
+            {/* Vroeger stonden de drie boosters enkel op GW1-7 en toonde alles daarna één vaste
+                "GW8 heeft automatisch een Recharge"-knop — een rest uit de tijd dat het seizoen in
+                constants.js bij GW8 ophield. Nu staan de drie er op elke speeldag, en verandert enkel
+                de Recharge van toestand op een automatische Recharge-GW. */}
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              {teamPlannerGw <= 7 ? (
-                <>
                   <BoosterButton
                     t={t}
                     icon={Armchair}
@@ -1082,27 +1095,17 @@ export default function TeamPlannerTab({
                     t={t}
                     icon={RefreshCw}
                     label={t('teamPlanner.booster.recharge.label')}
-                    description={t('teamPlanner.booster.recharge.description')}
+                    description={AUTO_RECHARGE_GWS.has(teamPlannerGw)
+                      ? t('teamPlanner.booster.recharge.autoDescription', { gw: teamPlannerGw })
+                      : t('teamPlanner.booster.recharge.description')}
                     state={boosterState('recharge')}
                     gw={teamPlannerGw}
                     onClick={handleActivateRecharge}
                   />
-                </>
-              ) : (
-                <BoosterButton
-                  t={t}
-                  icon={RefreshCw}
-                  label={t('teamPlanner.booster.recharge.label')}
-                  description={t('teamPlanner.booster.recharge.gw8description')}
-                  state="active"
-                  gw={teamPlannerGw}
-                  onClick={() => {}}
-                />
-              )}
             </div>
-            {teamPlannerGw > 7 && (
+            {AUTO_RECHARGE_GWS.has(teamPlannerGw) && (
               <p style={{ color: COLORS.textSubtle, fontSize: '11px', margin: '6px 0 0' }}>
-                {t('teamPlanner.gw8AutoRecharge')}
+                {t('teamPlanner.autoRechargeNote', { gw: teamPlannerGw })}
               </p>
             )}
           </div>

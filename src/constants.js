@@ -205,10 +205,13 @@ export const POSTPONED_DATES = {
 // door te gaan zoals gepland — vandaar leeg i.p.v. verwijderd: dit blijft het mechanisme voor een
 // volgende, nog onzekere wedstrijd.
 export const POSSIBLY_POSTPONED = new Set([
+  'GNT-14', // Gent vs Sint-Truiden, GW14 — kan schuiven door Gents Europese programma
+  'STV-14', // Sint-Truiden vs Gent, GW14 — zelfde wedstrijd, andere kant
 ]);
 
 // Eén reden per wedstrijd, opgezocht via een teamcode-onafhankelijke (gesorteerde) paar-key.
 export const POSSIBLY_POSTPONED_REASONS = {
+  'GNT-STV': 'mogelijk uitgesteld door de Europese wedstrijd van Gent',
 };
 
 export const DEFAULT_RATINGS = {
@@ -560,13 +563,18 @@ export const TEAM_PLANNER_FREE_TRANSFER_CAP = 3;
 // Puntenkost per transfer die BOVEN het gratis aantal in een GW gemaakt wordt.
 export const TEAM_PLANNER_TRANSFER_PENALTY = 4;
 
+// Speeldagen waarop iedereen automatisch een geactiveerde Recharge heeft, zonder er een booster aan
+// te moeten opofferen. Stond hier vroeger als `gw === GW_COUNT`: met acht speeldagen in het bestand
+// wees dat toevallig naar GW8, maar met de volledige kalender zou het GW34 aanwijzen — en de laatste
+// speeldag van het seizoen is géén Recharge-GW. Nu expliciet opgesomd i.p.v. afgeleid.
+export const AUTO_RECHARGE_GWS = new Set([8, 20, 27]);
+
 // Is Recharge actief op GW `gw`? Dit is de ENIGE plek waar deze regel bepaald wordt — zowel de UI
 // (bv. de Recharge-banner/het Recharge-icoontje in TeamPlannerTab.jsx) als de transfer-budget-
 // berekening hieronder roepen dit aan, in plaats van de voorwaarde los te herhalen. Zo kan de "wat
-// telt als een Recharge-GW"-regel nooit op twee plekken uit sync raken. GW_COUNT (de laatste GW)
-// krijgt altijd automatisch een gratis Recharge voor iedereen, ongeacht teamPlannerBoosters.recharge.
+// telt als een Recharge-GW"-regel nooit op twee plekken uit sync raken.
 export function isRechargeActiveForGw(boosters, gw) {
-  return boosters.recharge === gw || gw === GW_COUNT;
+  return boosters.recharge === gw || AUTO_RECHARGE_GWS.has(gw);
 }
 
 // Berekent, voor elke GW2..GW_COUNT, hoeveel gratis transfers de gebruiker had opgebouwd VOOR die GW

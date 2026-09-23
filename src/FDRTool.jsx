@@ -11,7 +11,7 @@ import {
   MINILEAGUE_CODE, formatLastUpdatedLong, GW_INDEXES, DEFAULT_RATINGS, DEFAULT_HOME_ADVANTAGE,
   TEAM_PLANNER_SQUAD_SIZE, TEAM_PLANNER_BENCH_SIZE, TEAM_PLANNER_SLOT_POSITIONS, VALID_FORMATIONS,
   resolveSlotPlayerAtGw, PLAYER_DATABASE_CSV_URL, parsePlayerDatabaseCsv, getFixtureScores, average,
-  POSTPONED, computeTeamPlannerTransferBudget, getGwDeadlineDate,
+  POSTPONED, computeTeamPlannerTransferBudget, getGwDeadlineDate, AUTO_RECHARGE_GWS,
 } from './constants';
 import { SET_PIECES_CSV_URL } from './constants';
 import { parseSetPiecesCsv } from './setPieces';
@@ -71,13 +71,6 @@ const MOBILE_OVERFLOW_TABS = TABS.slice(MOBILE_PRIMARY_TAB_COUNT);
 // "Fixture Difficulty Rating" (FDRTab.jsx) / "Mijn selectie" (TeamPlannerTab.jsx) verderop in de site.
 const MOBILE_PRIMARY_TAB_ICONS = { fdr: Grid2x2, teamplanner: Users, predictedlineups: Shirt };
 
-// Subtiele "nieuw"-stip naast een tab-label (zie NEW_TAB_KEYS/seenNewTabs) — goud i.p.v. het teal van
-// een actieve tab, zodat de twee signalen (actief vs. nieuw) nooit door elkaar lopen.
-const newTabDotStyle = {
-  display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%',
-  background: '#E8C547', flexShrink: 0,
-};
-
 // Getoond terwijl een lui geladen tab binnenkomt. Bewust minimaal en even hoog als een gemiddelde
 // sectie, zodat de pagina niet zichtbaar springt.
 function TabLoading({ text }) {
@@ -111,32 +104,12 @@ function loadStoredLanguage() {
   }
 }
 
-// Welke tabs een "nieuw"-stip krijgen in de tabbalk (zie NEW_TAB_KEYS-gebruik verderop) totdat de
-// bezoeker ze minstens één keer heeft geopend — zelfde eenmalig-tonen-opzet als
-// hasSeenHomeAdvantageIntro hierboven, maar dan per tab i.p.v. één globale vlag: een array van
-// reeds-bezochte tab-keys i.p.v. een simpele '1'/geen-waarde.
-const NEW_TABS_SEEN_STORAGE_KEY = 'fpl_proleague_new_tabs_seen_v1';
-const NEW_TAB_KEYS = ['bonuspunten', 'setpieces', 'kaarten'];
-
-function loadSeenNewTabs() {
-  try {
-    const raw = window.localStorage?.getItem(NEW_TABS_SEEN_STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter(key => NEW_TAB_KEYS.includes(key)) : [];
-  } catch {
-    return [];
-  }
-}
-
-function markNewTabSeen(key, alreadySeen) {
-  try {
-    window.localStorage?.setItem(NEW_TABS_SEEN_STORAGE_KEY, JSON.stringify([...alreadySeen, key]));
-  } catch {
-    // localStorage niet beschikbaar (privénavigatie e.d.) — de stip toont dan gewoon elke keer
-    // opnieuw, geen harde fout.
-  }
-}
+// Hier stond de machinerie achter een gouden "nieuw"-stip op Bonuspunten/Set Pieces/Kaarten, met een
+// lijst reeds-bezochte tabs in localStorage. Die tabs zijn intussen geen nieuws meer, en een stip die
+// per bezoeker moet worden "afgezet" blijft anders eeuwig bestaan zonder dat iemand hem nog opmerkt.
+// Volledig weg i.p.v. een lege lijst achterlaten: dan blijft er geen slapende UI-laag staan die bij de
+// volgende nieuwe tab per ongeluk weer aanslaat. De oude localStorage-sleutel
+// (fpl_proleague_new_tabs_seen_v1) wordt niet meer gelezen of geschreven en verdwijnt vanzelf.
 
 // Gedeelde vaste hoogte voor de deadline- en minileague-chip in de header — beide gebruiken exact
 // deze waarde (i.p.v. losse padding/lineHeight-berekeningen) zodat ze gegarandeerd even hoog zijn,
@@ -423,19 +396,6 @@ export default function FDRTool() {
   const [activeTab, setActiveTab] = useState(() =>
     typeof window === 'undefined' ? 'fdr' : routeKeyFromPath(window.location.pathname)
   );
-
-  // "Nieuw"-stip in de tabbalk voor Bonuspunten/Set Pieces/Kaarten (zie NEW_TAB_KEYS hierboven) totdat
-  // een bezoeker die tab minstens één keer geopend heeft — ook via een directe link of de terug-/
-  // vooruitknop, vandaar gekoppeld aan activeTab i.p.v. enkel aan een klik op de tabbalk zelf.
-  const [seenNewTabs, setSeenNewTabs] = useState(() => new Set(loadSeenNewTabs()));
-  useEffect(() => {
-    if (!NEW_TAB_KEYS.includes(activeTab)) return;
-    setSeenNewTabs(prev => {
-      if (prev.has(activeTab)) return prev;
-      markNewTabSeen(activeTab, prev);
-      return new Set(prev).add(activeTab);
-    });
-  }, [activeTab]);
 
   // --- Taal (NL/FR) — zie src/i18n.js. Persistent (localStorage), zodat de keuze bezoek-overschrijdend
   // is; default Nederlands, de oorspronkelijke (en enige) taal vóór deze toggle. `t` is een simpele
@@ -1461,20 +1421,29 @@ export default function FDRTool() {
     setTimeout(() => setTeamPlannerOptimized(false), 2000);
   };
 
-  // Boosters: exact 1x per booster-type te gebruiken over het hele seizoen, en max 1 actieve booster
-  // per GW. Eenmaal geactiveerd op GW X, is de booster VERGRENDELD op GW X — pas als hij op die exacte
-  // GW opnieuw aangeklikt wordt (annuleren) komt hij weer vrij. Op een andere GW aanklikken terwijl
-  // hij al elders actief is, doet niets (de UI toont 'm daar disabled, zie TeamPlannerTab.jsx).
+  // Boosters: exact 1x per booster-type te gebruiken over het hele seizoen, en max 1 zelfgekozen
+  // booster per GW. Eenmaal geactiveerd op GW X, is de booster VERGRENDELD op GW X — pas als hij op
+  // die exacte GW opnieuw aangeklikt wordt (annuleren) komt hij weer vrij. Op een andere GW aanklikken
+  // terwijl hij al elders actief is, doet niets (de UI toont 'm daar disabled, zie TeamPlannerTab.jsx).
+  //
+  // De bovengrens stond op GW7, uit de tijd dat het seizoen in dit bestand niet verder liep. Nu de
+  // volledige kalender erin zit, mag je een booster op elke speeldag plaatsen.
+  //
+  // Op een automatische Recharge-GW (AUTO_RECHARGE_GWS: GW8, GW20, GW27) loopt de Recharge sowieso al
+  // voor iedereen. Je eigen Recharge-booster daar verbruiken zou die dus weggooien, vandaar geblokkeerd
+  // — de twee andere boosters mogen er wél bovenop, dat is precies het voordeel van zo'n speeldag.
   const toggleTeamPlannerBooster = (boosterKey, gw) => {
-    if (gw < 1 || gw > 7) return;
+    if (gw < 1 || gw > GW_COUNT) return;
+    if (boosterKey === 'recharge' && AUTO_RECHARGE_GWS.has(gw)) return;
     setTeamPlannerBoosters(prev => {
       if (prev[boosterKey] === gw) {
         return { ...prev, [boosterKey]: null }; // annuleren, enkel mogelijk op de GW waar hij actief is
       }
       if (prev[boosterKey] != null) return prev; // al verbruikt op een andere GW — geblokkeerd
       const updated = { ...prev, [boosterKey]: gw };
-      // Max 1 actieve booster per GW: een andere booster die toevallig al op déze GW actief stond,
-      // wordt vervangen (niet gestapeld) — user-bevestigd gedrag.
+      // Max 1 zelfgekozen booster per GW: een andere booster die toevallig al op déze GW actief stond,
+      // wordt vervangen (niet gestapeld) — user-bevestigd gedrag. De automatische Recharge telt hier
+      // niet in mee; die staat niet in deze state.
       Object.keys(updated).forEach(key => {
         if (key !== boosterKey && updated[key] === gw) updated[key] = null;
       });
@@ -2287,7 +2256,6 @@ export default function FDRTool() {
         >
           {TABS.map(tab => {
             const isActive = activeTab === tab.key;
-            const isNewUnseen = NEW_TAB_KEYS.includes(tab.key) && !seenNewTabs.has(tab.key);
             return (
               <a
                 key={tab.key}
@@ -2308,7 +2276,6 @@ export default function FDRTool() {
                 }}
               >
                 {t(`nav.${tab.key}`)}
-                {isNewUnseen && <span style={newTabDotStyle} aria-hidden="true" />}
               </a>
             );
           })}
@@ -2364,10 +2331,6 @@ export default function FDRTool() {
               // van die actieve tab) — sommige tab-namen (bv. "Bonuspunten") zijn te lang voor deze
               // kolombreedte, en het label zelf hoeft niet te wisselen om toch duidelijk te blijven.
               const isActive = MOBILE_OVERFLOW_TABS.some(tab => tab.key === activeTab);
-              // De Meer-knop krijgt zelf één stip zolang er nog minstens één nieuwe tab (Bonuspunten/
-              // Set Pieces/Kaarten) verstopt zit in het dropdown-menu erachter — niet elk item apart,
-              // dat is precies wat het "Meer"-niveau al samenvat.
-              const hasUnseenNewTab = NEW_TAB_KEYS.some(key => !seenNewTabs.has(key));
               return (
                 <button
                   type="button"
@@ -2385,7 +2348,6 @@ export default function FDRTool() {
                 >
                   <ChevronDown size={17} style={{ transform: moreMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} aria-hidden="true" />
                   {t('nav.more')}
-                  {hasUnseenNewTab && <span style={{ ...newTabDotStyle, position: 'absolute', top: '2px', right: 'calc(50% - 26px)' }} aria-hidden="true" />}
                 </button>
               );
             })()}
