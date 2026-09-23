@@ -7,7 +7,7 @@
 import { useState, useMemo, useRef, useCallback, useEffect, lazy, Suspense } from 'react';
 import { Info, X, Check, Copy, Undo2, Loader2, ChevronDown, Grid2x2, Users, Shirt } from 'lucide-react';
 import {
-  TEAMS, FIXTURES, GW_COUNT, CURRENT_GW, DEFAULT_GW_HORIZON_END, MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS,
+  TEAMS, FIXTURES, GW_COUNT, CURRENT_GW, DEFAULT_GW_HORIZON_END, TABLE_SLOT_MIN_WIDTH,
   MINILEAGUE_CODE, formatLastUpdatedLong, GW_INDEXES, DEFAULT_RATINGS, DEFAULT_HOME_ADVANTAGE,
   TEAM_PLANNER_SQUAD_SIZE, TEAM_PLANNER_BENCH_SIZE, TEAM_PLANNER_SLOT_POSITIONS, VALID_FORMATIONS,
   resolveSlotPlayerAtGw, PLAYER_DATABASE_CSV_URL, parsePlayerDatabaseCsv, getFixtureScores, average,
@@ -600,16 +600,16 @@ export default function FDRTool() {
   const [homeAdvantage, setHomeAdvantage] = useState(() => loadHomeAdvantageFromURL() || loadStoredHomeAdvantage() || DEFAULT_HOME_ADVANTAGE);
   // rangeStart start standaard op CURRENT_GW (i.p.v. hardcoded GW1) zodat de default range vanzelf
   // meeschuift bij het wekelijks bijwerken van CURRENT_GW in constants.js — geen aparte aanpassing
-  // hier nodig. rangeEnd gebruikt DEFAULT_GW_HORIZON_END (=7) i.p.v. een CURRENT_GW-afhankelijke
-  // formule: vanaf GW8 krijgen spelers onbeperkte gratis transfers (zie DEFAULT_GW_HORIZON_END in
-  // constants.js) en begint dus een nieuw "seizoen" qua planning, dus "Beste fixture runs" hoort
-  // nooit voorbij GW7 te kijken in de standaardweergave.
+  // hier nodig. rangeEnd volgt DEFAULT_GW_HORIZON_END, dat sinds de volledige kalender (GW1-34) zelf
+  // ook afgeleid is: huidige speeldag + acht. Vroeger stond daar het vaste getal 7, omdat iedereen na
+  // GW7 onbeperkte gratis transfers kreeg; die grens ligt intussen achter ons, dus een meeschuivend
+  // venster i.p.v. een vast eindpunt (zie DEFAULT_GW_HORIZON_LENGTH in constants.js).
   const [rangeStart, setRangeStart] = useState(CURRENT_GW);
   const [rangeEnd, setRangeEnd] = useState(DEFAULT_GW_HORIZON_END);
   // GW-horizon van de hoofdtabel (Fixture Difficulty Rating) — los van rangeStart/rangeEnd hierboven,
   // die enkel "Beste fixture runs" sturen. Start standaard op CURRENT_GW-DEFAULT_GW_HORIZON_END (schuift
   // vanzelf mee met CURRENT_GW, zelfde redenering als rangeStart hierboven); de gebruiker kan dit zelf
-  // nog verruimen tot GW_COUNT via de selector. Bewust NIET opgeslagen (localStorage/deelbare link) —
+  // nog verruimen tot GW34 via de selector. Bewust NIET opgeslagen (localStorage/deelbare link) —
   // een tijdelijke weergave-instelling per sessie, geen permanente voorkeur.
   const [gwHorizonStart, setGwHorizonStart] = useState(CURRENT_GW);
   const [gwHorizonEnd, setGwHorizonEnd] = useState(DEFAULT_GW_HORIZON_END);
@@ -918,34 +918,37 @@ export default function FDRTool() {
   );
 
   // "Vergelijk teams" heeft geen eigen horizon-selector: die begint gewoon altijd bij CURRENT_GW en
-  // loopt door tot GW_COUNT (afgelopen GW's zijn daar nooit relevant) — schuift dus vanzelf mee zodra
-  // CURRENT_GW wekelijks bijgewerkt wordt in constants.js. Math.min voorkomt een out-of-range start
-  // mocht CURRENT_GW ooit GW_COUNT overschrijden.
+  // loopt tot DEFAULT_GW_HORIZON_END — schuift dus vanzelf mee zodra CURRENT_GW opschuift. Tot de
+  // volledige kalender erin zat liep dit door tot GW_COUNT, wat toen nog acht speeldagen waren; met 34
+  // zou dat hier 27 kolommen naast elkaar zetten in een blok dat bedoeld is om twee ploegen snel te
+  // vergelijken. Math.min voorkomt een out-of-range start mocht CURRENT_GW ooit GW_COUNT overschrijden.
   const compareGwStart = Math.min(CURRENT_GW, GW_COUNT);
+  const compareGwEnd = DEFAULT_GW_HORIZON_END;
   const compareGwHeaderCells = useMemo(
-    () => gwHeaderCells.slice(compareGwStart - 1),
-    [gwHeaderCells, compareGwStart]
+    () => gwHeaderCells.slice(compareGwStart - 1, compareGwEnd),
+    [gwHeaderCells, compareGwStart, compareGwEnd]
   );
 
-  // MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS (760px) is gekalibreerd voor de Team-kolom + alle GW_COUNT
-  // kolommen samen. De tabel heeft bewust GEEN width: '100%' (zie <table> in FDRTab) — anders rekt
-  // de browser (table-layout: auto) elke kolom evenredig uit om de volledige breedte van de omringende
-  // scroll-container te vullen, wat bij een kleine horizon (bv. maar 1-3 zichtbare GW's) grote lege
-  // tussenruimtes tussen de kolommen oplevert. Door zowel het stretchen te vermijden als de min-width
-  // evenredig te laten meekrimpen met het aantal zichtbare kolommen (Team-kolom meegeteld als 1 "slot"
-  // naast de GW-kolommen), blijft de dichtheid/afstand tussen team-logo en tabel gelijk aan die bij de
-  // volledige 8-GW-breedte, ongeacht de gekozen horizon.
+  // TABLE_SLOT_MIN_WIDTH (84px) is de breedte van één kolom, met de Team-kolom meegeteld als 1 "slot"
+  // naast de GW-kolommen. De tabel heeft bewust GEEN width: '100%' (zie <table> in FDRTab) — anders
+  // rekt de browser (table-layout: auto) elke kolom evenredig uit om de volledige breedte van de
+  // omringende scroll-container te vullen, wat bij een kleine horizon (bv. maar 1-3 zichtbare GW's)
+  // grote lege tussenruimtes tussen de kolommen oplevert. Door zowel het stretchen te vermijden als de
+  // min-width recht evenredig met het aantal zichtbare kolommen te laten meegroeien, blijft de
+  // dichtheid tussen team-logo en tabel identiek, ongeacht of je acht of dertig speeldagen toont.
   const mainTableMinWidth = useMemo(
-    () => Math.round(MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS * (visibleGwHeaderCells.length + 1) / (GW_COUNT + 1)),
+    () => (visibleGwHeaderCells.length + 1) * TABLE_SLOT_MIN_WIDTH,
     [visibleGwHeaderCells]
   );
 
-  // Zelfde evenredige berekening voor de vergelijk-tabel. Die had een harde minWidth van 600px die
-  // niet meeschoof met het aantal zichtbare GW-kolommen: met twee kolommen werd die 600px verdeeld
-  // over een teamkolom van 220px en twee fixture-kolommen, in een container van 350px. Nu krimpt hij
-  // net als de hoofdtabel mee, zodat de teamkolom in beide tabellen even breed uitkomt.
+  // Zelfde berekening voor de vergelijk-tabel. Die had een harde minWidth van 600px die niet meeschoof
+  // met het aantal zichtbare GW-kolommen: met twee kolommen werd die 600px verdeeld over een teamkolom
+  // van 220px en twee fixture-kolommen, in een container van 350px. Nu telt hij per kolom, net als de
+  // hoofdtabel, dus bij een gelijk aantal kolommen zijn beide tabellen exact even breed. De teamkolom
+  // blijft een paar pixels verschillen — die cel bevat in de hoofdtabel een knop met eigen padding en
+  // in de vergelijk-tabel een kale span — maar de kolomindeling is dezelfde.
   const compareTableMinWidth = useMemo(
-    () => Math.round(MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS * (compareGwHeaderCells.length + 1) / (GW_COUNT + 1)),
+    () => (compareGwHeaderCells.length + 1) * TABLE_SLOT_MIN_WIDTH,
     [compareGwHeaderCells]
   );
 
@@ -2459,6 +2462,7 @@ export default function FDRTool() {
             compareGwHeaderCells={compareGwHeaderCells}
             compareTableMinWidth={compareTableMinWidth}
             compareGwStart={compareGwStart}
+            compareGwEnd={compareGwEnd}
             mainTableMinWidth={mainTableMinWidth}
             displayedTeams={displayedTeams}
             tableRef={tableRef}
