@@ -6,6 +6,7 @@
 import { useMemo, useState } from 'react';
 import { Loader2, AlertCircle, RotateCcw } from 'lucide-react';
 import { RankingRow, watchProps, clubProps } from '../components/RankingRow';
+import ScopeFilter, { ScopeEmptyMessage, makeScopeMatcher } from '../components/ScopeFilter';
 import { buildKaartenEntries, rankByMostCards, rankByClosestToSuspension, isOneCardFromSuspension } from '../kaarten';
 
 const retryButtonStyle = {
@@ -32,16 +33,25 @@ const MIN_VISIBLE_CARDS = 2;
 
 export default function KaartenTab({
   t, playerDatabase, playerDatabaseLoading, playerDatabaseError, fetchPlayerDatabase,
-  toggleWatchlistPlayer, isPlayerWatched, onOpenPlayer, onOpenClub,
+  toggleWatchlistPlayer, isPlayerWatched, isPlayerInMyTeam, hasMyTeam, hasWatchlist,
+  onOpenPlayer, onOpenClub,
 }) {
   const [sortMode, setSortMode] = useState('mostCards');
+  const [scope, setScope] = useState('all');
 
   const allEntries = useMemo(() => buildKaartenEntries(playerDatabase), [playerDatabase]);
   const entries = useMemo(() => allEntries.filter(e => e.cards >= MIN_VISIBLE_CARDS), [allEntries]);
+  // Het scope-filter werkt NA de rangschikking, niet ervoor: de nummering die je ziet (1, 2, 3...)
+  // blijft zo de plaats in de échte competitieranglijst. Zou hij pas na het filteren genummerd worden,
+  // dan stond jouw speler met 4 kaarten plots op 1 — een geruststellend maar onjuist beeld.
   const ranking = useMemo(
     () => (sortMode === 'closestToSuspension' ? rankByClosestToSuspension(entries) : rankByMostCards(entries)),
     [entries, sortMode],
   );
+  const matchesScope = makeScopeMatcher(scope, { isPlayerWatched, isPlayerInMyTeam });
+  const visibleRanking = ranking
+    .map((entry, idx) => ({ entry, rank: idx + 1 }))
+    .filter(({ entry }) => matchesScope(entry.player, entry.clubCode));
   const visibleSortModes = SORT_MODES.filter(m => SHOW_CLOSEST_TO_SUSPENSION_MODE || m.key !== 'closestToSuspension');
 
   return (
@@ -49,6 +59,8 @@ export default function KaartenTab({
       <p style={{ color: '#8F79AD', fontSize: '13px', marginBottom: '18px' }}>
         {t('kaarten.suspensionExplainer')}
       </p>
+
+      <ScopeFilter t={t} scope={scope} onChange={setScope} />
 
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '18px' }}>
         {visibleSortModes.map(({ key, labelKey }) => {
@@ -103,9 +115,13 @@ export default function KaartenTab({
         </div>
       )}
 
-      {!playerDatabaseLoading && !playerDatabaseError && entries.length > 0 && (
+      {!playerDatabaseLoading && !playerDatabaseError && entries.length > 0 && visibleRanking.length === 0 && (
+        <ScopeEmptyMessage t={t} scope={scope} hasAny={scope === 'myTeam' ? hasMyTeam : hasWatchlist} />
+      )}
+
+      {!playerDatabaseLoading && !playerDatabaseError && visibleRanking.length > 0 && (
         <div style={{ display: 'grid', gap: '8px' }}>
-          {ranking.map((entry, idx) => {
+          {visibleRanking.map(({ entry, rank }) => {
             const warning = isOneCardFromSuspension(entry);
             const subtitle = sortMode === 'closestToSuspension'
               ? `${entry.clubName} · ${entry.cards}/${entry.nextThreshold} ${t('kaarten.cardsUnit')}`
@@ -113,7 +129,7 @@ export default function KaartenTab({
             const value = sortMode === 'closestToSuspension' ? entry.cardsRemaining : entry.cards;
             return (
               <RankingRow
-                key={entry.player} rank={idx + 1} clubCode={entry.clubCode} player={entry.player}
+                key={entry.player} rank={rank} clubCode={entry.clubCode} player={entry.player}
                 subtitle={subtitle} value={value}
                 qualifies={sortMode === 'closestToSuspension' || warning}
                 warning={warning}

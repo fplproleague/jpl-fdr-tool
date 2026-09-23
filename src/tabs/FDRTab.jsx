@@ -621,6 +621,9 @@ export default function FDRTab({
             {gwOptionElements}
           </select>
         </div>
+        <p style={{ color: COLORS.textSubtle, fontSize: '11px', margin: '-6px 0 12px' }}>
+          {t('fdr.sharedRangeHint')}
+        </p>
         <div style={{ display: 'grid', gap: '8px' }}>
           {bestRuns.map((team, idx) => (
             <div key={team.code} style={{
@@ -668,7 +671,35 @@ export default function FDRTab({
         {openSections.compare && (
         <div id="fdr-section-compare">
         <p style={{ color: COLORS.textMuted, fontSize: '12px', marginBottom: '10px' }}>
-          {t('fdr.compareIntro', { gw: compareGwStart, gwEnd: compareGwEnd })}
+          {t('fdr.compareIntro')}
+        </p>
+        {/* Dezelfde kiezer als bij "Beste fixture runs", op dezelfde state (rangeStart/rangeEnd — zie
+            analysisRange in FDRTool.jsx). Bewust een tweede exemplaar i.p.v. één gedeelde kiezer
+            bovenaan: de twee secties klappen los van elkaar open en dicht, dus een kiezer die enkel in
+            de andere sectie staat is de helft van de tijd onbereikbaar. Het regeltje eronder vertelt
+            dat ze aan elkaar hangen, zodat niemand zich afvraagt waarom de andere sectie meeverandert. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
+          <label style={{ color: COLORS.textBody, fontSize: '12px' }}>{t('fdr.gwLabel')}</label>
+          <select
+            value={rangeStart}
+            onChange={e => setRangeStart(Number(e.target.value))}
+            aria-label={t('fdr.compareRangeFromAria')}
+            style={selectStyle}
+          >
+            {gwOptionElements}
+          </select>
+          <span style={{ color: COLORS.textBody, fontSize: '12px' }}>{t('fdr.gwTo')}</span>
+          <select
+            value={rangeEnd}
+            onChange={e => setRangeEnd(Number(e.target.value))}
+            aria-label={t('fdr.compareRangeToAria')}
+            style={selectStyle}
+          >
+            {gwOptionElements}
+          </select>
+        </div>
+        <p style={{ color: COLORS.textSubtle, fontSize: '11px', margin: '0 0 12px' }}>
+          {t('fdr.sharedRangeHint')}
         </p>
         <div style={{
           display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(70px, 1fr))', gap: '6px', marginBottom: '16px'

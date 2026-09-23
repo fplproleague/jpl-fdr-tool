@@ -560,14 +560,17 @@ export default function FDRTool() {
   const [homeAdvantage, setHomeAdvantage] = useState(() => loadHomeAdvantageFromURL() || loadStoredHomeAdvantage() || DEFAULT_HOME_ADVANTAGE);
   // rangeStart start standaard op CURRENT_GW (i.p.v. hardcoded GW1) zodat de default range vanzelf
   // meeschuift bij het wekelijks bijwerken van CURRENT_GW in constants.js — geen aparte aanpassing
-  // hier nodig. rangeEnd volgt DEFAULT_GW_HORIZON_END, dat sinds de volledige kalender (GW1-34) zelf
+  // hier nodig. Deze twee sturen de gedeelde analyse-periode van "Beste fixture runs" en "Vergelijk
+  // teams" (zie analysisRange verderop). rangeEnd volgt DEFAULT_GW_HORIZON_END, dat sinds de volledige kalender (GW1-34) zelf
   // ook afgeleid is: huidige speeldag + acht. Vroeger stond daar het vaste getal 7, omdat iedereen na
   // GW7 onbeperkte gratis transfers kreeg; die grens ligt intussen achter ons, dus een meeschuivend
   // venster i.p.v. een vast eindpunt (zie DEFAULT_GW_HORIZON_LENGTH in constants.js).
   const [rangeStart, setRangeStart] = useState(CURRENT_GW);
   const [rangeEnd, setRangeEnd] = useState(DEFAULT_GW_HORIZON_END);
   // GW-horizon van de hoofdtabel (Fixture Difficulty Rating) — los van rangeStart/rangeEnd hierboven,
-  // die enkel "Beste fixture runs" sturen. Start standaard op CURRENT_GW-DEFAULT_GW_HORIZON_END (schuift
+  // die samen "Beste fixture runs" én "Vergelijk teams" sturen (zie analysisRange verderop). De
+  // hoofdtabel houdt bewust een eigen horizon: dat is de leesweergave van alle ploegen, geen analyse
+  // van een handvol ploegen, en je wil die twee los van elkaar kunnen instellen. Start standaard op CURRENT_GW-DEFAULT_GW_HORIZON_END (schuift
   // vanzelf mee met CURRENT_GW, zelfde redenering als rangeStart hierboven); de gebruiker kan dit zelf
   // nog verruimen tot GW34 via de selector. Bewust NIET opgeslagen (localStorage/deelbare link) —
   // een tijdelijke weergave-instelling per sessie, geen permanente voorkeur.
@@ -836,16 +839,29 @@ export default function FDRTool() {
     setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
   }, []);
 
+  // Genormaliseerde analyse-periode, gedeeld door "Beste fixture runs" en "Vergelijk teams" — zelfde
+  // Math.min/max-patroon als gwHorizonRange hieronder, zodat een omgekeerde keuze (eind vóór start)
+  // nooit een lege of negatieve range oplevert.
+  //
+  // De twee secties stellen dezelfde vraag ("over welke reeks speeldagen beoordeel ik ploegen?"), en
+  // twee aparte periodes naast elkaar leveren stil tegenstrijdige antwoorden op: een team dat bovenaan
+  // "beste runs" staat over GW8-15 kan er in een vergelijking over GW8-12 slechter uitzien. Eén periode
+  // dus, met in beide secties een eigen kiezer op diezelfde state — je kan 'm overal aanpassen, ook als
+  // de andere sectie dichtgeklapt staat.
+  const analysisRange = useMemo(() => ({
+    start: Math.min(rangeStart, rangeEnd),
+    end: Math.max(rangeStart, rangeEnd),
+  }), [rangeStart, rangeEnd]);
+
   const bestRuns = useMemo(() => {
-    const start = Math.min(rangeStart, rangeEnd);
-    const end = Math.max(rangeStart, rangeEnd);
+    const { start, end } = analysisRange;
     const results = TEAMS.map(team => {
       const fixtures = FIXTURES[team.code].slice(start - 1, end);
       const scores = getFixtureScores(team.code, fixtures, ratings, homeAdvantage, start);
       return { ...team, avg: average(scores), fixtures, startGW: start };
     });
     return results.sort((a, b) => a.avg - b.avg).slice(0, 5);
-  }, [ratings, homeAdvantage, rangeStart, rangeEnd]);
+  }, [ratings, homeAdvantage, analysisRange]);
 
   // Horizon van de hoofdtabel, genormaliseerd — zelfde Math.min/max-patroon als bestRuns hierboven,
   // zodat een omgekeerde keuze (bv. eind vóór start) nooit een lege/negatieve range oplevert.
@@ -877,13 +893,12 @@ export default function FDRTool() {
     [sortableGwHeaderCells, gwHorizonRange]
   );
 
-  // "Vergelijk teams" heeft geen eigen horizon-selector: die begint gewoon altijd bij CURRENT_GW en
-  // loopt tot DEFAULT_GW_HORIZON_END — schuift dus vanzelf mee zodra CURRENT_GW opschuift. Tot de
-  // volledige kalender erin zat liep dit door tot GW_COUNT, wat toen nog acht speeldagen waren; met 34
-  // zou dat hier 27 kolommen naast elkaar zetten in een blok dat bedoeld is om twee ploegen snel te
-  // vergelijken. Math.min voorkomt een out-of-range start mocht CURRENT_GW ooit GW_COUNT overschrijden.
-  const compareGwStart = Math.min(CURRENT_GW, GW_COUNT);
-  const compareGwEnd = DEFAULT_GW_HORIZON_END;
+  // "Vergelijk teams" had helemaal geen kiezer: het begon altijd bij CURRENT_GW en liep tot een vast
+  // eindpunt. Nu volgt het de gedeelde analyse-periode hierboven, met een eigen kiezer in de sectie
+  // zelf. Vroeger liep dit bovendien door tot GW_COUNT — met 34 speeldagen zou dat 27 kolommen naast
+  // elkaar zetten in een blok dat bedoeld is om twee ploegen snel te vergelijken.
+  const compareGwStart = analysisRange.start;
+  const compareGwEnd = analysisRange.end;
   const compareGwHeaderCells = useMemo(
     () => gwHeaderCells.slice(compareGwStart - 1, compareGwEnd),
     [gwHeaderCells, compareGwStart, compareGwEnd]
@@ -1209,6 +1224,29 @@ export default function FDRTool() {
 
   const isPlayerWatched = (name, teamCode) =>
     watchlist.some(p => p.name === name && p.teamCode === teamCode);
+
+  // "Zit deze speler in mijn ploeg?" — voor het scope-filter op Bonuspunten en Kaarten (zie
+  // ScopeFilter.jsx). Bewust op CURRENT_GW herleid en niet op teamPlannerGw: die laatste is puur
+  // weergave-state van de planner-tab, en het zou raar zijn als een filter op een ándere tab stil
+  // verandert omdat je in de planner naar GW22 hebt gebladerd. Ook niet de statische GW1-ploeg: dan
+  // zouden al je transfers genegeerd worden.
+  //
+  // Vergelijking hoofdletter- en spatie-ongevoelig, maar wél op naam én clubcode samen: de planner
+  // vult namen via dezelfde CSV in als deze ranglijsten, maar een handmatig getypte naam kan een
+  // spatie of hoofdletter schelen. Enkel op naam vergelijken zou naamgenoten bij twee clubs
+  // samengooien.
+  const myTeamPlayerKeys = useMemo(() => {
+    const normaliseer = (name, teamCode) => `${(name ?? '').trim().toLowerCase()}|${(teamCode ?? '').toUpperCase()}`;
+    const keys = new Set();
+    teamPlannerPlayers.forEach((basePlayer, index) => {
+      const resolved = resolveSlotPlayerAtGw(basePlayer, teamPlannerTransfersBySlot[index] ?? [], CURRENT_GW);
+      if (resolved?.name) keys.add(normaliseer(resolved.name, resolved.teamCode));
+    });
+    return keys;
+  }, [teamPlannerPlayers, teamPlannerTransfersBySlot]);
+
+  const isPlayerInMyTeam = (name, teamCode) =>
+    myTeamPlayerKeys.has(`${(name ?? '').trim().toLowerCase()}|${(teamCode ?? '').toUpperCase()}`);
 
   // Lost een spelers-URL op zodra er data is om in te zoeken. Draait opnieuw wanneer de
   // spelersdatabank binnenkomt, zodat een deeplink naar iemand die niet in de verwachte opstellingen
@@ -2520,6 +2558,9 @@ export default function FDRTool() {
               fetchPlayerDatabase={fetchPlayerDatabase}
               toggleWatchlistPlayer={toggleWatchlistPlayer}
               isPlayerWatched={isPlayerWatched}
+              isPlayerInMyTeam={isPlayerInMyTeam}
+              hasMyTeam={myTeamPlayerKeys.size > 0}
+              hasWatchlist={watchlist.length > 0}
               onOpenPlayer={openPlayerSheet}
               onOpenClub={openClubSheet}
             />
@@ -2552,6 +2593,9 @@ export default function FDRTool() {
               fetchPlayerDatabase={fetchPlayerDatabase}
               toggleWatchlistPlayer={toggleWatchlistPlayer}
               isPlayerWatched={isPlayerWatched}
+              isPlayerInMyTeam={isPlayerInMyTeam}
+              hasMyTeam={myTeamPlayerKeys.size > 0}
+              hasWatchlist={watchlist.length > 0}
               onOpenPlayer={openPlayerSheet}
               onOpenClub={openClubSheet}
             />
