@@ -684,16 +684,13 @@ export const PLAYER_DATABASE_CSV_URL = 'https://docs.google.com/spreadsheets/d/e
 // (optioneel) Updated GW.
 export const SET_PIECES_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS_PSoy3cpm-nckncN8C8lmxg0PfxYpANthYfLFccxft2UuBbmCvOa8SXrlwyJkBWUu0ek3QMBsIknU/pub?gid=1124774550&single=true&output=csv';
 
-// Vorm per club (zie src/teamForm.js): nog een werkblad in diezelfde Google Sheet, met twee kolommen
-// (Team | Form). Zolang dit null is, wordt er NIETS opgehaald en blijft TEAM_FORM hierboven de bron —
-// geen mislukte request, geen lege vormbalken. Vul de gid in zodra het werkblad via "Publish to web"
-// als CSV gepubliceerd is, dan neemt de sheet het vanzelf over:
+// Vorm per club (zie src/teamForm.js): nog een werkblad in diezelfde Google Sheet, met een clubkolom en
+// een vormkolom. TEAM_FORM hierboven blijft de terugval — bij een netwerkfout, een niet-gepubliceerd
+// werkblad of een club die er niet in staat, telt gewoon de ingebouwde waarde voor díé club. Wat in de
+// sheet staat wint, per club, niet als geheel.
 //
-//   export const TEAM_FORM_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS_PSoy3cpm-nckncN8C8lmxg0PfxYpANthYfLFccxft2UuBbmCvOa8SXrlwyJkBWUu0ek3QMBsIknU/pub?gid=<GID>&single=true&output=csv';
-//
-// De ingebouwde TEAM_FORM blijft daarna staan als terugval bij een netwerkfout of een half ingevuld
-// werkblad. Wat in de sheet staat wint; clubs die er niet in staan houden hun ingebouwde waarde.
-export const TEAM_FORM_CSV_URL = null;
+// Zet dit op null om de ophaling helemaal uit te zetten; dan wordt er geen enkele request gedaan.
+export const TEAM_FORM_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS_PSoy3cpm-nckncN8C8lmxg0PfxYpANthYfLFccxft2UuBbmCvOa8SXrlwyJkBWUu0ek3QMBsIknU/pub?gid=853316749&single=true&output=csv';
 
 // Eenvoudige RFC4180-achtige CSV-tokenizer (i.p.v. text.split(',')): velden tussen aanhalingstekens
 // kunnen komma's en regeleindes bevatten, en "" binnen zo'n veld is een ontsnapt aanhalingsteken.
