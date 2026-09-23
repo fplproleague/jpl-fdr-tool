@@ -1,6 +1,8 @@
 // Schorsingslogica + sorteerfuncties voor de "Kaarten"-tab (zie src/tabs/KaartenTab.jsx). Losse module,
 // niet in constants.js: functionaliteit specifiek voor deze ene tab (zelfde opzet als bonuspunten.js).
 
+import { assignCompetitionRanks } from './ranking';
+
 // --- Schorsingsdrempels: aparte configuratielaag, los van de parsing/sorteerlogica hieronder ---
 //
 // Voor nu enkel de reguliere competitie: elke SUSPENSION_PHASES.regular.cycleLength gele kaarten (5)
@@ -53,16 +55,22 @@ export function buildKaartenEntries(playerDatabase) {
 const byName = (a, b) => a.player.localeCompare(b.player);
 
 // "Meeste gele kaarten" (standaard): kaarten dalend, dan naam.
+// Beide rangschikkingen geven de volledige lijst terug met een .rank per entry (zie ranking.js): bij
+// een gelijk aantal kaarten krijgen spelers dezelfde rang, want ze staan er ook even goed/slecht voor.
+// De naam als tiebreaker bepaalt nog de volgorde binnen zo'n ex aequo, maar niet meer het nummer.
 export function rankByMostCards(entries) {
-  return [...entries].sort((a, b) => b.cards - a.cards || byName(a, b));
+  const sorted = [...entries].sort((a, b) => b.cards - a.cards || byName(a, b));
+  return assignCompetitionRanks(sorted, e => e.cards);
 }
 
 // "Dichtst bij schorsing": minst kaarten-tot-schorsing eerst, dan (bij gelijke afstand) de speler met de
 // meeste kaarten eerst, dan naam. Zuiver sorteren op totaal aantal kaarten volstaat niet — een speler op
 // 4 kaarten (1 tot schorsing) staat hier vóór een speler op 6 kaarten (4 tot de volgende schorsing op 10).
 export function rankByClosestToSuspension(entries) {
-  return [...entries].sort((a, b) =>
+  const sorted = [...entries].sort((a, b) =>
     a.cardsRemaining - b.cardsRemaining || b.cards - a.cards || byName(a, b));
+  // Rang op het getal dat in deze modus in de rij staat (kaarten tot schorsing), niet op het totaal.
+  return assignCompetitionRanks(sorted, e => e.cardsRemaining);
 }
 
 // Subtiele waarschuwing: nog maar 1 kaart verwijderd van de eerstvolgende schorsing — geldt voor élke

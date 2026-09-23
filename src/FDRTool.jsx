@@ -7,13 +7,14 @@
 import { useState, useMemo, useRef, useCallback, useEffect, lazy, Suspense } from 'react';
 import { Info, X, Check, Copy, Undo2, Loader2, ChevronDown, Grid2x2, Users, Shirt } from 'lucide-react';
 import {
-  TEAMS, FIXTURES, GW_COUNT, CURRENT_GW, DEFAULT_GW_HORIZON_END, MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS,
+  TEAMS, FIXTURES, GW_COUNT, CURRENT_GW, DEFAULT_GW_HORIZON_END, TABLE_SLOT_MIN_WIDTH,
   MINILEAGUE_CODE, formatLastUpdatedLong, GW_INDEXES, DEFAULT_RATINGS, DEFAULT_HOME_ADVANTAGE,
   TEAM_PLANNER_SQUAD_SIZE, TEAM_PLANNER_BENCH_SIZE, TEAM_PLANNER_SLOT_POSITIONS, VALID_FORMATIONS,
   resolveSlotPlayerAtGw, PLAYER_DATABASE_CSV_URL, parsePlayerDatabaseCsv, getFixtureScores, average,
-  POSTPONED, computeTeamPlannerTransferBudget, getGwDeadlineDate,
+  POSTPONED, computeTeamPlannerTransferBudget, getGwDeadlineDate, AUTO_RECHARGE_GWS,
 } from './constants';
-import { SET_PIECES_CSV_URL } from './constants';
+import { SET_PIECES_CSV_URL, TEAM_FORM_CSV_URL, TEAM_FORM } from './constants';
+import { parseTeamFormCsv, mergeTeamForm } from './teamForm';
 import { parseSetPiecesCsv } from './setPieces';
 import { COLORS } from './theme';
 import {
@@ -71,13 +72,6 @@ const MOBILE_OVERFLOW_TABS = TABS.slice(MOBILE_PRIMARY_TAB_COUNT);
 // "Fixture Difficulty Rating" (FDRTab.jsx) / "Mijn selectie" (TeamPlannerTab.jsx) verderop in de site.
 const MOBILE_PRIMARY_TAB_ICONS = { fdr: Grid2x2, teamplanner: Users, predictedlineups: Shirt };
 
-// Subtiele "nieuw"-stip naast een tab-label (zie NEW_TAB_KEYS/seenNewTabs) — goud i.p.v. het teal van
-// een actieve tab, zodat de twee signalen (actief vs. nieuw) nooit door elkaar lopen.
-const newTabDotStyle = {
-  display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%',
-  background: '#E8C547', flexShrink: 0,
-};
-
 // Getoond terwijl een lui geladen tab binnenkomt. Bewust minimaal en even hoog als een gemiddelde
 // sectie, zodat de pagina niet zichtbaar springt.
 function TabLoading({ text }) {
@@ -111,32 +105,12 @@ function loadStoredLanguage() {
   }
 }
 
-// Welke tabs een "nieuw"-stip krijgen in de tabbalk (zie NEW_TAB_KEYS-gebruik verderop) totdat de
-// bezoeker ze minstens één keer heeft geopend — zelfde eenmalig-tonen-opzet als
-// hasSeenHomeAdvantageIntro hierboven, maar dan per tab i.p.v. één globale vlag: een array van
-// reeds-bezochte tab-keys i.p.v. een simpele '1'/geen-waarde.
-const NEW_TABS_SEEN_STORAGE_KEY = 'fpl_proleague_new_tabs_seen_v1';
-const NEW_TAB_KEYS = ['bonuspunten', 'setpieces', 'kaarten'];
-
-function loadSeenNewTabs() {
-  try {
-    const raw = window.localStorage?.getItem(NEW_TABS_SEEN_STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter(key => NEW_TAB_KEYS.includes(key)) : [];
-  } catch {
-    return [];
-  }
-}
-
-function markNewTabSeen(key, alreadySeen) {
-  try {
-    window.localStorage?.setItem(NEW_TABS_SEEN_STORAGE_KEY, JSON.stringify([...alreadySeen, key]));
-  } catch {
-    // localStorage niet beschikbaar (privénavigatie e.d.) — de stip toont dan gewoon elke keer
-    // opnieuw, geen harde fout.
-  }
-}
+// Hier stond de machinerie achter een gouden "nieuw"-stip op Bonuspunten/Set Pieces/Kaarten, met een
+// lijst reeds-bezochte tabs in localStorage. Die tabs zijn intussen geen nieuws meer, en een stip die
+// per bezoeker moet worden "afgezet" blijft anders eeuwig bestaan zonder dat iemand hem nog opmerkt.
+// Volledig weg i.p.v. een lege lijst achterlaten: dan blijft er geen slapende UI-laag staan die bij de
+// volgende nieuwe tab per ongeluk weer aanslaat. De oude localStorage-sleutel
+// (fpl_proleague_new_tabs_seen_v1) wordt niet meer gelezen of geschreven en verdwijnt vanzelf.
 
 // Gedeelde vaste hoogte voor de deadline- en minileague-chip in de header — beide gebruiken exact
 // deze waarde (i.p.v. losse padding/lineHeight-berekeningen) zodat ze gegarandeerd even hoog zijn,
@@ -424,19 +398,6 @@ export default function FDRTool() {
     typeof window === 'undefined' ? 'fdr' : routeKeyFromPath(window.location.pathname)
   );
 
-  // "Nieuw"-stip in de tabbalk voor Bonuspunten/Set Pieces/Kaarten (zie NEW_TAB_KEYS hierboven) totdat
-  // een bezoeker die tab minstens één keer geopend heeft — ook via een directe link of de terug-/
-  // vooruitknop, vandaar gekoppeld aan activeTab i.p.v. enkel aan een klik op de tabbalk zelf.
-  const [seenNewTabs, setSeenNewTabs] = useState(() => new Set(loadSeenNewTabs()));
-  useEffect(() => {
-    if (!NEW_TAB_KEYS.includes(activeTab)) return;
-    setSeenNewTabs(prev => {
-      if (prev.has(activeTab)) return prev;
-      markNewTabSeen(activeTab, prev);
-      return new Set(prev).add(activeTab);
-    });
-  }, [activeTab]);
-
   // --- Taal (NL/FR) — zie src/i18n.js. Persistent (localStorage), zodat de keuze bezoek-overschrijdend
   // is; default Nederlands, de oorspronkelijke (en enige) taal vóór deze toggle. `t` is een simpele
   // curried helper zodat de rest van deze component en alle tabs gewoon t('key') kunnen aanroepen i.p.v.
@@ -600,16 +561,19 @@ export default function FDRTool() {
   const [homeAdvantage, setHomeAdvantage] = useState(() => loadHomeAdvantageFromURL() || loadStoredHomeAdvantage() || DEFAULT_HOME_ADVANTAGE);
   // rangeStart start standaard op CURRENT_GW (i.p.v. hardcoded GW1) zodat de default range vanzelf
   // meeschuift bij het wekelijks bijwerken van CURRENT_GW in constants.js — geen aparte aanpassing
-  // hier nodig. rangeEnd gebruikt DEFAULT_GW_HORIZON_END (=7) i.p.v. een CURRENT_GW-afhankelijke
-  // formule: vanaf GW8 krijgen spelers onbeperkte gratis transfers (zie DEFAULT_GW_HORIZON_END in
-  // constants.js) en begint dus een nieuw "seizoen" qua planning, dus "Beste fixture runs" hoort
-  // nooit voorbij GW7 te kijken in de standaardweergave.
+  // hier nodig. Deze twee sturen de gedeelde analyse-periode van "Beste fixture runs" en "Vergelijk
+  // teams" (zie analysisRange verderop). rangeEnd volgt DEFAULT_GW_HORIZON_END, dat sinds de volledige kalender (GW1-34) zelf
+  // ook afgeleid is: huidige speeldag + acht. Vroeger stond daar het vaste getal 7, omdat iedereen na
+  // GW7 onbeperkte gratis transfers kreeg; die grens ligt intussen achter ons, dus een meeschuivend
+  // venster i.p.v. een vast eindpunt (zie DEFAULT_GW_HORIZON_LENGTH in constants.js).
   const [rangeStart, setRangeStart] = useState(CURRENT_GW);
   const [rangeEnd, setRangeEnd] = useState(DEFAULT_GW_HORIZON_END);
   // GW-horizon van de hoofdtabel (Fixture Difficulty Rating) — los van rangeStart/rangeEnd hierboven,
-  // die enkel "Beste fixture runs" sturen. Start standaard op CURRENT_GW-DEFAULT_GW_HORIZON_END (schuift
+  // die samen "Beste fixture runs" én "Vergelijk teams" sturen (zie analysisRange verderop). De
+  // hoofdtabel houdt bewust een eigen horizon: dat is de leesweergave van alle ploegen, geen analyse
+  // van een handvol ploegen, en je wil die twee los van elkaar kunnen instellen. Start standaard op CURRENT_GW-DEFAULT_GW_HORIZON_END (schuift
   // vanzelf mee met CURRENT_GW, zelfde redenering als rangeStart hierboven); de gebruiker kan dit zelf
-  // nog verruimen tot GW_COUNT via de selector. Bewust NIET opgeslagen (localStorage/deelbare link) —
+  // nog verruimen tot GW34 via de selector. Bewust NIET opgeslagen (localStorage/deelbare link) —
   // een tijdelijke weergave-instelling per sessie, geen permanente voorkeur.
   const [gwHorizonStart, setGwHorizonStart] = useState(CURRENT_GW);
   const [gwHorizonEnd, setGwHorizonEnd] = useState(DEFAULT_GW_HORIZON_END);
@@ -876,16 +840,29 @@ export default function FDRTool() {
     setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
   }, []);
 
+  // Genormaliseerde analyse-periode, gedeeld door "Beste fixture runs" en "Vergelijk teams" — zelfde
+  // Math.min/max-patroon als gwHorizonRange hieronder, zodat een omgekeerde keuze (eind vóór start)
+  // nooit een lege of negatieve range oplevert.
+  //
+  // De twee secties stellen dezelfde vraag ("over welke reeks speeldagen beoordeel ik ploegen?"), en
+  // twee aparte periodes naast elkaar leveren stil tegenstrijdige antwoorden op: een team dat bovenaan
+  // "beste runs" staat over GW8-15 kan er in een vergelijking over GW8-12 slechter uitzien. Eén periode
+  // dus, met in beide secties een eigen kiezer op diezelfde state — je kan 'm overal aanpassen, ook als
+  // de andere sectie dichtgeklapt staat.
+  const analysisRange = useMemo(() => ({
+    start: Math.min(rangeStart, rangeEnd),
+    end: Math.max(rangeStart, rangeEnd),
+  }), [rangeStart, rangeEnd]);
+
   const bestRuns = useMemo(() => {
-    const start = Math.min(rangeStart, rangeEnd);
-    const end = Math.max(rangeStart, rangeEnd);
+    const { start, end } = analysisRange;
     const results = TEAMS.map(team => {
       const fixtures = FIXTURES[team.code].slice(start - 1, end);
       const scores = getFixtureScores(team.code, fixtures, ratings, homeAdvantage, start);
       return { ...team, avg: average(scores), fixtures, startGW: start };
     });
     return results.sort((a, b) => a.avg - b.avg).slice(0, 5);
-  }, [ratings, homeAdvantage, rangeStart, rangeEnd]);
+  }, [ratings, homeAdvantage, analysisRange]);
 
   // Horizon van de hoofdtabel, genormaliseerd — zelfde Math.min/max-patroon als bestRuns hierboven,
   // zodat een omgekeerde keuze (bv. eind vóór start) nooit een lege/negatieve range oplevert.
@@ -917,35 +894,37 @@ export default function FDRTool() {
     [sortableGwHeaderCells, gwHorizonRange]
   );
 
-  // "Vergelijk teams" heeft geen eigen horizon-selector: die begint gewoon altijd bij CURRENT_GW en
-  // loopt door tot GW_COUNT (afgelopen GW's zijn daar nooit relevant) — schuift dus vanzelf mee zodra
-  // CURRENT_GW wekelijks bijgewerkt wordt in constants.js. Math.min voorkomt een out-of-range start
-  // mocht CURRENT_GW ooit GW_COUNT overschrijden.
-  const compareGwStart = Math.min(CURRENT_GW, GW_COUNT);
+  // "Vergelijk teams" had helemaal geen kiezer: het begon altijd bij CURRENT_GW en liep tot een vast
+  // eindpunt. Nu volgt het de gedeelde analyse-periode hierboven, met een eigen kiezer in de sectie
+  // zelf. Vroeger liep dit bovendien door tot GW_COUNT — met 34 speeldagen zou dat 27 kolommen naast
+  // elkaar zetten in een blok dat bedoeld is om twee ploegen snel te vergelijken.
+  const compareGwStart = analysisRange.start;
+  const compareGwEnd = analysisRange.end;
   const compareGwHeaderCells = useMemo(
-    () => gwHeaderCells.slice(compareGwStart - 1),
-    [gwHeaderCells, compareGwStart]
+    () => gwHeaderCells.slice(compareGwStart - 1, compareGwEnd),
+    [gwHeaderCells, compareGwStart, compareGwEnd]
   );
 
-  // MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS (760px) is gekalibreerd voor de Team-kolom + alle GW_COUNT
-  // kolommen samen. De tabel heeft bewust GEEN width: '100%' (zie <table> in FDRTab) — anders rekt
-  // de browser (table-layout: auto) elke kolom evenredig uit om de volledige breedte van de omringende
-  // scroll-container te vullen, wat bij een kleine horizon (bv. maar 1-3 zichtbare GW's) grote lege
-  // tussenruimtes tussen de kolommen oplevert. Door zowel het stretchen te vermijden als de min-width
-  // evenredig te laten meekrimpen met het aantal zichtbare kolommen (Team-kolom meegeteld als 1 "slot"
-  // naast de GW-kolommen), blijft de dichtheid/afstand tussen team-logo en tabel gelijk aan die bij de
-  // volledige 8-GW-breedte, ongeacht de gekozen horizon.
+  // TABLE_SLOT_MIN_WIDTH (84px) is de breedte van één kolom, met de Team-kolom meegeteld als 1 "slot"
+  // naast de GW-kolommen. De tabel heeft bewust GEEN width: '100%' (zie <table> in FDRTab) — anders
+  // rekt de browser (table-layout: auto) elke kolom evenredig uit om de volledige breedte van de
+  // omringende scroll-container te vullen, wat bij een kleine horizon (bv. maar 1-3 zichtbare GW's)
+  // grote lege tussenruimtes tussen de kolommen oplevert. Door zowel het stretchen te vermijden als de
+  // min-width recht evenredig met het aantal zichtbare kolommen te laten meegroeien, blijft de
+  // dichtheid tussen team-logo en tabel identiek, ongeacht of je acht of dertig speeldagen toont.
   const mainTableMinWidth = useMemo(
-    () => Math.round(MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS * (visibleGwHeaderCells.length + 1) / (GW_COUNT + 1)),
+    () => (visibleGwHeaderCells.length + 1) * TABLE_SLOT_MIN_WIDTH,
     [visibleGwHeaderCells]
   );
 
-  // Zelfde evenredige berekening voor de vergelijk-tabel. Die had een harde minWidth van 600px die
-  // niet meeschoof met het aantal zichtbare GW-kolommen: met twee kolommen werd die 600px verdeeld
-  // over een teamkolom van 220px en twee fixture-kolommen, in een container van 350px. Nu krimpt hij
-  // net als de hoofdtabel mee, zodat de teamkolom in beide tabellen even breed uitkomt.
+  // Zelfde berekening voor de vergelijk-tabel. Die had een harde minWidth van 600px die niet meeschoof
+  // met het aantal zichtbare GW-kolommen: met twee kolommen werd die 600px verdeeld over een teamkolom
+  // van 220px en twee fixture-kolommen, in een container van 350px. Nu telt hij per kolom, net als de
+  // hoofdtabel, dus bij een gelijk aantal kolommen zijn beide tabellen exact even breed. De teamkolom
+  // blijft een paar pixels verschillen — die cel bevat in de hoofdtabel een knop met eigen padding en
+  // in de vergelijk-tabel een kale span — maar de kolomindeling is dezelfde.
   const compareTableMinWidth = useMemo(
-    () => Math.round(MAIN_TABLE_MIN_WIDTH_FOR_ALL_GWS * (compareGwHeaderCells.length + 1) / (GW_COUNT + 1)),
+    () => (compareGwHeaderCells.length + 1) * TABLE_SLOT_MIN_WIDTH,
     [compareGwHeaderCells]
   );
 
@@ -1160,6 +1139,39 @@ export default function FDRTool() {
   // en een sheet mag geen fetch kosten op het moment dat je 'm opent. Zelfde uitgestelde afhandeling
   // als de spelersdatabank hierboven: meteen als de bezoeker al op de Set Pieces-tab staat, anders
   // wanneer de browser toch niets te doen heeft.
+  // Vorm per club uit de Google Sheet (zie teamForm.js), met de ingebouwde TEAM_FORM als startwaarde
+  // én als terugval. Geen loading- of foutstatus: de tabel toont altijd meteen iets, en een mislukte
+  // ophaling betekent gewoon dat de ingebouwde waarden blijven staan — daar hoeft geen melding bij.
+  // Zolang TEAM_FORM_CSV_URL null is, wordt er helemaal niets opgehaald.
+  const [teamForm, setTeamForm] = useState(TEAM_FORM);
+
+  useEffect(() => {
+    if (!TEAM_FORM_CSV_URL) return undefined;
+    let geannuleerd = false;
+    const ophalen = async () => {
+      try {
+        const response = await fetch(TEAM_FORM_CSV_URL, { cache: 'no-store' });
+        if (!response.ok) return;
+        const text = await response.text();
+        // Een niet-gepubliceerd werkblad geeft een HTML-foutpagina terug i.p.v. CSV; die zou anders als
+        // één grote onzinrij geparsed worden. Zelfde controle als bij de set pieces-CSV.
+        if (/^\s*<(!doctype|html)/i.test(text)) return;
+        const uitSheet = parseTeamFormCsv(text);
+        if (!geannuleerd && Object.keys(uitSheet).length > 0) {
+          setTeamForm(mergeTeamForm(TEAM_FORM, uitSheet));
+        }
+      } catch {
+        // offline of geblokkeerd — de ingebouwde waarden blijven staan
+      }
+    };
+    if (typeof window.requestIdleCallback === 'function') {
+      const handle = window.requestIdleCallback(() => ophalen(), { timeout: 4000 });
+      return () => { geannuleerd = true; window.cancelIdleCallback?.(handle); };
+    }
+    const timer = setTimeout(ophalen, 1600);
+    return () => { geannuleerd = true; clearTimeout(timer); };
+  }, []);
+
   const fetchSetPieces = useCallback(async () => {
     setSetPiecesLoading(true);
     setSetPiecesError(null);
@@ -1246,6 +1258,29 @@ export default function FDRTool() {
 
   const isPlayerWatched = (name, teamCode) =>
     watchlist.some(p => p.name === name && p.teamCode === teamCode);
+
+  // "Zit deze speler in mijn ploeg?" — voor het scope-filter op Bonuspunten en Kaarten (zie
+  // ScopeFilter.jsx). Bewust op CURRENT_GW herleid en niet op teamPlannerGw: die laatste is puur
+  // weergave-state van de planner-tab, en het zou raar zijn als een filter op een ándere tab stil
+  // verandert omdat je in de planner naar GW22 hebt gebladerd. Ook niet de statische GW1-ploeg: dan
+  // zouden al je transfers genegeerd worden.
+  //
+  // Vergelijking hoofdletter- en spatie-ongevoelig, maar wél op naam én clubcode samen: de planner
+  // vult namen via dezelfde CSV in als deze ranglijsten, maar een handmatig getypte naam kan een
+  // spatie of hoofdletter schelen. Enkel op naam vergelijken zou naamgenoten bij twee clubs
+  // samengooien.
+  const myTeamPlayerKeys = useMemo(() => {
+    const normaliseer = (name, teamCode) => `${(name ?? '').trim().toLowerCase()}|${(teamCode ?? '').toUpperCase()}`;
+    const keys = new Set();
+    teamPlannerPlayers.forEach((basePlayer, index) => {
+      const resolved = resolveSlotPlayerAtGw(basePlayer, teamPlannerTransfersBySlot[index] ?? [], CURRENT_GW);
+      if (resolved?.name) keys.add(normaliseer(resolved.name, resolved.teamCode));
+    });
+    return keys;
+  }, [teamPlannerPlayers, teamPlannerTransfersBySlot]);
+
+  const isPlayerInMyTeam = (name, teamCode) =>
+    myTeamPlayerKeys.has(`${(name ?? '').trim().toLowerCase()}|${(teamCode ?? '').toUpperCase()}`);
 
   // Lost een spelers-URL op zodra er data is om in te zoeken. Draait opnieuw wanneer de
   // spelersdatabank binnenkomt, zodat een deeplink naar iemand die niet in de verwachte opstellingen
@@ -1458,20 +1493,29 @@ export default function FDRTool() {
     setTimeout(() => setTeamPlannerOptimized(false), 2000);
   };
 
-  // Boosters: exact 1x per booster-type te gebruiken over het hele seizoen, en max 1 actieve booster
-  // per GW. Eenmaal geactiveerd op GW X, is de booster VERGRENDELD op GW X — pas als hij op die exacte
-  // GW opnieuw aangeklikt wordt (annuleren) komt hij weer vrij. Op een andere GW aanklikken terwijl
-  // hij al elders actief is, doet niets (de UI toont 'm daar disabled, zie TeamPlannerTab.jsx).
+  // Boosters: exact 1x per booster-type te gebruiken over het hele seizoen, en max 1 zelfgekozen
+  // booster per GW. Eenmaal geactiveerd op GW X, is de booster VERGRENDELD op GW X — pas als hij op
+  // die exacte GW opnieuw aangeklikt wordt (annuleren) komt hij weer vrij. Op een andere GW aanklikken
+  // terwijl hij al elders actief is, doet niets (de UI toont 'm daar disabled, zie TeamPlannerTab.jsx).
+  //
+  // De bovengrens stond op GW7, uit de tijd dat het seizoen in dit bestand niet verder liep. Nu de
+  // volledige kalender erin zit, mag je een booster op elke speeldag plaatsen.
+  //
+  // Op een automatische Recharge-GW (AUTO_RECHARGE_GWS: GW8, GW20, GW27) loopt de Recharge sowieso al
+  // voor iedereen. Je eigen Recharge-booster daar verbruiken zou die dus weggooien, vandaar geblokkeerd
+  // — de twee andere boosters mogen er wél bovenop, dat is precies het voordeel van zo'n speeldag.
   const toggleTeamPlannerBooster = (boosterKey, gw) => {
-    if (gw < 1 || gw > 7) return;
+    if (gw < 1 || gw > GW_COUNT) return;
+    if (boosterKey === 'recharge' && AUTO_RECHARGE_GWS.has(gw)) return;
     setTeamPlannerBoosters(prev => {
       if (prev[boosterKey] === gw) {
         return { ...prev, [boosterKey]: null }; // annuleren, enkel mogelijk op de GW waar hij actief is
       }
       if (prev[boosterKey] != null) return prev; // al verbruikt op een andere GW — geblokkeerd
       const updated = { ...prev, [boosterKey]: gw };
-      // Max 1 actieve booster per GW: een andere booster die toevallig al op déze GW actief stond,
-      // wordt vervangen (niet gestapeld) — user-bevestigd gedrag.
+      // Max 1 zelfgekozen booster per GW: een andere booster die toevallig al op déze GW actief stond,
+      // wordt vervangen (niet gestapeld) — user-bevestigd gedrag. De automatische Recharge telt hier
+      // niet in mee; die staat niet in deze state.
       Object.keys(updated).forEach(key => {
         if (key !== boosterKey && updated[key] === gw) updated[key] = null;
       });
@@ -2284,7 +2328,6 @@ export default function FDRTool() {
         >
           {TABS.map(tab => {
             const isActive = activeTab === tab.key;
-            const isNewUnseen = NEW_TAB_KEYS.includes(tab.key) && !seenNewTabs.has(tab.key);
             return (
               <a
                 key={tab.key}
@@ -2305,7 +2348,6 @@ export default function FDRTool() {
                 }}
               >
                 {t(`nav.${tab.key}`)}
-                {isNewUnseen && <span style={newTabDotStyle} aria-hidden="true" />}
               </a>
             );
           })}
@@ -2361,10 +2403,6 @@ export default function FDRTool() {
               // van die actieve tab) — sommige tab-namen (bv. "Bonuspunten") zijn te lang voor deze
               // kolombreedte, en het label zelf hoeft niet te wisselen om toch duidelijk te blijven.
               const isActive = MOBILE_OVERFLOW_TABS.some(tab => tab.key === activeTab);
-              // De Meer-knop krijgt zelf één stip zolang er nog minstens één nieuwe tab (Bonuspunten/
-              // Set Pieces/Kaarten) verstopt zit in het dropdown-menu erachter — niet elk item apart,
-              // dat is precies wat het "Meer"-niveau al samenvat.
-              const hasUnseenNewTab = NEW_TAB_KEYS.some(key => !seenNewTabs.has(key));
               return (
                 <button
                   type="button"
@@ -2382,7 +2420,6 @@ export default function FDRTool() {
                 >
                   <ChevronDown size={17} style={{ transform: moreMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} aria-hidden="true" />
                   {t('nav.more')}
-                  {hasUnseenNewTab && <span style={{ ...newTabDotStyle, position: 'absolute', top: '2px', right: 'calc(50% - 26px)' }} aria-hidden="true" />}
                 </button>
               );
             })()}
@@ -2459,6 +2496,7 @@ export default function FDRTool() {
             compareGwHeaderCells={compareGwHeaderCells}
             compareTableMinWidth={compareTableMinWidth}
             compareGwStart={compareGwStart}
+            compareGwEnd={compareGwEnd}
             mainTableMinWidth={mainTableMinWidth}
             displayedTeams={displayedTeams}
             tableRef={tableRef}
@@ -2468,6 +2506,7 @@ export default function FDRTool() {
             setRangeEnd={setRangeEnd}
             bestRuns={bestRuns}
             compareTeams={compareTeams}
+            teamForm={teamForm}
             toggleCompareTeam={toggleCompareTeam}
             onOpenClub={openClubSheet}
           />
@@ -2554,6 +2593,9 @@ export default function FDRTool() {
               fetchPlayerDatabase={fetchPlayerDatabase}
               toggleWatchlistPlayer={toggleWatchlistPlayer}
               isPlayerWatched={isPlayerWatched}
+              isPlayerInMyTeam={isPlayerInMyTeam}
+              hasMyTeam={myTeamPlayerKeys.size > 0}
+              hasWatchlist={watchlist.length > 0}
               onOpenPlayer={openPlayerSheet}
               onOpenClub={openClubSheet}
             />
@@ -2586,6 +2628,9 @@ export default function FDRTool() {
               fetchPlayerDatabase={fetchPlayerDatabase}
               toggleWatchlistPlayer={toggleWatchlistPlayer}
               isPlayerWatched={isPlayerWatched}
+              isPlayerInMyTeam={isPlayerInMyTeam}
+              hasMyTeam={myTeamPlayerKeys.size > 0}
+              hasWatchlist={watchlist.length > 0}
               onOpenPlayer={openPlayerSheet}
               onOpenClub={openClubSheet}
             />
@@ -2652,6 +2697,7 @@ export default function FDRTool() {
             setPiecesEntries={setPiecesData.entries}
             ratings={ratings}
             homeAdvantage={homeAdvantage}
+            teamForm={teamForm}
             onOpenPlayer={openPlayerSheet}
           />
         </Suspense>

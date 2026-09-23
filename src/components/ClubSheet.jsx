@@ -9,7 +9,7 @@
 // Deelt zijn frame (dialoog-semantiek, focus, Escape, desktop-modal vs. bottom sheet) met de
 // speler-sheet, zie Sheet.jsx. Vanuit hier een speler openen vervángt deze sheet: FDRTool.jsx houdt
 // één sheet-state bij, dus er kan nooit een stapel ontstaan.
-import { CURRENT_GW, FIXTURES, PREDICTED_LINEUPS_GW, TEAM_FORM, TEAMS } from '../constants';
+import { CURRENT_GW, FIXTURES, PREDICTED_LINEUPS_GW, TEAMS } from '../constants';
 import { buildBonuspuntenEntries, rankByBonusPoints, SORT_MODES } from '../bonuspunten';
 import { PREDICTED_LINEUPS } from '../predictedLineupsData';
 import { SAFETY_STYLE } from '../predicted-xi/theme';
@@ -52,14 +52,16 @@ function SetPieceLine({ label, value }) {
 
 export default function ClubSheet({
   t, clubCode, onClose, playerDatabase = [], setPiecesEntries = [],
-  ratings, homeAdvantage, onOpenPlayer,
+  ratings, homeAdvantage, teamForm, onOpenPlayer,
 }) {
   const headingId = 'fdr-club-sheet-title';
   const club = TEAMS.find(x => x.code === clubCode);
   const clubName = club?.name ?? clubCode;
 
   const upcoming = (FIXTURES[clubCode] ?? []).slice(CURRENT_GW - 1, CURRENT_GW - 1 + FIXTURES_AHEAD);
-  const form = TEAM_FORM[clubCode] ?? [];
+  // teamForm komt uit FDRTool.jsx: de Google Sheet als die gepubliceerd is, anders TEAM_FORM
+  // uit constants.js. Eén bron voor de hele app, zodat de clubkaart en de tabel niet uiteenlopen.
+  const form = teamForm?.[clubCode] ?? [];
   const setPieces = setPiecesEntries.find(e => e.clubCode === clubCode) ?? null;
 
   // findLast, net als in PredictedLineupsTab: mocht er ooit weer een oude en een nieuwe opstelling voor

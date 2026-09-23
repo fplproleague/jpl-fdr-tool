@@ -7,7 +7,7 @@
 
 import React, { memo } from 'react';
 import { RotateCcw, TrendingUp, Info, Link2, Download, Check, ArrowUpDown, Settings2, Grid2x2, Scale } from 'lucide-react';
-import { TEAMS, TEAMS_ALPHA, FIXTURES, RATING_STYLE, TEAM_FORM, GW_INDEXES, getFixtureInfo } from '../constants';
+import { TEAMS, TEAMS_ALPHA, FIXTURES, RATING_STYLE, GW_COUNT, GW_INDEXES, getFixtureInfo } from '../constants';
 import { COLORS, selectStyle, secondaryButtonStyle, primaryButtonStyle, iconButtonStyle } from '../theme';
 import { SectionHeader } from '../components/SectionHeader';
 import { FixtureStrip } from '../components/FixtureStrip';
@@ -27,12 +27,20 @@ const stickyTeamCellStyle = {
   boxShadow: '-4px 0 0 0 #2A1440, 4px 0 0 0 #2A1440',
 };
 
-// FDR-tab-only: gebruikt voor de GW-horizon-selector, de "Beste fixture runs"-range-selectors en als
-// bron voor compareGwHeaderCells (zie FDRTool.jsx) — laatstgenoemde slicet dit vanaf CURRENT_GW, want
-// "Vergelijk teams" toont geen afgelopen GW's meer.
-const gwOptionElements = GW_INDEXES.map(i => (
-  <option key={i} value={i + 1}>{i + 1}</option>
-));
+// Opties voor een GW-kiezer, begrensd tot wat een geldige keuze oplevert: de "vanaf"-kiezer loopt
+// nooit voorbij het gekozen eindpunt, de "tot"-kiezer begint nooit vóór het gekozen beginpunt.
+//
+// Vroeger stond in alle zes de kiezers dezelfde volledige lijst 1..34, en ving een Math.min/max in
+// FDRTool.jsx een omgekeerde keuze op door de twee stilletjes om te wisselen. Dat werkte, maar het
+// verklaarde niets: je koos "van 15 tot 9" en kreeg zonder uitleg GW9-15 te zien. Een onmogelijke
+// keuze niet kunnen maken is duidelijker dan ze achteraf rechtzetten. De normalisatie in FDRTool.jsx
+// blijft staan als vangnet — voor een oude gedeelde link of een handmatig gezette waarde.
+function gwOptions(vanaf, tot) {
+  return GW_INDEXES
+    .map(i => i + 1)
+    .filter(gw => gw >= vanaf && gw <= tot)
+    .map(gw => <option key={gw} value={gw}>{gw}</option>);
+}
 
 // Zichtbaar moeilijkheidscijfer (1-5) in de rechterbovenhoek van een fixture-cel. Tot nu toe zat de
 // moeilijkheid uitsluitend in de achtergrondkleur; dat maakt de tabel onleesbaar voor wie rood en
@@ -176,7 +184,7 @@ const FORM_RESULT_STYLE = {
 };
 
 // Kleine vormindicator onder de clubcode in de hoofdtabel: max. 5 laatste uitslagen (oudste eerst), zie
-// TEAM_FORM in constants.js. De team-cel se rijhoogte wordt gedreven door het 20px-hoge clublogo (padding
+// teamForm (uit FDRTool.jsx: de sheet, of TEAM_FORM in constants.js als terugval). De team-cel se rijhoogte wordt gedreven door het 20px-hoge clublogo (padding
 // 6px boven/onder erbij = 32px, exact gelijk aan de fixture-cellen ernaast) — dus de code-regel + stippenrij
 // samen moeten binnen diezelfde 20px content-hoogte blijven, anders groeit de hele rij mee (en krijgen
 // vooral de strak-passende DGW-cellen, 2 gestapelde helften, opeens lucht). Vandaar de expliciete, krappe
@@ -209,10 +217,11 @@ export default function FDRTab({
   sortBy, toggleSortByAverage,
   highlightedRatings, toggleRatingFilter, clearRatingFilter,
   gwHorizonStart, setGwHorizonStart, gwHorizonEnd, setGwHorizonEnd, gwHorizonRange,
-  visibleGwHeaderCells, compareGwHeaderCells, compareGwStart, mainTableMinWidth, compareTableMinWidth,
+  visibleGwHeaderCells, compareGwHeaderCells, compareGwStart, compareGwEnd, mainTableMinWidth, compareTableMinWidth,
   displayedTeams, tableRef,
   rangeStart, setRangeStart, rangeEnd, setRangeEnd, bestRuns,
   compareTeams, toggleCompareTeam,
+  teamForm,
   onOpenClub,
 }) {
   return (
@@ -412,7 +421,7 @@ export default function FDRTab({
                 aria-label={t('fdr.tableRangeFromAria')}
                 style={selectStyle}
               >
-                {gwOptionElements}
+                {gwOptions(1, gwHorizonEnd)}
               </select>
               <span style={{ color: COLORS.textBody, fontSize: '12px' }}>{t('fdr.gwTo')}</span>
               <select
@@ -421,7 +430,7 @@ export default function FDRTab({
                 aria-label={t('fdr.tableRangeToAria')}
                 style={selectStyle}
               >
-                {gwOptionElements}
+                {gwOptions(gwHorizonStart, GW_COUNT)}
               </select>
             </div>
             <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: COLORS.textSubtle, fontSize: '11px' }}>
@@ -487,7 +496,7 @@ export default function FDRTab({
                     />,
                     <span key="meta" style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
                       <span style={{ lineHeight: '13px' }}>{team.code}</span>
-                      <TeamFormBar results={TEAM_FORM[team.code]} />
+                      <TeamFormBar results={teamForm[team.code]} />
                     </span>,
                   )}
                 </td>
@@ -609,7 +618,7 @@ export default function FDRTab({
             aria-label={t('fdr.runsRangeFromAria')}
             style={selectStyle}
           >
-            {gwOptionElements}
+            {gwOptions(1, rangeEnd)}
           </select>
           <span style={{ color: COLORS.textBody, fontSize: '12px' }}>{t('fdr.gwTo')}</span>
           <select
@@ -618,9 +627,12 @@ export default function FDRTab({
             aria-label={t('fdr.runsRangeToAria')}
             style={selectStyle}
           >
-            {gwOptionElements}
+            {gwOptions(rangeStart, GW_COUNT)}
           </select>
         </div>
+        <p style={{ color: COLORS.textSubtle, fontSize: '11px', margin: '-6px 0 12px' }}>
+          {t('fdr.sharedRangeHint')}
+        </p>
         <div style={{ display: 'grid', gap: '8px' }}>
           {bestRuns.map((team, idx) => (
             <div key={team.code} style={{
@@ -668,7 +680,35 @@ export default function FDRTab({
         {openSections.compare && (
         <div id="fdr-section-compare">
         <p style={{ color: COLORS.textMuted, fontSize: '12px', marginBottom: '10px' }}>
-          {t('fdr.compareIntro', { gw: compareGwStart })}
+          {t('fdr.compareIntro')}
+        </p>
+        {/* Dezelfde kiezer als bij "Beste fixture runs", op dezelfde state (rangeStart/rangeEnd — zie
+            analysisRange in FDRTool.jsx). Bewust een tweede exemplaar i.p.v. één gedeelde kiezer
+            bovenaan: de twee secties klappen los van elkaar open en dicht, dus een kiezer die enkel in
+            de andere sectie staat is de helft van de tijd onbereikbaar. Het regeltje eronder vertelt
+            dat ze aan elkaar hangen, zodat niemand zich afvraagt waarom de andere sectie meeverandert. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
+          <label style={{ color: COLORS.textBody, fontSize: '12px' }}>{t('fdr.gwLabel')}</label>
+          <select
+            value={rangeStart}
+            onChange={e => setRangeStart(Number(e.target.value))}
+            aria-label={t('fdr.compareRangeFromAria')}
+            style={selectStyle}
+          >
+            {gwOptions(1, rangeEnd)}
+          </select>
+          <span style={{ color: COLORS.textBody, fontSize: '12px' }}>{t('fdr.gwTo')}</span>
+          <select
+            value={rangeEnd}
+            onChange={e => setRangeEnd(Number(e.target.value))}
+            aria-label={t('fdr.compareRangeToAria')}
+            style={selectStyle}
+          >
+            {gwOptions(rangeStart, GW_COUNT)}
+          </select>
+        </div>
+        <p style={{ color: COLORS.textSubtle, fontSize: '11px', margin: '0 0 12px' }}>
+          {t('fdr.sharedRangeHint')}
         </p>
         <div style={{
           display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(70px, 1fr))', gap: '6px', marginBottom: '16px'
@@ -733,7 +773,10 @@ export default function FDRTab({
                           {team.code}
                         </span>
                       </td>
-                      {FIXTURES[code].slice(compareGwStart - 1).map((f, i) => {
+                      {/* Zelfde venster als compareGwHeaderCells hierboven (zie compareGwEnd in
+                          FDRTool.jsx) — kop en rijen moeten uit één bron komen, anders rendert de
+                          tabel meer cellen dan er kolomkoppen zijn en rekt ze stilletjes uit. */}
+                      {FIXTURES[code].slice(compareGwStart - 1, compareGwEnd).map((f, i) => {
                         const gwNumber = compareGwStart + i;
                         const { opp, venue, isPostponed, isPossiblyPostponed, style, postponedText, possiblyPostponedText, isDoubleGameweek, legs } =
                           getFixtureInfo(code, f, gwNumber, ratings, homeAdvantage);

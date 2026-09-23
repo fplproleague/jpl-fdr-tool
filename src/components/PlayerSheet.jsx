@@ -26,10 +26,12 @@ import { FixtureStrip } from './FixtureStrip';
 // importeren (dat zou een lazy tab-chunk in deze chunk trekken).
 const BONUS_POINTS_DATA_AVAILABLE = true;
 
-// Hoeveel speeldagen vooruit de sheet toont. Twee: genoeg om "speelt hij een dubbele makkelijke week"
-// te beantwoorden, weinig genoeg om naast de rest te passen. Bewust losgekoppeld van de GW-horizon van
-// de hoofdtabel — dit is een detailweergave, geen planningsoverzicht.
-const FIXTURES_AHEAD = 2;
+// Hoeveel speeldagen vooruit de sheet toont. Stond op twee toen er maar acht speeldagen in het bestand
+// zaten en er dus nauwelijks iets vooruit te kijken viel; met de volledige kalender is dat te karig om
+// te beoordelen of een speler een goede reeks tegemoet gaat. Vijf, hetzelfde aantal als de clubkaart en
+// de watchlist, en gemeten past dat op 390px nog altijd op één regel. Bewust losgekoppeld van de
+// GW-horizon van de hoofdtabel — dit is een detailweergave, geen planningsoverzicht.
+const FIXTURES_AHEAD = 5;
 
 const SAFETY_LABEL_KEYS = {
   darkgreen: 'predictedLineups.legend.certain',
