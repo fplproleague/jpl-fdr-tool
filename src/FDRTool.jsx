@@ -7,13 +7,15 @@
 import { useState, useMemo, useRef, useCallback, useEffect, lazy, Suspense } from 'react';
 import { Info, X, Check, Copy, Undo2, Loader2, ChevronDown, Grid2x2, Users, Shirt } from 'lucide-react';
 import {
-  TEAMS, FIXTURES, GW_COUNT, CURRENT_GW, DEFAULT_GW_HORIZON_END, TABLE_SLOT_MIN_WIDTH,
+  TEAMS, FIXTURES, GW_COUNT, CURRENT_GW, DEFAULT_GW_HORIZON_END,
+  TABLE_SLOT_MIN_WIDTH, TABLE_SLOT_MIN_WIDTH_MOBILE, MOBILE_TABLE_BREAKPOINT,
   MINILEAGUE_CODE, formatLastUpdatedLong, GW_INDEXES, DEFAULT_RATINGS, DEFAULT_HOME_ADVANTAGE,
   TEAM_PLANNER_SQUAD_SIZE, TEAM_PLANNER_BENCH_SIZE, TEAM_PLANNER_SLOT_POSITIONS, VALID_FORMATIONS,
   resolveSlotPlayerAtGw, PLAYER_DATABASE_CSV_URL, parsePlayerDatabaseCsv, getFixtureScores, average,
-  POSTPONED, computeTeamPlannerTransferBudget, getGwDeadlineDate,
+  POSTPONED, computeTeamPlannerTransferBudget, getGwDeadlineDate, AUTO_RECHARGE_GWS,
 } from './constants';
-import { SET_PIECES_CSV_URL } from './constants';
+import { SET_PIECES_CSV_URL, TEAM_FORM_CSV_URL, TEAM_FORM } from './constants';
+import { parseTeamFormCsv, mergeTeamForm } from './teamForm';
 import { parseSetPiecesCsv } from './setPieces';
 import { COLORS } from './theme';
 import {
@@ -71,13 +73,6 @@ const MOBILE_OVERFLOW_TABS = TABS.slice(MOBILE_PRIMARY_TAB_COUNT);
 // "Fixture Difficulty Rating" (FDRTab.jsx) / "Mijn selectie" (TeamPlannerTab.jsx) verderop in de site.
 const MOBILE_PRIMARY_TAB_ICONS = { fdr: Grid2x2, teamplanner: Users, predictedlineups: Shirt };
 
-// Subtiele "nieuw"-stip naast een tab-label (zie NEW_TAB_KEYS/seenNewTabs) — goud i.p.v. het teal van
-// een actieve tab, zodat de twee signalen (actief vs. nieuw) nooit door elkaar lopen.
-const newTabDotStyle = {
-  display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%',
-  background: '#E8C547', flexShrink: 0,
-};
-
 // Getoond terwijl een lui geladen tab binnenkomt. Bewust minimaal en even hoog als een gemiddelde
 // sectie, zodat de pagina niet zichtbaar springt.
 function TabLoading({ text }) {
@@ -111,32 +106,12 @@ function loadStoredLanguage() {
   }
 }
 
-// Welke tabs een "nieuw"-stip krijgen in de tabbalk (zie NEW_TAB_KEYS-gebruik verderop) totdat de
-// bezoeker ze minstens één keer heeft geopend — zelfde eenmalig-tonen-opzet als
-// hasSeenHomeAdvantageIntro hierboven, maar dan per tab i.p.v. één globale vlag: een array van
-// reeds-bezochte tab-keys i.p.v. een simpele '1'/geen-waarde.
-const NEW_TABS_SEEN_STORAGE_KEY = 'fpl_proleague_new_tabs_seen_v1';
-const NEW_TAB_KEYS = ['bonuspunten', 'setpieces', 'kaarten'];
-
-function loadSeenNewTabs() {
-  try {
-    const raw = window.localStorage?.getItem(NEW_TABS_SEEN_STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter(key => NEW_TAB_KEYS.includes(key)) : [];
-  } catch {
-    return [];
-  }
-}
-
-function markNewTabSeen(key, alreadySeen) {
-  try {
-    window.localStorage?.setItem(NEW_TABS_SEEN_STORAGE_KEY, JSON.stringify([...alreadySeen, key]));
-  } catch {
-    // localStorage niet beschikbaar (privénavigatie e.d.) — de stip toont dan gewoon elke keer
-    // opnieuw, geen harde fout.
-  }
-}
+// Hier stond de machinerie achter een gouden "nieuw"-stip op Bonuspunten/Set Pieces/Kaarten, met een
+// lijst reeds-bezochte tabs in localStorage. Die tabs zijn intussen geen nieuws meer, en een stip die
+// per bezoeker moet worden "afgezet" blijft anders eeuwig bestaan zonder dat iemand hem nog opmerkt.
+// Volledig weg i.p.v. een lege lijst achterlaten: dan blijft er geen slapende UI-laag staan die bij de
+// volgende nieuwe tab per ongeluk weer aanslaat. De oude localStorage-sleutel
+// (fpl_proleague_new_tabs_seen_v1) wordt niet meer gelezen of geschreven en verdwijnt vanzelf.
 
 // Gedeelde vaste hoogte voor de deadline- en minileague-chip in de header — beide gebruiken exact
 // deze waarde (i.p.v. losse padding/lineHeight-berekeningen) zodat ze gegarandeerd even hoog zijn,
@@ -424,19 +399,6 @@ export default function FDRTool() {
     typeof window === 'undefined' ? 'fdr' : routeKeyFromPath(window.location.pathname)
   );
 
-  // "Nieuw"-stip in de tabbalk voor Bonuspunten/Set Pieces/Kaarten (zie NEW_TAB_KEYS hierboven) totdat
-  // een bezoeker die tab minstens één keer geopend heeft — ook via een directe link of de terug-/
-  // vooruitknop, vandaar gekoppeld aan activeTab i.p.v. enkel aan een klik op de tabbalk zelf.
-  const [seenNewTabs, setSeenNewTabs] = useState(() => new Set(loadSeenNewTabs()));
-  useEffect(() => {
-    if (!NEW_TAB_KEYS.includes(activeTab)) return;
-    setSeenNewTabs(prev => {
-      if (prev.has(activeTab)) return prev;
-      markNewTabSeen(activeTab, prev);
-      return new Set(prev).add(activeTab);
-    });
-  }, [activeTab]);
-
   // --- Taal (NL/FR) — zie src/i18n.js. Persistent (localStorage), zodat de keuze bezoek-overschrijdend
   // is; default Nederlands, de oorspronkelijke (en enige) taal vóór deze toggle. `t` is een simpele
   // curried helper zodat de rest van deze component en alle tabs gewoon t('key') kunnen aanroepen i.p.v.
@@ -600,14 +562,17 @@ export default function FDRTool() {
   const [homeAdvantage, setHomeAdvantage] = useState(() => loadHomeAdvantageFromURL() || loadStoredHomeAdvantage() || DEFAULT_HOME_ADVANTAGE);
   // rangeStart start standaard op CURRENT_GW (i.p.v. hardcoded GW1) zodat de default range vanzelf
   // meeschuift bij het wekelijks bijwerken van CURRENT_GW in constants.js — geen aparte aanpassing
-  // hier nodig. rangeEnd volgt DEFAULT_GW_HORIZON_END, dat sinds de volledige kalender (GW1-34) zelf
+  // hier nodig. Deze twee sturen de gedeelde analyse-periode van "Beste fixture runs" en "Vergelijk
+  // teams" (zie analysisRange verderop). rangeEnd volgt DEFAULT_GW_HORIZON_END, dat sinds de volledige kalender (GW1-34) zelf
   // ook afgeleid is: huidige speeldag + acht. Vroeger stond daar het vaste getal 7, omdat iedereen na
   // GW7 onbeperkte gratis transfers kreeg; die grens ligt intussen achter ons, dus een meeschuivend
   // venster i.p.v. een vast eindpunt (zie DEFAULT_GW_HORIZON_LENGTH in constants.js).
   const [rangeStart, setRangeStart] = useState(CURRENT_GW);
   const [rangeEnd, setRangeEnd] = useState(DEFAULT_GW_HORIZON_END);
   // GW-horizon van de hoofdtabel (Fixture Difficulty Rating) — los van rangeStart/rangeEnd hierboven,
-  // die enkel "Beste fixture runs" sturen. Start standaard op CURRENT_GW-DEFAULT_GW_HORIZON_END (schuift
+  // die samen "Beste fixture runs" én "Vergelijk teams" sturen (zie analysisRange verderop). De
+  // hoofdtabel houdt bewust een eigen horizon: dat is de leesweergave van alle ploegen, geen analyse
+  // van een handvol ploegen, en je wil die twee los van elkaar kunnen instellen. Start standaard op CURRENT_GW-DEFAULT_GW_HORIZON_END (schuift
   // vanzelf mee met CURRENT_GW, zelfde redenering als rangeStart hierboven); de gebruiker kan dit zelf
   // nog verruimen tot GW34 via de selector. Bewust NIET opgeslagen (localStorage/deelbare link) —
   // een tijdelijke weergave-instelling per sessie, geen permanente voorkeur.
@@ -876,16 +841,29 @@ export default function FDRTool() {
     setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
   }, []);
 
+  // Genormaliseerde analyse-periode, gedeeld door "Beste fixture runs" en "Vergelijk teams" — zelfde
+  // Math.min/max-patroon als gwHorizonRange hieronder, zodat een omgekeerde keuze (eind vóór start)
+  // nooit een lege of negatieve range oplevert.
+  //
+  // De twee secties stellen dezelfde vraag ("over welke reeks speeldagen beoordeel ik ploegen?"), en
+  // twee aparte periodes naast elkaar leveren stil tegenstrijdige antwoorden op: een team dat bovenaan
+  // "beste runs" staat over GW8-15 kan er in een vergelijking over GW8-12 slechter uitzien. Eén periode
+  // dus, met in beide secties een eigen kiezer op diezelfde state — je kan 'm overal aanpassen, ook als
+  // de andere sectie dichtgeklapt staat.
+  const analysisRange = useMemo(() => ({
+    start: Math.min(rangeStart, rangeEnd),
+    end: Math.max(rangeStart, rangeEnd),
+  }), [rangeStart, rangeEnd]);
+
   const bestRuns = useMemo(() => {
-    const start = Math.min(rangeStart, rangeEnd);
-    const end = Math.max(rangeStart, rangeEnd);
+    const { start, end } = analysisRange;
     const results = TEAMS.map(team => {
       const fixtures = FIXTURES[team.code].slice(start - 1, end);
       const scores = getFixtureScores(team.code, fixtures, ratings, homeAdvantage, start);
       return { ...team, avg: average(scores), fixtures, startGW: start };
     });
     return results.sort((a, b) => a.avg - b.avg).slice(0, 5);
-  }, [ratings, homeAdvantage, rangeStart, rangeEnd]);
+  }, [ratings, homeAdvantage, analysisRange]);
 
   // Horizon van de hoofdtabel, genormaliseerd — zelfde Math.min/max-patroon als bestRuns hierboven,
   // zodat een omgekeerde keuze (bv. eind vóór start) nooit een lege/negatieve range oplevert.
@@ -917,13 +895,12 @@ export default function FDRTool() {
     [sortableGwHeaderCells, gwHorizonRange]
   );
 
-  // "Vergelijk teams" heeft geen eigen horizon-selector: die begint gewoon altijd bij CURRENT_GW en
-  // loopt tot DEFAULT_GW_HORIZON_END — schuift dus vanzelf mee zodra CURRENT_GW opschuift. Tot de
-  // volledige kalender erin zat liep dit door tot GW_COUNT, wat toen nog acht speeldagen waren; met 34
-  // zou dat hier 27 kolommen naast elkaar zetten in een blok dat bedoeld is om twee ploegen snel te
-  // vergelijken. Math.min voorkomt een out-of-range start mocht CURRENT_GW ooit GW_COUNT overschrijden.
-  const compareGwStart = Math.min(CURRENT_GW, GW_COUNT);
-  const compareGwEnd = DEFAULT_GW_HORIZON_END;
+  // "Vergelijk teams" had helemaal geen kiezer: het begon altijd bij CURRENT_GW en liep tot een vast
+  // eindpunt. Nu volgt het de gedeelde analyse-periode hierboven, met een eigen kiezer in de sectie
+  // zelf. Vroeger liep dit bovendien door tot GW_COUNT — met 34 speeldagen zou dat 27 kolommen naast
+  // elkaar zetten in een blok dat bedoeld is om twee ploegen snel te vergelijken.
+  const compareGwStart = analysisRange.start;
+  const compareGwEnd = analysisRange.end;
   const compareGwHeaderCells = useMemo(
     () => gwHeaderCells.slice(compareGwStart - 1, compareGwEnd),
     [gwHeaderCells, compareGwStart, compareGwEnd]
@@ -936,10 +913,12 @@ export default function FDRTool() {
   // grote lege tussenruimtes tussen de kolommen oplevert. Door zowel het stretchen te vermijden als de
   // min-width recht evenredig met het aantal zichtbare kolommen te laten meegroeien, blijft de
   // dichtheid tussen team-logo en tabel identiek, ongeacht of je acht of dertig speeldagen toont.
-  const mainTableMinWidth = useMemo(
-    () => (visibleGwHeaderCells.length + 1) * TABLE_SLOT_MIN_WIDTH,
-    [visibleGwHeaderCells]
-  );
+  //
+  // De breedte per slot komt uit een CSS-variabele (--fdr-table-slot) i.p.v. uit een getal hier: op een
+  // telefoon krijgt die variabele een kleinere waarde (zie het <style>-blok verderop), en dan krimpt de
+  // tabel mee zonder dat React iets van de schermbreedte hoeft te weten. Hier blijft enkel het AANTAL
+  // slots staan, want dat is het enige dat van de app-state afhangt.
+  const mainTableSlots = visibleGwHeaderCells.length + 1;
 
   // Zelfde berekening voor de vergelijk-tabel. Die had een harde minWidth van 600px die niet meeschoof
   // met het aantal zichtbare GW-kolommen: met twee kolommen werd die 600px verdeeld over een teamkolom
@@ -947,10 +926,7 @@ export default function FDRTool() {
   // hoofdtabel, dus bij een gelijk aantal kolommen zijn beide tabellen exact even breed. De teamkolom
   // blijft een paar pixels verschillen — die cel bevat in de hoofdtabel een knop met eigen padding en
   // in de vergelijk-tabel een kale span — maar de kolomindeling is dezelfde.
-  const compareTableMinWidth = useMemo(
-    () => (compareGwHeaderCells.length + 1) * TABLE_SLOT_MIN_WIDTH,
-    [compareGwHeaderCells]
-  );
+  const compareTableSlots = compareGwHeaderCells.length + 1;
 
   // Gemiddelde moeilijkheid herberekend op enkel de zichtbare horizon (i.p.v. altijd GW1-GW_COUNT),
   // zodat "Sorteer op makkelijkste run" ook echt naar de getoonde kolommen sorteert.
@@ -1163,6 +1139,39 @@ export default function FDRTool() {
   // en een sheet mag geen fetch kosten op het moment dat je 'm opent. Zelfde uitgestelde afhandeling
   // als de spelersdatabank hierboven: meteen als de bezoeker al op de Set Pieces-tab staat, anders
   // wanneer de browser toch niets te doen heeft.
+  // Vorm per club uit de Google Sheet (zie teamForm.js), met de ingebouwde TEAM_FORM als startwaarde
+  // én als terugval. Geen loading- of foutstatus: de tabel toont altijd meteen iets, en een mislukte
+  // ophaling betekent gewoon dat de ingebouwde waarden blijven staan — daar hoeft geen melding bij.
+  // Zolang TEAM_FORM_CSV_URL null is, wordt er helemaal niets opgehaald.
+  const [teamForm, setTeamForm] = useState(TEAM_FORM);
+
+  useEffect(() => {
+    if (!TEAM_FORM_CSV_URL) return undefined;
+    let geannuleerd = false;
+    const ophalen = async () => {
+      try {
+        const response = await fetch(TEAM_FORM_CSV_URL, { cache: 'no-store' });
+        if (!response.ok) return;
+        const text = await response.text();
+        // Een niet-gepubliceerd werkblad geeft een HTML-foutpagina terug i.p.v. CSV; die zou anders als
+        // één grote onzinrij geparsed worden. Zelfde controle als bij de set pieces-CSV.
+        if (/^\s*<(!doctype|html)/i.test(text)) return;
+        const uitSheet = parseTeamFormCsv(text);
+        if (!geannuleerd && Object.keys(uitSheet).length > 0) {
+          setTeamForm(mergeTeamForm(TEAM_FORM, uitSheet));
+        }
+      } catch {
+        // offline of geblokkeerd — de ingebouwde waarden blijven staan
+      }
+    };
+    if (typeof window.requestIdleCallback === 'function') {
+      const handle = window.requestIdleCallback(() => ophalen(), { timeout: 4000 });
+      return () => { geannuleerd = true; window.cancelIdleCallback?.(handle); };
+    }
+    const timer = setTimeout(ophalen, 1600);
+    return () => { geannuleerd = true; clearTimeout(timer); };
+  }, []);
+
   const fetchSetPieces = useCallback(async () => {
     setSetPiecesLoading(true);
     setSetPiecesError(null);
@@ -1249,6 +1258,29 @@ export default function FDRTool() {
 
   const isPlayerWatched = (name, teamCode) =>
     watchlist.some(p => p.name === name && p.teamCode === teamCode);
+
+  // "Zit deze speler in mijn ploeg?" — voor het scope-filter op Bonuspunten en Kaarten (zie
+  // ScopeFilter.jsx). Bewust op CURRENT_GW herleid en niet op teamPlannerGw: die laatste is puur
+  // weergave-state van de planner-tab, en het zou raar zijn als een filter op een ándere tab stil
+  // verandert omdat je in de planner naar GW22 hebt gebladerd. Ook niet de statische GW1-ploeg: dan
+  // zouden al je transfers genegeerd worden.
+  //
+  // Vergelijking hoofdletter- en spatie-ongevoelig, maar wél op naam én clubcode samen: de planner
+  // vult namen via dezelfde CSV in als deze ranglijsten, maar een handmatig getypte naam kan een
+  // spatie of hoofdletter schelen. Enkel op naam vergelijken zou naamgenoten bij twee clubs
+  // samengooien.
+  const myTeamPlayerKeys = useMemo(() => {
+    const normaliseer = (name, teamCode) => `${(name ?? '').trim().toLowerCase()}|${(teamCode ?? '').toUpperCase()}`;
+    const keys = new Set();
+    teamPlannerPlayers.forEach((basePlayer, index) => {
+      const resolved = resolveSlotPlayerAtGw(basePlayer, teamPlannerTransfersBySlot[index] ?? [], CURRENT_GW);
+      if (resolved?.name) keys.add(normaliseer(resolved.name, resolved.teamCode));
+    });
+    return keys;
+  }, [teamPlannerPlayers, teamPlannerTransfersBySlot]);
+
+  const isPlayerInMyTeam = (name, teamCode) =>
+    myTeamPlayerKeys.has(`${(name ?? '').trim().toLowerCase()}|${(teamCode ?? '').toUpperCase()}`);
 
   // Lost een spelers-URL op zodra er data is om in te zoeken. Draait opnieuw wanneer de
   // spelersdatabank binnenkomt, zodat een deeplink naar iemand die niet in de verwachte opstellingen
@@ -1461,20 +1493,29 @@ export default function FDRTool() {
     setTimeout(() => setTeamPlannerOptimized(false), 2000);
   };
 
-  // Boosters: exact 1x per booster-type te gebruiken over het hele seizoen, en max 1 actieve booster
-  // per GW. Eenmaal geactiveerd op GW X, is de booster VERGRENDELD op GW X — pas als hij op die exacte
-  // GW opnieuw aangeklikt wordt (annuleren) komt hij weer vrij. Op een andere GW aanklikken terwijl
-  // hij al elders actief is, doet niets (de UI toont 'm daar disabled, zie TeamPlannerTab.jsx).
+  // Boosters: exact 1x per booster-type te gebruiken over het hele seizoen, en max 1 zelfgekozen
+  // booster per GW. Eenmaal geactiveerd op GW X, is de booster VERGRENDELD op GW X — pas als hij op
+  // die exacte GW opnieuw aangeklikt wordt (annuleren) komt hij weer vrij. Op een andere GW aanklikken
+  // terwijl hij al elders actief is, doet niets (de UI toont 'm daar disabled, zie TeamPlannerTab.jsx).
+  //
+  // De bovengrens stond op GW7, uit de tijd dat het seizoen in dit bestand niet verder liep. Nu de
+  // volledige kalender erin zit, mag je een booster op elke speeldag plaatsen.
+  //
+  // Op een automatische Recharge-GW (AUTO_RECHARGE_GWS: GW8, GW20, GW27) loopt de Recharge sowieso al
+  // voor iedereen. Je eigen Recharge-booster daar verbruiken zou die dus weggooien, vandaar geblokkeerd
+  // — de twee andere boosters mogen er wél bovenop, dat is precies het voordeel van zo'n speeldag.
   const toggleTeamPlannerBooster = (boosterKey, gw) => {
-    if (gw < 1 || gw > 7) return;
+    if (gw < 1 || gw > GW_COUNT) return;
+    if (boosterKey === 'recharge' && AUTO_RECHARGE_GWS.has(gw)) return;
     setTeamPlannerBoosters(prev => {
       if (prev[boosterKey] === gw) {
         return { ...prev, [boosterKey]: null }; // annuleren, enkel mogelijk op de GW waar hij actief is
       }
       if (prev[boosterKey] != null) return prev; // al verbruikt op een andere GW — geblokkeerd
       const updated = { ...prev, [boosterKey]: gw };
-      // Max 1 actieve booster per GW: een andere booster die toevallig al op déze GW actief stond,
-      // wordt vervangen (niet gestapeld) — user-bevestigd gedrag.
+      // Max 1 zelfgekozen booster per GW: een andere booster die toevallig al op déze GW actief stond,
+      // wordt vervangen (niet gestapeld) — user-bevestigd gedrag. De automatische Recharge telt hier
+      // niet in mee; die staat niet in deze state.
       Object.keys(updated).forEach(key => {
         if (key !== boosterKey && updated[key] === gw) updated[key] = null;
       });
@@ -1532,6 +1573,68 @@ export default function FDRTool() {
            <style> had geïnjecteerd, waardoor het merklettertype altijd als laatste binnenkwam. */
         * { box-sizing: border-box; }
         html, body { background: #2A1440; margin: 0; padding: 0; }
+
+        /* Breedte van één tabelkolom, als variabele zodat de FDR- en vergelijk-tabel er allebei aan
+           hangen en er maar één plek is waar hij per schermbreedte verschilt. Zie TABLE_SLOT_MIN_WIDTH
+           in constants.js voor waarom 84 en waarom mobiel kleiner. */
+        :root { --fdr-table-slot: ${TABLE_SLOT_MIN_WIDTH}px; --fdr-page-gutter: 20px; }
+        @media (max-width: ${MOBILE_TABLE_BREAKPOINT}px) {
+          :root { --fdr-table-slot: ${TABLE_SLOT_MIN_WIDTH_MOBILE}px; }
+
+          /* De FDR-tabel loopt op een telefoon van rand tot rand i.p.v. binnen de paginamarge. Die
+             marge kostte 40px van de 390, en 40px is hier net één fixture-kolom: van rand tot rand zie
+             je er vijf tegelijk i.p.v. vier. Het is bovendien het enige element op de pagina dat tóch
+             al horizontaal scrolt, dus dat het tegen de schermrand loopt is hier geen ruis maar een
+             hint dat er meer staat. De teamkolom blijft gewoon plakken (position: sticky) en de rest
+             van de pagina houdt zijn marge. */
+          .fdr-table-scroll {
+            margin-left: calc(var(--fdr-page-gutter) * -1);
+            margin-right: calc(var(--fdr-page-gutter) * -1);
+          }
+        }
+
+        /* Horizontale scrollzone rond een fixture-rij die breder is dan haar kaart (zie FixtureStrip).
+           Zelfde principe als .fdr-table-scroll: liever één blok dat opzij schuift dan een pagina die
+           breder wordt dan het scherm. overscroll-behavior houdt de veeg binnen dit blok, zodat je de
+           pagina er niet per ongeluk mee meesleept. */
+        .fdr-fixture-scroll {
+          overflow-x: auto;
+          overscroll-behavior-x: contain;
+          -webkit-overflow-scrolling: touch;
+          /* Subtiele scrollbalk. Anders dan bij de tabel staan hier vijf zones onder elkaar (één per
+             team in de top 5), en vijf standaardbalken op een rij lezen als een streepjescode onder de
+             fixtures. Dunne balk, geen baan eromheen, en een duim die net genoeg oplicht om te zeggen
+             "hier valt te schuiven" zonder met de badges te concurreren. Bewust niet verborgen: dan
+             verdwijnt het enige signaal dat er meer staat dan je ziet. */
+          scrollbar-width: thin;
+          scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+        }
+        /* WebKit/Blink kent de twee eigenschappen hierboven pas sinds kort; deze regels dekken de
+           oudere versies af. Enkel waar een muis in het spel is: op een aanraakscherm zijn deze balken
+           een overlay die vanzelf wegvaagt, en expliciete opmaak zou ze daar juist permanent zichtbaar
+           maken en een paar pixels van de kaarthoogte opeisen. */
+        @media (hover: hover) and (pointer: fine) {
+          .fdr-fixture-scroll::-webkit-scrollbar { height: 4px; }
+          .fdr-fixture-scroll::-webkit-scrollbar-track { background: transparent; }
+          .fdr-fixture-scroll::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.16);
+            border-radius: 999px;
+          }
+          .fdr-fixture-scroll:hover::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.28); }
+        }
+
+        /* Kolomkoppen die op een telefoon te veel breedte opeisen voor wat ze zeggen ("Positie" boven
+           een kolom met "GK"). Zelfde principe als .fdr-btn-label-full/-short in de toolbar: beide
+           varianten staan in de HTML, de CSS kiest. */
+        .fdr-col-short { display: none; }
+        @media (max-width: ${MOBILE_TABLE_BREAKPOINT}px) {
+          .fdr-col-full { display: none; }
+          .fdr-col-short { display: inline; }
+          /* De selectie-tabel in Team Planner had een harde min-width van 400px, ~35px breder dan het
+             scherm. Met de korte koppen hierboven past ze binnen haar container, dus mag die ondergrens
+             op een telefoon weg — 0 betekent hier "neem je natuurlijke breedte". */
+          :root { --fdr-roster-min-width: 0px; }
+        }
         body { font-family: 'Inter', sans-serif; }
         .fdr-title { font-family: 'Archivo', sans-serif; }
         .fdr-cell { transition: transform 0.12s ease; }
@@ -1962,11 +2065,10 @@ export default function FDRTool() {
           .fdr-sliders-grid {
             grid-template-columns: repeat(2, 1fr) !important;
           }
-          /* De rij moet altijd op 1 regel blijven passen, ongeacht het aantal badges — vandaar nowrap +
-             white-space:nowrap i.p.v. laten wrappen. De watch list heeft altijd 5 fixtures en gebruikt
-             hiervoor de standaard (grotere, beter leesbare) maat hieronder. "Beste fixture runs" heeft
-             een instelbare GW-range (tot 8 wedstrijden) en krijgt de --compact-modifier zodra er meer
-             dan 6 in de rij staan, want dan past de standaardmaat niet meer op 1 regel. */
+          /* De rij blijft op 1 regel, ongeacht het aantal badges — vandaar nowrap + white-space:nowrap
+             i.p.v. laten wrappen. Waar er meer badges zijn dan er passen ("Beste fixture runs", tot 8),
+             zit de rij in een eigen scrollzone (.fdr-fixture-scroll, zie FixtureStrip.jsx); de watchlist
+             en de speler-/clubkaart tonen er vijf en passen gewoon. */
           .fdr-mini-fixture-row {
             flex-wrap: nowrap !important;
             justify-content: center !important;
@@ -1974,11 +2076,13 @@ export default function FDRTool() {
           .fdr-mini-fixture-row > span {
             white-space: nowrap !important;
           }
-          .fdr-mini-fixture-row > .fdr-dgw-badge > span {
+          .fdr-mini-fixture-row > span > .fdr-dgw-badge > span {
             white-space: nowrap !important;
           }
 
-          /* Standaardmaat (t/m 6 fixtures in de rij). */
+          /* Ruimte rond elke badge-kolom. Sinds elke badge een eigen wrapper heeft voor het GW-labeltje
+             erboven, mikken deze twee regels op die wrapper en niet meer op de badge zelf: de font-size
+             erft de badge niet (die zet zijn eigen), de padding bepaalt wél de tussenruimte in de rij. */
           .fdr-mini-fixture-row {
             gap: 4px !important;
             min-height: 25px;
@@ -1990,40 +2094,26 @@ export default function FDRTool() {
           /* De "/"-postponed-badge heeft van zichzelf maar 1 karakter, dus zonder ingrijpen is hij veel
              smaller dan een normale "XXX (Y)"-badge. Minimum-breedte zodat alle badges in de rij even
              groot ogen. */
-          .fdr-mini-fixture-row > .fdr-postponed-mini {
+          .fdr-mini-fixture-row > span > .fdr-postponed-mini {
             min-width: 26px;
           }
           /* DGW-badge is een layout-wrapper zonder eigen achtergrond — de padding zit op de losse
              leg-spans erbinnen, dus reset de wrapper zelf terug naar 0. De legs zelf krijgen een extra
              krappe regelhoogte, zodat de DGW-badge zo min mogelijk hoger is dan een normale (enkele-
              regel) badge in deze rij — anders wordt de kaart van dat team hoger dan die van de andere. */
-          .fdr-mini-fixture-row > .fdr-dgw-badge {
+          .fdr-mini-fixture-row > span > .fdr-dgw-badge {
             padding: 0 !important;
           }
-          .fdr-mini-fixture-row > .fdr-dgw-badge > span {
+          .fdr-mini-fixture-row > span > .fdr-dgw-badge > span {
             font-size: 9px !important;
             padding: 1px 4px !important;
             line-height: 1.15 !important;
           }
 
-          /* Compacte maat (>6 fixtures) — moet nog altijd op 1 regel passen, dus kleiner dan hierboven.
-             Gecombineerde selector (2 klassen) i.p.v. op brondvolgorde vertrouwen voor de override. */
-          .fdr-mini-fixture-row.fdr-mini-fixture-row--compact {
-            gap: 2px !important;
-            min-height: 22px;
-          }
-          .fdr-mini-fixture-row.fdr-mini-fixture-row--compact > span {
-            font-size: 8px !important;
-            padding: 1px 3px !important;
-          }
-          .fdr-mini-fixture-row.fdr-mini-fixture-row--compact > .fdr-postponed-mini {
-            min-width: 22px;
-          }
-          .fdr-mini-fixture-row.fdr-mini-fixture-row--compact > .fdr-dgw-badge > span {
-            font-size: 8px !important;
-            padding: 1px 3px !important;
-            line-height: 1.05 !important;
-          }
+          /* Hier stond een "compacte maat" die de badges bij meer dan zes fixtures verkleinde naar 8px,
+             om ze op één regel te houden. Die maat mikte sinds de GW-labeltjes op de verkeerde elementen
+             en deed dus niets meer, en de ruil klopte sowieso niet: liever leesbare badges die je opzij
+             schuift (zie .fdr-fixture-scroll) dan tekst van 8px. Klasse en regels allebei weg. */
 
           /* Team Planner-veld: de opstelling (GK/DEF/MID/FWD, telkens exact 1 rij) moet op mobiel altijd
              volledig binnen het vak passen zonder te moeten scrollen — vandaar kleinere kaartjes, minder
@@ -2123,7 +2213,9 @@ export default function FDRTool() {
         pointerEvents: 'none'
       }} />
 
-      <div className="fdr-content" style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 20px 32px', position: 'relative' }}>
+      <div className="fdr-content" style={{
+        maxWidth: '1200px', margin: '0 auto', padding: '32px var(--fdr-page-gutter) 32px', position: 'relative',
+      }}>
 
         {/* Skip-link: onzichtbaar tot hij focus krijgt (zie .fdr-skip-link in de <style> hierboven),
             dan het eerste wat een toetsenbordgebruiker tegenkomt. Slaat kop + taalkeuze + acht tabs
@@ -2287,7 +2379,6 @@ export default function FDRTool() {
         >
           {TABS.map(tab => {
             const isActive = activeTab === tab.key;
-            const isNewUnseen = NEW_TAB_KEYS.includes(tab.key) && !seenNewTabs.has(tab.key);
             return (
               <a
                 key={tab.key}
@@ -2308,7 +2399,6 @@ export default function FDRTool() {
                 }}
               >
                 {t(`nav.${tab.key}`)}
-                {isNewUnseen && <span style={newTabDotStyle} aria-hidden="true" />}
               </a>
             );
           })}
@@ -2364,10 +2454,6 @@ export default function FDRTool() {
               // van die actieve tab) — sommige tab-namen (bv. "Bonuspunten") zijn te lang voor deze
               // kolombreedte, en het label zelf hoeft niet te wisselen om toch duidelijk te blijven.
               const isActive = MOBILE_OVERFLOW_TABS.some(tab => tab.key === activeTab);
-              // De Meer-knop krijgt zelf één stip zolang er nog minstens één nieuwe tab (Bonuspunten/
-              // Set Pieces/Kaarten) verstopt zit in het dropdown-menu erachter — niet elk item apart,
-              // dat is precies wat het "Meer"-niveau al samenvat.
-              const hasUnseenNewTab = NEW_TAB_KEYS.some(key => !seenNewTabs.has(key));
               return (
                 <button
                   type="button"
@@ -2385,7 +2471,6 @@ export default function FDRTool() {
                 >
                   <ChevronDown size={17} style={{ transform: moreMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} aria-hidden="true" />
                   {t('nav.more')}
-                  {hasUnseenNewTab && <span style={{ ...newTabDotStyle, position: 'absolute', top: '2px', right: 'calc(50% - 26px)' }} aria-hidden="true" />}
                 </button>
               );
             })()}
@@ -2460,10 +2545,10 @@ export default function FDRTool() {
             gwHorizonRange={gwHorizonRange}
             visibleGwHeaderCells={visibleGwHeaderCells}
             compareGwHeaderCells={compareGwHeaderCells}
-            compareTableMinWidth={compareTableMinWidth}
+            compareTableSlots={compareTableSlots}
             compareGwStart={compareGwStart}
             compareGwEnd={compareGwEnd}
-            mainTableMinWidth={mainTableMinWidth}
+            mainTableSlots={mainTableSlots}
             displayedTeams={displayedTeams}
             tableRef={tableRef}
             rangeStart={rangeStart}
@@ -2472,6 +2557,7 @@ export default function FDRTool() {
             setRangeEnd={setRangeEnd}
             bestRuns={bestRuns}
             compareTeams={compareTeams}
+            teamForm={teamForm}
             toggleCompareTeam={toggleCompareTeam}
             onOpenClub={openClubSheet}
           />
@@ -2558,6 +2644,9 @@ export default function FDRTool() {
               fetchPlayerDatabase={fetchPlayerDatabase}
               toggleWatchlistPlayer={toggleWatchlistPlayer}
               isPlayerWatched={isPlayerWatched}
+              isPlayerInMyTeam={isPlayerInMyTeam}
+              hasMyTeam={myTeamPlayerKeys.size > 0}
+              hasWatchlist={watchlist.length > 0}
               onOpenPlayer={openPlayerSheet}
               onOpenClub={openClubSheet}
             />
@@ -2590,6 +2679,9 @@ export default function FDRTool() {
               fetchPlayerDatabase={fetchPlayerDatabase}
               toggleWatchlistPlayer={toggleWatchlistPlayer}
               isPlayerWatched={isPlayerWatched}
+              isPlayerInMyTeam={isPlayerInMyTeam}
+              hasMyTeam={myTeamPlayerKeys.size > 0}
+              hasWatchlist={watchlist.length > 0}
               onOpenPlayer={openPlayerSheet}
               onOpenClub={openClubSheet}
             />
@@ -2619,7 +2711,10 @@ export default function FDRTool() {
 
         <footer style={{ marginTop: '28px', textAlign: 'center', color: COLORS.textSubtle, fontSize: '12px', lineHeight: 1.5 }}>
           {t('footer.madeBy')}{' '}
-          <a href="https://x.com/fpl_proleague" target="_blank" rel="noopener noreferrer" className="fdr-footer-link">
+          {/* fdr-hit-line: de link staat middenin een zin, dus een tikzone van 44px zou over de tekst
+              eromheen vallen. 26px ligt boven de WCAG-ondergrens van 24 en raakt niets anders — zelfde
+              afweging als bij de spelersnamen op Set Pieces. */}
+          <a href="https://x.com/fpl_proleague" target="_blank" rel="noopener noreferrer" className="fdr-footer-link fdr-hit-line">
             <img src="/x-logo.png" alt="" style={{ width: '12px', height: '12px', verticalAlign:'-2px' }} />
             @fpl_proleague
           </a>
@@ -2656,6 +2751,7 @@ export default function FDRTool() {
             setPiecesEntries={setPiecesData.entries}
             ratings={ratings}
             homeAdvantage={homeAdvantage}
+            teamForm={teamForm}
             onOpenPlayer={openPlayerSheet}
           />
         </Suspense>

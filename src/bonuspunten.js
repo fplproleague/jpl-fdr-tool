@@ -2,6 +2,8 @@
 // in constants.js: functionaliteit specifiek voor deze ene tab, geen gedeelde app-brede data (zelfde
 // opzet als predicted-xi/formations.js e.a.).
 
+import { assignCompetitionRanks } from './ranking';
+
 // Zet de gedeelde spelersdatabank (playerDatabase, zie parsePlayerDatabaseCsv in constants.js — al elders
 // in FDRTool.jsx opgehaald/geparset, geen eigen fetch/parsing meer nodig hier) om naar genormaliseerde
 // Bonuspunten-rijen. Spelers zonder naam (zou niet moeten voorkomen na parsePlayerDatabaseCsv's eigen
@@ -28,7 +30,7 @@ export function buildBonuspuntenEntries(playerDatabase) {
     });
 }
 
-const TOP_N = 15;
+export const TOP_N = 15;
 const byName = (a, b) => a.player.localeCompare(b.player);
 
 // De twee manieren waarop elke rangschikking gesorteerd kan worden.
@@ -55,13 +57,23 @@ export function minGamesForPerMatch(entries) {
 // rangschikking met onbetrouwbare waarden erin is misleidender dan een kortere lijst. Het seizoenstotaal
 // blijft in beide modi de eerste tiebreaker, en de spelersnaam altijd de laatste — zodat de volgorde
 // nooit afhangt van de (willekeurige) rijvolgorde in de sheet.
+// Geeft de VOLLEDIGE gesorteerde lijst terug, met een .rank per entry — niet meer meteen de top 15.
+// Die begrenzing zit nu in BonuspuntenTab.jsx, want ze hangt af van wat de gebruiker vraagt: zonder
+// filter blijft het een top 15, maar wie op zijn eigen ploeg of watchlist filtert wil ál zijn spelers
+// zien, ook die op plaats 47 — en dan is juist die rang de informatie.
+//
+// De rang komt van assignCompetitionRanks (ranking.js) en gebruikt de score waarop ook gesorteerd is:
+// in per-wedstrijd-modus de waarde per wedstrijd, anders het seizoenstotaal. Dat is precies het cijfer
+// dat groot in de rij staat, zodat twee rijen met hetzelfde cijfer ook dezelfde rang krijgen. De
+// tiebreakers (meeste duels gewonnen, naam) bepalen nog de volgorde binnen een ex aequo — ergens
+// moeten ze staan — maar niet langer het nummer ervoor.
 function rankBy(entries, pick, sortMode, minGames, tiebreak = () => 0) {
   const perMatchMode = sortMode === SORT_MODES.perMatch;
   const pool = perMatchMode ? entries.filter(e => (e.games ?? 0) >= minGames) : entries;
   const score = perMatchMode ? (e => (e.games ? pick(e) / e.games : 0)) : pick;
-  return [...pool]
-    .sort((a, b) => score(b) - score(a) || pick(b) - pick(a) || tiebreak(a, b) || byName(a, b))
-    .slice(0, TOP_N);
+  const sorted = [...pool]
+    .sort((a, b) => score(b) - score(a) || pick(b) - pick(a) || tiebreak(a, b) || byName(a, b));
+  return assignCompetitionRanks(sorted, score);
 }
 
 // sortMode/minGames zijn optioneel met een default op het oude gedrag (sorteren op seizoenstotaal),

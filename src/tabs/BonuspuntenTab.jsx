@@ -10,10 +10,11 @@ import { Loader2, AlertCircle, RotateCcw, Swords, Shield, RefreshCw, Target, Awa
 import { SectionHeader } from '../components/SectionHeader';
 import { RankingRow, watchProps, clubProps } from '../components/RankingRow';
 import { PlayerSearchInput } from '../components/PlayerSearchInput';
+import ScopeFilter, { ScopeEmptyMessage, makeScopeMatcher } from '../components/ScopeFilter';
 import {
   buildBonuspuntenEntries, rankByDuels, rankByDefensiveHeaders, rankByRecoveries, rankByBigChances,
   rankByBonusPoints, perGameLabel, BONUS_CRITERIA,
-  SORT_MODES, minGamesForPerMatch,
+  SORT_MODES, minGamesForPerMatch, TOP_N,
 } from '../bonuspunten';
 
 const retryButtonStyle = {
@@ -85,7 +86,8 @@ function RankingSection({ icon, title, sectionKey, isOpen, onToggle, children })
 
 export default function BonuspuntenTab({
   t, playerDatabase, playerDatabaseLoading, playerDatabaseError, fetchPlayerDatabase,
-  toggleWatchlistPlayer, isPlayerWatched, onOpenPlayer, onOpenClub,
+  toggleWatchlistPlayer, isPlayerWatched, isPlayerInMyTeam, hasMyTeam, hasWatchlist,
+  onOpenPlayer, onOpenClub,
 }) {
   const perMatchUnit = t('bonuspunten.perMatchUnit');
   // Alle vijf de rangschikkingen krijgen dezelfde ster; één helper i.p.v. vijf keer hetzelfde.
@@ -99,6 +101,9 @@ export default function BonuspuntenTab({
   // Sorteermodus van alle vijf de rangschikkingen tegelijk — bewust één schakelaar i.p.v. één per
   // sectie: de gebruiker stelt één vraag ("wie is de beste?" vs "wie is de beste per match?"), niet vijf.
   const [sortMode, setSortMode] = useState(SORT_MODES.total);
+  // Eén scope voor alle vijf de lijsten tegelijk, zelfde redenering als de sorteerschakelaar hierboven:
+  // je stelt één vraag ("hoe doen mijn spelers het?"), niet vijf keer dezelfde.
+  const [scope, setScope] = useState('all');
 
   const toggleSection = useCallback((key) => {
     setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
@@ -130,6 +135,26 @@ export default function BonuspuntenTab({
       ? { value: perMatch, valueSub: total }
       : { value: total, valueSub: perMatch };
   }, [isPerMatch, perMatchUnit]);
+
+  // Zonder filter blijft elke sectie een top 15 — dat is waar die lijsten voor dienen. Zodra je op je
+  // eigen ploeg of watchlist filtert valt die grens weg en zie je ál je spelers, ook die op plaats 47.
+  // Anders zou het filter stil de helft van je ploeg verzwijgen: een speler die niet in de top 15
+  // staat is geen speler zonder cijfers, en juist dat lage nummer is dan de informatie.
+  //
+  // De rang komt uit de ranglijst zelf (entry.rank, zie ranking.js) en wordt na het filteren NIET
+  // herberekend: hij blijft de plaats in de volledige competitieranglijst. Opnieuw nummeren zou jouw
+  // speler op 1 zetten — geruststellend, maar onjuist. Valt de lijst leeg, dan komt er uitleg in de
+  // plaats i.p.v. een lege sectie.
+  const matchesScope = makeScopeMatcher(scope, { isPlayerWatched, isPlayerInMyTeam });
+  const renderScoped = (ranking, renderRow) => {
+    const rijen = scope === 'all'
+      ? ranking.slice(0, TOP_N)
+      : ranking.filter(entry => matchesScope(entry.player, entry.clubCode));
+    if (rijen.length === 0) {
+      return <ScopeEmptyMessage t={t} scope={scope} hasAny={scope === 'myTeam' ? hasMyTeam : hasWatchlist} />;
+    }
+    return rijen.map(renderRow);
+  };
 
   return (
     <>
@@ -195,6 +220,8 @@ export default function BonuspuntenTab({
             />
           </div>
 
+          <ScopeFilter t={t} scope={scope} onChange={setScope} />
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', margin: '4px 0 18px' }}>
             <SortModeToggle t={t} value={sortMode} onChange={setSortMode} />
             {isPerMatch && (
@@ -211,9 +238,9 @@ export default function BonuspuntenTab({
             {/* De clubnaam stond hier als enige van de vijf lijsten niet bij: de subregel was volledig
                 opgegaan aan het duelsaldo, waardoor je van de nummer 1 niet kon zien voor wie hij speelt
                 — net wat je nodig hebt om te beoordelen of hij in je ploeg past. */}
-            {duelsRanking.map((entry, idx) => (
+            {renderScoped(duelsRanking, (entry) => (
               <RankingRow
-                key={entry.player} rank={idx + 1} clubCode={entry.clubCode} player={entry.player}
+                key={entry.player} rank={entry.rank} clubCode={entry.clubCode} player={entry.player}
                 subtitle={[entry.clubName, t('bonuspunten.duelsSubtitle', { won: entry.duelsWon, lost: entry.duelsLost })].filter(Boolean).join(' · ')}
                 {...rankingValues(entry.duelDiff, entry.games, { showSign: true })}
                 qualifies={BONUS_CRITERIA.duels(entry)}
@@ -227,9 +254,9 @@ export default function BonuspuntenTab({
             icon={Shield} title={t('bonuspunten.section.headers')} sectionKey="defensiveHeaders"
             isOpen={openSections.defensiveHeaders} onToggle={toggleSection}
           >
-            {headersRanking.map((entry, idx) => (
+            {renderScoped(headersRanking, (entry) => (
               <RankingRow
-                key={entry.player} rank={idx + 1} clubCode={entry.clubCode} player={entry.player}
+                key={entry.player} rank={entry.rank} clubCode={entry.clubCode} player={entry.player}
                 subtitle={entry.clubName}
                 {...rankingValues(entry.defensiveHeaders, entry.games)}
                 qualifies={BONUS_CRITERIA.defensiveHeaders(entry)}
@@ -243,9 +270,9 @@ export default function BonuspuntenTab({
             icon={RefreshCw} title={t('bonuspunten.section.recoveries')} sectionKey="recoveries"
             isOpen={openSections.recoveries} onToggle={toggleSection}
           >
-            {recoveriesRanking.map((entry, idx) => (
+            {renderScoped(recoveriesRanking, (entry) => (
               <RankingRow
-                key={entry.player} rank={idx + 1} clubCode={entry.clubCode} player={entry.player}
+                key={entry.player} rank={entry.rank} clubCode={entry.clubCode} player={entry.player}
                 subtitle={entry.clubName}
                 {...rankingValues(entry.recoveries, entry.games)}
                 qualifies={BONUS_CRITERIA.recoveries(entry)}
@@ -259,9 +286,9 @@ export default function BonuspuntenTab({
             icon={Target} title={t('bonuspunten.section.bigChances')} sectionKey="bigChances"
             isOpen={openSections.bigChances} onToggle={toggleSection}
           >
-            {bigChancesRanking.map((entry, idx) => (
+            {renderScoped(bigChancesRanking, (entry) => (
               <RankingRow
-                key={entry.player} rank={idx + 1} clubCode={entry.clubCode} player={entry.player}
+                key={entry.player} rank={entry.rank} clubCode={entry.clubCode} player={entry.player}
                 subtitle={entry.clubName}
                 {...rankingValues(entry.bigChances, entry.games)}
                 qualifies={BONUS_CRITERIA.bigChances(entry)}
@@ -276,9 +303,9 @@ export default function BonuspuntenTab({
             isOpen={openSections.bonusPoints} onToggle={toggleSection}
           >
             {BONUS_POINTS_DATA_AVAILABLE ? (
-              bonusRanking.map((entry, idx) => (
+              renderScoped(bonusRanking, (entry) => (
                 <RankingRow
-                  key={entry.player} rank={idx + 1} clubCode={entry.clubCode} player={entry.player}
+                  key={entry.player} rank={entry.rank} clubCode={entry.clubCode} player={entry.player}
                   subtitle={entry.clubName}
                   {...rankingValues(entry.bonusPoints, entry.games)}
                   qualifies

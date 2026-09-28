@@ -205,10 +205,13 @@ export const POSTPONED_DATES = {
 // door te gaan zoals gepland — vandaar leeg i.p.v. verwijderd: dit blijft het mechanisme voor een
 // volgende, nog onzekere wedstrijd.
 export const POSSIBLY_POSTPONED = new Set([
+  'GNT-14', // Gent vs Sint-Truiden, GW14 — kan schuiven door Gents Europese programma
+  'STV-14', // Sint-Truiden vs Gent, GW14 — zelfde wedstrijd, andere kant
 ]);
 
 // Eén reden per wedstrijd, opgezocht via een teamcode-onafhankelijke (gesorteerde) paar-key.
 export const POSSIBLY_POSTPONED_REASONS = {
+  'GNT-STV': 'mogelijk uitgesteld door de Europese wedstrijd van Gent',
 };
 
 export const DEFAULT_RATINGS = {
@@ -252,8 +255,24 @@ export const DEFAULT_GW_HORIZON_LENGTH = 8;
 // voor alle GW_COUNT kolommen samen; dat werkte enkel zolang GW_COUNT acht was. Met 34 speeldagen is
 // een totaal betekenisloos — de tabel toont er nooit 34 tegelijk — dus staat hier nu de breedte per
 // kolom. 84px is exact de oude kalibratie (760px gedeeld over de Team-kolom + 8 GW-kolommen), zodat de
-// tabel er bij de standaardhorizon op de pixel hetzelfde uitziet als voordien.
+// tabel er op een ruim scherm op de pixel hetzelfde uitziet als voordien.
 export const TABLE_SLOT_MIN_WIDTH = 84;
+
+// Op een telefoon is diezelfde 84px zonde van de ruimte: de kolommen krijgen dan meer breedte dan hun
+// inhoud nodig heeft, terwijl er maar een deel van de tabel op het scherm past. Gemeten op 390px zag
+// je zo 3,2 fixtures naast de teamkolom — net te weinig om in één oogopslag drie speeldagen vooruit te
+// kijken, precies het soort "net niet" dat je elke keer opnieuw laat vegen.
+//
+// 64px ligt bewust ONDER de natuurlijke minimumbreedte van een cel ("CER (A)" plus het cijfertje, in de
+// praktijk zo'n 58px). De browser neemt dan het echte minimum, en dat is precies de bedoeling: deze
+// waarde zegt "knijp tot het niet meer kan" zonder dat we hier een getal moeten bijhouden dat afhangt
+// van lettertype, taal of de langste clubcode. Resultaat op 390px: 4,6 zichtbare fixtures i.p.v. 3,2,
+// en een tabel van 588px i.p.v. 756px — de horizontale scrollafstand valt daarmee bijna weg.
+export const TABLE_SLOT_MIN_WIDTH_MOBILE = 64;
+
+// Breedte waaronder de mobiele varianten gelden. Eén constante, zodat de CSS-media-queries en de
+// JS-kant niet apart uit elkaar kunnen lopen.
+export const MOBILE_TABLE_BREAKPOINT = 700;
 export const MINILEAGUE_CODE = '19WN75';
 
 // --- Gameweek-deadlines (enige handmatig bij te werken bron van waarheid voor "waar staan we") ---
@@ -265,10 +284,10 @@ export const MINILEAGUE_CODE = '19WN75';
 // precies daardoor kon de site "GW3" tonen terwijl een ander onderdeel nog op GW2 stond. Werk enkel
 // dit object bij; al de rest volgt vanzelf.
 //
-// Enkel GW1-7 zijn gekend; GW8 staat er expliciet als null bij en GW9-34 ontbreken gewoon. Beide
-// gevallen geven null uit getGwDeadlineDate() en een lege string uit formatGwDeadline(), dus de site
-// toont dan geen deadline en geen aftelklok i.p.v. een verzonnen datum. Vul aan zodra de kalender van
-// na de interlandbreak officieel is; CURRENT_GW en de aftelklok volgen dan vanzelf.
+// De deadline is het aftrapuur van de eerste wedstrijd van de speeldag. GW1 t/m GW17 zijn gekend;
+// GW18-34 ontbreken gewoon, en een ontbrekende sleutel geeft null uit getGwDeadlineDate() en een lege
+// string uit formatGwDeadline(). De site toont dan geen deadline en geen aftelklok i.p.v. een
+// verzonnen datum. Aanvullen is genoeg: CURRENT_GW en de aftelklok volgen vanzelf.
 export const GW_DEADLINE_ISO = {
   1: '2026-08-07T20:45:00+02:00',
   2: '2026-08-14T20:45:00+02:00',
@@ -277,7 +296,19 @@ export const GW_DEADLINE_ISO = {
   5: '2026-09-04T20:45:00+02:00',
   6: '2026-09-11T20:45:00+02:00',
   7: '2026-09-18T20:45:00+02:00',
-  8: null,
+  // Vanaf hier de kalender van na de interlandbreak. Let op de offset: de zomertijd eindigt op zondag
+  // 25 oktober 2026, dus GW8 en GW9 staan nog op +02:00 (CEST) en alles daarna op +01:00 (CET). Eén
+  // verkeerde offset verschuift de aftelklok een uur zonder dat er iets zichtbaar fout lijkt.
+  8: '2026-10-09T20:45:00+02:00',
+  9: '2026-10-23T20:45:00+02:00',
+  10: '2026-10-30T20:45:00+01:00',
+  11: '2026-11-06T20:45:00+01:00',
+  12: '2026-11-20T20:45:00+01:00',
+  13: '2026-11-27T20:45:00+01:00',
+  14: '2026-12-11T20:45:00+01:00',
+  15: '2026-12-18T20:45:00+01:00',
+  16: '2026-12-26T13:30:00+01:00', // zaterdagmiddag, geen vrijdagavond — tweede kerstdag
+  17: '2027-01-15T20:45:00+01:00',
 };
 
 // Deadlines worden ALTIJD in Belgische tijd getoond, ongeacht waar de bezoeker zit. Een Fantasy Pro
@@ -390,9 +421,13 @@ export const GW_DEADLINES = Object.fromEntries(
 export const PREDICTED_LINEUPS_GW = 7;
 
 // Recente vorm per team in de hoofdtabel van de FDR-tab: max. 5 laatste GESPEELDE wedstrijden, oudste
-// eerst en nieuwste laatst ('W' winst, 'G' gelijkspel, 'V' verlies). Handmatig bij te werken na elke
-// afgeronde speeldag (zelfde onderhoudspatroon als POSTPONED/PREDICTED_LINEUPS_GW hierboven): duw de
-// nieuwste uitslag achteraan elke array en knip de oudste eraf zodra een team er meer dan 5 heeft. Een
+// eerst en nieuwste laatst ('W' winst, 'G' gelijkspel, 'V' verlies).
+//
+// Dit is sinds TEAM_FORM_CSV_URL (verderop) de TERUGVAL, niet meer de enige bron: staat er een
+// gepubliceerd vorm-werkblad in de Google Sheet, dan wint dat, en hoeft hier niets meer bijgewerkt te
+// worden. Zolang die URL null is — of de sheet onbereikbaar/half ingevuld is — telt wat hieronder
+// staat. Handmatig bijwerken gaat zoals altijd: duw de nieuwste uitslag achteraan elke array en knip
+// de oudste eraf zodra een team er meer dan 5 heeft. Een
 // team zonder vermelde uitslagen (het huidige, lopende seizoenbegin) krijgt een lege array — dan toont
 // de tabel simpelweg geen vormbalk voor dat team, nooit een verzonnen of geraden uitslag.
 export const TEAM_FORM = {
@@ -560,13 +595,18 @@ export const TEAM_PLANNER_FREE_TRANSFER_CAP = 3;
 // Puntenkost per transfer die BOVEN het gratis aantal in een GW gemaakt wordt.
 export const TEAM_PLANNER_TRANSFER_PENALTY = 4;
 
+// Speeldagen waarop iedereen automatisch een geactiveerde Recharge heeft, zonder er een booster aan
+// te moeten opofferen. Stond hier vroeger als `gw === GW_COUNT`: met acht speeldagen in het bestand
+// wees dat toevallig naar GW8, maar met de volledige kalender zou het GW34 aanwijzen — en de laatste
+// speeldag van het seizoen is géén Recharge-GW. Nu expliciet opgesomd i.p.v. afgeleid.
+export const AUTO_RECHARGE_GWS = new Set([8, 20, 27]);
+
 // Is Recharge actief op GW `gw`? Dit is de ENIGE plek waar deze regel bepaald wordt — zowel de UI
 // (bv. de Recharge-banner/het Recharge-icoontje in TeamPlannerTab.jsx) als de transfer-budget-
 // berekening hieronder roepen dit aan, in plaats van de voorwaarde los te herhalen. Zo kan de "wat
-// telt als een Recharge-GW"-regel nooit op twee plekken uit sync raken. GW_COUNT (de laatste GW)
-// krijgt altijd automatisch een gratis Recharge voor iedereen, ongeacht teamPlannerBoosters.recharge.
+// telt als een Recharge-GW"-regel nooit op twee plekken uit sync raken.
 export function isRechargeActiveForGw(boosters, gw) {
-  return boosters.recharge === gw || gw === GW_COUNT;
+  return boosters.recharge === gw || AUTO_RECHARGE_GWS.has(gw);
 }
 
 // Berekent, voor elke GW2..GW_COUNT, hoeveel gratis transfers de gebruiker had opgebouwd VOOR die GW
@@ -659,6 +699,14 @@ export const PLAYER_DATABASE_CSV_URL = 'https://docs.google.com/spreadsheets/d/e
 // aparte "Publish to web"-link per werkblad). Kolommen: Club | Penalties | Corners | Free Kicks |
 // (optioneel) Updated GW.
 export const SET_PIECES_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS_PSoy3cpm-nckncN8C8lmxg0PfxYpANthYfLFccxft2UuBbmCvOa8SXrlwyJkBWUu0ek3QMBsIknU/pub?gid=1124774550&single=true&output=csv';
+
+// Vorm per club (zie src/teamForm.js): nog een werkblad in diezelfde Google Sheet, met een clubkolom en
+// een vormkolom. TEAM_FORM hierboven blijft de terugval — bij een netwerkfout, een niet-gepubliceerd
+// werkblad of een club die er niet in staat, telt gewoon de ingebouwde waarde voor díé club. Wat in de
+// sheet staat wint, per club, niet als geheel.
+//
+// Zet dit op null om de ophaling helemaal uit te zetten; dan wordt er geen enkele request gedaan.
+export const TEAM_FORM_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS_PSoy3cpm-nckncN8C8lmxg0PfxYpANthYfLFccxft2UuBbmCvOa8SXrlwyJkBWUu0ek3QMBsIknU/pub?gid=853316749&single=true&output=csv';
 
 // Eenvoudige RFC4180-achtige CSV-tokenizer (i.p.v. text.split(',')): velden tussen aanhalingstekens
 // kunnen komma's en regeleindes bevatten, en "" binnen zo'n veld is een ontsnapt aanhalingsteken.
