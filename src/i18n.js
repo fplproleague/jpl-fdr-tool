@@ -144,7 +144,7 @@ const STRINGS = {
     'fdr.rating.4': 'Moeilijk',
     'fdr.rating.5': 'Moeilijkst',
     'fdr.avgDifficulty': 'Gem. moeilijkheid: {{value}}',
-    'fdr.compareIntro': 'Kies tot 5 teams om hun fixtures onder elkaar te zien (vanaf GW{{gw}}).',
+    'fdr.compareIntro': 'Kies tot 5 teams om hun fixtures onder elkaar te zien (GW{{gw}} t/m GW{{gwEnd}}).',
     'fdr.compareNoTeams': 'Nog geen teams geselecteerd.',
 
     // --- Watchlist ---
@@ -465,7 +465,7 @@ const STRINGS = {
     'fdr.rating.4': 'Difficile',
     'fdr.rating.5': 'Le plus difficile',
     'fdr.avgDifficulty': 'Difficulté moy. : {{value}}',
-    'fdr.compareIntro': "Choisissez jusqu'à 5 équipes pour comparer leurs matchs (à partir de J{{gw}}).",
+    'fdr.compareIntro': "Choisissez jusqu'à 5 équipes pour comparer leurs matchs (J{{gw}} à J{{gwEnd}}).",
     'fdr.compareNoTeams': 'Aucune équipe sélectionnée pour le moment.',
 
     'watchlist.intro': "Gardez un œil sur vos joueurs préférés — ajoutez-les à votre watchlist personnelle, avec leurs prochains matchs. Cette liste est enregistrée automatiquement dans votre navigateur.",

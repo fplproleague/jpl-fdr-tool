@@ -209,7 +209,7 @@ export default function FDRTab({
   sortBy, toggleSortByAverage,
   highlightedRatings, toggleRatingFilter, clearRatingFilter,
   gwHorizonStart, setGwHorizonStart, gwHorizonEnd, setGwHorizonEnd, gwHorizonRange,
-  visibleGwHeaderCells, compareGwHeaderCells, compareGwStart, mainTableMinWidth, compareTableMinWidth,
+  visibleGwHeaderCells, compareGwHeaderCells, compareGwStart, compareGwEnd, mainTableMinWidth, compareTableMinWidth,
   displayedTeams, tableRef,
   rangeStart, setRangeStart, rangeEnd, setRangeEnd, bestRuns,
   compareTeams, toggleCompareTeam,
@@ -668,7 +668,7 @@ export default function FDRTab({
         {openSections.compare && (
         <div id="fdr-section-compare">
         <p style={{ color: COLORS.textMuted, fontSize: '12px', marginBottom: '10px' }}>
-          {t('fdr.compareIntro', { gw: compareGwStart })}
+          {t('fdr.compareIntro', { gw: compareGwStart, gwEnd: compareGwEnd })}
         </p>
         <div style={{
           display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(70px, 1fr))', gap: '6px', marginBottom: '16px'
@@ -733,7 +733,10 @@ export default function FDRTab({
                           {team.code}
                         </span>
                       </td>
-                      {FIXTURES[code].slice(compareGwStart - 1).map((f, i) => {
+                      {/* Zelfde venster als compareGwHeaderCells hierboven (zie compareGwEnd in
+                          FDRTool.jsx) — kop en rijen moeten uit één bron komen, anders rendert de
+                          tabel meer cellen dan er kolomkoppen zijn en rekt ze stilletjes uit. */}
+                      {FIXTURES[code].slice(compareGwStart - 1, compareGwEnd).map((f, i) => {
                         const gwNumber = compareGwStart + i;
                         const { opp, venue, isPostponed, isPossiblyPostponed, style, postponedText, possiblyPostponedText, isDoubleGameweek, legs } =
                           getFixtureInfo(code, f, gwNumber, ratings, homeAdvantage);
