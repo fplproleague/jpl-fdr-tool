@@ -1593,9 +1593,6 @@ export default function FDRTool() {
           }
         }
 
-        /* Kolomkoppen die op een telefoon te veel breedte opeisen voor wat ze zeggen ("Positie" boven
-           een kolom met "GK"). Zelfde principe als .fdr-btn-label-full/-short in de toolbar: beide
-           varianten staan in de HTML, de CSS kiest. */
         /* Horizontale scrollzone rond een fixture-rij die breder is dan haar kaart (zie FixtureStrip).
            Zelfde principe als .fdr-table-scroll: liever één blok dat opzij schuift dan een pagina die
            breder wordt dan het scherm. overscroll-behavior houdt de veeg binnen dit blok, zodat je de
@@ -1604,8 +1601,31 @@ export default function FDRTool() {
           overflow-x: auto;
           overscroll-behavior-x: contain;
           -webkit-overflow-scrolling: touch;
+          /* Subtiele scrollbalk. Anders dan bij de tabel staan hier vijf zones onder elkaar (één per
+             team in de top 5), en vijf standaardbalken op een rij lezen als een streepjescode onder de
+             fixtures. Dunne balk, geen baan eromheen, en een duim die net genoeg oplicht om te zeggen
+             "hier valt te schuiven" zonder met de badges te concurreren. Bewust niet verborgen: dan
+             verdwijnt het enige signaal dat er meer staat dan je ziet. */
+          scrollbar-width: thin;
+          scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+        }
+        /* WebKit/Blink kent de twee eigenschappen hierboven pas sinds kort; deze regels dekken de
+           oudere versies af. Enkel waar een muis in het spel is: op een aanraakscherm zijn deze balken
+           een overlay die vanzelf wegvaagt, en expliciete opmaak zou ze daar juist permanent zichtbaar
+           maken en een paar pixels van de kaarthoogte opeisen. */
+        @media (hover: hover) and (pointer: fine) {
+          .fdr-fixture-scroll::-webkit-scrollbar { height: 4px; }
+          .fdr-fixture-scroll::-webkit-scrollbar-track { background: transparent; }
+          .fdr-fixture-scroll::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.16);
+            border-radius: 999px;
+          }
+          .fdr-fixture-scroll:hover::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.28); }
         }
 
+        /* Kolomkoppen die op een telefoon te veel breedte opeisen voor wat ze zeggen ("Positie" boven
+           een kolom met "GK"). Zelfde principe als .fdr-btn-label-full/-short in de toolbar: beide
+           varianten staan in de HTML, de CSS kiest. */
         .fdr-col-short { display: none; }
         @media (max-width: ${MOBILE_TABLE_BREAKPOINT}px) {
           .fdr-col-full { display: none; }
