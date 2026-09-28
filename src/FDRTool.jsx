@@ -7,7 +7,8 @@
 import { useState, useMemo, useRef, useCallback, useEffect, lazy, Suspense } from 'react';
 import { Info, X, Check, Copy, Undo2, Loader2, ChevronDown, Grid2x2, Users, Shirt } from 'lucide-react';
 import {
-  TEAMS, FIXTURES, GW_COUNT, CURRENT_GW, DEFAULT_GW_HORIZON_END, TABLE_SLOT_MIN_WIDTH,
+  TEAMS, FIXTURES, GW_COUNT, CURRENT_GW, DEFAULT_GW_HORIZON_END,
+  TABLE_SLOT_MIN_WIDTH, TABLE_SLOT_MIN_WIDTH_MOBILE, MOBILE_TABLE_BREAKPOINT,
   MINILEAGUE_CODE, formatLastUpdatedLong, GW_INDEXES, DEFAULT_RATINGS, DEFAULT_HOME_ADVANTAGE,
   TEAM_PLANNER_SQUAD_SIZE, TEAM_PLANNER_BENCH_SIZE, TEAM_PLANNER_SLOT_POSITIONS, VALID_FORMATIONS,
   resolveSlotPlayerAtGw, PLAYER_DATABASE_CSV_URL, parsePlayerDatabaseCsv, getFixtureScores, average,
@@ -912,10 +913,12 @@ export default function FDRTool() {
   // grote lege tussenruimtes tussen de kolommen oplevert. Door zowel het stretchen te vermijden als de
   // min-width recht evenredig met het aantal zichtbare kolommen te laten meegroeien, blijft de
   // dichtheid tussen team-logo en tabel identiek, ongeacht of je acht of dertig speeldagen toont.
-  const mainTableMinWidth = useMemo(
-    () => (visibleGwHeaderCells.length + 1) * TABLE_SLOT_MIN_WIDTH,
-    [visibleGwHeaderCells]
-  );
+  //
+  // De breedte per slot komt uit een CSS-variabele (--fdr-table-slot) i.p.v. uit een getal hier: op een
+  // telefoon krijgt die variabele een kleinere waarde (zie het <style>-blok verderop), en dan krimpt de
+  // tabel mee zonder dat React iets van de schermbreedte hoeft te weten. Hier blijft enkel het AANTAL
+  // slots staan, want dat is het enige dat van de app-state afhangt.
+  const mainTableSlots = visibleGwHeaderCells.length + 1;
 
   // Zelfde berekening voor de vergelijk-tabel. Die had een harde minWidth van 600px die niet meeschoof
   // met het aantal zichtbare GW-kolommen: met twee kolommen werd die 600px verdeeld over een teamkolom
@@ -923,10 +926,7 @@ export default function FDRTool() {
   // hoofdtabel, dus bij een gelijk aantal kolommen zijn beide tabellen exact even breed. De teamkolom
   // blijft een paar pixels verschillen — die cel bevat in de hoofdtabel een knop met eigen padding en
   // in de vergelijk-tabel een kale span — maar de kolomindeling is dezelfde.
-  const compareTableMinWidth = useMemo(
-    () => (compareGwHeaderCells.length + 1) * TABLE_SLOT_MIN_WIDTH,
-    [compareGwHeaderCells]
-  );
+  const compareTableSlots = compareGwHeaderCells.length + 1;
 
   // Gemiddelde moeilijkheid herberekend op enkel de zichtbare horizon (i.p.v. altijd GW1-GW_COUNT),
   // zodat "Sorteer op makkelijkste run" ook echt naar de getoonde kolommen sorteert.
@@ -1573,6 +1573,38 @@ export default function FDRTool() {
            <style> had geïnjecteerd, waardoor het merklettertype altijd als laatste binnenkwam. */
         * { box-sizing: border-box; }
         html, body { background: #2A1440; margin: 0; padding: 0; }
+
+        /* Breedte van één tabelkolom, als variabele zodat de FDR- en vergelijk-tabel er allebei aan
+           hangen en er maar één plek is waar hij per schermbreedte verschilt. Zie TABLE_SLOT_MIN_WIDTH
+           in constants.js voor waarom 84 en waarom mobiel kleiner. */
+        :root { --fdr-table-slot: ${TABLE_SLOT_MIN_WIDTH}px; --fdr-page-gutter: 20px; }
+        @media (max-width: ${MOBILE_TABLE_BREAKPOINT}px) {
+          :root { --fdr-table-slot: ${TABLE_SLOT_MIN_WIDTH_MOBILE}px; }
+
+          /* De FDR-tabel loopt op een telefoon van rand tot rand i.p.v. binnen de paginamarge. Die
+             marge kostte 40px van de 390, en 40px is hier net één fixture-kolom: van rand tot rand zie
+             je er vijf tegelijk i.p.v. vier. Het is bovendien het enige element op de pagina dat tóch
+             al horizontaal scrolt, dus dat het tegen de schermrand loopt is hier geen ruis maar een
+             hint dat er meer staat. De teamkolom blijft gewoon plakken (position: sticky) en de rest
+             van de pagina houdt zijn marge. */
+          .fdr-table-scroll {
+            margin-left: calc(var(--fdr-page-gutter) * -1);
+            margin-right: calc(var(--fdr-page-gutter) * -1);
+          }
+        }
+
+        /* Kolomkoppen die op een telefoon te veel breedte opeisen voor wat ze zeggen ("Positie" boven
+           een kolom met "GK"). Zelfde principe als .fdr-btn-label-full/-short in de toolbar: beide
+           varianten staan in de HTML, de CSS kiest. */
+        .fdr-col-short { display: none; }
+        @media (max-width: ${MOBILE_TABLE_BREAKPOINT}px) {
+          .fdr-col-full { display: none; }
+          .fdr-col-short { display: inline; }
+          /* De selectie-tabel in Team Planner had een harde min-width van 400px, ~35px breder dan het
+             scherm. Met de korte koppen hierboven past ze binnen haar container, dus mag die ondergrens
+             op een telefoon weg — 0 betekent hier "neem je natuurlijke breedte". */
+          :root { --fdr-roster-min-width: 0px; }
+        }
         body { font-family: 'Inter', sans-serif; }
         .fdr-title { font-family: 'Archivo', sans-serif; }
         .fdr-cell { transition: transform 0.12s ease; }
@@ -2164,7 +2196,9 @@ export default function FDRTool() {
         pointerEvents: 'none'
       }} />
 
-      <div className="fdr-content" style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 20px 32px', position: 'relative' }}>
+      <div className="fdr-content" style={{
+        maxWidth: '1200px', margin: '0 auto', padding: '32px var(--fdr-page-gutter) 32px', position: 'relative',
+      }}>
 
         {/* Skip-link: onzichtbaar tot hij focus krijgt (zie .fdr-skip-link in de <style> hierboven),
             dan het eerste wat een toetsenbordgebruiker tegenkomt. Slaat kop + taalkeuze + acht tabs
@@ -2494,10 +2528,10 @@ export default function FDRTool() {
             gwHorizonRange={gwHorizonRange}
             visibleGwHeaderCells={visibleGwHeaderCells}
             compareGwHeaderCells={compareGwHeaderCells}
-            compareTableMinWidth={compareTableMinWidth}
+            compareTableSlots={compareTableSlots}
             compareGwStart={compareGwStart}
             compareGwEnd={compareGwEnd}
-            mainTableMinWidth={mainTableMinWidth}
+            mainTableSlots={mainTableSlots}
             displayedTeams={displayedTeams}
             tableRef={tableRef}
             rangeStart={rangeStart}
@@ -2660,7 +2694,10 @@ export default function FDRTool() {
 
         <footer style={{ marginTop: '28px', textAlign: 'center', color: COLORS.textSubtle, fontSize: '12px', lineHeight: 1.5 }}>
           {t('footer.madeBy')}{' '}
-          <a href="https://x.com/fpl_proleague" target="_blank" rel="noopener noreferrer" className="fdr-footer-link">
+          {/* fdr-hit-line: de link staat middenin een zin, dus een tikzone van 44px zou over de tekst
+              eromheen vallen. 26px ligt boven de WCAG-ondergrens van 24 en raakt niets anders — zelfde
+              afweging als bij de spelersnamen op Set Pieces. */}
+          <a href="https://x.com/fpl_proleague" target="_blank" rel="noopener noreferrer" className="fdr-footer-link fdr-hit-line">
             <img src="/x-logo.png" alt="" style={{ width: '12px', height: '12px', verticalAlign:'-2px' }} />
             @fpl_proleague
           </a>

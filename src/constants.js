@@ -255,8 +255,24 @@ export const DEFAULT_GW_HORIZON_LENGTH = 8;
 // voor alle GW_COUNT kolommen samen; dat werkte enkel zolang GW_COUNT acht was. Met 34 speeldagen is
 // een totaal betekenisloos — de tabel toont er nooit 34 tegelijk — dus staat hier nu de breedte per
 // kolom. 84px is exact de oude kalibratie (760px gedeeld over de Team-kolom + 8 GW-kolommen), zodat de
-// tabel er bij de standaardhorizon op de pixel hetzelfde uitziet als voordien.
+// tabel er op een ruim scherm op de pixel hetzelfde uitziet als voordien.
 export const TABLE_SLOT_MIN_WIDTH = 84;
+
+// Op een telefoon is diezelfde 84px zonde van de ruimte: de kolommen krijgen dan meer breedte dan hun
+// inhoud nodig heeft, terwijl er maar een deel van de tabel op het scherm past. Gemeten op 390px zag
+// je zo 3,2 fixtures naast de teamkolom — net te weinig om in één oogopslag drie speeldagen vooruit te
+// kijken, precies het soort "net niet" dat je elke keer opnieuw laat vegen.
+//
+// 64px ligt bewust ONDER de natuurlijke minimumbreedte van een cel ("CER (A)" plus het cijfertje, in de
+// praktijk zo'n 58px). De browser neemt dan het echte minimum, en dat is precies de bedoeling: deze
+// waarde zegt "knijp tot het niet meer kan" zonder dat we hier een getal moeten bijhouden dat afhangt
+// van lettertype, taal of de langste clubcode. Resultaat op 390px: 4,6 zichtbare fixtures i.p.v. 3,2,
+// en een tabel van 588px i.p.v. 756px — de horizontale scrollafstand valt daarmee bijna weg.
+export const TABLE_SLOT_MIN_WIDTH_MOBILE = 64;
+
+// Breedte waaronder de mobiele varianten gelden. Eén constante, zodat de CSS-media-queries en de
+// JS-kant niet apart uit elkaar kunnen lopen.
+export const MOBILE_TABLE_BREAKPOINT = 700;
 export const MINILEAGUE_CODE = '19WN75';
 
 // --- Gameweek-deadlines (enige handmatig bij te werken bron van waarheid voor "waar staan we") ---

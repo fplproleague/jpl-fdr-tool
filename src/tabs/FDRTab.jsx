@@ -217,7 +217,7 @@ export default function FDRTab({
   sortBy, toggleSortByAverage,
   highlightedRatings, toggleRatingFilter, clearRatingFilter,
   gwHorizonStart, setGwHorizonStart, gwHorizonEnd, setGwHorizonEnd, gwHorizonRange,
-  visibleGwHeaderCells, compareGwHeaderCells, compareGwStart, compareGwEnd, mainTableMinWidth, compareTableMinWidth,
+  visibleGwHeaderCells, compareGwHeaderCells, compareGwStart, compareGwEnd, mainTableSlots, compareTableSlots,
   displayedTeams, tableRef,
   rangeStart, setRangeStart, rangeEnd, setRangeEnd, bestRuns,
   compareTeams, toggleCompareTeam,
@@ -445,7 +445,7 @@ export default function FDRTab({
           overflowX: 'auto', background: '#2A1440', padding: '4px',
           display: openSections.table ? 'block' : 'none'
         }}>
-        <table style={{ borderCollapse: 'separate', borderSpacing: '4px', minWidth: `${mainTableMinWidth}px` }}>
+        <table style={{ borderCollapse: 'separate', borderSpacing: '4px', minWidth: `calc(${mainTableSlots} * var(--fdr-table-slot))` }}>
           <thead>
             <tr>
               <th scope="col" style={{
@@ -746,10 +746,10 @@ export default function FDRTab({
         )}
         {compareTeams.length > 0 && (
           <div style={{ overflowX: 'auto' }}>
-            {/* Bewust GEEN width: '100%' — zie de toelichting bij mainTableMinWidth in FDRTool.jsx:
+            {/* Bewust GEEN width: '100%' — zie de toelichting bij mainTableSlots in FDRTool.jsx:
                 met table-layout: auto rekt de browser dan elke kolom uit om de container te vullen,
                 wat hier een teamkolom van 220px opleverde tegenover 93px in de hoofdtabel. */}
-            <table style={{ borderCollapse: 'separate', borderSpacing: '4px', minWidth: `${compareTableMinWidth}px` }}>
+            <table style={{ borderCollapse: 'separate', borderSpacing: '4px', minWidth: `calc(${compareTableSlots} * var(--fdr-table-slot))` }}>
               <thead>
                 <tr>
                   <th scope="col" style={{ textAlign: 'left', color: COLORS.textBody, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', padding: '6px 8px', ...stickyTeamCellStyle }}>{t('fdr.teamColumn')}</th>

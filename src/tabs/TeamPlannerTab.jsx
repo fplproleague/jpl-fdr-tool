@@ -843,13 +843,24 @@ export default function TeamPlannerTab({
                       blijft de sticky eerste kolom (zelfde patroon als de FDR-hoofdtabel) als vangnet
                       staan, zodat je bij het scrollen altijd blijft zien over welke speler/positie een
                       rij gaat. */}
-                  <table style={{ borderCollapse: 'separate', borderSpacing: '0 4px', width: '100%', minWidth: '400px' }}>
+                  <table style={{ borderCollapse: 'separate', borderSpacing: '0 4px', width: '100%', minWidth: 'var(--fdr-roster-min-width, 400px)' }}>
                     <thead>
                       <tr>
                         <th style={thStyle}>{t('teamPlanner.colIndex')}</th>
                         <th style={thStyle}>{t('teamPlanner.colPlayer')}</th>
-                        <th style={thStyle}>{t('teamPlanner.colPosition')}</th>
-                        <th style={thStyle}>{t('teamPlanner.colPrice')}</th>
+                        {/* Op een telefoon eisen "Positie" en "Prijs (M)" samen ~50px meer breedte dan
+                            hun inhoud ("GK", "5.5") nodig heeft, en net dat duwde deze tabel over de
+                            schermrand. Korte koppen onder 700px (zie .fdr-col-short in FDRTool.jsx)
+                            houden dezelfde kolommen, dezelfde data en dezelfde volgorde — er verdwijnt
+                            niets, er wordt alleen niets verspild. */}
+                        <th style={thStyle}>
+                          <span className="fdr-col-full">{t('teamPlanner.colPosition')}</span>
+                          <span className="fdr-col-short">{t('teamPlanner.colPositionShort')}</span>
+                        </th>
+                        <th style={thStyle}>
+                          <span className="fdr-col-full">{t('teamPlanner.colPrice')}</span>
+                          <span className="fdr-col-short">{t('teamPlanner.colPriceShort')}</span>
+                        </th>
                         {/* Kolomkop bewust leeg: de knop eronder draagt zijn betekenis al in zijn
                             aria-label, en een kop erboven zou de tabel enkel breder maken. */}
                         <th style={thStyle} aria-label={t('teamPlanner.colViewPlayer')} />
