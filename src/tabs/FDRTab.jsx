@@ -633,10 +633,13 @@ export default function FDRTab({
         <p style={{ color: COLORS.textSubtle, fontSize: '11px', margin: '-6px 0 12px' }}>
           {t('fdr.sharedRangeHint')}
         </p>
+        {/* minWidth: 0 op elke kaart hieronder — zonder dat geeft de browser een grid-item een
+            minimumbreedte gelijk aan zijn inhoud, en duwde de fixture-rij erin de kaart (en daarmee de
+            hele pagina) breder dan het scherm. Nu krimpt de kaart mee en scrolt de rij binnenin. */}
         <div style={{ display: 'grid', gap: '8px' }}>
           {bestRuns.map((team, idx) => (
             <div key={team.code} style={{
-              background: 'rgba(255,255,255,0.04)',
+              background: 'rgba(255,255,255,0.04)', minWidth: 0,
               border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '10px 14px'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -657,8 +660,13 @@ export default function FDRTab({
               </div>
               {/* marginTop van 12 naar 8: het GW-labelregeltje boven de badges brengt zelf al
                   ~10px mee, dus de rij als geheel houdt zo ongeveer dezelfde hoogte. */}
+              {/* Scrollzone i.p.v. de vroegere --compact-modifier, die de badges bij meer dan zes
+                  fixtures kleiner moest maken om ze op één regel te houden. Die maat werkte niet meer
+                  sinds elke badge een eigen wrapper kreeg voor het GW-labeltje erboven (de CSS mikte op
+                  die wrapper i.p.v. op de badge), en 8px-tekst was sowieso de verkeerde ruil: liever
+                  leesbare badges die je opzij schuift, net als de tabel hierboven. */}
               <FixtureStrip
-                className={`fdr-mini-fixture-row${team.fixtures.length > 6 ? ' fdr-mini-fixture-row--compact' : ''}`}
+                scrollable
                 teamCode={team.code}
                 fixtures={team.fixtures}
                 startGw={team.startGW}

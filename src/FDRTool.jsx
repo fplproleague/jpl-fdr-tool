@@ -1596,6 +1596,16 @@ export default function FDRTool() {
         /* Kolomkoppen die op een telefoon te veel breedte opeisen voor wat ze zeggen ("Positie" boven
            een kolom met "GK"). Zelfde principe als .fdr-btn-label-full/-short in de toolbar: beide
            varianten staan in de HTML, de CSS kiest. */
+        /* Horizontale scrollzone rond een fixture-rij die breder is dan haar kaart (zie FixtureStrip).
+           Zelfde principe als .fdr-table-scroll: liever één blok dat opzij schuift dan een pagina die
+           breder wordt dan het scherm. overscroll-behavior houdt de veeg binnen dit blok, zodat je de
+           pagina er niet per ongeluk mee meesleept. */
+        .fdr-fixture-scroll {
+          overflow-x: auto;
+          overscroll-behavior-x: contain;
+          -webkit-overflow-scrolling: touch;
+        }
+
         .fdr-col-short { display: none; }
         @media (max-width: ${MOBILE_TABLE_BREAKPOINT}px) {
           .fdr-col-full { display: none; }
@@ -2035,11 +2045,10 @@ export default function FDRTool() {
           .fdr-sliders-grid {
             grid-template-columns: repeat(2, 1fr) !important;
           }
-          /* De rij moet altijd op 1 regel blijven passen, ongeacht het aantal badges — vandaar nowrap +
-             white-space:nowrap i.p.v. laten wrappen. De watch list heeft altijd 5 fixtures en gebruikt
-             hiervoor de standaard (grotere, beter leesbare) maat hieronder. "Beste fixture runs" heeft
-             een instelbare GW-range (tot 8 wedstrijden) en krijgt de --compact-modifier zodra er meer
-             dan 6 in de rij staan, want dan past de standaardmaat niet meer op 1 regel. */
+          /* De rij blijft op 1 regel, ongeacht het aantal badges — vandaar nowrap + white-space:nowrap
+             i.p.v. laten wrappen. Waar er meer badges zijn dan er passen ("Beste fixture runs", tot 8),
+             zit de rij in een eigen scrollzone (.fdr-fixture-scroll, zie FixtureStrip.jsx); de watchlist
+             en de speler-/clubkaart tonen er vijf en passen gewoon. */
           .fdr-mini-fixture-row {
             flex-wrap: nowrap !important;
             justify-content: center !important;
@@ -2047,11 +2056,13 @@ export default function FDRTool() {
           .fdr-mini-fixture-row > span {
             white-space: nowrap !important;
           }
-          .fdr-mini-fixture-row > .fdr-dgw-badge > span {
+          .fdr-mini-fixture-row > span > .fdr-dgw-badge > span {
             white-space: nowrap !important;
           }
 
-          /* Standaardmaat (t/m 6 fixtures in de rij). */
+          /* Ruimte rond elke badge-kolom. Sinds elke badge een eigen wrapper heeft voor het GW-labeltje
+             erboven, mikken deze twee regels op die wrapper en niet meer op de badge zelf: de font-size
+             erft de badge niet (die zet zijn eigen), de padding bepaalt wél de tussenruimte in de rij. */
           .fdr-mini-fixture-row {
             gap: 4px !important;
             min-height: 25px;
@@ -2063,40 +2074,26 @@ export default function FDRTool() {
           /* De "/"-postponed-badge heeft van zichzelf maar 1 karakter, dus zonder ingrijpen is hij veel
              smaller dan een normale "XXX (Y)"-badge. Minimum-breedte zodat alle badges in de rij even
              groot ogen. */
-          .fdr-mini-fixture-row > .fdr-postponed-mini {
+          .fdr-mini-fixture-row > span > .fdr-postponed-mini {
             min-width: 26px;
           }
           /* DGW-badge is een layout-wrapper zonder eigen achtergrond — de padding zit op de losse
              leg-spans erbinnen, dus reset de wrapper zelf terug naar 0. De legs zelf krijgen een extra
              krappe regelhoogte, zodat de DGW-badge zo min mogelijk hoger is dan een normale (enkele-
              regel) badge in deze rij — anders wordt de kaart van dat team hoger dan die van de andere. */
-          .fdr-mini-fixture-row > .fdr-dgw-badge {
+          .fdr-mini-fixture-row > span > .fdr-dgw-badge {
             padding: 0 !important;
           }
-          .fdr-mini-fixture-row > .fdr-dgw-badge > span {
+          .fdr-mini-fixture-row > span > .fdr-dgw-badge > span {
             font-size: 9px !important;
             padding: 1px 4px !important;
             line-height: 1.15 !important;
           }
 
-          /* Compacte maat (>6 fixtures) — moet nog altijd op 1 regel passen, dus kleiner dan hierboven.
-             Gecombineerde selector (2 klassen) i.p.v. op brondvolgorde vertrouwen voor de override. */
-          .fdr-mini-fixture-row.fdr-mini-fixture-row--compact {
-            gap: 2px !important;
-            min-height: 22px;
-          }
-          .fdr-mini-fixture-row.fdr-mini-fixture-row--compact > span {
-            font-size: 8px !important;
-            padding: 1px 3px !important;
-          }
-          .fdr-mini-fixture-row.fdr-mini-fixture-row--compact > .fdr-postponed-mini {
-            min-width: 22px;
-          }
-          .fdr-mini-fixture-row.fdr-mini-fixture-row--compact > .fdr-dgw-badge > span {
-            font-size: 8px !important;
-            padding: 1px 3px !important;
-            line-height: 1.05 !important;
-          }
+          /* Hier stond een "compacte maat" die de badges bij meer dan zes fixtures verkleinde naar 8px,
+             om ze op één regel te houden. Die maat mikte sinds de GW-labeltjes op de verkeerde elementen
+             en deed dus niets meer, en de ruil klopte sowieso niet: liever leesbare badges die je opzij
+             schuift (zie .fdr-fixture-scroll) dan tekst van 8px. Klasse en regels allebei weg. */
 
           /* Team Planner-veld: de opstelling (GK/DEF/MID/FWD, telkens exact 1 rij) moet op mobiel altijd
              volledig binnen het vak passen zonder te moeten scrollen — vandaar kleinere kaartjes, minder
