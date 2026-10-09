@@ -894,7 +894,7 @@ export const PREDICTED_LINEUPS = [
         "playerTeamCode": "ZWA",
         "playerPosition": "GK",
         "playerPrice": 5.5,
-        "safety": "red"
+        "safety": "darkgreen"
       },
       {
         "positionId": "LB",
@@ -1286,10 +1286,10 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "FWD",
         "xPercent": 50,
         "yPercent": 10,
-        "playerName": "Ayensa",
+        "playerName": "Eckert",
         "playerTeamCode": "STA",
         "playerPosition": "FWD",
-        "playerPrice": null,
+        "playerPrice": 7.5,
         "safety": "darkgreen"
       },
       {
