@@ -59,8 +59,8 @@ export default function ClubSheet({
   const clubName = club?.name ?? clubCode;
 
   const upcoming = (FIXTURES[clubCode] ?? []).slice(CURRENT_GW - 1, CURRENT_GW - 1 + FIXTURES_AHEAD);
-  // teamForm komt uit FDRTool.jsx: de Google Sheet als die gepubliceerd is, anders TEAM_FORM
-  // uit constants.js. Eén bron voor de hele app, zodat de clubkaart en de tabel niet uiteenlopen.
+  // teamForm komt uit FDRTool.jsx (berekend door api/team-form.js). Eén bron voor de hele app, zodat
+  // de clubkaart en de tabel niet uiteenlopen.
   const form = teamForm?.[clubCode] ?? [];
   const setPieces = setPiecesEntries.find(e => e.clubCode === clubCode) ?? null;
 
