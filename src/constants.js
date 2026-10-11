@@ -420,38 +420,6 @@ export const GW_DEADLINES = Object.fromEntries(
 // verouderde team-info nooit meer stilzwijgend als actueel gepresenteerd worden.
 export const PREDICTED_LINEUPS_GW = 8;
 
-// Recente vorm per team in de hoofdtabel van de FDR-tab: max. 5 laatste GESPEELDE wedstrijden, oudste
-// eerst en nieuwste laatst ('W' winst, 'G' gelijkspel, 'V' verlies).
-//
-// Dit is sinds TEAM_FORM_CSV_URL (verderop) de TERUGVAL, niet meer de enige bron: staat er een
-// gepubliceerd vorm-werkblad in de Google Sheet, dan wint dat, en hoeft hier niets meer bijgewerkt te
-// worden. Zolang die URL null is — of de sheet onbereikbaar/half ingevuld is — telt wat hieronder
-// staat. Handmatig bijwerken gaat zoals altijd: duw de nieuwste uitslag achteraan elke array en knip
-// de oudste eraf zodra een team er meer dan 5 heeft. Een
-// team zonder vermelde uitslagen (het huidige, lopende seizoenbegin) krijgt een lege array — dan toont
-// de tabel simpelweg geen vormbalk voor dat team, nooit een verzonnen of geraden uitslag.
-export const TEAM_FORM = {
-  ...Object.fromEntries(TEAMS.map(t => [t.code, []])),
-  CLU: ['W', 'V', 'W', 'W', 'W'],
-  ANT: ['G', 'V', 'V', 'V', 'V'],
-  GNT: ['W', 'W', 'W', 'G', 'W'],
-  CHA: ['W', 'W', 'V', 'W', 'W'],
-  STA: ['W', 'W', 'W', 'V', 'V'],
-  USG: ['W', 'W', 'W', 'W', 'W'],
-  ZWA: ['W', 'G', 'W', 'V', 'V'],
-  GNK: ['G', 'W', 'G', 'G', 'V'],
-  BEV: ['V', 'V', 'W', 'W', 'V'],
-  AND: ['V', 'W', 'G', 'W', 'W'],
-  CER: ['V', 'V', 'V', 'G', 'V'],
-  STV: ['W', 'V', 'W', 'V', 'V'],
-  LOM: ['W', 'W', 'V', 'V', 'G'],
-  KVM: ['V', 'G', 'V', 'V', 'G'],
-  LLV: ['V', 'G', 'V', 'W', 'V'],
-  WES: ['V', 'G', 'W', 'W', 'W'],
-  OHL: ['V', 'V', 'V', 'G', 'W'],
-  KOR: ['V', 'V', 'V', 'V', 'W'],
-};
-
 // TEAMS is al alfabetisch op code — eenmalig gesorteerde kopie voor UI-lijsten die dat expliciet willen.
 export const TEAMS_ALPHA = [...TEAMS].sort((a, b) => a.code.localeCompare(b.code));
 export const GW_INDEXES = Array.from({ length: GW_COUNT }, (_, i) => i);
@@ -699,14 +667,6 @@ export const PLAYER_DATABASE_CSV_URL = 'https://docs.google.com/spreadsheets/d/e
 // aparte "Publish to web"-link per werkblad). Kolommen: Club | Penalties | Corners | Free Kicks |
 // (optioneel) Updated GW.
 export const SET_PIECES_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS_PSoy3cpm-nckncN8C8lmxg0PfxYpANthYfLFccxft2UuBbmCvOa8SXrlwyJkBWUu0ek3QMBsIknU/pub?gid=1124774550&single=true&output=csv';
-
-// Vorm per club (zie src/teamForm.js): nog een werkblad in diezelfde Google Sheet, met een clubkolom en
-// een vormkolom. TEAM_FORM hierboven blijft de terugval — bij een netwerkfout, een niet-gepubliceerd
-// werkblad of een club die er niet in staat, telt gewoon de ingebouwde waarde voor díé club. Wat in de
-// sheet staat wint, per club, niet als geheel.
-//
-// Zet dit op null om de ophaling helemaal uit te zetten; dan wordt er geen enkele request gedaan.
-export const TEAM_FORM_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS_PSoy3cpm-nckncN8C8lmxg0PfxYpANthYfLFccxft2UuBbmCvOa8SXrlwyJkBWUu0ek3QMBsIknU/pub?gid=853316749&single=true&output=csv';
 
 // Eenvoudige RFC4180-achtige CSV-tokenizer (i.p.v. text.split(',')): velden tussen aanhalingstekens
 // kunnen komma's en regeleindes bevatten, en "" binnen zo'n veld is een ontsnapt aanhalingsteken.

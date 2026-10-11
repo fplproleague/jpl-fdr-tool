@@ -184,7 +184,7 @@ const FORM_RESULT_STYLE = {
 };
 
 // Kleine vormindicator onder de clubcode in de hoofdtabel: max. 5 laatste uitslagen (oudste eerst), zie
-// teamForm (uit FDRTool.jsx: de sheet, of TEAM_FORM in constants.js als terugval). De team-cel se rijhoogte wordt gedreven door het 20px-hoge clublogo (padding
+// teamForm (uit FDRTool.jsx, berekend door api/team-form.js). De team-cel se rijhoogte wordt gedreven door het 20px-hoge clublogo (padding
 // 6px boven/onder erbij = 32px, exact gelijk aan de fixture-cellen ernaast) — dus de code-regel + stippenrij
 // samen moeten binnen diezelfde 20px content-hoogte blijven, anders groeit de hele rij mee (en krijgen
 // vooral de strak-passende DGW-cellen, 2 gestapelde helften, opeens lucht). Vandaar de expliciete, krappe
