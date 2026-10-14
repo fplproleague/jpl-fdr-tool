@@ -403,6 +403,62 @@ export function resolveCurrentGw(now = new Date()) {
 // elke seconde zelf.
 export const CURRENT_GW = resolveCurrentGw();
 
+// --- Wekelijkse update van de spelersdatabank-sheet (statistieken voor Bonuspunten) ---
+//
+// De statistiek-kolommen in de spelersdatabank-sheet worden elke maandagmiddag na een speeldag
+// automatisch bijgewerkt. De CSV zelf zegt niet tot welke GW de cijfers lopen, dus leiden we dat af
+// uit GW_DEADLINE_ISO: een speeldag telt als "verwerkt" vanaf de maandag na zijn deadline om
+// STATS_UPDATE_HOUR (Belgische tijd). Bewust wat ruim na de middag gekozen: springt het label te
+// vroeg, dan beweert de tab een GW die nog niet in de cijfers zit; te laat kost enkel een paar uur.
+// Weken zonder speeldag (interlandbreak) hebben geen deadline en dus ook geen update: het label
+// blijft dan gewoon op de vorige GW staan.
+const STATS_UPDATE_HOUR = 17;
+
+const brusselsPartsFormatter = new Intl.DateTimeFormat('en-US', {
+  timeZone: BELGIAN_TIME_ZONE,
+  year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', hourCycle: 'h23',
+});
+
+function brusselsParts(date) {
+  return Object.fromEntries(
+    brusselsPartsFormatter.formatToParts(date)
+      .filter(p => p.type !== 'literal')
+      .map(p => [p.type, Number(p.value)])
+  );
+}
+
+// Een Belgisch kloktijdstip (jaar, maand 1-12, dag, uur) als Date, met de juiste zomer-/wintertijd.
+// Eerst doen alsof het UTC is, dan corrigeren met het verschil dat Brussel op dat moment toont.
+function brusselsWallTimeToDate(year, month, day, hour) {
+  const guess = Date.UTC(year, month - 1, day, hour);
+  const p = brusselsParts(new Date(guess));
+  const shownAsUtc = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute);
+  return new Date(guess - (shownAsUtc - guess));
+}
+
+// Het moment waarop de sheet de cijfers van deze GW bevat: de eerste maandag ná de deadline (in
+// Belgische tijd) om STATS_UPDATE_HOUR. Null als de deadline niet gekend is.
+export function getStatsUpdateDate(gw) {
+  const deadline = getGwDeadlineDate(gw);
+  if (!deadline) return null;
+  const p = brusselsParts(deadline);
+  const weekday = new Date(Date.UTC(p.year, p.month - 1, p.day)).getUTCDay(); // 0 = zondag, 1 = maandag
+  const daysToMonday = ((1 - weekday + 7) % 7) || 7;
+  const monday = new Date(Date.UTC(p.year, p.month - 1, p.day + daysToMonday));
+  return brusselsWallTimeToDate(monday.getUTCFullYear(), monday.getUTCMonth() + 1, monday.getUTCDate(), STATS_UPDATE_HOUR);
+}
+
+// De laatste GW waarvan de maandag-update al voorbij is, of 0 als dat nog voor geen enkele GW zo is.
+// `now` is injecteerbaar, net als bij resolveCurrentGw.
+export function resolveStatsUpdatedGw(now = new Date()) {
+  let laatste = 0;
+  for (let gw = 1; gw <= GW_COUNT; gw++) {
+    const update = getStatsUpdateDate(gw);
+    if (update && update.getTime() <= now.getTime()) laatste = gw;
+  }
+  return laatste;
+}
+
 // Het eindpunt van de standaardhorizon: de huidige speeldag plus DEFAULT_GW_HORIZON_LENGTH - 1, nooit
 // voorbij het einde van het seizoen. Afgeleid i.p.v. handmatig ingesteld, zodat het venster elke week
 // vanzelf meeschuift — vroeger stond hier een vast getal (7) dat na elke speeldag opnieuw fout stond.

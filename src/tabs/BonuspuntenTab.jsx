@@ -6,6 +6,7 @@
 // props als WatchlistTab/TeamPlannerTab), dus geen eigen CSV-fetch/parsing meer hier (voorheen een
 // aparte BONUSPUNTEN_CSV_URL-werkblad-fetch).
 import { useCallback, useMemo, useState } from 'react';
+import { resolveStatsUpdatedGw } from '../constants';
 import { Loader2, AlertCircle, RotateCcw, Swords, Shield, RefreshCw, Target, Award } from 'lucide-react';
 import { SectionHeader } from '../components/SectionHeader';
 import { RankingRow, watchProps, clubProps } from '../components/RankingRow';
@@ -28,10 +29,11 @@ const retryButtonStyle = {
 // mocht die kolom ooit weer leeg komen te staan.
 const BONUS_POINTS_DATA_AVAILABLE = true;
 
-// Handmatig bij te werken samen met de spelersdatabank-sheet — zie het "Updated: GW.."-badge
-// hieronder. Geen automatische afleiding mogelijk (in tegenstelling tot bv. PREDICTED_LINEUPS_GW in
-// constants.js), want de gedeelde CSV heeft geen eigen "laatst bijgewerkt"-kolom.
-const BONUSPUNTEN_UPDATED_GW = 6;
+// Voor het "Updated: GW.."-badge hieronder. De gedeelde CSV heeft geen eigen "laatst bijgewerkt"-
+// kolom, maar de sheet wordt elke maandagmiddag na een speeldag automatisch bijgewerkt — dus leiden
+// we de GW af uit de deadlines (zie resolveStatsUpdatedGw in constants.js) i.p.v. een handmatige
+// constante die na elke speeldag opnieuw achterliep.
+const BONUSPUNTEN_UPDATED_GW = resolveStatsUpdatedGw();
 
 // Twee-knops-schakelaar boven de rangschikkingen: sorteren op seizoenstotaal of op per-wedstrijd-
 // gemiddelde. Zie SORT_MODES in ../bonuspunten voor waarom die tweede modus er is.
@@ -161,10 +163,8 @@ export default function BonuspuntenTab({
       {/* Laatste-update-badge op een eigen, rechts uitgelijnde regel — zelfde badge-stijl (teal pil)
           als de "Updated: GW.."-badge op de Set Pieces-tab. Bewust niet in dezelfde flex-rij als de
           introtekst: die is te lang om ooit naast een badge te passen zonder toch naar een eigen regel
-          te wrappen, dus dit is voorspelbaarder. BONUSPUNTEN_UPDATED_GW is nog een handmatige constante
-          i.p.v. dynamisch uit de sheet gelezen, want de gedeelde spelersdatabank-CSV heeft geen eigen
-          "laatst bijgewerkt"-kolom zoals het Set Pieces-werkblad. */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
+          te wrappen, dus dit is voorspelbaarder. Geen badge zolang er nog geen enkele GW verwerkt is. */}
+      {BONUSPUNTEN_UPDATED_GW > 0 && <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
         <span style={{
           color: '#4ECDC4', fontWeight: 800, fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase',
           background: 'rgba(78,205,196,0.12)', border: '1px solid rgba(78,205,196,0.3)',
@@ -172,7 +172,7 @@ export default function BonuspuntenTab({
         }}>
           {t('bonuspunten.updatedLabel', { gw: BONUSPUNTEN_UPDATED_GW })}
         </span>
-      </div>
+      </div>}
 
       <p style={{ color: '#8F79AD', fontSize: '13px', marginBottom: '18px' }}>
         {t('bonuspunten.intro')}
