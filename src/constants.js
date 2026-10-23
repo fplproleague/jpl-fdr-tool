@@ -300,7 +300,7 @@ export const GW_DEADLINE_ISO = {
   // 25 oktober 2026, dus GW8 en GW9 staan nog op +02:00 (CEST) en alles daarna op +01:00 (CET). Eén
   // verkeerde offset verschuift de aftelklok een uur zonder dat er iets zichtbaar fout lijkt.
   8: '2026-10-09T20:45:00+02:00',
-  9: '2026-10-23T20:45:00+02:00',
+  9: '2026-10-24T16:00:00+02:00',
   10: '2026-10-30T20:45:00+01:00',
   11: '2026-11-06T20:45:00+01:00',
   12: '2026-11-20T20:45:00+01:00',
