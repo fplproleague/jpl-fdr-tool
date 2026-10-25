@@ -88,16 +88,19 @@ export const FIXTURES = {
     'ZWA-H','CLU-A','WES-H','KVM-A','LOM-H','ANT-A','GNK-H','KOR-A', // GW25-32
     'USG-H','OHL-A', // GW33-34
   ],
+  // KOR-KVM (GW9) is afgelast en verplaatst naar woensdag 4 november, dus naar GW10, waar het een DGW
+  // wordt naast de oorspronkelijke GW10-tegenstander — zelfde patroon als AND-KOR hierboven.
   KOR: [
     'CLU-A','ANT-H','AND-A', ['CHA-H','AND-A'], 'ZWA-H','LLV-A','BEV-H','GNK-A', // GW1-8
-    'KVM-H','STA-A','GNT-A','USG-H','OHL-A','LOM-H','STV-A','CER-H', // GW9-16
+    'KVM-H', ['STA-A','KVM-H'],'GNT-A','USG-H','OHL-A','LOM-H','STV-A','CER-H', // GW9-16
     'WES-A','AND-H','BEV-A','LLV-H','ANT-A','GNK-H','LOM-A','KVM-A', // GW17-24
     'OHL-H','ZWA-A','CLU-H','STA-H','CER-A','WES-H','USG-A','GNT-H', // GW25-32
     'CHA-A','STV-H', // GW33-34
   ],
+  // KOR-KVM (GW9) → DGW in GW10, zie KOR hierboven.
   KVM: [
     'GNT-A','STA-H','CHA-A','LLV-A','WES-H','AND-H','LOM-A','STV-H', // GW1-8
-    'KOR-A','GNK-H','OHL-A','CLU-H','CER-A','USG-H','BEV-A','ZWA-H', // GW9-16
+    'KOR-A', ['GNK-H','KOR-A'], 'OHL-A','CLU-H','CER-A','USG-H','BEV-A','ZWA-H', // GW9-16
     'ANT-A','LOM-H','STV-A','CER-H','AND-A','BEV-H','WES-A','KOR-H', // GW17-24
     'STA-A','CHA-H','USG-A','GNT-H','LLV-H','ZWA-A','ANT-H','CLU-A', // GW25-32
     'OHL-H','GNK-A', // GW33-34
@@ -191,6 +194,8 @@ export const POSTPONED = new Set([
   'KOR-3', // Kortrijk vs Anderlecht, GW3 — uitgesteld naar 3 september (Europese voorrondes)
   'GNT-3', // Gent vs OH Leuven, GW3 — uitgesteld naar 3 september (Europese voorrondes)
   'OHL-3', // OH Leuven vs Gent, GW3 — uitgesteld naar 3 september (Europese voorrondes)
+  'KOR-9', // Kortrijk vs KV Mechelen, GW9 — afgelast, verplaatst naar 4 november (GW10)
+  'KVM-9', // KV Mechelen vs Kortrijk, GW9 — zelfde wedstrijd, andere kant
 ]);
 // Datum waarnaar uitgestelde wedstrijden verplaatst zijn, per teamcode-onafhankelijke (gesorteerde)
 // paar-key — niet elke POSTPONED-wedstrijd valt op dezelfde datum.
@@ -198,6 +203,13 @@ export const POSTPONED_DATES = {
   'STV-USG': '2 september',
   'AND-KOR': '3 september',
   'GNT-OHL': '3 september',
+  'KOR-KVM': '4 november',
+};
+// Reden van het uitstel, zelfde paar-key. Ontbreekt een paar, dan vermeldt de tooltip enkel de nieuwe datum.
+export const POSTPONED_REASONS = {
+  'STV-USG': 'wegens de Europese voorrondes',
+  'AND-KOR': 'wegens de Europese voorrondes',
+  'GNT-OHL': 'wegens de Europese voorrondes',
 };
 
 // Nog niet zeker uitgesteld — kan verschuiven afhankelijk van Europese kwalificatie. Zelfde key-structuur als POSTPONED.
@@ -520,7 +532,8 @@ export function buildPostponedTooltipText(teamCode, opp, venue) {
   const [home, away] = splitHomeAway(teamCode, opp, venue);
   const pairKey = [teamCode, opp].sort().join('-');
   const date = POSTPONED_DATES[pairKey];
-  return `${home} - ${away} is uitgesteld naar ${date} wegens de Europese voorrondes.`;
+  const reason = POSTPONED_REASONS[pairKey];
+  return `${home} - ${away} is uitgesteld naar ${date}${reason ? ` ${reason}` : ''}.`;
 }
 
 export function buildPossiblyPostponedTooltipText(teamCode, opp, venue) {
