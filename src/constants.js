@@ -486,7 +486,7 @@ export const GW_DEADLINES = Object.fromEntries(
 // werken samen met die data. Zolang deze waarde ACHTERLOOPT op CURRENT_GW toont de Predicted
 // Lineups-tab een expliciete waarschuwing dat de opstellingen van een vorige speeldag zijn — zo kan
 // verouderde team-info nooit meer stilzwijgend als actueel gepresenteerd worden.
-export const PREDICTED_LINEUPS_GW = 9;
+export const PREDICTED_LINEUPS_GW = 10;
 
 // TEAMS is al alfabetisch op code — eenmalig gesorteerde kopie voor UI-lijsten die dat expliciet willen.
 export const TEAMS_ALPHA = [...TEAMS].sort((a, b) => a.code.localeCompare(b.code));
