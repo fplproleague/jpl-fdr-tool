@@ -11,14 +11,158 @@
 // PREDICTED_LINEUPS_GW in constants.js voor de speeldag waarvoor DEZE data geldt. Bewust een volledige
 // vervanging i.p.v. een aanvulling: een eerdere aanvul-aanpak liet oude en nieuwe entries voor dezelfde
 // club naast elkaar in de array staan, wat zowel een kapotte JSON-naad als een stille "oude opstelling
-// getoond als actueel"-bug opleverde (zie de commit-geschiedenis). Alle 18 clubs aangeleverd 30
-// oktober 2026 (GW10).
+// getoond als actueel"-bug opleverde (zie de commit-geschiedenis). Alle 18 clubs aangeleverd 6
+// november 2026 (GW11).
 export const PREDICTED_LINEUPS = [
   {
-    "id": "eb42ef40-1e88-4132-9ce1-e2909ca513ac",
+    "id": "e84a2153-32da-4899-978d-571e56b52089",
+    "clubCode": "CLU",
+    "opponentCode": "AND",
+    "formationKey": "4-3-3",
+    "slots": [
+      {
+        "positionId": "GK",
+        "role": "GK",
+        "broadPosition": "GK",
+        "xPercent": 50,
+        "yPercent": 85,
+        "playerName": "Sommer",
+        "playerTeamCode": "CLU",
+        "playerPosition": "GK",
+        "playerPrice": 8,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "LB",
+        "role": "LB",
+        "broadPosition": "DEF",
+        "xPercent": 16,
+        "yPercent": 71,
+        "playerName": "Seys",
+        "playerTeamCode": "CLU",
+        "playerPosition": "DEF",
+        "playerPrice": 7,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "LCB",
+        "role": "LCB",
+        "broadPosition": "DEF",
+        "xPercent": 36,
+        "yPercent": 74,
+        "playerName": "Mechele",
+        "playerTeamCode": "CLU",
+        "playerPosition": "DEF",
+        "playerPrice": 8,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "RCB",
+        "role": "RCB",
+        "broadPosition": "DEF",
+        "xPercent": 64,
+        "yPercent": 74,
+        "playerName": "Spileers",
+        "playerTeamCode": "CLU",
+        "playerPosition": "DEF",
+        "playerPrice": 5.5,
+        "safety": "green"
+      },
+      {
+        "positionId": "RB",
+        "role": "RB",
+        "broadPosition": "DEF",
+        "xPercent": 84,
+        "yPercent": 71,
+        "playerName": "Sabbe",
+        "playerTeamCode": "CLU",
+        "playerPosition": "DEF",
+        "playerPrice": 6.5,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "LCM",
+        "role": "LCM",
+        "broadPosition": "MID",
+        "xPercent": 33,
+        "yPercent": 46,
+        "playerName": "Vetlesen",
+        "playerTeamCode": "CLU",
+        "playerPosition": "MID",
+        "playerPrice": 7,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "CM",
+        "role": "CM",
+        "broadPosition": "MID",
+        "xPercent": 50,
+        "yPercent": 46,
+        "playerName": "Lemarechal",
+        "playerTeamCode": "CLU",
+        "playerPosition": "MID",
+        "playerPrice": 6.5,
+        "safety": "orange"
+      },
+      {
+        "positionId": "RCM",
+        "role": "RCM",
+        "broadPosition": "MID",
+        "xPercent": 67,
+        "yPercent": 46,
+        "playerName": "Vanaken",
+        "playerTeamCode": "CLU",
+        "playerPosition": "MID",
+        "playerPrice": 11.5,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "LW",
+        "role": "LW",
+        "broadPosition": "FWD",
+        "xPercent": 16,
+        "yPercent": 21,
+        "playerName": "Diakhon",
+        "playerTeamCode": "CLU",
+        "playerPosition": "MID",
+        "playerPrice": 7.5,
+        "safety": "orange"
+      },
+      {
+        "positionId": "ST",
+        "role": "ST",
+        "broadPosition": "FWD",
+        "xPercent": 50,
+        "yPercent": 10,
+        "playerName": "Tresoldi",
+        "playerTeamCode": "CLU",
+        "playerPosition": "FWD",
+        "playerPrice": 10.5,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "RW",
+        "role": "RW",
+        "broadPosition": "FWD",
+        "xPercent": 84,
+        "yPercent": 21,
+        "playerName": "Forbs",
+        "playerTeamCode": "CLU",
+        "playerPosition": "MID",
+        "playerPrice": 8,
+        "safety": "darkgreen"
+      }
+    ],
+    "notes": "",
+    "label": "",
+    "createdAt": 1793976634508,
+    "updatedAt": 1793976634508
+  },
+  {
+    "id": "a11becdf-8e13-43cc-b4e7-f83cf392ce41",
     "clubCode": "AND",
-    "opponentCode": "WES",
-    "formationKey": "4-4-2",
+    "opponentCode": "CLU",
+    "formationKey": "4-3-3",
     "slots": [
       {
         "positionId": "GK",
@@ -42,7 +186,7 @@ export const PREDICTED_LINEUPS = [
         "playerTeamCode": "AND",
         "playerPosition": "DEF",
         "playerPrice": 6,
-        "safety": "red"
+        "safety": "orange"
       },
       {
         "positionId": "LCB",
@@ -78,19 +222,7 @@ export const PREDICTED_LINEUPS = [
         "playerTeamCode": "AND",
         "playerPosition": "DEF",
         "playerPrice": 5,
-        "safety": "red"
-      },
-      {
-        "positionId": "LM",
-        "role": "LM",
-        "broadPosition": "MID",
-        "xPercent": 16,
-        "yPercent": 46,
-        "playerName": "Aasgaard",
-        "playerTeamCode": "AND",
-        "playerPosition": "MID",
-        "playerPrice": 6.5,
-        "safety": "red"
+        "safety": "darkgreen"
       },
       {
         "positionId": "LCM",
@@ -98,11 +230,23 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "MID",
         "xPercent": 33,
         "yPercent": 46,
-        "playerName": "Kana",
+        "playerName": "Llansana",
         "playerTeamCode": "AND",
         "playerPosition": "MID",
-        "playerPrice": 5.5,
+        "playerPrice": 7,
         "safety": "red"
+      },
+      {
+        "positionId": "CM",
+        "role": "CM",
+        "broadPosition": "MID",
+        "xPercent": 50,
+        "yPercent": 46,
+        "playerName": "Koutsoupias",
+        "playerTeamCode": "AND",
+        "playerPosition": "MID",
+        "playerPrice": 7,
+        "safety": "green"
       },
       {
         "positionId": "RCM",
@@ -110,58 +254,58 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "MID",
         "xPercent": 67,
         "yPercent": 46,
-        "playerName": "Koutsoupias",
+        "playerName": "Stroeykens",
         "playerTeamCode": "AND",
         "playerPosition": "MID",
         "playerPrice": 7,
+        "safety": "orange"
+      },
+      {
+        "positionId": "LW",
+        "role": "LW",
+        "broadPosition": "FWD",
+        "xPercent": 16,
+        "yPercent": 21,
+        "playerName": "Antman",
+        "playerTeamCode": "AND",
+        "playerPosition": "MID",
+        "playerPrice": 6,
         "safety": "red"
       },
       {
-        "positionId": "RM",
-        "role": "RM",
-        "broadPosition": "MID",
+        "positionId": "ST",
+        "role": "ST",
+        "broadPosition": "FWD",
+        "xPercent": 50,
+        "yPercent": 10,
+        "playerName": "Cvetkovic",
+        "playerTeamCode": "AND",
+        "playerPosition": "FWD",
+        "playerPrice": 8.5,
+        "safety": "red"
+      },
+      {
+        "positionId": "RW",
+        "role": "RW",
+        "broadPosition": "FWD",
         "xPercent": 84,
-        "yPercent": 46,
+        "yPercent": 21,
         "playerName": "Winkler",
         "playerTeamCode": "AND",
         "playerPosition": "MID",
         "playerPrice": 6.5,
-        "safety": "green"
-      },
-      {
-        "positionId": "LST",
-        "role": "LST",
-        "broadPosition": "FWD",
-        "xPercent": 28,
-        "yPercent": 15,
-        "playerName": "Sikan",
-        "playerTeamCode": "AND",
-        "playerPosition": "FWD",
-        "playerPrice": 6.5,
         "safety": "orange"
-      },
-      {
-        "positionId": "RST",
-        "role": "RST",
-        "broadPosition": "FWD",
-        "xPercent": 72,
-        "yPercent": 15,
-        "playerName": "Bentayeb",
-        "playerTeamCode": "AND",
-        "playerPosition": "FWD",
-        "playerPrice": 6,
-        "safety": "red"
       }
     ],
     "notes": "",
     "label": "",
-    "createdAt": 1793372366430,
-    "updatedAt": 1793372376695
+    "createdAt": 1793976634510,
+    "updatedAt": 1793976643538
   },
   {
-    "id": "31be7807-c2ec-4772-b0b7-ee7fd2e54932",
+    "id": "54784af4-8c9e-497d-91ff-73682b4ec957",
     "clubCode": "WES",
-    "opponentCode": "AND",
+    "opponentCode": "CHA",
     "formationKey": "4-3-3",
     "slots": [
       {
@@ -186,7 +330,7 @@ export const PREDICTED_LINEUPS = [
         "playerTeamCode": "WES",
         "playerPosition": "DEF",
         "playerPrice": 6.5,
-        "safety": "green"
+        "safety": "orange"
       },
       {
         "positionId": "LCB",
@@ -230,11 +374,11 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "MID",
         "xPercent": 33,
         "yPercent": 46,
-        "playerName": "Sandra",
+        "playerName": "Fofana",
         "playerTeamCode": "WES",
         "playerPosition": "MID",
-        "playerPrice": 6,
-        "safety": "darkgreen"
+        "playerPrice": 5.5,
+        "safety": "green"
       },
       {
         "positionId": "CM",
@@ -246,7 +390,7 @@ export const PREDICTED_LINEUPS = [
         "playerTeamCode": "WES",
         "playerPosition": "FWD",
         "playerPrice": 7,
-        "safety": "darkgreen"
+        "safety": "green"
       },
       {
         "positionId": "RCM",
@@ -254,11 +398,11 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "MID",
         "xPercent": 67,
         "yPercent": 46,
-        "playerName": "Fofana",
+        "playerName": "Sandra",
         "playerTeamCode": "WES",
         "playerPosition": "MID",
-        "playerPrice": 5.5,
-        "safety": "darkgreen"
+        "playerPrice": 6,
+        "safety": "green"
       },
       {
         "positionId": "LW",
@@ -290,22 +434,22 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "FWD",
         "xPercent": 84,
         "yPercent": 21,
-        "playerName": "Bohamdi-Kamoni",
+        "playerName": "Storm",
         "playerTeamCode": "WES",
         "playerPosition": "MID",
-        "playerPrice": 4.5,
+        "playerPrice": 7,
         "safety": "red"
       }
     ],
     "notes": "",
     "label": "",
-    "createdAt": 1793372366431,
-    "updatedAt": 1793372366431
+    "createdAt": 1793976634510,
+    "updatedAt": 1793976634510
   },
   {
-    "id": "22784405-8248-49c9-a75d-4f8121c9ec87",
-    "clubCode": "CER",
-    "opponentCode": "ANT",
+    "id": "b56f39c6-e4e1-44b5-8828-897af3e547e9",
+    "clubCode": "CHA",
+    "opponentCode": "WES",
     "formationKey": "4-3-3",
     "slots": [
       {
@@ -314,8 +458,8 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "GK",
         "xPercent": 50,
         "yPercent": 85,
-        "playerName": "Coucke",
-        "playerTeamCode": "CER",
+        "playerName": "Kone",
+        "playerTeamCode": "CHA",
         "playerPosition": "GK",
         "playerPrice": 5.5,
         "safety": "darkgreen"
@@ -326,11 +470,11 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "DEF",
         "xPercent": 16,
         "yPercent": 71,
-        "playerName": "Konate",
-        "playerTeamCode": "CER",
+        "playerName": "Nzita",
+        "playerTeamCode": "CHA",
         "playerPosition": "DEF",
-        "playerPrice": 4.5,
-        "safety": "darkgreen"
+        "playerPrice": 5.5,
+        "safety": "orange"
       },
       {
         "positionId": "LCB",
@@ -338,11 +482,11 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "DEF",
         "xPercent": 36,
         "yPercent": 74,
-        "playerName": "Kondo",
-        "playerTeamCode": "CER",
+        "playerName": "Ousou",
+        "playerTeamCode": "CHA",
         "playerPosition": "DEF",
-        "playerPrice": 5,
-        "safety": "red"
+        "playerPrice": 6.5,
+        "safety": "darkgreen"
       },
       {
         "positionId": "RCB",
@@ -350,11 +494,11 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "DEF",
         "xPercent": 64,
         "yPercent": 74,
-        "playerName": "Kakou",
-        "playerTeamCode": "CER",
+        "playerName": "Solheid",
+        "playerTeamCode": "CHA",
         "playerPosition": "DEF",
-        "playerPrice": 5.5,
-        "safety": "red"
+        "playerPrice": 4.5,
+        "safety": "green"
       },
       {
         "positionId": "RB",
@@ -362,11 +506,11 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "DEF",
         "xPercent": 84,
         "yPercent": 71,
-        "playerName": "Diakite",
-        "playerTeamCode": "CER",
+        "playerName": "Van Den Kerkhof",
+        "playerTeamCode": "CHA",
         "playerPosition": "DEF",
-        "playerPrice": 5,
-        "safety": "red"
+        "playerPrice": 5.5,
+        "safety": "darkgreen"
       },
       {
         "positionId": "LCM",
@@ -374,11 +518,11 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "MID",
         "xPercent": 33,
         "yPercent": 46,
-        "playerName": "Le Roux",
-        "playerTeamCode": "CER",
-        "playerPosition": "MID",
-        "playerPrice": 5,
-        "safety": "orange"
+        "playerName": "Boukamir A.",
+        "playerTeamCode": "CHA",
+        "playerPosition": "DEF",
+        "playerPrice": 4.5,
+        "safety": "darkgreen"
       },
       {
         "positionId": "CM",
@@ -386,11 +530,11 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "MID",
         "xPercent": 50,
         "yPercent": 46,
-        "playerName": "Manneh",
-        "playerTeamCode": "CER",
-        "playerPosition": "MID",
-        "playerPrice": 5,
-        "safety": "darkgreen"
+        "playerName": "Romsaas",
+        "playerTeamCode": "CHA",
+        "playerPosition": "FWD",
+        "playerPrice": 6.5,
+        "safety": "red"
       },
       {
         "positionId": "RCM",
@@ -398,10 +542,10 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "MID",
         "xPercent": 67,
         "yPercent": 46,
-        "playerName": "Van der Bruggen",
-        "playerTeamCode": "CER",
+        "playerName": "Khalifi",
+        "playerTeamCode": "CHA",
         "playerPosition": "MID",
-        "playerPrice": 7,
+        "playerPrice": 4.5,
         "safety": "darkgreen"
       },
       {
@@ -410,11 +554,11 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "FWD",
         "xPercent": 16,
         "yPercent": 21,
-        "playerName": "Martens",
-        "playerTeamCode": "CER",
-        "playerPosition": "MID",
-        "playerPrice": 4,
-        "safety": "red"
+        "playerName": "Mbemba",
+        "playerTeamCode": "CHA",
+        "playerPosition": "FWD",
+        "playerPrice": 5,
+        "safety": "darkgreen"
       },
       {
         "positionId": "ST",
@@ -422,10 +566,10 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "FWD",
         "xPercent": 50,
         "yPercent": 10,
-        "playerName": "Ngoura",
-        "playerTeamCode": "CER",
+        "playerName": "Scheidler",
+        "playerTeamCode": "CHA",
         "playerPosition": "FWD",
-        "playerPrice": 6.5,
+        "playerPrice": 8.5,
         "safety": "darkgreen"
       },
       {
@@ -434,22 +578,22 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "FWD",
         "xPercent": 84,
         "yPercent": 21,
-        "playerName": "Akinsola",
-        "playerTeamCode": "CER",
+        "playerName": "Pflucke",
+        "playerTeamCode": "CHA",
         "playerPosition": "MID",
-        "playerPrice": 5,
-        "safety": "green"
+        "playerPrice": 7,
+        "safety": "darkgreen"
       }
     ],
     "notes": "",
     "label": "",
-    "createdAt": 1793372366431,
-    "updatedAt": 1793372366431
+    "createdAt": 1793976634511,
+    "updatedAt": 1793976634511
   },
   {
-    "id": "8155d53d-d8de-4e64-9bd8-3d2f332bb460",
+    "id": "39503066-87fc-4159-8394-b39241cd34ac",
     "clubCode": "ANT",
-    "opponentCode": "CER",
+    "opponentCode": "LOM",
     "formationKey": "4-3-3",
     "slots": [
       {
@@ -474,7 +618,7 @@ export const PREDICTED_LINEUPS = [
         "playerTeamCode": "ANT",
         "playerPosition": "DEF",
         "playerPrice": 6.5,
-        "safety": "darkgreen"
+        "safety": "green"
       },
       {
         "positionId": "LCB",
@@ -498,7 +642,7 @@ export const PREDICTED_LINEUPS = [
         "playerTeamCode": "ANT",
         "playerPosition": "DEF",
         "playerPrice": 6.5,
-        "safety": "darkgreen"
+        "safety": "green"
       },
       {
         "positionId": "RB",
@@ -518,11 +662,11 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "MID",
         "xPercent": 33,
         "yPercent": 46,
-        "playerName": "Deuff",
+        "playerName": "Benitez",
         "playerTeamCode": "ANT",
         "playerPosition": "MID",
-        "playerPrice": 4.5,
-        "safety": "green"
+        "playerPrice": 5.5,
+        "safety": "red"
       },
       {
         "positionId": "CM",
@@ -530,11 +674,11 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "MID",
         "xPercent": 50,
         "yPercent": 46,
-        "playerName": "Somers",
+        "playerName": "Scott",
         "playerTeamCode": "ANT",
         "playerPosition": "MID",
-        "playerPrice": 8,
-        "safety": "darkgreen"
+        "playerPrice": 6.5,
+        "safety": "orange"
       },
       {
         "positionId": "RCM",
@@ -542,10 +686,10 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "MID",
         "xPercent": 67,
         "yPercent": 46,
-        "playerName": "Vermeeren",
+        "playerName": "Deuff",
         "playerTeamCode": "ANT",
         "playerPosition": "MID",
-        "playerPrice": 8,
+        "playerPrice": 4.5,
         "safety": "darkgreen"
       },
       {
@@ -558,7 +702,7 @@ export const PREDICTED_LINEUPS = [
         "playerTeamCode": "ANT",
         "playerPosition": "MID",
         "playerPrice": 6,
-        "safety": "darkgreen"
+        "safety": "green"
       },
       {
         "positionId": "ST",
@@ -570,7 +714,7 @@ export const PREDICTED_LINEUPS = [
         "playerTeamCode": "ANT",
         "playerPosition": "FWD",
         "playerPrice": 5,
-        "safety": "green"
+        "safety": "red"
       },
       {
         "positionId": "RW",
@@ -587,13 +731,301 @@ export const PREDICTED_LINEUPS = [
     ],
     "notes": "",
     "label": "",
-    "createdAt": 1793372366431,
-    "updatedAt": 1793372366431
+    "createdAt": 1793976634512,
+    "updatedAt": 1793977025911
   },
   {
-    "id": "1c0bc211-5e2c-4079-b452-34eab48cec68",
+    "id": "061246b6-d95b-4776-9269-e91185e045c3",
+    "clubCode": "LOM",
+    "opponentCode": "ANT",
+    "formationKey": "4-3-3",
+    "slots": [
+      {
+        "positionId": "GK",
+        "role": "GK",
+        "broadPosition": "GK",
+        "xPercent": 50,
+        "yPercent": 85,
+        "playerName": "Pieklak",
+        "playerTeamCode": "LOM",
+        "playerPosition": "GK",
+        "playerPrice": 5.5,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "LB",
+        "role": "LB",
+        "broadPosition": "DEF",
+        "xPercent": 16,
+        "yPercent": 71,
+        "playerName": "Gooijer",
+        "playerTeamCode": "LOM",
+        "playerPosition": "DEF",
+        "playerPrice": 5,
+        "safety": "red"
+      },
+      {
+        "positionId": "LCB",
+        "role": "LCB",
+        "broadPosition": "DEF",
+        "xPercent": 36,
+        "yPercent": 74,
+        "playerName": "Adewoye",
+        "playerTeamCode": "LOM",
+        "playerPosition": "DEF",
+        "playerPrice": 4.5,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "RCB",
+        "role": "RCB",
+        "broadPosition": "DEF",
+        "xPercent": 64,
+        "yPercent": 74,
+        "playerName": "Eyoma",
+        "playerTeamCode": "LOM",
+        "playerPosition": "DEF",
+        "playerPrice": 4.5,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "RB",
+        "role": "RB",
+        "broadPosition": "DEF",
+        "xPercent": 84,
+        "yPercent": 71,
+        "playerName": "Van Duiven",
+        "playerTeamCode": "LOM",
+        "playerPosition": "FWD",
+        "playerPrice": 5,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "LCM",
+        "role": "LCM",
+        "broadPosition": "MID",
+        "xPercent": 33,
+        "yPercent": 46,
+        "playerName": "Schoofs",
+        "playerTeamCode": "LOM",
+        "playerPosition": "MID",
+        "playerPrice": 6.5,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "CM",
+        "role": "CM",
+        "broadPosition": "MID",
+        "xPercent": 50,
+        "yPercent": 46,
+        "playerName": "Nypan",
+        "playerTeamCode": "LOM",
+        "playerPosition": "MID",
+        "playerPrice": 6.5,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "RCM",
+        "role": "RCM",
+        "broadPosition": "MID",
+        "xPercent": 67,
+        "yPercent": 46,
+        "playerName": "Pelupessy",
+        "playerTeamCode": "LOM",
+        "playerPosition": "MID",
+        "playerPrice": 5,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "LW",
+        "role": "LW",
+        "broadPosition": "FWD",
+        "xPercent": 16,
+        "yPercent": 21,
+        "playerName": "Talvitie",
+        "playerTeamCode": "LOM",
+        "playerPosition": "MID",
+        "playerPrice": 4,
+        "safety": "red"
+      },
+      {
+        "positionId": "ST",
+        "role": "ST",
+        "broadPosition": "FWD",
+        "xPercent": 50,
+        "yPercent": 10,
+        "playerName": "Konadu",
+        "playerTeamCode": "LOM",
+        "playerPosition": "FWD",
+        "playerPrice": 5,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "RW",
+        "role": "RW",
+        "broadPosition": "FWD",
+        "xPercent": 84,
+        "yPercent": 21,
+        "playerName": "Reyners",
+        "playerTeamCode": "LOM",
+        "playerPosition": "MID",
+        "playerPrice": 5.5,
+        "safety": "orange"
+      }
+    ],
+    "notes": "",
+    "label": "",
+    "createdAt": 1793976634512,
+    "updatedAt": 1793976634512
+  },
+  {
+    "id": "cba2b54d-38c0-43f2-9dc5-4652ad3a1749",
+    "clubCode": "STA",
+    "opponentCode": "BEV",
+    "formationKey": "4-4-2",
+    "slots": [
+      {
+        "positionId": "GK",
+        "role": "GK",
+        "broadPosition": "GK",
+        "xPercent": 50,
+        "yPercent": 85,
+        "playerName": "Epolo",
+        "playerTeamCode": "STA",
+        "playerPosition": "GK",
+        "playerPrice": 6,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "LB",
+        "role": "LB",
+        "broadPosition": "DEF",
+        "xPercent": 16,
+        "yPercent": 71,
+        "playerName": "Mortensen",
+        "playerTeamCode": "STA",
+        "playerPosition": "DEF",
+        "playerPrice": 5,
+        "safety": "green"
+      },
+      {
+        "positionId": "LCB",
+        "role": "LCB",
+        "broadPosition": "DEF",
+        "xPercent": 36,
+        "yPercent": 74,
+        "playerName": "Hautekiet",
+        "playerTeamCode": "STA",
+        "playerPosition": "DEF",
+        "playerPrice": 6,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "RCB",
+        "role": "RCB",
+        "broadPosition": "DEF",
+        "xPercent": 64,
+        "yPercent": 74,
+        "playerName": "Karamoko",
+        "playerTeamCode": "STA",
+        "playerPosition": "MID",
+        "playerPrice": 6.5,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "RB",
+        "role": "RB",
+        "broadPosition": "DEF",
+        "xPercent": 84,
+        "yPercent": 71,
+        "playerName": "Lawrence",
+        "playerTeamCode": "STA",
+        "playerPosition": "DEF",
+        "playerPrice": 5.5,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "LM",
+        "role": "LM",
+        "broadPosition": "MID",
+        "xPercent": 16,
+        "yPercent": 46,
+        "playerName": "Abid",
+        "playerTeamCode": "STA",
+        "playerPosition": "MID",
+        "playerPrice": 7,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "LCM",
+        "role": "LCM",
+        "broadPosition": "MID",
+        "xPercent": 33,
+        "yPercent": 46,
+        "playerName": "Touzghar",
+        "playerTeamCode": "STA",
+        "playerPosition": "MID",
+        "playerPrice": 5.5,
+        "safety": "orange"
+      },
+      {
+        "positionId": "RCM",
+        "role": "RCM",
+        "broadPosition": "MID",
+        "xPercent": 67,
+        "yPercent": 46,
+        "playerName": "Trouillet",
+        "playerTeamCode": "STA",
+        "playerPosition": "MID",
+        "playerPrice": 4.5,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "RM",
+        "role": "RM",
+        "broadPosition": "MID",
+        "xPercent": 84,
+        "yPercent": 46,
+        "playerName": "Drammeh",
+        "playerTeamCode": "STA",
+        "playerPosition": "FWD",
+        "playerPrice": 5.5,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "LST",
+        "role": "LST",
+        "broadPosition": "FWD",
+        "xPercent": 28,
+        "yPercent": 15,
+        "playerName": "Zeqiri",
+        "playerTeamCode": "STA",
+        "playerPosition": "FWD",
+        "playerPrice": 6.5,
+        "safety": "red"
+      },
+      {
+        "positionId": "RST",
+        "role": "RST",
+        "broadPosition": "FWD",
+        "xPercent": 72,
+        "yPercent": 15,
+        "playerName": "Eckert",
+        "playerTeamCode": "STA",
+        "playerPosition": "FWD",
+        "playerPrice": 7.5,
+        "safety": "orange"
+      }
+    ],
+    "notes": "",
+    "label": "",
+    "createdAt": 1793976634513,
+    "updatedAt": 1793976654054
+  },
+  {
+    "id": "05825cc6-d27d-46f4-8d5d-a80f23b8654c",
     "clubCode": "BEV",
-    "opponentCode": "USG",
+    "opponentCode": "STA",
     "formationKey": "4-3-3",
     "slots": [
       {
@@ -630,7 +1062,7 @@ export const PREDICTED_LINEUPS = [
         "playerTeamCode": "BEV",
         "playerPosition": "DEF",
         "playerPrice": 5.5,
-        "safety": "darkgreen"
+        "safety": "green"
       },
       {
         "positionId": "RCB",
@@ -642,7 +1074,7 @@ export const PREDICTED_LINEUPS = [
         "playerTeamCode": "BEV",
         "playerPosition": "DEF",
         "playerPrice": 4.5,
-        "safety": "orange"
+        "safety": "green"
       },
       {
         "positionId": "RB",
@@ -666,7 +1098,7 @@ export const PREDICTED_LINEUPS = [
         "playerTeamCode": "BEV",
         "playerPosition": "MID",
         "playerPrice": 5,
-        "safety": "green"
+        "safety": "orange"
       },
       {
         "positionId": "CM",
@@ -678,7 +1110,7 @@ export const PREDICTED_LINEUPS = [
         "playerTeamCode": "BEV",
         "playerPosition": "MID",
         "playerPrice": 6.5,
-        "safety": "darkgreen"
+        "safety": "red"
       },
       {
         "positionId": "RCM",
@@ -698,10 +1130,10 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "FWD",
         "xPercent": 16,
         "yPercent": 21,
-        "playerName": "Margaritha",
+        "playerName": "Lokesa",
         "playerTeamCode": "BEV",
         "playerPosition": "MID",
-        "playerPrice": 6.5,
+        "playerPrice": 5,
         "safety": "darkgreen"
       },
       {
@@ -714,7 +1146,7 @@ export const PREDICTED_LINEUPS = [
         "playerTeamCode": "BEV",
         "playerPosition": "FWD",
         "playerPrice": 6,
-        "safety": "red"
+        "safety": "green"
       },
       {
         "positionId": "RW",
@@ -726,18 +1158,450 @@ export const PREDICTED_LINEUPS = [
         "playerTeamCode": "BEV",
         "playerPosition": "MID",
         "playerPrice": 5.5,
-        "safety": "orange"
+        "safety": "darkgreen"
       }
     ],
     "notes": "",
     "label": "",
-    "createdAt": 1793372366431,
-    "updatedAt": 1793372366431
+    "createdAt": 1793976634513,
+    "updatedAt": 1793977029004
   },
   {
-    "id": "6709bb6e-aeb8-421a-81a7-b6d1229d8039",
+    "id": "ee15ba14-c22e-418c-90cd-ff48af2691aa",
+    "clubCode": "LLV",
+    "opponentCode": "CER",
+    "formationKey": "3-5-2",
+    "slots": [
+      {
+        "positionId": "GK",
+        "role": "GK",
+        "broadPosition": "GK",
+        "xPercent": 50,
+        "yPercent": 85,
+        "playerName": "Peano",
+        "playerTeamCode": "LLV",
+        "playerPosition": "GK",
+        "playerPrice": 6.5,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "LCB",
+        "role": "LCB",
+        "broadPosition": "DEF",
+        "xPercent": 36,
+        "yPercent": 74,
+        "playerName": "Lamego",
+        "playerTeamCode": "LLV",
+        "playerPosition": "DEF",
+        "playerPrice": 5.5,
+        "safety": "orange"
+      },
+      {
+        "positionId": "CCB",
+        "role": "CCB",
+        "broadPosition": "DEF",
+        "xPercent": 50,
+        "yPercent": 76,
+        "playerName": "Gourville",
+        "playerTeamCode": "LLV",
+        "playerPosition": "DEF",
+        "playerPrice": 5,
+        "safety": "red"
+      },
+      {
+        "positionId": "RCB",
+        "role": "RCB",
+        "broadPosition": "DEF",
+        "xPercent": 64,
+        "yPercent": 74,
+        "playerName": "Faye",
+        "playerTeamCode": "LLV",
+        "playerPosition": "DEF",
+        "playerPrice": 5.5,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "LWB",
+        "role": "LWB",
+        "broadPosition": "DEF",
+        "xPercent": 16,
+        "yPercent": 61,
+        "playerName": "Lutonda",
+        "playerTeamCode": "LLV",
+        "playerPosition": "DEF",
+        "playerPrice": 5,
+        "safety": "green"
+      },
+      {
+        "positionId": "LCM",
+        "role": "LCM",
+        "broadPosition": "MID",
+        "xPercent": 33,
+        "yPercent": 46,
+        "playerName": "Coulibaly",
+        "playerTeamCode": "LLV",
+        "playerPosition": "MID",
+        "playerPrice": 5,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "CM",
+        "role": "CM",
+        "broadPosition": "MID",
+        "xPercent": 50,
+        "yPercent": 46,
+        "playerName": "Courcoul",
+        "playerTeamCode": "LLV",
+        "playerPosition": "MID",
+        "playerPrice": 4.5,
+        "safety": "orange"
+      },
+      {
+        "positionId": "RCM",
+        "role": "RCM",
+        "broadPosition": "MID",
+        "xPercent": 67,
+        "yPercent": 46,
+        "playerName": "Wade",
+        "playerTeamCode": "LLV",
+        "playerPosition": "MID",
+        "playerPrice": 6,
+        "safety": "orange"
+      },
+      {
+        "positionId": "RWB",
+        "role": "RWB",
+        "broadPosition": "DEF",
+        "xPercent": 84,
+        "yPercent": 61,
+        "playerName": "Gillot",
+        "playerTeamCode": "LLV",
+        "playerPosition": "DEF",
+        "playerPrice": 4.5,
+        "safety": "green"
+      },
+      {
+        "positionId": "LST",
+        "role": "LST",
+        "broadPosition": "FWD",
+        "xPercent": 28,
+        "yPercent": 15,
+        "playerName": "Gruber",
+        "playerTeamCode": "LLV",
+        "playerPosition": "FWD",
+        "playerPrice": 4,
+        "safety": "orange"
+      },
+      {
+        "positionId": "RST",
+        "role": "RST",
+        "broadPosition": "FWD",
+        "xPercent": 72,
+        "yPercent": 15,
+        "playerName": "Isah",
+        "playerTeamCode": "LLV",
+        "playerPosition": "FWD",
+        "playerPrice": 4.5,
+        "safety": "darkgreen"
+      }
+    ],
+    "notes": "",
+    "label": "",
+    "createdAt": 1793976634515,
+    "updatedAt": 1793976634515
+  },
+  {
+    "id": "0dc6f2f4-1095-4f95-9e8b-a7765c311a56",
+    "clubCode": "CER",
+    "opponentCode": "LLV",
+    "formationKey": "4-3-3",
+    "slots": [
+      {
+        "positionId": "GK",
+        "role": "GK",
+        "broadPosition": "GK",
+        "xPercent": 50,
+        "yPercent": 85,
+        "playerName": "Coucke",
+        "playerTeamCode": "CER",
+        "playerPosition": "GK",
+        "playerPrice": 5.5,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "LB",
+        "role": "LB",
+        "broadPosition": "DEF",
+        "xPercent": 16,
+        "yPercent": 71,
+        "playerName": "Magnee",
+        "playerTeamCode": "CER",
+        "playerPosition": "DEF",
+        "playerPrice": 6.5,
+        "safety": "orange"
+      },
+      {
+        "positionId": "LCB",
+        "role": "LCB",
+        "broadPosition": "DEF",
+        "xPercent": 36,
+        "yPercent": 74,
+        "playerName": "Caicedo",
+        "playerTeamCode": "CER",
+        "playerPosition": "DEF",
+        "playerPrice": 4,
+        "safety": "green"
+      },
+      {
+        "positionId": "RCB",
+        "role": "RCB",
+        "broadPosition": "DEF",
+        "xPercent": 64,
+        "yPercent": 74,
+        "playerName": "Kondo",
+        "playerTeamCode": "CER",
+        "playerPosition": "DEF",
+        "playerPrice": 5,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "RB",
+        "role": "RB",
+        "broadPosition": "DEF",
+        "xPercent": 84,
+        "yPercent": 71,
+        "playerName": "Diakite",
+        "playerTeamCode": "CER",
+        "playerPosition": "DEF",
+        "playerPrice": 5,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "LCM",
+        "role": "LCM",
+        "broadPosition": "MID",
+        "xPercent": 33,
+        "yPercent": 46,
+        "playerName": "Van der Bruggen",
+        "playerTeamCode": "CER",
+        "playerPosition": "MID",
+        "playerPrice": 7,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "CM",
+        "role": "CM",
+        "broadPosition": "MID",
+        "xPercent": 50,
+        "yPercent": 46,
+        "playerName": "Manneh",
+        "playerTeamCode": "CER",
+        "playerPosition": "MID",
+        "playerPrice": 5,
+        "safety": "green"
+      },
+      {
+        "positionId": "RCM",
+        "role": "RCM",
+        "broadPosition": "MID",
+        "xPercent": 67,
+        "yPercent": 46,
+        "playerName": "Le Roux",
+        "playerTeamCode": "CER",
+        "playerPosition": "MID",
+        "playerPrice": 5,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "LW",
+        "role": "LW",
+        "broadPosition": "FWD",
+        "xPercent": 16,
+        "yPercent": 21,
+        "playerName": "Erick",
+        "playerTeamCode": "CER",
+        "playerPosition": "MID",
+        "playerPrice": 6,
+        "safety": "red"
+      },
+      {
+        "positionId": "ST",
+        "role": "ST",
+        "broadPosition": "FWD",
+        "xPercent": 50,
+        "yPercent": 10,
+        "playerName": "Ngoura",
+        "playerTeamCode": "CER",
+        "playerPosition": "FWD",
+        "playerPrice": 6.5,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "RW",
+        "role": "RW",
+        "broadPosition": "FWD",
+        "xPercent": 84,
+        "yPercent": 21,
+        "playerName": "Akinsola",
+        "playerTeamCode": "CER",
+        "playerPosition": "MID",
+        "playerPrice": 5,
+        "safety": "darkgreen"
+      }
+    ],
+    "notes": "",
+    "label": "",
+    "createdAt": 1793976634516,
+    "updatedAt": 1793976634516
+  },
+  {
+    "id": "ebf5b1f2-11a6-4df5-825a-fee5a9d9568c",
+    "clubCode": "GNK",
+    "opponentCode": "USG",
+    "formationKey": "4-3-3",
+    "slots": [
+      {
+        "positionId": "GK",
+        "role": "GK",
+        "broadPosition": "GK",
+        "xPercent": 50,
+        "yPercent": 85,
+        "playerName": "Brughmans",
+        "playerTeamCode": "GNK",
+        "playerPosition": "GK",
+        "playerPrice": 6,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "LB",
+        "role": "LB",
+        "broadPosition": "DEF",
+        "xPercent": 16,
+        "yPercent": 71,
+        "playerName": "Kayembe",
+        "playerTeamCode": "GNK",
+        "playerPosition": "DEF",
+        "playerPrice": 7,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "LCB",
+        "role": "LCB",
+        "broadPosition": "DEF",
+        "xPercent": 36,
+        "yPercent": 74,
+        "playerName": "Kongolo",
+        "playerTeamCode": "GNK",
+        "playerPosition": "DEF",
+        "playerPrice": 5,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "RCB",
+        "role": "RCB",
+        "broadPosition": "DEF",
+        "xPercent": 64,
+        "yPercent": 74,
+        "playerName": "Smets",
+        "playerTeamCode": "GNK",
+        "playerPosition": "DEF",
+        "playerPrice": 7.5,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "RB",
+        "role": "RB",
+        "broadPosition": "DEF",
+        "xPercent": 84,
+        "yPercent": 71,
+        "playerName": "Amaro",
+        "playerTeamCode": "GNK",
+        "playerPosition": "DEF",
+        "playerPrice": 5.5,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "LCM",
+        "role": "LCM",
+        "broadPosition": "MID",
+        "xPercent": 33,
+        "yPercent": 46,
+        "playerName": "Heynen",
+        "playerTeamCode": "GNK",
+        "playerPosition": "MID",
+        "playerPrice": 8.5,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "CM",
+        "role": "CM",
+        "broadPosition": "MID",
+        "xPercent": 50,
+        "yPercent": 46,
+        "playerName": "Heymans",
+        "playerTeamCode": "GNK",
+        "playerPosition": "MID",
+        "playerPrice": 8.5,
+        "safety": "orange"
+      },
+      {
+        "positionId": "RCM",
+        "role": "RCM",
+        "broadPosition": "MID",
+        "xPercent": 67,
+        "yPercent": 46,
+        "playerName": "Tahirovic",
+        "playerTeamCode": "GNK",
+        "playerPosition": "MID",
+        "playerPrice": 6,
+        "safety": "green"
+      },
+      {
+        "positionId": "LW",
+        "role": "LW",
+        "broadPosition": "FWD",
+        "xPercent": 16,
+        "yPercent": 21,
+        "playerName": "Erenbjerg",
+        "playerTeamCode": "GNK",
+        "playerPosition": "MID",
+        "playerPrice": 8,
+        "safety": "orange"
+      },
+      {
+        "positionId": "ST",
+        "role": "ST",
+        "broadPosition": "FWD",
+        "xPercent": 50,
+        "yPercent": 10,
+        "playerName": "Durosinmi",
+        "playerTeamCode": "GNK",
+        "playerPosition": "FWD",
+        "playerPrice": 6.5,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "RW",
+        "role": "RW",
+        "broadPosition": "FWD",
+        "xPercent": 84,
+        "yPercent": 21,
+        "playerName": "Ito",
+        "playerTeamCode": "GNK",
+        "playerPosition": "MID",
+        "playerPrice": 7.5,
+        "safety": "darkgreen"
+      }
+    ],
+    "notes": "",
+    "label": "",
+    "createdAt": 1793976634517,
+    "updatedAt": 1793976634517
+  },
+  {
+    "id": "82024663-d1e0-44e8-ae3f-e0026fb829db",
     "clubCode": "USG",
-    "opponentCode": "BEV",
+    "opponentCode": "GNK",
     "formationKey": "3-5-2",
     "slots": [
       {
@@ -786,7 +1650,7 @@ export const PREDICTED_LINEUPS = [
         "playerTeamCode": "USG",
         "playerPosition": "DEF",
         "playerPrice": 4,
-        "safety": "red"
+        "safety": "orange"
       },
       {
         "positionId": "LWB",
@@ -810,7 +1674,7 @@ export const PREDICTED_LINEUPS = [
         "playerTeamCode": "USG",
         "playerPosition": "MID",
         "playerPrice": 9.5,
-        "safety": "red"
+        "safety": "green"
       },
       {
         "positionId": "CM",
@@ -822,7 +1686,7 @@ export const PREDICTED_LINEUPS = [
         "playerTeamCode": "USG",
         "playerPosition": "MID",
         "playerPrice": 6.5,
-        "safety": "darkgreen"
+        "safety": "green"
       },
       {
         "positionId": "RCM",
@@ -858,7 +1722,7 @@ export const PREDICTED_LINEUPS = [
         "playerTeamCode": "USG",
         "playerPosition": "MID",
         "playerPrice": 7.5,
-        "safety": "darkgreen"
+        "safety": "green"
       },
       {
         "positionId": "RST",
@@ -866,166 +1730,22 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "FWD",
         "xPercent": 72,
         "yPercent": 15,
-        "playerName": "Florucz",
+        "playerName": "Rodriguez",
         "playerTeamCode": "USG",
-        "playerPosition": "MID",
-        "playerPrice": 8.5,
-        "safety": "orange"
+        "playerPosition": "FWD",
+        "playerPrice": 6.5,
+        "safety": "red"
       }
     ],
     "notes": "",
     "label": "",
-    "createdAt": 1793372366431,
-    "updatedAt": 1793372389555
+    "createdAt": 1793976634518,
+    "updatedAt": 1793976634518
   },
   {
-    "id": "60e52b1d-9caf-41db-9dd7-34852431b155",
-    "clubCode": "CHA",
-    "opponentCode": "LLV",
-    "formationKey": "4-3-3",
-    "slots": [
-      {
-        "positionId": "GK",
-        "role": "GK",
-        "broadPosition": "GK",
-        "xPercent": 50,
-        "yPercent": 85,
-        "playerName": "Kone",
-        "playerTeamCode": "CHA",
-        "playerPosition": "GK",
-        "playerPrice": 5.5,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "LB",
-        "role": "LB",
-        "broadPosition": "DEF",
-        "xPercent": 16,
-        "yPercent": 71,
-        "playerName": "Nzita",
-        "playerTeamCode": "CHA",
-        "playerPosition": "DEF",
-        "playerPrice": 5.5,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "LCB",
-        "role": "LCB",
-        "broadPosition": "DEF",
-        "xPercent": 36,
-        "yPercent": 74,
-        "playerName": "Ousou",
-        "playerTeamCode": "CHA",
-        "playerPosition": "DEF",
-        "playerPrice": 6.5,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "RCB",
-        "role": "RCB",
-        "broadPosition": "DEF",
-        "xPercent": 64,
-        "yPercent": 74,
-        "playerName": "Keita",
-        "playerTeamCode": "CHA",
-        "playerPosition": "DEF",
-        "playerPrice": 6,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "RB",
-        "role": "RB",
-        "broadPosition": "DEF",
-        "xPercent": 84,
-        "yPercent": 71,
-        "playerName": "Van Den Kerkhof",
-        "playerTeamCode": "CHA",
-        "playerPosition": "DEF",
-        "playerPrice": 5.5,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "LCM",
-        "role": "LCM",
-        "broadPosition": "MID",
-        "xPercent": 33,
-        "yPercent": 46,
-        "playerName": "Boukamir A.",
-        "playerTeamCode": "CHA",
-        "playerPosition": "DEF",
-        "playerPrice": 4.5,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "CM",
-        "role": "CM",
-        "broadPosition": "MID",
-        "xPercent": 50,
-        "yPercent": 46,
-        "playerName": "Romsaas",
-        "playerTeamCode": "CHA",
-        "playerPosition": "FWD",
-        "playerPrice": 6.5,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "RCM",
-        "role": "RCM",
-        "broadPosition": "MID",
-        "xPercent": 67,
-        "yPercent": 46,
-        "playerName": "Khalifi",
-        "playerTeamCode": "CHA",
-        "playerPosition": "MID",
-        "playerPrice": 4.5,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "LW",
-        "role": "LW",
-        "broadPosition": "FWD",
-        "xPercent": 16,
-        "yPercent": 21,
-        "playerName": "Mbemba",
-        "playerTeamCode": "CHA",
-        "playerPosition": "FWD",
-        "playerPrice": 5,
-        "safety": "orange"
-      },
-      {
-        "positionId": "ST",
-        "role": "ST",
-        "broadPosition": "FWD",
-        "xPercent": 50,
-        "yPercent": 10,
-        "playerName": "Scheidler",
-        "playerTeamCode": "CHA",
-        "playerPosition": "FWD",
-        "playerPrice": 8.5,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "RW",
-        "role": "RW",
-        "broadPosition": "FWD",
-        "xPercent": 84,
-        "yPercent": 21,
-        "playerName": "Pflucke",
-        "playerTeamCode": "CHA",
-        "playerPosition": "MID",
-        "playerPrice": 7,
-        "safety": "darkgreen"
-      }
-    ],
-    "notes": "",
-    "label": "",
-    "createdAt": 1793372366431,
-    "updatedAt": 1793372366431
-  },
-  {
-    "id": "332d7ec6-a5eb-4c58-80a9-e6797b5071bf",
-    "clubCode": "LLV",
-    "opponentCode": "CHA",
+    "id": "58b09442-f24b-4495-8584-74a0f920f846",
+    "clubCode": "GNT",
+    "opponentCode": "KOR",
     "formationKey": "3-5-2",
     "slots": [
       {
@@ -1034,10 +1754,10 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "GK",
         "xPercent": 50,
         "yPercent": 85,
-        "playerName": "Peano",
-        "playerTeamCode": "LLV",
+        "playerName": "Roef",
+        "playerTeamCode": "GNT",
         "playerPosition": "GK",
-        "playerPrice": 6.5,
+        "playerPrice": 7,
         "safety": "darkgreen"
       },
       {
@@ -1046,11 +1766,11 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "DEF",
         "xPercent": 36,
         "yPercent": 74,
-        "playerName": "Lamego",
-        "playerTeamCode": "LLV",
+        "playerName": "Van der Heyden",
+        "playerTeamCode": "GNT",
         "playerPosition": "DEF",
         "playerPrice": 5.5,
-        "safety": "green"
+        "safety": "darkgreen"
       },
       {
         "positionId": "CCB",
@@ -1058,11 +1778,11 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "DEF",
         "xPercent": 50,
         "yPercent": 76,
-        "playerName": "Gourville",
-        "playerTeamCode": "LLV",
+        "playerName": "Paskotsi",
+        "playerTeamCode": "GNT",
         "playerPosition": "DEF",
-        "playerPrice": 5,
-        "safety": "green"
+        "playerPrice": 5.5,
+        "safety": "darkgreen"
       },
       {
         "positionId": "RCB",
@@ -1070,10 +1790,10 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "DEF",
         "xPercent": 64,
         "yPercent": 74,
-        "playerName": "Faye",
-        "playerTeamCode": "LLV",
+        "playerName": "Volckaert",
+        "playerTeamCode": "GNT",
         "playerPosition": "DEF",
-        "playerPrice": 5.5,
+        "playerPrice": 5,
         "safety": "darkgreen"
       },
       {
@@ -1082,10 +1802,10 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "DEF",
         "xPercent": 16,
         "yPercent": 61,
-        "playerName": "Lutonda",
-        "playerTeamCode": "LLV",
+        "playerName": "Araujo",
+        "playerTeamCode": "GNT",
         "playerPosition": "DEF",
-        "playerPrice": 5,
+        "playerPrice": 5.5,
         "safety": "darkgreen"
       },
       {
@@ -1094,11 +1814,11 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "MID",
         "xPercent": 33,
         "yPercent": 46,
-        "playerName": "Coulibaly",
-        "playerTeamCode": "LLV",
+        "playerName": "Delorge",
+        "playerTeamCode": "GNT",
         "playerPosition": "MID",
-        "playerPrice": 5,
-        "safety": "darkgreen"
+        "playerPrice": 7,
+        "safety": "orange"
       },
       {
         "positionId": "CM",
@@ -1106,11 +1826,11 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "MID",
         "xPercent": 50,
         "yPercent": 46,
-        "playerName": "Courcoul",
-        "playerTeamCode": "LLV",
+        "playerName": "Kadri",
+        "playerTeamCode": "GNT",
         "playerPosition": "MID",
-        "playerPrice": 4.5,
-        "safety": "darkgreen"
+        "playerPrice": 7,
+        "safety": "orange"
       },
       {
         "positionId": "RCM",
@@ -1118,11 +1838,11 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "MID",
         "xPercent": 67,
         "yPercent": 46,
-        "playerName": "Wade",
-        "playerTeamCode": "LLV",
+        "playerName": "De Vlieger",
+        "playerTeamCode": "GNT",
         "playerPosition": "MID",
         "playerPrice": 6,
-        "safety": "orange"
+        "safety": "darkgreen"
       },
       {
         "positionId": "RWB",
@@ -1130,11 +1850,11 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "DEF",
         "xPercent": 84,
         "yPercent": 61,
-        "playerName": "Gillot",
-        "playerTeamCode": "LLV",
-        "playerPosition": "DEF",
-        "playerPrice": 4.5,
-        "safety": "darkgreen"
+        "playerName": "Goore",
+        "playerTeamCode": "GNT",
+        "playerPosition": "FWD",
+        "playerPrice": 6.5,
+        "safety": "red"
       },
       {
         "positionId": "LST",
@@ -1142,10 +1862,10 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "FWD",
         "xPercent": 28,
         "yPercent": 15,
-        "playerName": "Isah",
-        "playerTeamCode": "LLV",
-        "playerPosition": "FWD",
-        "playerPrice": 4.5,
+        "playerName": "Sonko",
+        "playerTeamCode": "GNT",
+        "playerPosition": "MID",
+        "playerPrice": 6.5,
         "safety": "darkgreen"
       },
       {
@@ -1154,22 +1874,22 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "FWD",
         "xPercent": 72,
         "yPercent": 15,
-        "playerName": "Gruber",
-        "playerTeamCode": "LLV",
+        "playerName": "Vergara",
+        "playerTeamCode": "GNT",
         "playerPosition": "FWD",
-        "playerPrice": 4,
+        "playerPrice": 5.5,
         "safety": "orange"
       }
     ],
     "notes": "",
     "label": "",
-    "createdAt": 1793372366432,
-    "updatedAt": 1793372366432
+    "createdAt": 1793976634518,
+    "updatedAt": 1793976634518
   },
   {
-    "id": "813597d6-6f7e-46d3-b82d-608336398151",
-    "clubCode": "CLU",
-    "opponentCode": "ZWA",
+    "id": "1b0f5ddb-7496-4438-866c-9a42478e58fc",
+    "clubCode": "KOR",
+    "opponentCode": "GNT",
     "formationKey": "4-3-3",
     "slots": [
       {
@@ -1178,10 +1898,10 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "GK",
         "xPercent": 50,
         "yPercent": 85,
-        "playerName": "Sommer",
-        "playerTeamCode": "CLU",
+        "playerName": "Ilic",
+        "playerTeamCode": "KOR",
         "playerPosition": "GK",
-        "playerPrice": 8,
+        "playerPrice": 6,
         "safety": "darkgreen"
       },
       {
@@ -1190,10 +1910,10 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "DEF",
         "xPercent": 16,
         "yPercent": 71,
-        "playerName": "Seys",
-        "playerTeamCode": "CLU",
+        "playerName": "Andersson",
+        "playerTeamCode": "KOR",
         "playerPosition": "DEF",
-        "playerPrice": 7,
+        "playerPrice": 5,
         "safety": "darkgreen"
       },
       {
@@ -1202,11 +1922,11 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "DEF",
         "xPercent": 36,
         "yPercent": 74,
-        "playerName": "Spileers",
-        "playerTeamCode": "CLU",
+        "playerName": "Ndjeungoue",
+        "playerTeamCode": "KOR",
         "playerPosition": "DEF",
-        "playerPrice": 5.5,
-        "safety": "red"
+        "playerPrice": 5,
+        "safety": "green"
       },
       {
         "positionId": "RCB",
@@ -1214,10 +1934,10 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "DEF",
         "xPercent": 64,
         "yPercent": 74,
-        "playerName": "Mechele",
-        "playerTeamCode": "CLU",
+        "playerName": "Drouhin",
+        "playerTeamCode": "KOR",
         "playerPosition": "DEF",
-        "playerPrice": 8,
+        "playerPrice": 4.5,
         "safety": "darkgreen"
       },
       {
@@ -1226,11 +1946,11 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "DEF",
         "xPercent": 84,
         "yPercent": 71,
-        "playerName": "Sabbe",
-        "playerTeamCode": "CLU",
+        "playerName": "Fofana",
+        "playerTeamCode": "KOR",
         "playerPosition": "DEF",
-        "playerPrice": 6.5,
-        "safety": "darkgreen"
+        "playerPrice": 4,
+        "safety": "orange"
       },
       {
         "positionId": "LCM",
@@ -1238,10 +1958,10 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "MID",
         "xPercent": 33,
         "yPercent": 46,
-        "playerName": "Vanaken",
-        "playerTeamCode": "CLU",
+        "playerName": "Dejaegere",
+        "playerTeamCode": "KOR",
         "playerPosition": "MID",
-        "playerPrice": 11.5,
+        "playerPrice": 5,
         "safety": "darkgreen"
       },
       {
@@ -1250,11 +1970,11 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "MID",
         "xPercent": 50,
         "yPercent": 46,
-        "playerName": "Vetlesen",
-        "playerTeamCode": "CLU",
+        "playerName": "Philips",
+        "playerTeamCode": "KOR",
         "playerPosition": "MID",
-        "playerPrice": 7,
-        "safety": "orange"
+        "playerPrice": 4,
+        "safety": "red"
       },
       {
         "positionId": "RCM",
@@ -1262,11 +1982,11 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "MID",
         "xPercent": 67,
         "yPercent": 46,
-        "playerName": "Potts",
-        "playerTeamCode": "CLU",
-        "playerPosition": "MID",
-        "playerPrice": 7,
-        "safety": "darkgreen"
+        "playerName": "Murray-Campbell",
+        "playerTeamCode": "KOR",
+        "playerPosition": "DEF",
+        "playerPrice": 5.5,
+        "safety": "green"
       },
       {
         "positionId": "LW",
@@ -1274,11 +1994,11 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "FWD",
         "xPercent": 16,
         "yPercent": 21,
-        "playerName": "Virgili",
-        "playerTeamCode": "CLU",
-        "playerPosition": "MID",
-        "playerPrice": 5.5,
-        "safety": "green"
+        "playerName": "Ambrose",
+        "playerTeamCode": "KOR",
+        "playerPosition": "FWD",
+        "playerPrice": 7,
+        "safety": "darkgreen"
       },
       {
         "positionId": "ST",
@@ -1286,11 +2006,11 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "FWD",
         "xPercent": 50,
         "yPercent": 10,
-        "playerName": "Tresoldi",
-        "playerTeamCode": "CLU",
+        "playerName": "Koyalipou",
+        "playerTeamCode": "KOR",
         "playerPosition": "FWD",
-        "playerPrice": 10.5,
-        "safety": "darkgreen"
+        "playerPrice": 5.5,
+        "safety": "green"
       },
       {
         "positionId": "RW",
@@ -1298,166 +2018,22 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "FWD",
         "xPercent": 84,
         "yPercent": 21,
-        "playerName": "Forbs",
-        "playerTeamCode": "CLU",
+        "playerName": "Campbell",
+        "playerTeamCode": "KOR",
         "playerPosition": "MID",
-        "playerPrice": 8,
-        "safety": "darkgreen"
+        "playerPrice": 6,
+        "safety": "red"
       }
     ],
     "notes": "",
     "label": "",
-    "createdAt": 1793372366432,
-    "updatedAt": 1793372366432
+    "createdAt": 1793976634518,
+    "updatedAt": 1793976634518
   },
   {
-    "id": "4bca9c3a-3e64-4ebf-9898-dc8313c01239",
-    "clubCode": "ZWA",
-    "opponentCode": "CLU",
-    "formationKey": "4-2-3-1",
-    "slots": [
-      {
-        "positionId": "GK",
-        "role": "GK",
-        "broadPosition": "GK",
-        "xPercent": 50,
-        "yPercent": 85,
-        "playerName": "Gabriel",
-        "playerTeamCode": "ZWA",
-        "playerPosition": "GK",
-        "playerPrice": 5.5,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "LB",
-        "role": "LB",
-        "broadPosition": "DEF",
-        "xPercent": 16,
-        "yPercent": 71,
-        "playerName": "Mbodji",
-        "playerTeamCode": "ZWA",
-        "playerPosition": "DEF",
-        "playerPrice": 5.5,
-        "safety": "red"
-      },
-      {
-        "positionId": "LCB",
-        "role": "LCB",
-        "broadPosition": "DEF",
-        "xPercent": 36,
-        "yPercent": 74,
-        "playerName": "Kiilerich",
-        "playerTeamCode": "ZWA",
-        "playerPosition": "DEF",
-        "playerPrice": 5,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "RCB",
-        "role": "RCB",
-        "broadPosition": "DEF",
-        "xPercent": 64,
-        "yPercent": 74,
-        "playerName": "Lemoine",
-        "playerTeamCode": "ZWA",
-        "playerPosition": "DEF",
-        "playerPrice": 5,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "RB",
-        "role": "RB",
-        "broadPosition": "DEF",
-        "xPercent": 84,
-        "yPercent": 71,
-        "playerName": "De Jaegere",
-        "playerTeamCode": "ZWA",
-        "playerPosition": "DEF",
-        "playerPrice": 4.5,
-        "safety": "red"
-      },
-      {
-        "positionId": "LDM",
-        "role": "LDM",
-        "broadPosition": "MID",
-        "xPercent": 28,
-        "yPercent": 57,
-        "playerName": "Claes",
-        "playerTeamCode": "ZWA",
-        "playerPosition": "MID",
-        "playerPrice": 5,
-        "safety": "orange"
-      },
-      {
-        "positionId": "RDM",
-        "role": "RDM",
-        "broadPosition": "MID",
-        "xPercent": 72,
-        "yPercent": 57,
-        "playerName": "Lofolomo",
-        "playerTeamCode": "ZWA",
-        "playerPosition": "MID",
-        "playerPrice": 5,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "LAM",
-        "role": "LAM",
-        "broadPosition": "MID",
-        "xPercent": 28,
-        "yPercent": 33,
-        "playerName": "Atrok",
-        "playerTeamCode": "ZWA",
-        "playerPosition": "MID",
-        "playerPrice": 4.5,
-        "safety": "red"
-      },
-      {
-        "positionId": "CAM",
-        "role": "CAM",
-        "broadPosition": "MID",
-        "xPercent": 50,
-        "yPercent": 30,
-        "playerName": "Ake",
-        "playerTeamCode": "ZWA",
-        "playerPosition": "MID",
-        "playerPrice": 5.5,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "RAM",
-        "role": "RAM",
-        "broadPosition": "MID",
-        "xPercent": 72,
-        "yPercent": 33,
-        "playerName": "Niang",
-        "playerTeamCode": "ZWA",
-        "playerPosition": "MID",
-        "playerPrice": 7,
-        "safety": "red"
-      },
-      {
-        "positionId": "ST",
-        "role": "ST",
-        "broadPosition": "FWD",
-        "xPercent": 50,
-        "yPercent": 10,
-        "playerName": "Ementa",
-        "playerTeamCode": "ZWA",
-        "playerPosition": "FWD",
-        "playerPrice": 6.5,
-        "safety": "darkgreen"
-      }
-    ],
-    "notes": "",
-    "label": "",
-    "createdAt": 1793372366432,
-    "updatedAt": 1793372378701
-  },
-  {
-    "id": "69c24183-9365-4a7e-87c7-e0c65bf6c13c",
+    "id": "a3c50782-0ca0-4f27-9579-4c7674d6f7b3",
     "clubCode": "KVM",
-    "opponentCode": "GNK",
+    "opponentCode": "OHL",
     "formationKey": "3-5-2",
     "slots": [
       {
@@ -1466,11 +2042,11 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "GK",
         "xPercent": 50,
         "yPercent": 85,
-        "playerName": "Miras",
+        "playerName": "De Wolf",
         "playerTeamCode": "KVM",
         "playerPosition": "GK",
-        "playerPrice": 6.5,
-        "safety": "darkgreen"
+        "playerPrice": 5,
+        "safety": "orange"
       },
       {
         "positionId": "LCB",
@@ -1482,7 +2058,7 @@ export const PREDICTED_LINEUPS = [
         "playerTeamCode": "KVM",
         "playerPosition": "DEF",
         "playerPrice": 5.5,
-        "safety": "darkgreen"
+        "safety": "green"
       },
       {
         "positionId": "CCB",
@@ -1494,7 +2070,7 @@ export const PREDICTED_LINEUPS = [
         "playerTeamCode": "KVM",
         "playerPosition": "DEF",
         "playerPrice": 5,
-        "safety": "darkgreen"
+        "safety": "green"
       },
       {
         "positionId": "RCB",
@@ -1518,7 +2094,7 @@ export const PREDICTED_LINEUPS = [
         "playerTeamCode": "KVM",
         "playerPosition": "DEF",
         "playerPrice": 6,
-        "safety": "darkgreen"
+        "safety": "orange"
       },
       {
         "positionId": "LCM",
@@ -1566,163 +2142,19 @@ export const PREDICTED_LINEUPS = [
         "playerTeamCode": "KVM",
         "playerPosition": "MID",
         "playerPrice": 5,
-        "safety": "red"
+        "safety": "orange"
       },
       {
         "positionId": "LST",
         "role": "LST",
         "broadPosition": "FWD",
         "xPercent": 28,
-        "yPercent": 15,
-        "playerName": "Raman",
-        "playerTeamCode": "KVM",
-        "playerPosition": "FWD",
-        "playerPrice": 7.5,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "RST",
-        "role": "RST",
-        "broadPosition": "FWD",
-        "xPercent": 72,
         "yPercent": 15,
         "playerName": "Lohunanu-Mbasi",
         "playerTeamCode": "KVM",
         "playerPosition": "FWD",
         "playerPrice": 4,
         "safety": "orange"
-      }
-    ],
-    "notes": "",
-    "label": "",
-    "createdAt": 1793372366432,
-    "updatedAt": 1793372366432
-  },
-  {
-    "id": "12a48e2d-d75d-459d-9a03-adb9c8917c43",
-    "clubCode": "GNK",
-    "opponentCode": "KVM",
-    "formationKey": "4-4-2",
-    "slots": [
-      {
-        "positionId": "GK",
-        "role": "GK",
-        "broadPosition": "GK",
-        "xPercent": 50,
-        "yPercent": 85,
-        "playerName": "Brughmans",
-        "playerTeamCode": "GNK",
-        "playerPosition": "GK",
-        "playerPrice": 6,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "LB",
-        "role": "LB",
-        "broadPosition": "DEF",
-        "xPercent": 16,
-        "yPercent": 71,
-        "playerName": "Kayembe",
-        "playerTeamCode": "GNK",
-        "playerPosition": "DEF",
-        "playerPrice": 7,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "LCB",
-        "role": "LCB",
-        "broadPosition": "DEF",
-        "xPercent": 36,
-        "yPercent": 74,
-        "playerName": "Smets",
-        "playerTeamCode": "GNK",
-        "playerPosition": "DEF",
-        "playerPrice": 7.5,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "RCB",
-        "role": "RCB",
-        "broadPosition": "DEF",
-        "xPercent": 64,
-        "yPercent": 74,
-        "playerName": "Kongolo",
-        "playerTeamCode": "GNK",
-        "playerPosition": "DEF",
-        "playerPrice": 5,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "RB",
-        "role": "RB",
-        "broadPosition": "DEF",
-        "xPercent": 84,
-        "yPercent": 71,
-        "playerName": "Amaro",
-        "playerTeamCode": "GNK",
-        "playerPosition": "DEF",
-        "playerPrice": 5.5,
-        "safety": "green"
-      },
-      {
-        "positionId": "LM",
-        "role": "LM",
-        "broadPosition": "MID",
-        "xPercent": 16,
-        "yPercent": 46,
-        "playerName": "Adedeji-Sternberg",
-        "playerTeamCode": "GNK",
-        "playerPosition": "MID",
-        "playerPrice": 7.5,
-        "safety": "orange"
-      },
-      {
-        "positionId": "LCM",
-        "role": "LCM",
-        "broadPosition": "MID",
-        "xPercent": 33,
-        "yPercent": 46,
-        "playerName": "Tahirovic",
-        "playerTeamCode": "GNK",
-        "playerPosition": "MID",
-        "playerPrice": 6,
-        "safety": "green"
-      },
-      {
-        "positionId": "RCM",
-        "role": "RCM",
-        "broadPosition": "MID",
-        "xPercent": 67,
-        "yPercent": 46,
-        "playerName": "Heynen",
-        "playerTeamCode": "GNK",
-        "playerPosition": "MID",
-        "playerPrice": 8.5,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "RM",
-        "role": "RM",
-        "broadPosition": "MID",
-        "xPercent": 84,
-        "yPercent": 46,
-        "playerName": "Ito",
-        "playerTeamCode": "GNK",
-        "playerPosition": "MID",
-        "playerPrice": 7.5,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "LST",
-        "role": "LST",
-        "broadPosition": "FWD",
-        "xPercent": 28,
-        "yPercent": 15,
-        "playerName": "Durosinmi",
-        "playerTeamCode": "GNK",
-        "playerPosition": "FWD",
-        "playerPrice": 6.5,
-        "safety": "darkgreen"
       },
       {
         "positionId": "RST",
@@ -1730,455 +2162,23 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "FWD",
         "xPercent": 72,
         "yPercent": 15,
-        "playerName": "Bibout",
-        "playerTeamCode": "GNK",
+        "playerName": "Raman",
+        "playerTeamCode": "KVM",
         "playerPosition": "FWD",
-        "playerPrice": 6,
-        "safety": "red"
-      }
-    ],
-    "notes": "",
-    "label": "",
-    "createdAt": 1793372366432,
-    "updatedAt": 1793372366432
-  },
-  {
-    "id": "ecb208f9-0978-402c-b850-c32d72865ca8",
-    "clubCode": "LOM",
-    "opponentCode": "GNT",
-    "formationKey": "4-3-3",
-    "slots": [
-      {
-        "positionId": "GK",
-        "role": "GK",
-        "broadPosition": "GK",
-        "xPercent": 50,
-        "yPercent": 85,
-        "playerName": "Pieklak",
-        "playerTeamCode": "LOM",
-        "playerPosition": "GK",
-        "playerPrice": 5.5,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "LB",
-        "role": "LB",
-        "broadPosition": "DEF",
-        "xPercent": 16,
-        "yPercent": 71,
-        "playerName": "Adewoye",
-        "playerTeamCode": "LOM",
-        "playerPosition": "DEF",
-        "playerPrice": 4.5,
-        "safety": "green"
-      },
-      {
-        "positionId": "LCB",
-        "role": "LCB",
-        "broadPosition": "DEF",
-        "xPercent": 36,
-        "yPercent": 74,
-        "playerName": "Tolinsson",
-        "playerTeamCode": "LOM",
-        "playerPosition": "DEF",
-        "playerPrice": 5.5,
-        "safety": "red"
-      },
-      {
-        "positionId": "RCB",
-        "role": "RCB",
-        "broadPosition": "DEF",
-        "xPercent": 64,
-        "yPercent": 74,
-        "playerName": "Eyoma",
-        "playerTeamCode": "LOM",
-        "playerPosition": "DEF",
-        "playerPrice": 4.5,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "RB",
-        "role": "RB",
-        "broadPosition": "DEF",
-        "xPercent": 84,
-        "yPercent": 71,
-        "playerName": "Van Duiven",
-        "playerTeamCode": "LOM",
-        "playerPosition": "FWD",
-        "playerPrice": 5,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "LCM",
-        "role": "LCM",
-        "broadPosition": "MID",
-        "xPercent": 33,
-        "yPercent": 46,
-        "playerName": "Pelupessy",
-        "playerTeamCode": "LOM",
-        "playerPosition": "MID",
-        "playerPrice": 5,
-        "safety": "green"
-      },
-      {
-        "positionId": "CM",
-        "role": "CM",
-        "broadPosition": "MID",
-        "xPercent": 50,
-        "yPercent": 46,
-        "playerName": "Schoofs",
-        "playerTeamCode": "LOM",
-        "playerPosition": "MID",
-        "playerPrice": 6.5,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "RCM",
-        "role": "RCM",
-        "broadPosition": "MID",
-        "xPercent": 67,
-        "yPercent": 46,
-        "playerName": "Nypan",
-        "playerTeamCode": "LOM",
-        "playerPosition": "MID",
-        "playerPrice": 6.5,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "LW",
-        "role": "LW",
-        "broadPosition": "FWD",
-        "xPercent": 16,
-        "yPercent": 21,
-        "playerName": "Appuah",
-        "playerTeamCode": "LOM",
-        "playerPosition": "MID",
-        "playerPrice": 4,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "ST",
-        "role": "ST",
-        "broadPosition": "FWD",
-        "xPercent": 50,
-        "yPercent": 10,
-        "playerName": "Konadu",
-        "playerTeamCode": "LOM",
-        "playerPosition": "FWD",
-        "playerPrice": 5,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "RW",
-        "role": "RW",
-        "broadPosition": "FWD",
-        "xPercent": 84,
-        "yPercent": 21,
-        "playerName": "Talvitie",
-        "playerTeamCode": "LOM",
-        "playerPosition": "MID",
-        "playerPrice": 4,
-        "safety": "orange"
-      }
-    ],
-    "notes": "",
-    "label": "",
-    "createdAt": 1793372366432,
-    "updatedAt": 1793372366432
-  },
-  {
-    "id": "cb2c8ad2-e593-49d6-987e-68f4bc3c12b6",
-    "clubCode": "GNT",
-    "opponentCode": "LOM",
-    "formationKey": "3-5-2",
-    "slots": [
-      {
-        "positionId": "GK",
-        "role": "GK",
-        "broadPosition": "GK",
-        "xPercent": 50,
-        "yPercent": 85,
-        "playerName": "Roef",
-        "playerTeamCode": "GNT",
-        "playerPosition": "GK",
-        "playerPrice": 7,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "LCB",
-        "role": "LCB",
-        "broadPosition": "DEF",
-        "xPercent": 36,
-        "yPercent": 74,
-        "playerName": "Van der Heyden",
-        "playerTeamCode": "GNT",
-        "playerPosition": "DEF",
-        "playerPrice": 5.5,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "CCB",
-        "role": "CCB",
-        "broadPosition": "DEF",
-        "xPercent": 50,
-        "yPercent": 76,
-        "playerName": "Burgess",
-        "playerTeamCode": "GNT",
-        "playerPosition": "DEF",
-        "playerPrice": 7,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "RCB",
-        "role": "RCB",
-        "broadPosition": "DEF",
-        "xPercent": 64,
-        "yPercent": 74,
-        "playerName": "Paskotsi",
-        "playerTeamCode": "GNT",
-        "playerPosition": "DEF",
-        "playerPrice": 5.5,
-        "safety": "green"
-      },
-      {
-        "positionId": "LWB",
-        "role": "LWB",
-        "broadPosition": "DEF",
-        "xPercent": 16,
-        "yPercent": 61,
-        "playerName": "Araujo",
-        "playerTeamCode": "GNT",
-        "playerPosition": "DEF",
-        "playerPrice": 5.5,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "LCM",
-        "role": "LCM",
-        "broadPosition": "MID",
-        "xPercent": 33,
-        "yPercent": 46,
-        "playerName": "Delorge",
-        "playerTeamCode": "GNT",
-        "playerPosition": "MID",
-        "playerPrice": 7,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "CM",
-        "role": "CM",
-        "broadPosition": "MID",
-        "xPercent": 50,
-        "yPercent": 46,
-        "playerName": "Kadri",
-        "playerTeamCode": "GNT",
-        "playerPosition": "MID",
-        "playerPrice": 7,
-        "safety": "green"
-      },
-      {
-        "positionId": "RCM",
-        "role": "RCM",
-        "broadPosition": "MID",
-        "xPercent": 67,
-        "yPercent": 46,
-        "playerName": "De Vlieger",
-        "playerTeamCode": "GNT",
-        "playerPosition": "MID",
-        "playerPrice": 6,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "RWB",
-        "role": "RWB",
-        "broadPosition": "DEF",
-        "xPercent": 84,
-        "yPercent": 61,
-        "playerName": "Goore",
-        "playerTeamCode": "GNT",
-        "playerPosition": "FWD",
-        "playerPrice": 6.5,
-        "safety": "green"
-      },
-      {
-        "positionId": "LST",
-        "role": "LST",
-        "broadPosition": "FWD",
-        "xPercent": 28,
-        "yPercent": 15,
-        "playerName": "Sonko",
-        "playerTeamCode": "GNT",
-        "playerPosition": "MID",
-        "playerPrice": 6.5,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "RST",
-        "role": "RST",
-        "broadPosition": "FWD",
-        "xPercent": 72,
-        "yPercent": 15,
-        "playerName": "Cisse",
-        "playerTeamCode": "GNT",
-        "playerPosition": "FWD",
-        "playerPrice": 5.5,
+        "playerPrice": 7.5,
         "safety": "darkgreen"
       }
     ],
     "notes": "",
     "label": "",
-    "createdAt": 1793372366432,
-    "updatedAt": 1793372723793
+    "createdAt": 1793976634519,
+    "updatedAt": 1793976655996
   },
   {
-    "id": "79dbbb73-210b-4085-8d21-5e819ad55e27",
-    "clubCode": "STV",
-    "opponentCode": "OHL",
-    "formationKey": "4-3-3",
-    "slots": [
-      {
-        "positionId": "GK",
-        "role": "GK",
-        "broadPosition": "GK",
-        "xPercent": 50,
-        "yPercent": 85,
-        "playerName": "Kokubo",
-        "playerTeamCode": "STV",
-        "playerPosition": "GK",
-        "playerPrice": 6.5,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "LB",
-        "role": "LB",
-        "broadPosition": "DEF",
-        "xPercent": 16,
-        "yPercent": 71,
-        "playerName": "Pupe",
-        "playerTeamCode": "STV",
-        "playerPosition": "DEF",
-        "playerPrice": 5.5,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "LCB",
-        "role": "LCB",
-        "broadPosition": "DEF",
-        "xPercent": 36,
-        "yPercent": 74,
-        "playerName": "Musliu",
-        "playerTeamCode": "STV",
-        "playerPosition": "DEF",
-        "playerPrice": 6,
-        "safety": "orange"
-      },
-      {
-        "positionId": "RCB",
-        "role": "RCB",
-        "broadPosition": "DEF",
-        "xPercent": 64,
-        "yPercent": 74,
-        "playerName": "Taniguchi",
-        "playerTeamCode": "STV",
-        "playerPosition": "DEF",
-        "playerPrice": 6,
-        "safety": "green"
-      },
-      {
-        "positionId": "RB",
-        "role": "RB",
-        "broadPosition": "DEF",
-        "xPercent": 84,
-        "yPercent": 71,
-        "playerName": "Hata",
-        "playerTeamCode": "STV",
-        "playerPosition": "DEF",
-        "playerPrice": 5.5,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "LCM",
-        "role": "LCM",
-        "broadPosition": "MID",
-        "xPercent": 33,
-        "yPercent": 46,
-        "playerName": "Merlen",
-        "playerTeamCode": "STV",
-        "playerPosition": "MID",
-        "playerPrice": 5.5,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "CM",
-        "role": "CM",
-        "broadPosition": "MID",
-        "xPercent": 50,
-        "yPercent": 46,
-        "playerName": "Araki",
-        "playerTeamCode": "STV",
-        "playerPosition": "MID",
-        "playerPrice": 5.5,
-        "safety": "red"
-      },
-      {
-        "positionId": "RCM",
-        "role": "RCM",
-        "broadPosition": "MID",
-        "xPercent": 67,
-        "yPercent": 46,
-        "playerName": "Sissako",
-        "playerTeamCode": "STV",
-        "playerPosition": "MID",
-        "playerPrice": 6.5,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "LW",
-        "role": "LW",
-        "broadPosition": "FWD",
-        "xPercent": 16,
-        "yPercent": 21,
-        "playerName": "Sebaoui",
-        "playerTeamCode": "STV",
-        "playerPosition": "MID",
-        "playerPrice": 8,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "ST",
-        "role": "ST",
-        "broadPosition": "FWD",
-        "xPercent": 50,
-        "yPercent": 10,
-        "playerName": "Bazdar",
-        "playerTeamCode": "STV",
-        "playerPosition": "FWD",
-        "playerPrice": 5.5,
-        "safety": "orange"
-      },
-      {
-        "positionId": "RW",
-        "role": "RW",
-        "broadPosition": "FWD",
-        "xPercent": 84,
-        "yPercent": 21,
-        "playerName": "Mbuku",
-        "playerTeamCode": "STV",
-        "playerPosition": "MID",
-        "playerPrice": 5.5,
-        "safety": "red"
-      }
-    ],
-    "notes": "",
-    "label": "",
-    "createdAt": 1793372366432,
-    "updatedAt": 1793372366432
-  },
-  {
-    "id": "ae8b4d00-6fed-4bc2-be7a-69f995173123",
+    "id": "e72ad05b-239e-4e94-8285-a39c5e95e1c6",
     "clubCode": "OHL",
-    "opponentCode": "STV",
-    "formationKey": "3-5-2",
+    "opponentCode": "KVM",
+    "formationKey": "3-4-3",
     "slots": [
       {
         "positionId": "GK",
@@ -2229,46 +2229,22 @@ export const PREDICTED_LINEUPS = [
         "safety": "green"
       },
       {
-        "positionId": "LWB",
-        "role": "LWB",
-        "broadPosition": "DEF",
+        "positionId": "LM",
+        "role": "LM",
+        "broadPosition": "MID",
         "xPercent": 16,
-        "yPercent": 61,
+        "yPercent": 46,
         "playerName": "Ogiwara",
         "playerTeamCode": "OHL",
         "playerPosition": "DEF",
         "playerPrice": 5,
-        "safety": "orange"
+        "safety": "green"
       },
       {
         "positionId": "LCM",
         "role": "LCM",
         "broadPosition": "MID",
         "xPercent": 33,
-        "yPercent": 46,
-        "playerName": "Schrijvers",
-        "playerTeamCode": "OHL",
-        "playerPosition": "MID",
-        "playerPrice": 8,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "CM",
-        "role": "CM",
-        "broadPosition": "MID",
-        "xPercent": 50,
-        "yPercent": 46,
-        "playerName": "Balikwisha",
-        "playerTeamCode": "OHL",
-        "playerPosition": "MID",
-        "playerPrice": 7,
-        "safety": "green"
-      },
-      {
-        "positionId": "RCM",
-        "role": "RCM",
-        "broadPosition": "MID",
-        "xPercent": 67,
         "yPercent": 46,
         "playerName": "George",
         "playerTeamCode": "OHL",
@@ -2277,135 +2253,15 @@ export const PREDICTED_LINEUPS = [
         "safety": "darkgreen"
       },
       {
-        "positionId": "RWB",
-        "role": "RWB",
-        "broadPosition": "DEF",
-        "xPercent": 84,
-        "yPercent": 61,
-        "playerName": "Opoku",
-        "playerTeamCode": "OHL",
-        "playerPosition": "DEF",
-        "playerPrice": 4.5,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "LST",
-        "role": "LST",
-        "broadPosition": "FWD",
-        "xPercent": 28,
-        "yPercent": 15,
-        "playerName": "Mirisola",
-        "playerTeamCode": "OHL",
-        "playerPosition": "FWD",
-        "playerPrice": 6,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "RST",
-        "role": "RST",
-        "broadPosition": "FWD",
-        "xPercent": 72,
-        "yPercent": 15,
-        "playerName": "Addai",
-        "playerTeamCode": "OHL",
-        "playerPosition": "MID",
-        "playerPrice": 5.5,
-        "safety": "red"
-      }
-    ],
-    "notes": "",
-    "label": "",
-    "createdAt": 1793372366432,
-    "updatedAt": 1793372366432
-  },
-  {
-    "id": "cf3bb4d2-237b-4114-a43a-4cb56a3715ba",
-    "clubCode": "STA",
-    "opponentCode": "KOR",
-    "formationKey": "3-4-3",
-    "slots": [
-      {
-        "positionId": "GK",
-        "role": "GK",
-        "broadPosition": "GK",
-        "xPercent": 50,
-        "yPercent": 85,
-        "playerName": "Epolo",
-        "playerTeamCode": "STA",
-        "playerPosition": "GK",
-        "playerPrice": 6,
-        "safety": "red"
-      },
-      {
-        "positionId": "LCB",
-        "role": "LCB",
-        "broadPosition": "DEF",
-        "xPercent": 36,
-        "yPercent": 74,
-        "playerName": "Lawrence",
-        "playerTeamCode": "STA",
-        "playerPosition": "DEF",
-        "playerPrice": 5.5,
-        "safety": "red"
-      },
-      {
-        "positionId": "CCB",
-        "role": "CCB",
-        "broadPosition": "DEF",
-        "xPercent": 50,
-        "yPercent": 76,
-        "playerName": "Hautekiet",
-        "playerTeamCode": "STA",
-        "playerPosition": "DEF",
-        "playerPrice": 6,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "RCB",
-        "role": "RCB",
-        "broadPosition": "DEF",
-        "xPercent": 64,
-        "yPercent": 74,
-        "playerName": "Karamoko",
-        "playerTeamCode": "STA",
-        "playerPosition": "MID",
-        "playerPrice": 6.5,
-        "safety": "green"
-      },
-      {
-        "positionId": "LM",
-        "role": "LM",
-        "broadPosition": "MID",
-        "xPercent": 16,
-        "yPercent": 46,
-        "playerName": "Mortensen",
-        "playerTeamCode": "STA",
-        "playerPosition": "DEF",
-        "playerPrice": 5,
-        "safety": "red"
-      },
-      {
-        "positionId": "LCM",
-        "role": "LCM",
-        "broadPosition": "MID",
-        "xPercent": 33,
-        "yPercent": 46,
-        "playerName": "Touzghar",
-        "playerTeamCode": "STA",
-        "playerPosition": "MID",
-        "playerPrice": 5.5,
-        "safety": "red"
-      },
-      {
         "positionId": "RCM",
         "role": "RCM",
         "broadPosition": "MID",
         "xPercent": 67,
         "yPercent": 46,
-        "playerName": "Trouillet",
-        "playerTeamCode": "STA",
+        "playerName": "Schrijvers",
+        "playerTeamCode": "OHL",
         "playerPosition": "MID",
-        "playerPrice": 4.5,
+        "playerPrice": 8,
         "safety": "darkgreen"
       },
       {
@@ -2414,9 +2270,153 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "MID",
         "xPercent": 84,
         "yPercent": 46,
-        "playerName": "Fossey",
-        "playerTeamCode": "STA",
+        "playerName": "Opoku",
+        "playerTeamCode": "OHL",
         "playerPosition": "DEF",
+        "playerPrice": 4.5,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "LW",
+        "role": "LW",
+        "broadPosition": "FWD",
+        "xPercent": 16,
+        "yPercent": 21,
+        "playerName": "Balikwisha",
+        "playerTeamCode": "OHL",
+        "playerPosition": "MID",
+        "playerPrice": 7,
+        "safety": "green"
+      },
+      {
+        "positionId": "ST",
+        "role": "ST",
+        "broadPosition": "FWD",
+        "xPercent": 50,
+        "yPercent": 10,
+        "playerName": "Mirisola",
+        "playerTeamCode": "OHL",
+        "playerPosition": "FWD",
+        "playerPrice": 6,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "RW",
+        "role": "RW",
+        "broadPosition": "FWD",
+        "xPercent": 84,
+        "yPercent": 21,
+        "playerName": "Addai",
+        "playerTeamCode": "OHL",
+        "playerPosition": "MID",
+        "playerPrice": 5.5,
+        "safety": "green"
+      }
+    ],
+    "notes": "",
+    "label": "",
+    "createdAt": 1793976634519,
+    "updatedAt": 1793976634519
+  },
+  {
+    "id": "8a4a9dee-cc11-4100-83ff-10ae32445871",
+    "clubCode": "STV",
+    "opponentCode": "ZWA",
+    "formationKey": "4-3-3",
+    "slots": [
+      {
+        "positionId": "GK",
+        "role": "GK",
+        "broadPosition": "GK",
+        "xPercent": 50,
+        "yPercent": 85,
+        "playerName": "Kokubo",
+        "playerTeamCode": "STV",
+        "playerPosition": "GK",
+        "playerPrice": 6.5,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "LB",
+        "role": "LB",
+        "broadPosition": "DEF",
+        "xPercent": 16,
+        "yPercent": 71,
+        "playerName": "Hata",
+        "playerTeamCode": "STV",
+        "playerPosition": "DEF",
+        "playerPrice": 5.5,
+        "safety": "red"
+      },
+      {
+        "positionId": "LCB",
+        "role": "LCB",
+        "broadPosition": "DEF",
+        "xPercent": 36,
+        "yPercent": 74,
+        "playerName": "Musliu",
+        "playerTeamCode": "STV",
+        "playerPosition": "DEF",
+        "playerPrice": 6,
+        "safety": "green"
+      },
+      {
+        "positionId": "RCB",
+        "role": "RCB",
+        "broadPosition": "DEF",
+        "xPercent": 64,
+        "yPercent": 74,
+        "playerName": "Taniguchi",
+        "playerTeamCode": "STV",
+        "playerPosition": "DEF",
+        "playerPrice": 6,
+        "safety": "green"
+      },
+      {
+        "positionId": "RB",
+        "role": "RB",
+        "broadPosition": "DEF",
+        "xPercent": 84,
+        "yPercent": 71,
+        "playerName": "Vanwesemael",
+        "playerTeamCode": "STV",
+        "playerPosition": "DEF",
+        "playerPrice": 5.5,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "LCM",
+        "role": "LCM",
+        "broadPosition": "MID",
+        "xPercent": 33,
+        "yPercent": 46,
+        "playerName": "Ishiwatari",
+        "playerTeamCode": "STV",
+        "playerPosition": "MID",
+        "playerPrice": 4.5,
+        "safety": "green"
+      },
+      {
+        "positionId": "CM",
+        "role": "CM",
+        "broadPosition": "MID",
+        "xPercent": 50,
+        "yPercent": 46,
+        "playerName": "Merlen",
+        "playerTeamCode": "STV",
+        "playerPosition": "MID",
+        "playerPrice": 5.5,
+        "safety": "red"
+      },
+      {
+        "positionId": "RCM",
+        "role": "RCM",
+        "broadPosition": "MID",
+        "xPercent": 67,
+        "yPercent": 46,
+        "playerName": "Sissako",
+        "playerTeamCode": "STV",
+        "playerPosition": "MID",
         "playerPrice": 6.5,
         "safety": "darkgreen"
       },
@@ -2426,11 +2426,11 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "FWD",
         "xPercent": 16,
         "yPercent": 21,
-        "playerName": "Abid",
-        "playerTeamCode": "STA",
+        "playerName": "Sebaoui",
+        "playerTeamCode": "STV",
         "playerPosition": "MID",
-        "playerPrice": 7,
-        "safety": "green"
+        "playerPrice": 8,
+        "safety": "darkgreen"
       },
       {
         "positionId": "ST",
@@ -2438,11 +2438,11 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "FWD",
         "xPercent": 50,
         "yPercent": 10,
-        "playerName": "Eckert",
-        "playerTeamCode": "STA",
+        "playerName": "Bazdar",
+        "playerTeamCode": "STV",
         "playerPosition": "FWD",
-        "playerPrice": 7.5,
-        "safety": "orange"
+        "playerPrice": 5.5,
+        "safety": "red"
       },
       {
         "positionId": "RW",
@@ -2450,23 +2450,23 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "FWD",
         "xPercent": 84,
         "yPercent": 21,
-        "playerName": "Drammeh",
-        "playerTeamCode": "STA",
-        "playerPosition": "FWD",
-        "playerPrice": 5.5,
-        "safety": "orange"
+        "playerName": "Muja",
+        "playerTeamCode": "STV",
+        "playerPosition": "MID",
+        "playerPrice": 6,
+        "safety": "red"
       }
     ],
     "notes": "",
     "label": "",
-    "createdAt": 1793372366433,
-    "updatedAt": 1793372388683
+    "createdAt": 1793976634520,
+    "updatedAt": 1793976634520
   },
   {
-    "id": "52ef7b5f-8743-4c01-887f-8201b137f284",
-    "clubCode": "KOR",
-    "opponentCode": "STA",
-    "formationKey": "4-3-3",
+    "id": "2bc7db6f-0973-4096-a046-5ffcbdfd28ba",
+    "clubCode": "ZWA",
+    "opponentCode": "STV",
+    "formationKey": "4-2-3-1",
     "slots": [
       {
         "positionId": "GK",
@@ -2474,11 +2474,11 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "GK",
         "xPercent": 50,
         "yPercent": 85,
-        "playerName": "Ilic",
-        "playerTeamCode": "KOR",
+        "playerName": "Gabriel",
+        "playerTeamCode": "ZWA",
         "playerPosition": "GK",
-        "playerPrice": 6,
-        "safety": "red"
+        "playerPrice": 5.5,
+        "safety": "darkgreen"
       },
       {
         "positionId": "LB",
@@ -2486,11 +2486,11 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "DEF",
         "xPercent": 16,
         "yPercent": 71,
-        "playerName": "Andersson",
-        "playerTeamCode": "KOR",
+        "playerName": "Cappelle",
+        "playerTeamCode": "ZWA",
         "playerPosition": "DEF",
         "playerPrice": 5,
-        "safety": "darkgreen"
+        "safety": "orange"
       },
       {
         "positionId": "LCB",
@@ -2498,11 +2498,11 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "DEF",
         "xPercent": 36,
         "yPercent": 74,
-        "playerName": "Murray-Campbell",
-        "playerTeamCode": "KOR",
+        "playerName": "Kiilerich",
+        "playerTeamCode": "ZWA",
         "playerPosition": "DEF",
-        "playerPrice": 5.5,
-        "safety": "orange"
+        "playerPrice": 5,
+        "safety": "darkgreen"
       },
       {
         "positionId": "RCB",
@@ -2510,11 +2510,11 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "DEF",
         "xPercent": 64,
         "yPercent": 74,
-        "playerName": "Drouhin",
-        "playerTeamCode": "KOR",
+        "playerName": "Lemoine",
+        "playerTeamCode": "ZWA",
         "playerPosition": "DEF",
-        "playerPrice": 4.5,
-        "safety": "green"
+        "playerPrice": 5,
+        "safety": "red"
       },
       {
         "positionId": "RB",
@@ -2522,59 +2522,71 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "DEF",
         "xPercent": 84,
         "yPercent": 71,
-        "playerName": "Kohon",
-        "playerTeamCode": "KOR",
-        "playerPosition": "DEF",
-        "playerPrice": 4.5,
-        "safety": "darkgreen"
+        "playerName": "Tangala",
+        "playerTeamCode": "ZWA",
+        "playerPosition": "MID",
+        "playerPrice": 4,
+        "safety": "orange"
       },
       {
-        "positionId": "LCM",
-        "role": "LCM",
+        "positionId": "LDM",
+        "role": "LDM",
         "broadPosition": "MID",
-        "xPercent": 33,
-        "yPercent": 46,
-        "playerName": "Roche",
-        "playerTeamCode": "KOR",
+        "xPercent": 28,
+        "yPercent": 57,
+        "playerName": "Lofolomo",
+        "playerTeamCode": "ZWA",
         "playerPosition": "MID",
         "playerPrice": 5,
         "safety": "orange"
       },
       {
-        "positionId": "CM",
-        "role": "CM",
+        "positionId": "RDM",
+        "role": "RDM",
+        "broadPosition": "MID",
+        "xPercent": 72,
+        "yPercent": 57,
+        "playerName": "Claes",
+        "playerTeamCode": "ZWA",
+        "playerPosition": "MID",
+        "playerPrice": 5,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "LAM",
+        "role": "LAM",
+        "broadPosition": "MID",
+        "xPercent": 28,
+        "yPercent": 33,
+        "playerName": "Hedl",
+        "playerTeamCode": "ZWA",
+        "playerPosition": "FWD",
+        "playerPrice": 6,
+        "safety": "darkgreen"
+      },
+      {
+        "positionId": "CAM",
+        "role": "CAM",
         "broadPosition": "MID",
         "xPercent": 50,
-        "yPercent": 46,
-        "playerName": "Masui",
-        "playerTeamCode": "KOR",
+        "yPercent": 30,
+        "playerName": "Ake",
+        "playerTeamCode": "ZWA",
+        "playerPosition": "MID",
+        "playerPrice": 5.5,
+        "safety": "orange"
+      },
+      {
+        "positionId": "RAM",
+        "role": "RAM",
+        "broadPosition": "MID",
+        "xPercent": 72,
+        "yPercent": 33,
+        "playerName": "Mbaye",
+        "playerTeamCode": "ZWA",
         "playerPosition": "MID",
         "playerPrice": 5,
         "safety": "red"
-      },
-      {
-        "positionId": "RCM",
-        "role": "RCM",
-        "broadPosition": "MID",
-        "xPercent": 67,
-        "yPercent": 46,
-        "playerName": "Dejaegere",
-        "playerTeamCode": "KOR",
-        "playerPosition": "MID",
-        "playerPrice": 5,
-        "safety": "darkgreen"
-      },
-      {
-        "positionId": "LW",
-        "role": "LW",
-        "broadPosition": "FWD",
-        "xPercent": 16,
-        "yPercent": 21,
-        "playerName": "Ambrose",
-        "playerTeamCode": "KOR",
-        "playerPosition": "FWD",
-        "playerPrice": 7,
-        "safety": "darkgreen"
       },
       {
         "positionId": "ST",
@@ -2582,28 +2594,16 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "FWD",
         "xPercent": 50,
         "yPercent": 10,
-        "playerName": "Koyalipou",
-        "playerTeamCode": "KOR",
+        "playerName": "Ementa",
+        "playerTeamCode": "ZWA",
         "playerPosition": "FWD",
-        "playerPrice": 5.5,
-        "safety": "orange"
-      },
-      {
-        "positionId": "RW",
-        "role": "RW",
-        "broadPosition": "FWD",
-        "xPercent": 84,
-        "yPercent": 21,
-        "playerName": "Van Landschoot",
-        "playerTeamCode": "KOR",
-        "playerPosition": "MID",
-        "playerPrice": 5.5,
-        "safety": "orange"
+        "playerPrice": 6.5,
+        "safety": "darkgreen"
       }
     ],
     "notes": "",
     "label": "",
-    "createdAt": 1793372366433,
-    "updatedAt": 1793372366433
+    "createdAt": 1793976634520,
+    "updatedAt": 1793977021747
   }
 ];
