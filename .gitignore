@@ -1,2 +1,8 @@
 node_modules/
 dist/
+
+# Geheime sleutels en lokale Vercel-instellingen: nooit naar GitHub
+.env
+.env.*
+!.env.example
+.vercel
