@@ -1,0 +1,44 @@
+/* Knop (spec §5.3). Max. één primary per scherm. */
+.ui-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--s-2);
+  height: 32px; padding: 0 var(--s-3);
+  border: 1px solid transparent; border-radius: var(--r-1);
+  background: transparent; color: var(--text-1);
+  font: 600 var(--fs-ui)/var(--lh-ui) var(--font-ui);
+  white-space: nowrap; cursor: pointer; text-decoration: none;
+  transition: background-color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.ui-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+.ui-btn:disabled, .ui-btn[aria-disabled="true"] { color: var(--text-4); cursor: default; }
+
+.ui-btn--primary { background: var(--accent); color: var(--accent-ink); }
+.ui-btn--primary:disabled { background: var(--ink-2); color: var(--text-4); }
+
+.ui-btn--secondary { border-color: var(--line-strong); color: var(--text-1); }
+.ui-btn--ghost { color: var(--text-2); padding: 0 var(--s-2); }
+.ui-btn--danger { border-color: var(--danger-line); color: var(--danger); }
+.ui-btn--icon { width: 32px; padding: 0; border-color: var(--line-strong); color: var(--text-2); }
+.ui-btn--icon.ui-btn--bare { border-color: transparent; }
+
+/* Geselecteerd/actief (bv. booster aan, vergelijkmodus aan) = omgekeerd. */
+.ui-btn[aria-pressed="true"] { background: var(--invert-bg); color: var(--invert-text); border-color: var(--invert-bg); }
+
+.ui-btn--sm { height: 24px; padding: 0 var(--s-2); font-size: var(--fs-meta); }
+.ui-btn--sm.ui-btn--icon { width: 24px; padding: 0; }
+.ui-btn--block { width: 100%; }
+
+@media (hover: hover) and (pointer: fine) {
+  .ui-btn--secondary:not(:disabled):hover, .ui-btn--icon:not(:disabled):hover { background: var(--ink-2); color: var(--text-1); }
+  .ui-btn--ghost:not(:disabled):hover { color: var(--text-1); }
+  .ui-btn--danger:not(:disabled):hover { background: var(--danger-wash); }
+  .ui-btn--primary:not(:disabled):hover { background: var(--accent-hover); }
+}
+.ui-btn:not(:disabled):active { background-color: var(--ink-3); }
+.ui-btn--primary:not(:disabled):active { background: var(--accent); }
+
+@media (pointer: coarse) {
+  .ui-btn { height: 40px; }
+  .ui-btn--icon { width: 44px; height: 44px; }
+  .ui-btn--sm { height: 32px; }
+  .ui-btn--sm.ui-btn--icon { width: 44px; height: 44px; }
+}

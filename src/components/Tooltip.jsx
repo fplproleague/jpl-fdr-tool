@@ -4,6 +4,7 @@
 
 import { useState, useRef, useId, useCallback, useEffect, memo } from 'react';
 import { createPortal } from 'react-dom';
+import '../ui/Tooltip.css';
 
 // Gedeelde interactielogica voor fixture-tooltips: hover op desktop, tap-toggle + tap-buiten-sluit op mobiel.
 // Positie wordt in viewport-coördinaten bijgehouden zodat de bubble (via een portal) nooit wordt

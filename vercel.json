@@ -1,24 +1,86 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "regions": ["fra1"],
+  "regions": [
+    "fra1"
+  ],
+  "redirects": [
+    {
+      "source": "/price-changes",
+      "destination": "/spelers",
+      "permanent": true
+    },
+    {
+      "source": "/fr/price-changes",
+      "destination": "/fr/spelers",
+      "permanent": true
+    },
+    {
+      "source": "/watchlist",
+      "destination": "/spelers?scope=watchlist",
+      "permanent": true
+    },
+    {
+      "source": "/fr/watchlist",
+      "destination": "/fr/spelers?scope=watchlist",
+      "permanent": true
+    }
+  ],
   "rewrites": [
-    { "source": "/fdr", "destination": "/fdr.html" },
-    { "source": "/team-planner", "destination": "/team-planner.html" },
-    { "source": "/predicted-lineups", "destination": "/predicted-lineups.html" },
-    { "source": "/bonuspunten", "destination": "/bonuspunten.html" },
-    { "source": "/set-pieces", "destination": "/set-pieces.html" },
-    { "source": "/watchlist", "destination": "/watchlist.html" },
-    { "source": "/kaarten", "destination": "/kaarten.html" },
-    { "source": "/price-changes", "destination": "/price-changes.html" },
-    { "source": "/spelers", "destination": "/spelers.html" },
-    { "source": "/klassement", "destination": "/klassement.html" },
-
-    { "source": "/speler/:slug", "destination": "/speler/:slug.html" },
-    { "source": "/club/:code", "destination": "/club/:code.html" },
-    { "source": "/fr/speler/:slug", "destination": "/fr/speler/:slug.html" },
-    { "source": "/fr/club/:code", "destination": "/fr/club/:code.html" },
-
-    { "source": "/fr", "destination": "/fr/fdr.html" },
-    { "source": "/fr/:tool", "destination": "/fr/:tool.html" }
+    {
+      "source": "/fdr",
+      "destination": "/fdr.html"
+    },
+    {
+      "source": "/team-planner",
+      "destination": "/team-planner.html"
+    },
+    {
+      "source": "/predicted-lineups",
+      "destination": "/predicted-lineups.html"
+    },
+    {
+      "source": "/bonuspunten",
+      "destination": "/bonuspunten.html"
+    },
+    {
+      "source": "/set-pieces",
+      "destination": "/set-pieces.html"
+    },
+    {
+      "source": "/kaarten",
+      "destination": "/kaarten.html"
+    },
+    {
+      "source": "/spelers",
+      "destination": "/spelers.html"
+    },
+    {
+      "source": "/klassement",
+      "destination": "/klassement.html"
+    },
+    {
+      "source": "/speler/:slug",
+      "destination": "/speler/:slug.html"
+    },
+    {
+      "source": "/club/:code",
+      "destination": "/club/:code.html"
+    },
+    {
+      "source": "/fr/speler/:slug",
+      "destination": "/fr/speler/:slug.html"
+    },
+    {
+      "source": "/fr/club/:code",
+      "destination": "/fr/club/:code.html"
+    },
+    {
+      "source": "/fr",
+      "destination": "/fr/fdr.html"
+    },
+    {
+      "source": "/fr/:tool",
+      "destination": "/fr/:tool.html"
+    }
   ]
 }

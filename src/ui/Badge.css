@@ -1,0 +1,12 @@
+/* Badge (spec §5.12): enkel voor echte status (DGW, C, VC, 3×C, Gesch., Nieuw, Twijfel). */
+.ui-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 16px; padding: 0 4px; border-radius: var(--r-1);
+  font: 600 var(--fs-micro)/1 var(--font-num); font-stretch: 87.5%;
+  text-transform: uppercase; letter-spacing: 0; white-space: nowrap;
+  background: var(--ink-3); color: var(--text-1);
+}
+.ui-badge--accent { background: var(--accent); color: var(--accent-ink); }
+.ui-badge--danger { background: var(--danger); color: #FFF; }
+.ui-badge--warning { background: var(--warning); color: var(--accent-ink); }
+.ui-badge--outline { background: transparent; border: 1px solid var(--line-strong); color: var(--text-2); }

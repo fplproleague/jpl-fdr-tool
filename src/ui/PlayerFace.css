@@ -1,0 +1,7 @@
+/* PlayerFace (spec §5.7) */
+.ui-face {
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  overflow: hidden; border-radius: var(--r-1); background: var(--ink-2); vertical-align: middle;
+}
+.ui-face img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
+.ui-face--empty { color: var(--text-3); font-weight: 600; line-height: 1; }
