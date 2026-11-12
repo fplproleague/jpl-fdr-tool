@@ -1,23 +1,29 @@
-// "Upload screenshot"-feature bovenaan Team Planner: laat een screenshot van een bestaand FPL-team
-// analyseren via de nieuwe api/analyze-screenshot.js-serverless-function (Anthropic vision), en toont
-// het resultaat als een VOORSTEL dat de gebruiker expliciet moet nakijken/corrigeren en bevestigen
+// "Upload screenshot"-feature van de Team Planner: laat een screenshot van een bestaand FPL-team
+// analyseren via de api/analyze-screenshot.js-serverless-function (Anthropic vision), en toont het
+// resultaat als een VOORSTEL dat de gebruiker expliciet moet nakijken/corrigeren en bevestigen
 // ("Toepassen") voor er iets echt in de 15 slots terechtkomt — herkenning is nooit 100% betrouwbaar,
 // dus dit vult nooit stilzwijgend/definitief in. Alle state hier is lokale, niet-bevestigde
 // draftstate (net als rechargeDraft/isTransferPanelOpen in TeamPlannerTab.jsx) — pas "Toepassen"
 // schrijft naar de echte domein-state via de meegegeven updateTeamPlannerPlayer/setTeamPlannerCaptain.
+//
+// Sinds de rework (spec §7.3) is dit geen losse kaart meer: bij een lege planner één zin + de
+// primary-knop "Upload screenshot", daarna een kleine secondary-knop in de actierij bovenaan.
+// `extraActions` (bv. "Wis team") komt in diezelfde rij naast de knop.
 
 import { useState, useRef } from 'react';
-import { Upload, Loader2, AlertCircle, RotateCcw, Check, X, Crown } from 'lucide-react';
+import { Upload, Loader2, Check, X, Crown } from 'lucide-react';
 import { POSITIONS, TEAM_PLANNER_SLOT_POSITIONS } from '../constants';
-import { COLORS, retryButtonStyle, primaryButtonStyle, secondaryButtonStyle } from '../theme';
 import { PlayerSearchInput } from '../components/PlayerSearchInput';
 import { downscaleImageToBase64 } from '../utils/imageDownscale';
 import { matchPlayer } from '../utils/playerFuzzyMatch';
+import Button from '../ui/Button';
+import Badge from '../ui/Badge';
+import ErrorBanner, { Notice } from '../ui/ErrorBanner';
 
-const CONFIDENCE_STYLE = {
-  hoog: { bg: 'rgba(51,237,213,0.15)', color: 'var(--accent)', label: 'Hoog' },
-  twijfelachtig: { bg: 'rgba(242,163,58,0.15)', color: 'var(--warning)', label: 'Twijfelachtig' },
-  'niet-gevonden': { bg: 'rgba(255,90,71,0.15)', color: 'var(--danger)', label: 'Niet gevonden' },
+const CONFIDENCE = {
+  hoog: { className: 'is-high', label: 'Hoog' },
+  twijfelachtig: { className: 'is-doubt', label: 'Twijfelachtig' },
+  'niet-gevonden': { className: 'is-missing', label: 'Niet gevonden' },
 };
 
 function buildSuggestion(recognizedPlayer, playerDatabase) {
@@ -35,37 +41,27 @@ function buildSuggestion(recognizedPlayer, playerDatabase) {
 }
 
 function SuggestionRow({ suggestion, index, playerDatabase, onUpdate, onToggleCaptain }) {
-  const confidenceStyle = CONFIDENCE_STYLE[suggestion.confidence];
+  const confidence = CONFIDENCE[suggestion.confidence] ?? CONFIDENCE['niet-gevonden'];
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
-      padding: '10px 4px', borderBottom: '1px solid rgba(255,255,255,0.08)',
-    }}>
+    <li className="tp-sugg">
       <input
         type="checkbox"
+        className="tp-sugg__check"
         checked={suggestion.included}
         onChange={(e) => onUpdate(index, { included: e.target.checked })}
-        style={{ flexShrink: 0 }}
+        aria-label={`${suggestion.rawName} meenemen`}
       />
-      <div style={{ minWidth: '150px', flexShrink: 0 }}>
-        <div style={{ color: 'var(--text-1)', fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+      <div className="tp-sugg__raw">
+        <span className="tp-sugg__name">
           Herkend: &ldquo;{suggestion.rawName}&rdquo;
-          {suggestion.isCaptain && (
-            <span title="Kapitein herkend" aria-label="Kapitein herkend" role="img" style={{ background: 'var(--accent)', color: 'var(--accent-ink)', borderRadius: '999px', width: '16px', height: '16px', fontSize: '9px', fontWeight: 900, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>C</span>
-          )}
-          {suggestion.isViceCaptain && (
-            <span title="Vice-kapitein herkend (enkel ter info)" aria-label="Vice-kapitein herkend" role="img" style={{ background: 'rgba(255,255,255,0.15)', color: COLORS.textBody, borderRadius: '999px', width: '16px', height: '16px', fontSize: '9px', fontWeight: 900, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>V</span>
-          )}
-        </div>
-        <div style={{ color: COLORS.textMuted, fontSize: '11px' }}>rij: {suggestion.rowLabel || suggestion.rawPosition || '—'}</div>
+          {suggestion.isCaptain && <Badge tone="accent" title="Kapitein herkend" aria-label="Kapitein herkend">C</Badge>}
+          {suggestion.isViceCaptain && <Badge title="Vice-kapitein herkend (enkel ter info)" aria-label="Vice-kapitein herkend">VC</Badge>}
+        </span>
+        <span className="tp-sugg__meta">
+          rij: {suggestion.rowLabel || suggestion.rawPosition || '—'} · <span className={`tp-sugg__conf ${confidence.className}`}>{confidence.label}</span>
+        </span>
       </div>
-      <span style={{
-        background: confidenceStyle.bg, color: confidenceStyle.color, fontSize: '11px', fontWeight: 700,
-        padding: '2px 8px', borderRadius: '999px', flexShrink: 0,
-      }}>
-        {confidenceStyle.label}
-      </span>
-      <div style={{ flex: 1, minWidth: '160px' }}>
+      <div className="tp-sugg__pick">
         <PlayerSearchInput
           value={suggestion.selectedPlayer?.name ?? ''}
           onSelect={(player) => onUpdate(index, { selectedPlayer: player, confidence: 'hoog' })}
@@ -73,22 +69,16 @@ function SuggestionRow({ suggestion, index, playerDatabase, onUpdate, onToggleCa
           placeholder="Zoek speler..."
         />
       </div>
-      <button
+      <Button
+        variant="icon"
+        size="sm"
+        icon={Crown}
         onClick={() => onToggleCaptain(index)}
         aria-pressed={suggestion.isCaptain}
         aria-label={suggestion.isCaptain ? `Kapitein-markering verwijderen bij ${suggestion.rawName}` : `${suggestion.rawName} kapitein maken`}
         title={suggestion.isCaptain ? 'Kapitein-markering verwijderen' : 'Maak kapitein'}
-        className="fdr-icon-btn"
-        style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px',
-          borderRadius: '8px', flexShrink: 0, background: suggestion.isCaptain ? 'rgba(51,237,213,0.2)' : 'transparent',
-          color: suggestion.isCaptain ? 'var(--accent)' : COLORS.textMuted, border: `1px solid ${suggestion.isCaptain ? 'var(--accent)' : 'rgba(255,255,255,0.2)'}`,
-          cursor: 'pointer',
-        }}
-      >
-        <Crown size={13} />
-      </button>
-    </div>
+      />
+    </li>
   );
 }
 
@@ -96,6 +86,7 @@ export function TeamScreenshotUpload({
   t,
   playerDatabase, playerDatabaseLoading, playerDatabaseError,
   updateTeamPlannerPlayer, setTeamPlannerCaptain, teamPlannerGw, isRosterEmpty = false,
+  extraActions = null,
 }) {
   const [proposal, setProposal] = useState(null); // null | { suggestions: [...], warning }
   const [status, setStatus] = useState('idle'); // 'idle' | 'loading' | 'error'
@@ -191,42 +182,16 @@ export function TeamScreenshotUpload({
   };
 
   const hasViceCaptainSuggestion = proposal?.suggestions.some(s => s.isViceCaptain);
+  const pickDisabled = playerDatabaseLoading || !!playerDatabaseError;
+  const openPicker = () => fileInputRef.current?.click();
 
   return (
-    // Visueel naar voren gehaald (accentrand + accentachtergrond) i.p.v. het neutrale grijze kaartje
-    // van vroeger. Dit is de snelste weg van "lege planner" naar "volledig team": één screenshot
-    // vervangt vijftien keer handmatig zoeken en typen. Als dat eruitziet als zomaar weer een blok,
-    // scrollen mensen er straal voorbij en beginnen ze aan het trage pad.
-    <div style={{
-      background: isRosterEmpty ? 'rgba(51,237,213,0.08)' : 'rgba(255,255,255,0.04)',
-      border: `1px solid ${isRosterEmpty ? 'rgba(51,237,213,0.45)' : 'rgba(255,255,255,0.08)'}`,
-      borderRadius: '10px', padding: '16px', marginBottom: '20px',
-    }}>
-      <h3 className="fdr-title" style={{
-        color: isRosterEmpty ? 'var(--accent)' : COLORS.textBody, fontSize: '13px',
-        textTransform: 'uppercase', letterSpacing: '0.03em', margin: '0 0 8px',
-        display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap',
-      }}>
-        <Upload size={15} aria-hidden="true" />
-        {t('screenshotUpload.heading')}
-        {isRosterEmpty && (
-          <span style={{
-            background: 'var(--accent)', color: 'var(--accent-ink)', fontSize: '10px', fontWeight: 900,
-            padding: '2px 8px', borderRadius: '999px', letterSpacing: '0.03em',
-          }}>
-            {t('screenshotUpload.recommended')}
-          </span>
-        )}
-      </h3>
-      <p style={{ color: COLORS.textMuted, fontSize: '12px', margin: '0 0 12px', lineHeight: 1.55 }}>
-        {t('screenshotUpload.intro')}
-      </p>
-
+    <div className={`tp-import${isRosterEmpty ? ' is-empty' : ''}`}>
       <input
         ref={fileInputRef}
         type="file"
         accept="image/*"
-        style={{ display: 'none' }}
+        hidden
         onChange={(e) => {
           const file = e.target.files?.[0];
           e.target.value = '';
@@ -234,37 +199,47 @@ export function TeamScreenshotUpload({
         }}
       />
 
+      <div className="tp-import__bar">
+        {isRosterEmpty && !proposal && <p className="tp-import__lead">{t('teamPlanner.emptyLead')}</p>}
+        {status === 'loading' ? (
+          <span className="tp-import__busy" role="status">
+            <Loader2 className="fdr-spin" aria-hidden="true" /> {t('screenshotUpload.processing')}
+          </span>
+        ) : !proposal && (
+          <Button
+            variant={isRosterEmpty ? 'primary' : 'secondary'}
+            size={isRosterEmpty ? undefined : 'sm'}
+            icon={Upload}
+            onClick={openPicker}
+            disabled={pickDisabled}
+          >
+            {isRosterEmpty ? t('screenshotUpload.uploadButton') : t('screenshotUpload.importButton')}
+          </Button>
+        )}
+        {extraActions}
+      </div>
+
       {persistentNotice && !proposal && (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
-          background: 'rgba(242,163,58,0.12)', border: '1px solid rgba(242,163,58,0.4)',
-          borderRadius: '10px', padding: '10px 14px', marginBottom: '12px',
-        }}>
-          <AlertCircle size={16} color="var(--warning)" style={{ flexShrink: 0 }} />
-          <span style={{ color: 'var(--warning)', fontSize: '12px', flex: 1 }}>{persistentNotice}</span>
-          <button onClick={() => setPersistentNotice(null)} style={{ background: 'transparent', border: 'none', color: 'var(--warning)', cursor: 'pointer', padding: 0 }}>
-            <X size={14} />
-          </button>
-        </div>
+        <Notice action={<Button variant="icon" size="sm" bare icon={X} onClick={() => setPersistentNotice(null)} aria-label={t('screenshotUpload.cancel')} />}>
+          {persistentNotice}
+        </Notice>
       )}
 
-      {proposal ? (
-        <div>
-          {proposal.warning && (
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap',
-              background: 'rgba(242,163,58,0.12)', border: '1px solid rgba(242,163,58,0.4)',
-              borderRadius: '10px', padding: '10px 14px', marginBottom: '12px', color: 'var(--warning)', fontSize: '12px',
-            }}>
-              <AlertCircle size={16} style={{ flexShrink: 0 }} /> {proposal.warning}
-            </div>
-          )}
+      {status === 'error' && !proposal && (
+        <ErrorBanner onRetry={openPicker} retryLabel={t('screenshotUpload.retry')}>{errorMessage}</ErrorBanner>
+      )}
+
+      {proposal && (
+        <section className="tp-proposal" aria-labelledby="tp-proposal-title">
+          <h2 id="tp-proposal-title" className="label tp-proposal__title">{t('screenshotUpload.heading')}</h2>
+          <p className="tp-proposal__hint">{t('screenshotUpload.reviewHint')}</p>
+          {proposal.warning && <Notice>{proposal.warning}</Notice>}
           {teamPlannerGw !== 1 && (
-            <p style={{ color: COLORS.textMuted, fontSize: '11px', margin: '0 0 10px' }}>
+            <p className="tp-proposal__hint">
               De herkende kapitein wordt ingesteld voor GW{teamPlannerGw} (de momenteel bekeken speelweek).
             </p>
           )}
-          <div>
+          <ul className="tp-proposal__list">
             {proposal.suggestions.map((suggestion, index) => (
               <SuggestionRow
                 key={index}
@@ -275,59 +250,17 @@ export function TeamScreenshotUpload({
                 onToggleCaptain={handleToggleCaptain}
               />
             ))}
-          </div>
+          </ul>
           {hasViceCaptainSuggestion && (
-            <p style={{ color: COLORS.textMuted, fontSize: '11px', margin: '10px 0 0' }}>
-              Vice-kapitein herkend maar niet ondersteund door Team Planner — enkel ter info (V-badge hierboven).
+            <p className="tp-proposal__hint">
+              Vice-kapitein herkend maar niet ondersteund door Team Planner — enkel ter info (VC-badge hierboven).
             </p>
           )}
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '14px' }}>
-            <button onClick={handleApply} style={{
-              display: 'inline-flex', alignItems: 'center', gap: '6px',
-              background: 'var(--accent)', color: 'var(--accent-ink)', border: '1px solid var(--accent)',
-              borderRadius: '8px', padding: '8px 16px', fontWeight: 700, fontSize: '13px', cursor: 'pointer',
-            }}>
-              <Check size={15} /> {t('screenshotUpload.apply')}
-            </button>
-            <button onClick={handleCancel} style={{
-              display: 'inline-flex', alignItems: 'center', gap: '6px',
-              background: 'transparent', color: COLORS.textBody, border: '1px solid rgba(255,255,255,0.2)',
-              borderRadius: '8px', padding: '8px 16px', fontWeight: 700, fontSize: '13px', cursor: 'pointer',
-            }}>
-              <X size={15} /> {t('screenshotUpload.cancel')}
-            </button>
+          <div className="tp-proposal__actions">
+            <Button variant="primary" icon={Check} onClick={handleApply}>{t('screenshotUpload.apply')}</Button>
+            <Button variant="ghost" icon={X} onClick={handleCancel}>{t('screenshotUpload.cancel')}</Button>
           </div>
-        </div>
-      ) : status === 'loading' ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: COLORS.textBody, fontSize: '13px' }}>
-          <Loader2 size={16} className="fdr-spin" /> {t('screenshotUpload.processing')}
-        </div>
-      ) : status === 'error' ? (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
-          background: 'rgba(255,90,71,0.12)', border: '1px solid rgba(255,90,71,0.4)',
-          borderRadius: '10px', padding: '12px 14px',
-        }}>
-          <AlertCircle size={16} color="var(--danger)" style={{ flexShrink: 0 }} />
-          <span style={{ color: 'var(--text-1)', fontSize: '13px', flex: 1 }}>{errorMessage}</span>
-          <button onClick={() => fileInputRef.current?.click()} style={retryButtonStyle}>
-            <RotateCcw size={14} /> {t('screenshotUpload.retry')}
-          </button>
-        </div>
-      ) : (
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          disabled={playerDatabaseLoading || !!playerDatabaseError}
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: '6px',
-            background: 'transparent', color: playerDatabaseLoading || playerDatabaseError ? COLORS.textDisabled : 'var(--accent)',
-            border: `1px solid ${playerDatabaseLoading || playerDatabaseError ? 'rgba(255,255,255,0.15)' : 'var(--accent)'}`,
-            borderRadius: '8px', padding: '8px 14px', fontWeight: 700, fontSize: '13px',
-            cursor: playerDatabaseLoading || playerDatabaseError ? 'not-allowed' : 'pointer',
-          }}
-        >
-          <Upload size={15} /> {t('screenshotUpload.uploadButton')}
-        </button>
+        </section>
       )}
     </div>
   );

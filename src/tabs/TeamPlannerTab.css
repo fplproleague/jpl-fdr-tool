@@ -1,0 +1,167 @@
+/* Team Planner (spec §7.3, §5.13). Het veld eerst, de lijst tweede. Lijnen, geen dozen. */
+
+/* --- Import + acties bovenaan --------------------------------------------------------------- */
+.tp-import { display: grid; gap: var(--s-3); margin-bottom: var(--s-4); }
+.tp-import__bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-3); }
+.tp-import__lead { margin: 0; color: var(--text-2); font-size: var(--fs-ui); line-height: var(--lh-ui); }
+.tp-import.is-empty .tp-import__lead { flex: 0 1 auto; }
+.tp-import__busy, .tp-loading { display: inline-flex; align-items: center; gap: var(--s-2); margin: 0; color: var(--text-2); font-size: var(--fs-ui); }
+.tp-import__busy svg, .tp-loading svg { width: 16px; height: 16px; }
+.tp-loading { margin-bottom: var(--s-3); }
+
+.tp-proposal { padding-top: var(--s-3); border-top: 1px solid var(--line-strong); }
+.tp-proposal__title { margin: 0 0 var(--s-1); color: var(--text-3); }
+.tp-proposal__hint { margin: 0 0 var(--s-2); color: var(--text-3); font-size: var(--fs-meta); line-height: var(--lh-meta); }
+.tp-proposal__list { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
+.tp-sugg { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-3); padding: var(--s-2) 0; border-bottom: 1px solid var(--line); }
+.tp-sugg__check { flex-shrink: 0; accent-color: var(--accent); }
+.tp-sugg__raw { display: flex; flex-direction: column; min-width: 180px; }
+.tp-sugg__name { display: inline-flex; align-items: center; gap: 6px; color: var(--text-1); font-weight: 600; font-size: var(--fs-ui); }
+.tp-sugg__meta { color: var(--text-3); font-size: var(--fs-meta); }
+.tp-sugg__conf.is-high { color: var(--positive); }
+.tp-sugg__conf.is-doubt { color: var(--warning); }
+.tp-sugg__conf.is-missing { color: var(--danger); }
+.tp-sugg__pick { flex: 1 1 200px; min-width: 0; }
+.tp-proposal__actions { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-top: var(--s-3); }
+
+/* --- Statusregel ---------------------------------------------------------------------------- */
+.tp-status {
+  position: sticky; top: var(--topbar-h); z-index: var(--z-sticky);
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s-1) var(--s-4);
+  margin: 0 0 var(--s-4); padding: var(--s-2) 0;
+  background: var(--ink-0); border-bottom: 1px solid var(--line);
+  color: var(--text-1); font-size: var(--fs-meta); line-height: var(--lh-meta);
+}
+.tp-status .is-danger { color: var(--danger); }
+.tp-status__muted { color: var(--text-3); }
+.tp-status__short { display: none; }
+.tp-status__tip { cursor: pointer; text-decoration: underline dotted; text-underline-offset: 2px; }
+
+.tp-viewswitch { display: none; margin-bottom: var(--s-4); }
+
+/* --- Indeling ------------------------------------------------------------------------------- */
+.tp-layout { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: var(--s-6); align-items: start; }
+.tp-side { display: grid; gap: var(--s-6); min-width: 0; }
+.tp-panel { min-width: 0; }
+.tp-panel__head { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); margin-bottom: var(--s-2); }
+.tp-panel__head--toggle .ui-section-toggle { margin-bottom: 0; }
+.tp-panel__title { margin: 0; color: var(--text-1); font: 700 var(--fs-title)/var(--lh-title) var(--font-ui); }
+.tp-grow { flex: 1; min-width: 0; }
+
+.tp-note { margin: 0 0 var(--s-2); color: var(--text-2); font-size: var(--fs-meta); line-height: var(--lh-meta); }
+.tp-note.is-accent { color: var(--accent); }
+.tp-note.is-warning { color: var(--warning); }
+.tp-note.is-danger { color: var(--danger); }
+.tp-note--inline { margin: 0; color: var(--text-3); }
+.tp-hint { margin: 0; color: var(--text-3); font-size: var(--fs-meta); }
+.tp-warn { margin: 0; color: var(--danger); font-size: var(--fs-meta); }
+
+/* --- GW-kiezer + boosters ------------------------------------------------------------------- */
+.tp-gwbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); margin-bottom: var(--s-3); }
+.tp-gwbar__gw { min-width: 56px; text-align: center; color: var(--text-1); font-size: var(--fs-title); font-weight: 700; }
+.tp-gwbar__meta { margin-left: var(--s-2); color: var(--text-3); font-size: var(--fs-meta); }
+.tp-boosters { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-bottom: var(--s-3); }
+.tp-booster__state { color: inherit; font-weight: 500; font-size: var(--fs-meta); opacity: 0.85; }
+.tp-booster.is-auto:disabled { color: var(--invert-text); }
+
+/* --- Transfer plannen ----------------------------------------------------------------------- */
+.tp-transfer { margin-bottom: var(--s-4); }
+.tp-transfer__panel { display: grid; gap: var(--s-3); margin-top: var(--s-3); padding: var(--s-3) 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.tp-transfer__fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--s-3); }
+.tp-field { display: grid; gap: var(--s-1); align-content: start; }
+.tp-field .label { color: var(--text-3); }
+.tp-field .ui-select { width: 100%; }
+.tp-transfer__preview { margin: 0; color: var(--text-2); font-size: var(--fs-ui); line-height: var(--lh-ui); }
+.tp-transfer__preview strong { color: var(--text-1); }
+.tp-transfer__arrow, .tp-transfer__club { color: var(--text-3); }
+
+/* --- Veld ----------------------------------------------------------------------------------- */
+.tp-pitch {
+  position: relative; display: grid; gap: var(--s-3);
+  padding: var(--s-5) var(--s-2) var(--s-4);
+  background: var(--pitch); border: 1px solid var(--pitch-line);
+}
+/* Strafschopgebied bovenaan (de keeper staat boven): enkel een lijn, geen versiering. */
+.tp-pitch::before {
+  content: ''; position: absolute; top: -1px; left: 24%; right: 24%; height: 64px;
+  border: 1px solid var(--pitch-line); border-top: 0; pointer-events: none;
+}
+.tp-pitch__row { position: relative; display: flex; justify-content: center; gap: var(--s-2); min-height: 78px; }
+
+.tp-slot {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; width: 76px; min-width: 0;
+  padding: 0; border: 0; background: none; color: var(--text-1); cursor: pointer;
+}
+.tp-slot:disabled { cursor: default; opacity: 0.45; }
+.tp-slot:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tp-slot__shirt { position: relative; display: block; width: 40px; height: 40px; }
+.tp-slot__shirt img { display: block; width: 40px; height: 40px; object-fit: contain; }
+.tp-slot__cap { position: absolute; top: -4px; right: -12px; }
+.tp-slot__name {
+  display: block; max-width: 100%; padding: 1px 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  background: rgba(12, 13, 12, 0.88); color: var(--text-1); font: 600 11px/1.3 var(--font-ui);
+}
+.tp-slot__fix { display: block; line-height: 0; }
+@media (hover: hover) and (pointer: fine) {
+  .tp-slot:not(:disabled):hover .tp-slot__name { text-decoration: underline; text-underline-offset: 2px; }
+}
+.tp-slot.is-empty .tp-slot__frame {
+  display: flex; align-items: center; justify-content: center; width: 52px; height: 58px;
+  border: 1px dashed var(--line-strong); color: var(--text-2);
+  font: 600 var(--fs-label)/1 var(--font-ui); letter-spacing: 0.06em;
+}
+.tp-pitch .tp-slot.is-empty .tp-slot__frame { border-color: var(--pitch-line); }
+.tp-slot.is-swappable .tp-slot__shirt { outline: 1px dashed var(--accent); outline-offset: 3px; }
+.tp-slot.is-selected .tp-slot__name { background: var(--accent); color: var(--accent-ink); }
+.tp-slot.is-boosted .tp-slot__name { border-bottom: 2px solid var(--accent); }
+
+/* --- Bank ----------------------------------------------------------------------------------- */
+.tp-bench { margin-top: var(--s-4); padding-top: var(--s-3); border-top: 1px solid var(--line-strong); }
+.tp-bench__head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s-2) var(--s-3); margin-bottom: var(--s-2); }
+.tp-bench__head .tp-note { margin: 0; }
+.tp-bench__title { margin: 0; color: var(--text-3); }
+.tp-bench__row { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-bottom: var(--s-3); }
+.tp-bench__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); margin-bottom: var(--s-2); }
+
+/* --- Selectielijst + transfers -------------------------------------------------------------- */
+/* De statusregel plakt al onder de topbalk; korte tabellen hoeven geen plakkende kop. */
+.tp-panel .ui-table thead th { position: static; }
+.tp-group { color: var(--text-3); }
+.tp-group .num { color: var(--text-2); }
+.tp-benchtag { color: var(--text-3); font-size: var(--fs-meta); font-weight: 500; }
+.tp-danger-text { color: var(--danger) !important; }
+.tp-row-overcap .ui-pcell__sub { color: var(--danger); }
+.tp-col-menu { width: 32px; text-align: right !important; }
+.tp-col-arrow { width: 16px; color: var(--text-3); padding: 0 !important; }
+.tp-col-fix { width: 48px; }
+.tp-emptyslot {
+  height: 28px; padding: 0 var(--s-2); border: 1px dashed var(--line-strong); border-radius: var(--r-1);
+  background: none; color: var(--text-2); font: 500 var(--fs-meta)/1 var(--font-ui); cursor: pointer;
+}
+.tp-emptyslot:hover { color: var(--text-1); border-color: var(--text-3); }
+.tp-tgroup { margin-bottom: var(--s-4); }
+.tp-tgroup__title { display: flex; align-items: baseline; gap: var(--s-2); margin: var(--s-2) 0 0; color: var(--text-1); font: 700 var(--fs-ui)/var(--lh-ui) var(--font-ui); }
+.tp-tgroup__meta { color: var(--text-3); font-weight: 500; font-size: var(--fs-meta); }
+.tp-tgroup__meta.is-danger { color: var(--danger); }
+
+/* --- Smaller dan 1100px: één kolom + Veld | Lijst | Transfers -------------------------------- */
+@media (max-width: 1099px) {
+  .tp-viewswitch { display: block; }
+  .tp-layout { grid-template-columns: minmax(0, 1fr); }
+  .tp-layout .is-hidden-narrow { display: none; }
+  .tp-panel--pitch { max-width: 640px; }
+}
+@media (max-width: 700px) {
+  .tp-status { gap: var(--s-1) var(--s-3); }
+  .tp-status__full { display: none; }
+  .tp-status__short { display: inline; }
+  .tp-col-desktop { display: none; }
+  .tp-pitch { padding: var(--s-4) 0 var(--s-3); gap: var(--s-2); }
+  .tp-pitch::before { height: 52px; left: 20%; right: 20%; }
+  .tp-pitch__row { gap: var(--s-1); min-height: 70px; }
+  .tp-slot { width: 64px; }
+  .tp-slot__shirt, .tp-slot__shirt img { width: 34px; height: 34px; }
+  .tp-slot__name { font-size: 10px; padding: 1px 3px; }
+  .tp-slot.is-empty .tp-slot__frame { width: 46px; height: 52px; }
+  .tp-bench__row { gap: var(--s-1); }
+}
