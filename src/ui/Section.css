@@ -1,0 +1,16 @@
+/* Sectiekop (in-/uitklapbaar): label-titel in caps, een 1px-lijn die de rest van de breedte vult en
+   een chevron. Geen icoon ervoor (spec §4). */
+.ui-section-toggle {
+  display: flex; align-items: center; gap: var(--s-3); width: 100%; min-height: 44px;
+  padding: 0; margin: 0 0 var(--s-2); border: 0; background: none; cursor: pointer;
+  color: var(--text-1); text-align: left; font: inherit;
+}
+.ui-section-title {
+  margin: 0; font: 700 var(--fs-label)/var(--lh-label) var(--font-ui);
+  text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-1); white-space: nowrap;
+}
+.ui-section-meta { color: var(--text-3); font-size: var(--fs-meta); white-space: nowrap; }
+.ui-section-rule { flex: 1; height: 1px; background: var(--line); min-width: var(--s-4); }
+.ui-section-chevron { width: 18px; height: 18px; color: var(--text-3); flex-shrink: 0; transition: transform var(--dur-fast) var(--ease); }
+.ui-section-chevron.is-open { transform: rotate(180deg); }
+.ui-section-toggle:hover .ui-section-chevron { color: var(--text-1); }
