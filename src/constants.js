@@ -1,6 +1,6 @@
 // Gedeelde referentiedata en helper-functies voor de FDR-tool: teams, fixtures, uitgestelde
 // wedstrijden, rating-kleuren, en de fixture-rekenlogica die zowel de hoofdtabel (FDRTab) als de
-// mini-fixture-badges (MiniFixtureBadge, gebruikt door FDRTab én WatchlistTab) nodig hebben.
+// mini-fixture-badges (MiniFixtureBadge: Spelers, Team Planner, de spelers- en clubkaart) nodig hebben.
 // Bevat bewust GEEN JSX (zie gwHeaderCells/gwOptionElements in FDRTool.jsx/FDRTab.jsx) — dit is een
 // plain .js-bestand en Vite/esbuild parsen JSX-syntax enkel in .jsx-bestanden.
 
@@ -258,33 +258,11 @@ export const GW_COUNT = 34;
 // speeldagen in FIXTURES. Alle 27 resterende kolommen tegelijk tonen maakt de tabel onleesbaar breed
 // (ze scrollt horizontaal, dus je ziet er nooit meer dan een handvol tegelijk) en is ook planmatig
 // weinig waard — zo ver vooruit veranderen blessures, vorm en ratings alles nog. Acht kolommen is
-// precies de breedte waarop de tabel vandaag al staat (zie TABLE_SLOT_MIN_WIDTH) en ongeveer twee
+// precies de breedte waarop de tabel vandaag al staat (zie --fdr-table-slot in src/tabs/FDRTab.css) en ongeveer twee
 // maanden vooruit: ver genoeg voor transferplanning, kort genoeg om te lezen. Wie verder wil kijken,
 // zet de selector gewoon op GW34.
 export const DEFAULT_GW_HORIZON_LENGTH = 8;
 
-// Min-width per tabelkolom (de Team-kolom meegeteld als één "slot"). Was vroeger één totaalbreedte
-// voor alle GW_COUNT kolommen samen; dat werkte enkel zolang GW_COUNT acht was. Met 34 speeldagen is
-// een totaal betekenisloos — de tabel toont er nooit 34 tegelijk — dus staat hier nu de breedte per
-// kolom. 84px is exact de oude kalibratie (760px gedeeld over de Team-kolom + 8 GW-kolommen), zodat de
-// tabel er op een ruim scherm op de pixel hetzelfde uitziet als voordien.
-export const TABLE_SLOT_MIN_WIDTH = 84;
-
-// Op een telefoon is diezelfde 84px zonde van de ruimte: de kolommen krijgen dan meer breedte dan hun
-// inhoud nodig heeft, terwijl er maar een deel van de tabel op het scherm past. Gemeten op 390px zag
-// je zo 3,2 fixtures naast de teamkolom — net te weinig om in één oogopslag drie speeldagen vooruit te
-// kijken, precies het soort "net niet" dat je elke keer opnieuw laat vegen.
-//
-// 64px ligt bewust ONDER de natuurlijke minimumbreedte van een cel ("CER (A)" plus het cijfertje, in de
-// praktijk zo'n 58px). De browser neemt dan het echte minimum, en dat is precies de bedoeling: deze
-// waarde zegt "knijp tot het niet meer kan" zonder dat we hier een getal moeten bijhouden dat afhangt
-// van lettertype, taal of de langste clubcode. Resultaat op 390px: 4,6 zichtbare fixtures i.p.v. 3,2,
-// en een tabel van 588px i.p.v. 756px — de horizontale scrollafstand valt daarmee bijna weg.
-export const TABLE_SLOT_MIN_WIDTH_MOBILE = 64;
-
-// Breedte waaronder de mobiele varianten gelden. Eén constante, zodat de CSS-media-queries en de
-// JS-kant niet apart uit elkaar kunnen lopen.
-export const MOBILE_TABLE_BREAKPOINT = 700;
 export const MINILEAGUE_CODE = '19WN75';
 
 // --- Gameweek-deadlines (enige handmatig bij te werken bron van waarheid voor "waar staan we") ---
@@ -624,24 +602,6 @@ export function getFixtureInfo(teamCode, fixture, gwNumber, ratings, homeAdvanta
   const possiblyPostponedText = isPossiblyPostponed ? buildPossiblyPostponedTooltipText(teamCode, opp, venue) : null;
   return { isDoubleGameweek: false, opp, venue, rating, isPostponed, isPossiblyPostponed, style, postponedText, possiblyPostponedText };
 }
-
-// Gedeeld tussen components/SectionHeader.jsx en tabs/WatchlistTab.jsx (dat laatste spreadt het
-// rechtstreeks op zijn eigen h2's), vandaar hier i.p.v. lokaal bij SectionHeader.
-// minWidth: 0 (i.p.v. het vroegere whiteSpace: 'nowrap' zonder shrink-mogelijkheid) laat de titel
-// binnen een flex-rij naast een sibling-knop (bv. "Wis team"/"Wis alle transfers" in TeamPlannerTab.jsx)
-// altijd echt krimpen i.p.v. eroverheen te overlappen op smalle schermen — de eigenlijke afkapping
-// (ellipsis) gebeurt op de tekst zelf via sectionTitleTextStyle hieronder, niet op dit hele blok, zodat
-// het icoon nooit mee afgekapt wordt.
-export const sectionTitleStyle = {
-  color: '#FFFFFF', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.03em', margin: 0,
-  display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0,
-};
-
-// Enkel voor de tekst ván de titel (niet het icoon ervoor) — one-line met ellipsis zodra de titel niet
-// meer past, i.p.v. te overlappen met een eventuele sibling-knop of de pagina breder te maken.
-export const sectionTitleTextStyle = {
-  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0,
-};
 
 // --- Team Planner: spelregels voor de 15-koppige selectie (Fase 1, handmatige invoer) ---
 

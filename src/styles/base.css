@@ -84,6 +84,27 @@ button, input, select, textarea { font-family: inherit; }
 .fdr-spin { animation: fdr-spin 0.8s linear infinite; }
 @keyframes fdr-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
+/* Interactielaag: elke knop en keuzelijst geeft feedback, ook zonder eigen klasse. Hover enkel
+   achter (hover: hover), anders blijft een hover-staat op touch "plakken" na een tik. Het indrukken
+   (1px omlaag) werkt ook op touch: een tik krijgt zo altijd een bevestiging.
+   Stond tot fase 4 in een <style>-blok in FDRTool.jsx. */
+button, select, [role="button"] {
+  transition: background-color .15s ease, border-color .15s ease,
+              color .15s ease, transform .12s ease, filter .15s ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  button:not(:disabled):hover,
+  select:not(:disabled):hover,
+  [role="button"]:not([aria-disabled="true"]):hover {
+    filter: brightness(1.22);
+  }
+}
+button:not(:disabled):active,
+select:not(:disabled):active,
+[role="button"]:not([aria-disabled="true"]):active {
+  transform: translateY(1px);
+}
+
 /* Transities op 0 (de spinner blijft draaien: anders bevriest het "bezig"-signaal). */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

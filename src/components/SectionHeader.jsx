@@ -1,5 +1,5 @@
 // Herbruikbare in-/uitklapbare sectiekop: titel + lijn + chevron. Gebruikt door FDRTab (Beste fixture
-// runs, Vergelijk teams), TeamPlannerTab en BonuspuntenTab.
+// runs, Vergelijk teams) en TeamPlannerTab.
 //
 // Sinds de rework (spec §4 en §5.2) zonder icoon voor de titel: de prop `icon` wordt nog aanvaard
 // zodat de bestaande aanroepen blijven werken, maar niet meer getekend.

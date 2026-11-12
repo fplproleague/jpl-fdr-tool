@@ -1,4 +1,22 @@
 /* FDR-tab (spec §7.1). */
+
+/* Breedte van één tabelkolom (de Team-kolom telt als één "slot"). De FDR- en de vergelijk-tabel hangen
+   er allebei aan; FDRTool.jsx rekent enkel het AANTAL slots uit.
+   - 84px: de oude kalibratie (760px over de Team-kolom + 8 speeldagen), zodat de tabel op een ruim
+     scherm op de pixel hetzelfde blijft.
+   - 64px op een telefoon: bewust onder de natuurlijke minimumbreedte van een cel (zo'n 58px). De
+     browser neemt dan het echte minimum: op 390px zie je zo 4,6 fixtures i.p.v. 3,2.
+   Stond tot fase 4 in een <style>-blok in FDRTool.jsx, met de getallen uit constants.js. */
+:root { --fdr-table-slot: 84px; --fdr-page-gutter: var(--gutter); }
+@media (max-width: 700px) {
+  :root { --fdr-table-slot: 64px; }
+  /* De tabel loopt op een telefoon van rand tot rand: de paginamarge kostte net één fixture-kolom,
+     en het is het enige blok dat toch al opzij scrolt. */
+  .fdr-table-scroll {
+    margin-left: calc(var(--fdr-page-gutter) * -1);
+    margin-right: calc(var(--fdr-page-gutter) * -1);
+  }
+}
 .fdr-meta-custom { color: var(--accent); }
 
 /* --- Toolbar --------------------------------------------------------------------------------- */
