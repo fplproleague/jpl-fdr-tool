@@ -13,7 +13,7 @@ import { COLORS } from '../theme';
 const dropdownItemStyle = {
   display: 'flex', alignItems: 'center', gap: '8px', width: '100%', textAlign: 'left',
   background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.06)',
-  cursor: 'pointer', padding: '8px 10px', color: '#FFF', fontSize: '13px',
+  cursor: 'pointer', padding: '8px 10px', color: 'var(--text-1)', fontSize: '13px',
 };
 
 // Zoekt op elk deel van de naam (case-insensitief), niet enkel het begin — zo vindt "iels" ook
@@ -127,7 +127,7 @@ export const PlayerSearchInput = memo(function PlayerSearchInput({
         onFocus={() => setIsOpen(true)}
         placeholder={placeholder}
         style={{
-          background: '#3D1E5C', color: '#FFF', border: '1px solid rgba(255,255,255,0.15)',
+          background: 'var(--ink-1)', color: 'var(--text-1)', border: '1px solid rgba(255,255,255,0.15)',
           borderRadius: '6px', padding: '6px 8px 6px 26px', fontSize: '13px', width: '100%',
           boxSizing: 'border-box', opacity: disabled ? 0.6 : 1,
         }}
@@ -137,7 +137,7 @@ export const PlayerSearchInput = memo(function PlayerSearchInput({
           ref={dropdownRef}
           style={{
             position: 'fixed', zIndex: 50, top: coords.top, left: coords.left, width: coords.width,
-            background: '#3D1E5C', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px',
+            background: 'var(--ink-1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px',
             boxShadow: '0 8px 20px rgba(0,0,0,0.35)', maxHeight: '220px', overflowY: 'auto',
           }}
         >
@@ -159,8 +159,8 @@ export const PlayerSearchInput = memo(function PlayerSearchInput({
                 {p.name}
               </span>
               <span style={{ color: COLORS.textMuted, fontSize: '11px', flexShrink: 0 }}>{p.teamName}</span>
-              <span style={{ color: '#C9B8E0', fontSize: '11px', flexShrink: 0 }}>{p.position}</span>
-              <span style={{ color: '#4ECDC4', fontSize: '11px', fontWeight: 700, flexShrink: 0 }}>
+              <span style={{ color: 'var(--text-2)', fontSize: '11px', flexShrink: 0 }}>{p.position}</span>
+              <span style={{ color: 'var(--accent)', fontSize: '11px', fontWeight: 700, flexShrink: 0 }}>
                 {p.price != null ? `${p.price.toFixed(1)}M` : '—'}
               </span>
             </button>

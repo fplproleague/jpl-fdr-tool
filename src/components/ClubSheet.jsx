@@ -27,9 +27,9 @@ const TOP_PLAYERS = 5;
 // Zelfde kleurtaal als de vormbalk in de hoofdtabel (FDRTab.jsx): bewust subtieler dan RATING_STYLE,
 // want die kleuren betekenen iets heel anders (ingeschatte moeilijkheid, geen echte uitslag).
 const FORM_RESULT_STYLE = {
-  W: { bg: 'rgba(78,205,196,0.9)', text: '#0B2E1B' },
-  G: { bg: 'rgba(255,255,255,0.18)', text: '#C9B8E0' },
-  V: { bg: 'rgba(194,64,44,0.65)', text: '#FFFFFF' },
+  W: { bg: 'rgba(51,237,213,0.9)', text: 'var(--accent-ink)' },
+  G: { bg: 'rgba(255,255,255,0.18)', text: 'var(--text-2)' },
+  V: { bg: 'rgba(255,90,71,0.65)', text: 'var(--text-1)' },
 };
 
 function SetPieceLine({ label, value }) {
@@ -38,13 +38,13 @@ function SetPieceLine({ label, value }) {
       <span style={{
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
         width: '20px', height: '20px', borderRadius: '50%',
-        background: 'rgba(78,205,196,0.15)', border: '1px solid #4ECDC4', color: '#4ECDC4',
+        background: 'rgba(51,237,213,0.15)', border: '1px solid var(--accent)', color: 'var(--accent)',
         fontSize: label.length > 1 ? '8px' : '10px', fontWeight: 800,
       }}>
         {label}
       </span>
-      <span style={{ color: '#EDE4F5', fontSize: '13px', fontWeight: 600, lineHeight: 1.45, wordBreak: 'break-word' }}>
-        {value || <span style={{ color: '#6B5289' }}>—</span>}
+      <span style={{ color: 'var(--text-1)', fontSize: '13px', fontWeight: 600, lineHeight: 1.45, wordBreak: 'break-word' }}>
+        {value || <span style={{ color: 'var(--text-4)' }}>—</span>}
       </span>
     </div>
   );
@@ -93,7 +93,7 @@ export default function ClubSheet({
         onError={(e) => { e.target.style.display = 'none'; }}
       />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <h3 id={headingId} className="fdr-title" style={{ color: '#FFF', fontSize: '17px', margin: 0 }}>
+        <h3 id={headingId} className="fdr-title" style={{ color: 'var(--text-1)', fontSize: '17px', margin: 0 }}>
           {clubName}
         </h3>
         {form.length > 0 && (
@@ -107,7 +107,7 @@ export default function ClubSheet({
                 minWidth: '16px', height: '16px', borderRadius: '4px', padding: '0 3px',
                 fontSize: '9px', fontWeight: 800,
                 background: FORM_RESULT_STYLE[r]?.bg ?? 'rgba(255,255,255,0.25)',
-                color: FORM_RESULT_STYLE[r]?.text ?? '#C9B8E0',
+                color: FORM_RESULT_STYLE[r]?.text ?? 'var(--text-2)',
               }}>
                 {r}
               </span>
@@ -161,7 +161,7 @@ export default function ClubSheet({
                     // hier hetzelfde leest als op de Verwachte XI's-tab.
                     border: `1px solid ${SAFETY_STYLE[slot.safety]?.border ?? 'rgba(255,255,255,0.12)'}`,
                     borderRadius: '999px', padding: '4px 10px',
-                    color: '#EDE4F5', fontSize: '11px', fontWeight: 700,
+                    color: 'var(--text-1)', fontSize: '11px', fontWeight: 700,
                     fontFamily: 'inherit', cursor: onOpenPlayer ? 'pointer' : 'default',
                   }}
                 >
@@ -190,13 +190,13 @@ export default function ClubSheet({
                   fontFamily: 'inherit', cursor: onOpenPlayer ? 'pointer' : 'default',
                 }}
               >
-                <span style={{ color: i === 0 ? '#4ECDC4' : '#C9B8E0', fontWeight: 900, fontSize: '13px', width: '14px', flexShrink: 0 }}>
+                <span style={{ color: i === 0 ? 'var(--accent)' : 'var(--text-2)', fontWeight: 900, fontSize: '13px', width: '14px', flexShrink: 0 }}>
                   {i + 1}
                 </span>
-                <span style={{ flex: 1, minWidth: 0, color: '#FFF', fontSize: '13px', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span style={{ flex: 1, minWidth: 0, color: 'var(--text-1)', fontSize: '13px', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {entry.player}
                 </span>
-                <span style={{ color: '#4ECDC4', fontWeight: 900, fontSize: '14px', flexShrink: 0 }}>
+                <span style={{ color: 'var(--accent)', fontWeight: 900, fontSize: '14px', flexShrink: 0 }}>
                   {entry.bonusPoints}
                 </span>
               </button>

@@ -23,8 +23,8 @@ const secondaryToolbarBtnStyle = secondaryButtonStyle;
 // welke rij bij welk team hoort. De dubbele box-shadow maskeert de border-spacing-opening links en
 // rechts van de cel, zodat er niets onder de sticky kolom doorschijnt.
 const stickyTeamCellStyle = {
-  position: 'sticky', left: 0, background: '#2A1440', zIndex: 3,
-  boxShadow: '-4px 0 0 0 #2A1440, 4px 0 0 0 #2A1440',
+  position: 'sticky', left: 0, background: 'var(--ink-0)', zIndex: 3,
+  boxShadow: '-4px 0 0 0 var(--ink-0), 4px 0 0 0 var(--ink-0)',
 };
 
 // Opties voor een GW-kiezer, begrensd tot wat een geldige keuze oplevert: de "vanaf"-kiezer loopt
@@ -99,7 +99,7 @@ const FixtureCell = memo(function FixtureCell({
         style={{
           // #C2BBD1 i.p.v. het vroegere #9B93AD: dat haalde maar 3.10:1 op deze grijze achtergrond,
           // nu 4.90:1 (WCAG AA).
-          background: '#4A4560', color: '#C2BBD1', textAlign: 'center',
+          background: 'var(--ink-2)', color: 'var(--text-2)', textAlign: 'center',
           fontSize: '14px', fontWeight: 700, borderRadius: '6px', padding: '8px 2px',
           cursor: 'pointer',
           ...stackingStyle
@@ -124,7 +124,7 @@ const FixtureCell = memo(function FixtureCell({
             // border-top op de onderste, zodat de lijn zichtbaar bij de bovenste fixture "hoort".
             // Zelfde paarse kleur als de achtergrond/gutter tussen de tabelcellen, zodat de lijn oogt
             // als een echte scheiding tussen 2 cellen i.p.v. een schaduwrand.
-            borderBottom: i === 0 ? '2px solid #2A1440' : undefined
+            borderBottom: i === 0 ? '2px solid var(--ink-0)' : undefined
           }}>
             {leg.opp} <span style={{ opacity: 0.75, fontWeight: 500 }}>({leg.venue})</span>
           </div>
@@ -178,9 +178,9 @@ const FixtureCell = memo(function FixtureCell({
 // heel anders (ingeschatte fixture-moeilijkheid, geen echte uitslag), dus een vormbalk in exact dezelfde
 // groen/geel/rood-schaal zou de twee te makkelijk laten verwarren.
 const FORM_RESULT_STYLE = {
-  W: { bg: 'rgba(78,205,196,0.9)', text: '#0B2E1B' },
-  G: { bg: 'rgba(255,255,255,0.18)', text: '#C9B8E0' },
-  V: { bg: 'rgba(194,64,44,0.65)', text: '#FFFFFF' },
+  W: { bg: 'rgba(51,237,213,0.9)', text: 'var(--accent-ink)' },
+  G: { bg: 'rgba(255,255,255,0.18)', text: 'var(--text-2)' },
+  V: { bg: 'rgba(255,90,71,0.65)', text: 'var(--text-1)' },
 };
 
 // Kleine vormindicator onder de clubcode in de hoofdtabel: max. 5 laatste uitslagen (oudste eerst), zie
@@ -236,8 +236,8 @@ export default function FDRTab({
     }}>
       <span className="fdr-status-badge" style={{
         fontSize: '12px', fontWeight: 700, padding: '4px 10px', borderRadius: '999px',
-        background: isCustom ? '#4ECDC4' : 'rgba(255,255,255,0.1)',
-        color: isCustom ? '#0B2E1B' : '#C9B8E0'
+        background: isCustom ? 'var(--accent)' : 'rgba(255,255,255,0.1)',
+        color: isCustom ? 'var(--accent-ink)' : 'var(--text-2)'
       }}>
         {isCustom ? t('fdr.badge.custom') : t('fdr.badge.default')}
       </span>
@@ -277,7 +277,7 @@ export default function FDRTab({
           className="fdr-autosave-badge"
           style={{
             display: 'inline-flex', alignItems: 'center', gap: '5px', flexShrink: 0,
-            color: '#4ECDC4', fontSize: '12px', fontWeight: 700, whiteSpace: 'nowrap',
+            color: 'var(--accent)', fontSize: '12px', fontWeight: 700, whiteSpace: 'nowrap',
           }}
         >
           <Check size={13} aria-hidden="true" />
@@ -325,7 +325,7 @@ export default function FDRTab({
                       style={{ width: '16px', height: '16px', objectFit: 'contain', flexShrink: 0 }}
                       onError={(e) => { e.target.style.display = 'none'; }}
                     />
-                    <span style={{ color: '#FFF', fontSize: '12px', fontWeight: 600 }}>{team.code}</span>
+                    <span style={{ color: 'var(--text-1)', fontSize: '12px', fontWeight: 600 }}>{team.code}</span>
                   </span>
                   <span style={{
                     fontSize: '10px', fontWeight: 700, padding: '1px 6px', borderRadius: '999px',
@@ -364,13 +364,13 @@ export default function FDRTab({
                     style={{
                       position: 'relative', display: 'inline-flex', alignItems: 'center',
                       width: '34px', height: '18px', borderRadius: '999px', flexShrink: 0,
-                      background: homeAdvantageOn ? '#4ECDC4' : 'rgba(255,255,255,0.15)',
+                      background: homeAdvantageOn ? 'var(--accent)' : 'rgba(255,255,255,0.15)',
                       transition: 'background 0.15s ease',
                     }}
                   >
                     <span style={{
                       position: 'absolute', top: '2px', left: '2px',
-                      width: '14px', height: '14px', borderRadius: '50%', background: '#FFFFFF', display: 'block',
+                      width: '14px', height: '14px', borderRadius: '50%', background: 'var(--text-1)', display: 'block',
                       transform: homeAdvantageOn ? 'translateX(16px)' : 'translateX(0)',
                       transition: 'transform 0.15s ease',
                     }} />
@@ -442,7 +442,7 @@ export default function FDRTab({
         )}
         <div ref={tableRef} id="fdr-capture-wrapper">
         <div id="fdr-section-table" className="fdr-table-scroll" style={{
-          overflowX: 'auto', background: '#2A1440', padding: '4px',
+          overflowX: 'auto', background: 'var(--ink-0)', padding: '4px',
           display: openSections.table ? 'block' : 'none'
         }}>
         <table style={{ borderCollapse: 'separate', borderSpacing: '4px', minWidth: `calc(${mainTableSlots} * var(--fdr-table-slot))` }}>
@@ -451,7 +451,7 @@ export default function FDRTab({
               <th scope="col" style={{
                 textAlign: 'left', color: COLORS.textBody, fontSize: '11px', textTransform: 'uppercase',
                 letterSpacing: '0.05em', padding: '6px 8px', position: 'sticky', left: 0,
-                background: '#2A1440', zIndex: 3, boxShadow: '-4px 0 0 0 #2A1440, 4px 0 0 0 #2A1440'
+                background: 'var(--ink-0)', zIndex: 3, boxShadow: '-4px 0 0 0 var(--ink-0), 4px 0 0 0 var(--ink-0)'
               }}>{t('fdr.teamColumn')}</th>
               {visibleGwHeaderCells}
             </tr>
@@ -460,9 +460,9 @@ export default function FDRTab({
             {displayedTeams.map(team => (
               <tr key={team.code}>
                 <td style={{
-                  color: '#FFF', fontWeight: 700, fontSize: '13px', padding: '6px 8px',
-                  position: 'sticky', left: 0, background: '#2A1440', whiteSpace: 'nowrap',
-                  zIndex: 3, boxShadow: '-4px 0 0 0 #2A1440, 4px 0 0 0 #2A1440'
+                  color: 'var(--text-1)', fontWeight: 700, fontSize: '13px', padding: '6px 8px',
+                  position: 'sticky', left: 0, background: 'var(--ink-0)', whiteSpace: 'nowrap',
+                  zIndex: 3, boxShadow: '-4px 0 0 0 var(--ink-0), 4px 0 0 0 var(--ink-0)'
                 }}>
                   {/* De hele team-cel opent de clubkaart. Logo en code waren tot nu toe decoratie,
                       terwijl dit precies de plek is waar je je afvraagt hoe die club ervoor staat.
@@ -574,7 +574,7 @@ export default function FDRTab({
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                   width: '40px', height: '40px', flexShrink: 0, padding: 0,
                   background: RATING_STYLE[r].bg, color: RATING_STYLE[r].text,
-                  border: active ? '2px solid #FFFFFF' : '2px solid transparent',
+                  border: active ? '2px solid var(--text-1)' : '2px solid transparent',
                   borderRadius: '8px', cursor: 'pointer',
                   fontFamily: 'inherit', fontSize: '15px', fontWeight: 900,
                   // Een gekozen filter is te herkennen aan de witte rand; de lichte buitenschaduw
@@ -644,7 +644,7 @@ export default function FDRTab({
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <span className="fdr-title" style={{
-                  color: idx === 0 ? '#4ECDC4' : '#C9B8E0', fontWeight: 900, fontSize: '18px', width: '24px', flexShrink: 0
+                  color: idx === 0 ? 'var(--accent)' : 'var(--text-2)', fontWeight: 900, fontSize: '18px', width: '24px', flexShrink: 0
                 }}>{idx + 1}</span>
                 <img
                   src={`/club-logos/${team.code}.webp`}
@@ -654,7 +654,7 @@ export default function FDRTab({
                   onError={(e) => { e.target.style.display = 'none'; }}
                 />
                 <div style={{ minWidth: '130px' }}>
-                  <div style={{ color: '#FFF', fontWeight: 700, fontSize: '14px' }}>{team.name}</div>
+                  <div style={{ color: 'var(--text-1)', fontWeight: 700, fontSize: '14px' }}>{team.name}</div>
                   <div style={{ color: COLORS.textMuted, fontSize: '11px' }}>{t('fdr.avgDifficulty', { value: team.avg.toFixed(1) })}</div>
                 </div>
               </div>
@@ -731,8 +731,8 @@ export default function FDRTab({
               <button key={team.code} onClick={() => toggleCompareTeam(team.code)} disabled={disabled}
                 className="fdr-club-chip" aria-pressed={selected} style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
-                background: selected ? '#4ECDC4' : 'rgba(255,255,255,0.04)',
-                color: selected ? '#0B2E1B' : disabled ? COLORS.textDisabled : '#FFF',
+                background: selected ? 'var(--accent)' : 'rgba(255,255,255,0.04)',
+                color: selected ? 'var(--accent-ink)' : disabled ? COLORS.textDisabled : 'var(--text-1)',
                 border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px',
                 padding: '6px 4px', fontSize: '12px', fontWeight: 700,
                 cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.5 : 1
@@ -769,7 +769,7 @@ export default function FDRTab({
                   const team = TEAMS.find(team => team.code === code);
                   return (
                     <tr key={code}>
-                      <td style={{ color: '#FFF', fontWeight: 700, fontSize: '13px', padding: '6px 8px', whiteSpace: 'nowrap', ...stickyTeamCellStyle }}>
+                      <td style={{ color: 'var(--text-1)', fontWeight: 700, fontSize: '13px', padding: '6px 8px', whiteSpace: 'nowrap', ...stickyTeamCellStyle }}>
                         <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <img
                             src={`/club-logos/${team.code}.webp`}

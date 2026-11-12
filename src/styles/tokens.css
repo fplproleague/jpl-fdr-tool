@@ -1,0 +1,114 @@
+/* Design tokens van de rework "Scorebord" (docs/redesign/DESIGN_SPEC.md, §3).
+   Alle kleuren, maten en fonts van de site komen voortaan hieruit. Het palet komt uit het eigen logo
+   (petrol #09282A + aqua #33EDD5). Terug naar het paarse palet = enkel de kleurvariabelen hieronder
+   vervangen door het terugval-palet uit §3.1 van de spec. */
+
+:root {
+  /* --- Kleuren ---------------------------------------------------------------------------- */
+
+  /* Petrol (achtergronden), afgeleid van het logo #09282A */
+  --ink-0: #061B1C;   /* pagina, iets dieper dan het logo */
+  --ink-1: #09282A;   /* = logokleur: topbalk, tabelkop, sticky kolom, sheet, input */
+  --ink-2: #0F3231;   /* hover, foto-achtergrond, inactieve chip */
+  --ink-3: #163B3A;   /* pressed */
+
+  /* Lijnen */
+  --line:        #183D3D;  /* standaard-haarlijn tussen rijen */
+  --line-strong: #24514F;  /* sectiescheiding, input-rand, tabelkop-onderrand */
+
+  /* Tekst (contrast t.o.v. --ink-0 / --ink-1) */
+  --text-1: #EEF5F2;  /* 16.1 / 14.1:1  primair */
+  --text-2: #B4C7C2;  /* 10.1 /  8.8:1  secundair */
+  --text-3: #8AA5A0;  /*  6.8 /  5.9:1  tertiair, labels, kolomkoppen */
+  --text-4: #5E7772;  /*  3.7:1  ENKEL disabled/decoratief, nooit voor leesbare info */
+
+  /* Rollen */
+  --accent:     #33EDD5;  /* aqua uit het logo, 12.0:1 op ink-0 */
+  --accent-ink: #061B1C;  /* tekst op aqua */
+  --danger:     #FF5A47;  /* 5.8:1 op ink-0, 5.1:1 op ink-1. Als tekst enkel op ink-0/ink-1 */
+  --positive:   #3FD68F;  /* 9.5:1 als tekst */
+  --warning:    #F2A33A;  /* oranje */
+
+  /* Halftransparante varianten voor randen/achtergronden van fout- en gevaarmeldingen */
+  --danger-line: rgba(255, 90, 71, 0.45);
+  --danger-wash: rgba(255, 90, 71, 0.06);
+
+  /* Geselecteerd = omgekeerd */
+  --invert-bg:   #EEF5F2;
+  --invert-text: #061B1C;
+
+  /* Veld (Team Planner + publieke Verwachte XI's): groener dan de pagina, zodat het veld loskomt */
+  --pitch:      #0E3A2C;
+  --pitch-line: rgba(238, 245, 242, 0.14);
+  --pitch-label: rgba(12, 13, 12, 0.88);
+
+  /* Overlay achter sheets en menu's */
+  --scrim: rgba(0, 0, 0, 0.6);
+
+  /* --- FDR-schaal (§3.2): gespiegeld uit RATING_STYLE in src/constants.js, NIET aanpassen ---- */
+  --fdr-1-bg: #1F7A4D; --fdr-1-fg: #EAFBF1;
+  --fdr-2-bg: #5BAE7A; --fdr-2-fg: #0B2E1B;
+  --fdr-3-bg: #E8C547; --fdr-3-fg: #3D2E00;
+  --fdr-4-bg: #E08A3E; --fdr-4-fg: #2E1500;
+  --fdr-5-bg: #C2402C; --fdr-5-fg: #FFFFFF;
+
+  /* --- Typografie (§3.4) ------------------------------------------------------------------ */
+  --font-ui:  'Archivo', system-ui, sans-serif;
+  --font-num: 'Martian Mono', ui-monospace, monospace;
+
+  /* Precies 7 maten. Niets anders gebruiken. */
+  --fs-display: 32px;  --lh-display: 32px;
+  --fs-title:   18px;  --lh-title:   24px;
+  --fs-body:    15px;  --lh-body:    22px;
+  --fs-ui:      13px;  --lh-ui:      18px;
+  --fs-meta:    12px;  --lh-meta:    16px;
+  --fs-label:   11px;  --lh-label:   14px;
+  --fs-micro:   10px;  --lh-micro:   12px;
+
+  /* --- Ruimte, vorm en beweging (§3.5) ---------------------------------------------------- */
+  /* 4px-raster */
+  --s-1: 4px;  --s-2: 8px;  --s-3: 12px; --s-4: 16px;
+  --s-5: 24px; --s-6: 32px; --s-7: 48px;
+
+  /* Radius: hoekig. Rond (50%) ENKEL voor statusstipjes en vormstipjes. Geen pillen. */
+  --r-0: 0;
+  --r-1: 2px;
+
+  /* Diepte: geen schaduwen, behalve voor overlays (sheet, menu, toast) */
+  --shadow-overlay: 0 12px 32px rgba(0, 0, 0, 0.55);
+
+  /* Beweging */
+  --dur-fast: 120ms;
+  --dur-base: 180ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Lagen */
+  --z-sticky: 10; --z-nav: 30; --z-overlay: 40; --z-sheet: 50; --z-toast: 60;
+
+  /* Layout */
+  --gutter: 24px;
+  --max-data: 1440px;
+  --max-read: 72ch;
+  --topbar-h: 56px;
+  --bottomnav-h: 56px;
+}
+
+@media (max-width: 899px) {
+  :root {
+    --topbar-h: 48px;
+  }
+}
+
+@media (max-width: 700px) {
+  :root {
+    --fs-display: 26px; --lh-display: 28px;
+    --gutter: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms;
+    --dur-base: 0ms;
+  }
+}

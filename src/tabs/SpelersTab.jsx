@@ -74,15 +74,15 @@ function useSpelersData() {
 // --- Kleine UI-stukken ---------------------------------------------------------------------------
 
 const chipStyle = (selected) => ({
-  background: selected ? 'rgba(78,205,196,0.12)' : 'rgba(255,255,255,0.04)',
-  border: selected ? '1px solid #4ECDC4' : '1px solid rgba(255,255,255,0.08)',
+  background: selected ? 'rgba(51,237,213,0.12)' : 'rgba(255,255,255,0.04)',
+  border: selected ? '1px solid var(--accent)' : '1px solid rgba(255,255,255,0.08)',
   borderRadius: '10px', padding: '7px 12px', cursor: 'pointer',
-  color: selected ? '#4ECDC4' : '#C9B8E0', fontWeight: 700, fontSize: '12px', fontFamily: 'inherit',
+  color: selected ? 'var(--accent)' : 'var(--text-2)', fontWeight: 700, fontSize: '12px', fontFamily: 'inherit',
 });
 
-const labelStyle = { color: '#A794C2', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' };
+const labelStyle = { color: 'var(--text-3)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' };
 const selectStyle = {
-  background: '#3D1E5C', color: '#FFFFFF', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px',
+  background: 'var(--ink-1)', color: 'var(--text-1)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px',
   padding: '7px 10px', fontSize: '13px', fontFamily: 'inherit', minHeight: '36px',
 };
 
@@ -90,14 +90,14 @@ function ErrorBanner({ children, onRetry, t }) {
   return (
     <div role="alert" style={{
       display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
-      background: 'rgba(194,64,44,0.12)', border: '1px solid rgba(194,64,44,0.4)',
+      background: 'rgba(255,90,71,0.12)', border: '1px solid rgba(255,90,71,0.4)',
       borderRadius: '10px', padding: '12px 14px', marginBottom: '12px',
     }}>
-      <AlertCircle size={16} color="#C2402C" style={{ flexShrink: 0 }} aria-hidden="true" />
-      <span style={{ color: '#FBEAE7', fontSize: '13px', flex: 1, minWidth: '200px' }}>{children}</span>
+      <AlertCircle size={16} color="var(--danger)" style={{ flexShrink: 0 }} aria-hidden="true" />
+      <span style={{ color: 'var(--text-1)', fontSize: '13px', flex: 1, minWidth: '200px' }}>{children}</span>
       {onRetry && (
         <button type="button" onClick={onRetry} style={{
-          display: 'flex', alignItems: 'center', gap: '6px', background: 'transparent', color: '#FBEAE7',
+          display: 'flex', alignItems: 'center', gap: '6px', background: 'transparent', color: 'var(--text-1)',
           border: '1px solid rgba(251,234,231,0.4)', borderRadius: '8px', padding: '6px 12px',
           fontWeight: 700, fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit',
         }}>
@@ -124,11 +124,11 @@ function PriceRange({ t, bounds, pmin, pmax, onChange }) {
         <input type="range" min={bounds.min} max={bounds.max} step={0.5} value={lo}
           aria-label={t('spelers.filter.priceMin')}
           onChange={e => { const v = Number(e.target.value); set(v, Math.max(v, hi)); }}
-          style={{ width: '100%', accentColor: '#4ECDC4' }} />
+          style={{ width: '100%', accentColor: 'var(--accent)' }} />
         <input type="range" min={bounds.min} max={bounds.max} step={0.5} value={hi}
           aria-label={t('spelers.filter.priceMax')}
           onChange={e => { const v = Number(e.target.value); set(Math.min(lo, v), v); }}
-          style={{ width: '100%', accentColor: '#4ECDC4' }} />
+          style={{ width: '100%', accentColor: 'var(--accent)' }} />
       </div>
     </div>
   );
@@ -140,14 +140,14 @@ function SortHeader({ label, title, sortKey, state, onSort, align = 'right', sti
   return (
     <th scope="col" aria-sort={ariaSort} className={sticky ? 'spl-sticky' : undefined} style={{
       padding: 0, textAlign: align, position: 'sticky', top: 0, zIndex: sticky ? 4 : 3,
-      background: '#311A4D', borderBottom: '1px solid rgba(255,255,255,0.12)', minWidth,
+      background: 'var(--ink-1)', borderBottom: '1px solid rgba(255,255,255,0.12)', minWidth,
       ...(sticky ? { left: 0 } : {}),
     }}>
       <button type="button" onClick={() => onSort(sortKey)} title={title} style={{
         display: 'flex', alignItems: 'center', gap: '2px', width: '100%',
         justifyContent: align === 'left' ? 'flex-start' : 'flex-end',
         background: 'none', border: 'none', cursor: 'pointer', padding: '9px 8px', fontFamily: 'inherit',
-        color: active ? '#4ECDC4' : '#C9B8E0', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase',
+        color: active ? 'var(--accent)' : 'var(--text-2)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase',
         whiteSpace: 'nowrap',
       }}>
         {label}
@@ -170,16 +170,16 @@ function ComparePanel({ t, rows, mode, fromGw, ratings, homeAdvantage, onRemove,
       // klembord niet beschikbaar: de URL in de adresbalk is evengoed deelbaar
     }
   };
-  const cell = { padding: '7px 8px', fontSize: '13px', textAlign: 'center', borderTop: '1px solid rgba(255,255,255,0.06)', color: '#EDE4F5', whiteSpace: 'nowrap' };
-  const rowLabel = { ...cell, textAlign: 'left', color: '#A794C2', fontSize: '12px', fontWeight: 700, position: 'sticky', left: 0, background: '#341B52', zIndex: 1 };
+  const cell = { padding: '7px 8px', fontSize: '13px', textAlign: 'center', borderTop: '1px solid rgba(255,255,255,0.06)', color: 'var(--text-1)', whiteSpace: 'nowrap' };
+  const rowLabel = { ...cell, textAlign: 'left', color: 'var(--text-3)', fontSize: '12px', fontWeight: 700, position: 'sticky', left: 0, background: 'var(--ink-1)', zIndex: 1 };
 
   return (
     <section aria-labelledby="spl-compare-title" style={{
-      background: 'rgba(78,205,196,0.05)', border: '1px solid rgba(78,205,196,0.3)', borderRadius: '12px',
+      background: 'rgba(51,237,213,0.05)', border: '1px solid rgba(51,237,213,0.3)', borderRadius: '12px',
       padding: '14px', marginBottom: '18px',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' }}>
-        <h2 id="spl-compare-title" className="fdr-title" style={{ color: '#FFFFFF', fontSize: '15px', margin: 0, textTransform: 'uppercase', flex: 1 }}>
+        <h2 id="spl-compare-title" className="fdr-title" style={{ color: 'var(--text-1)', fontSize: '15px', margin: 0, textTransform: 'uppercase', flex: 1 }}>
           {t('spelers.compare.title', { n: rows.length, max: MAX_COMPARE })}
         </h2>
         <button type="button" onClick={copyLink} style={chipStyle(copied)}>
@@ -188,7 +188,7 @@ function ComparePanel({ t, rows, mode, fromGw, ratings, homeAdvantage, onRemove,
         </button>
         <button type="button" onClick={onClear} style={chipStyle(false)}>{t('spelers.compare.clear')}</button>
       </div>
-      {rows.length < 2 && <p style={{ color: '#C9B8E0', fontSize: '13px', margin: '0 0 10px' }}>{t('spelers.compare.pickMore')}</p>}
+      {rows.length < 2 && <p style={{ color: 'var(--text-2)', fontSize: '13px', margin: '0 0 10px' }}>{t('spelers.compare.pickMore')}</p>}
       <div style={{ overflowX: 'auto' }}>
         <table style={{ borderCollapse: 'collapse', width: 'auto' }}>
           <thead>
@@ -198,18 +198,18 @@ function ComparePanel({ t, rows, mode, fromGw, ratings, homeAdvantage, onRemove,
                 <th key={r.id} scope="col" style={{ padding: '4px 8px 8px', verticalAlign: 'bottom', minWidth: '110px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
                     <button type="button" onClick={() => onRemove(r.id)} aria-label={t('spelers.compare.removeAria', { name: r.name })} style={{
-                      alignSelf: 'flex-end', background: 'none', border: 'none', color: '#A794C2', cursor: 'pointer', padding: 0, display: 'inline-flex',
+                      alignSelf: 'flex-end', background: 'none', border: 'none', color: 'var(--text-3)', cursor: 'pointer', padding: 0, display: 'inline-flex',
                     }}>
                       <X size={14} aria-hidden="true" />
                     </button>
                     <PlayerPhoto player={r} size={40} />
                     <button type="button" onClick={() => onOpen(r.id)} style={{
-                      background: 'none', border: 'none', color: '#FFFFFF', fontWeight: 800, fontSize: '13px', cursor: 'pointer',
+                      background: 'none', border: 'none', color: 'var(--text-1)', fontWeight: 800, fontSize: '13px', cursor: 'pointer',
                       fontFamily: 'inherit', padding: 0, textAlign: 'center',
                     }}>
                       {r.short || r.name}
                     </button>
-                    <span style={{ color: '#A794C2', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <span style={{ color: 'var(--text-3)', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                       <ClubLogo code={r.club} size={13} /> {r.club} · {r.pos}
                     </span>
                   </div>
@@ -230,8 +230,8 @@ function ComparePanel({ t, rows, mode, fromGw, ratings, homeAdvantage, onRemove,
                     <td key={rows[i].id} style={{
                       ...cell,
                       fontWeight: best.has(i) ? 800 : 500,
-                      color: best.has(i) ? '#4ECDC4' : cell.color,
-                      background: best.has(i) ? 'rgba(78,205,196,0.08)' : undefined,
+                      color: best.has(i) ? 'var(--accent)' : cell.color,
+                      background: best.has(i) ? 'rgba(51,237,213,0.08)' : undefined,
                     }}>
                       {formatCell(v, key, mode)}
                     </td>
@@ -260,7 +260,7 @@ function ComparePanel({ t, rows, mode, fromGw, ratings, homeAdvantage, onRemove,
           </tbody>
         </table>
       </div>
-      <p style={{ color: '#A794C2', fontSize: '11px', margin: '8px 0 0' }}>{t('spelers.compare.bestNote')}</p>
+      <p style={{ color: 'var(--text-3)', fontSize: '11px', margin: '8px 0 0' }}>{t('spelers.compare.bestNote')}</p>
     </section>
   );
 }
@@ -362,12 +362,12 @@ export default function SpelersTab({
       <style>{`
         .spl-table-wrap { overflow: auto; max-height: min(78vh, 980px); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
         .spl-table { border-collapse: separate; border-spacing: 0; width: 100%; }
-        .spl-table td { padding: 7px 8px; font-size: 13px; color: #EDE4F5; text-align: right; white-space: nowrap; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .spl-table td { padding: 7px 8px; font-size: 13px; color: var(--text-1); text-align: right; white-space: nowrap; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .spl-table tbody tr:hover td { background: rgba(255,255,255,0.03); }
-        .spl-table td.spl-sticky { position: sticky; left: 0; z-index: 2; background: #2E1747; text-align: left; box-shadow: 1px 0 0 rgba(255,255,255,0.08); }
-        .spl-table tbody tr:hover td.spl-sticky { background: #36204F; }
-        .spl-name-btn { background: none; border: none; padding: 0; cursor: pointer; font-family: inherit; color: #FFFFFF; font-weight: 700; font-size: 13px; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
-        .spl-name-btn:hover { color: #4ECDC4; }
+        .spl-table td.spl-sticky { position: sticky; left: 0; z-index: 2; background: var(--ink-1); text-align: left; box-shadow: 1px 0 0 rgba(255,255,255,0.08); }
+        .spl-table tbody tr:hover td.spl-sticky { background: var(--ink-1); }
+        .spl-name-btn { background: none; border: none; padding: 0; cursor: pointer; font-family: inherit; color: var(--text-1); font-weight: 700; font-size: 13px; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+        .spl-name-btn:hover { color: var(--accent); }
         .spl-name-full { display: inline; } .spl-name-short { display: none; }
         .spl-name-cell { max-width: 210px; }
         .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
@@ -381,13 +381,13 @@ export default function SpelersTab({
         }
       `}</style>
 
-      <p style={{ color: '#A794C2', fontSize: '13px', marginBottom: '14px', lineHeight: 1.5 }}>
+      <p style={{ color: 'var(--text-3)', fontSize: '13px', marginBottom: '14px', lineHeight: 1.5 }}>
         {t('spelers.intro')}
       </p>
 
       {/* Zoeken + positie: altijd zichtbaar */}
       <div style={{ position: 'relative', marginBottom: '10px' }}>
-        <Search size={16} color="#A794C2" aria-hidden="true" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+        <Search size={16} color="var(--text-3)" aria-hidden="true" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
         <input
           type="search"
           value={ui.q}
@@ -395,7 +395,7 @@ export default function SpelersTab({
           placeholder={t('spelers.searchPlaceholder')}
           aria-label={t('spelers.searchPlaceholder')}
           style={{
-            width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.06)', color: '#FFFFFF',
+            width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.06)', color: 'var(--text-1)',
             border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', padding: '10px 12px 10px 36px',
             fontSize: '14px', fontFamily: 'inherit',
           }}
@@ -455,8 +455,8 @@ export default function SpelersTab({
             <span style={labelStyle}>{t('spelers.filter.scope')}</span>
             <ScopeFilter t={t} scope={ui.scope} onChange={scope => update({ scope })} />
           </div>
-          {ui.per !== 'season' && <p style={{ color: '#A794C2', fontSize: '12px', margin: '-6px 0 0' }}>{t('spelers.period.note', { n: ui.per })}</p>}
-          {ui.mode === 'p90' && <p style={{ color: '#A794C2', fontSize: '12px', margin: '6px 0 0' }}>{t('spelers.mode.p90Note', { min: MIN_MINUTES_PER90 })}</p>}
+          {ui.per !== 'season' && <p style={{ color: 'var(--text-3)', fontSize: '12px', margin: '-6px 0 0' }}>{t('spelers.period.note', { n: ui.per })}</p>}
+          {ui.mode === 'p90' && <p style={{ color: 'var(--text-3)', fontSize: '12px', margin: '6px 0 0' }}>{t('spelers.mode.p90Note', { min: MIN_MINUTES_PER90 })}</p>}
         </div>
       )}
 
@@ -470,7 +470,7 @@ export default function SpelersTab({
       </div>
 
       {loading && !data && (
-        <div role="status" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#C9B8E0', fontSize: '13px', margin: '24px 0' }}>
+        <div role="status" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-2)', fontSize: '13px', margin: '24px 0' }}>
           <Loader2 size={16} className="fdr-spin" aria-hidden="true" /> {t('spelers.loading')}
         </div>
       )}
@@ -495,7 +495,7 @@ export default function SpelersTab({
       {data && (
         <>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
-            <span style={{ color: '#C9B8E0', fontSize: '12px', flex: 1 }}>
+            <span style={{ color: 'var(--text-2)', fontSize: '12px', flex: 1 }}>
               {t('spelers.count', { n: sorted.length })} · {periodLabel}{ui.mode === 'p90' ? ` · ${t('spelers.mode.p90')}` : ''} · {t('spelers.dataUntil', { gw: data.gw, season: data.season })}
             </span>
             {filtersActive ? (
@@ -508,7 +508,7 @@ export default function SpelersTab({
               ? <ScopeEmptyMessage t={t} scope={ui.scope} hasAny={ui.scope === 'myTeam' ? hasMyTeam : hasWatchlist} />
               : (
                 <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '16px' }}>
-                  <p style={{ color: '#C9B8E0', fontSize: '13px', margin: 0 }}>{t('spelers.empty')}</p>
+                  <p style={{ color: 'var(--text-2)', fontSize: '13px', margin: 0 }}>{t('spelers.empty')}</p>
                 </div>
               )
           ) : (
@@ -529,7 +529,7 @@ export default function SpelersTab({
                       />
                     ))}
                     {(ui.cols === 'overview' || ui.cols === 'ownership') && (
-                      <th scope="col" style={{ position: 'sticky', top: 0, zIndex: 3, background: '#311A4D', borderBottom: '1px solid rgba(255,255,255,0.12)', color: '#C9B8E0', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', padding: '9px 8px', textAlign: 'left', whiteSpace: 'nowrap' }}>
+                      <th scope="col" style={{ position: 'sticky', top: 0, zIndex: 3, background: 'var(--ink-1)', borderBottom: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-2)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', padding: '9px 8px', textAlign: 'left', whiteSpace: 'nowrap' }}>
                         {t('spelers.col.next')}
                       </th>
                     )}
@@ -549,7 +549,7 @@ export default function SpelersTab({
                               onChange={() => toggleCompare(r.id)}
                               aria-label={t('spelers.compare.addAria', { name: r.name })}
                               title={t('spelers.compare.addAria', { name: r.name })}
-                              style={{ accentColor: '#4ECDC4', width: '16px', height: '16px', margin: 0, flexShrink: 0, cursor: 'pointer' }}
+                              style={{ accentColor: 'var(--accent)', width: '16px', height: '16px', margin: 0, flexShrink: 0, cursor: 'pointer' }}
                             />
                             <PlayerPhoto player={r} size={28} />
                             <div className="spl-name-cell" style={{ minWidth: 0 }}>
@@ -562,10 +562,10 @@ export default function SpelersTab({
                         </td>
                         <td style={{ textAlign: 'left' }}>
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                            <ClubLogo code={r.club} size={16} /> <span className="spl-hide-mobile" style={{ fontSize: '12px', color: '#C9B8E0' }}>{r.club}</span>
+                            <ClubLogo code={r.club} size={16} /> <span className="spl-hide-mobile" style={{ fontSize: '12px', color: 'var(--text-2)' }}>{r.club}</span>
                           </span>
                         </td>
-                        <td style={{ textAlign: 'left', fontSize: '12px', color: '#C9B8E0' }}>{t(`spelers.posShort.${r.pos}`)}</td>
+                        <td style={{ textAlign: 'left', fontSize: '12px', color: 'var(--text-2)' }}>{t(`spelers.posShort.${r.pos}`)}</td>
                         {columns.map(key => {
                           if (key === 'form') {
                             return (
@@ -579,7 +579,7 @@ export default function SpelersTab({
                           }
                           const value = cellValue(r, key, ui.mode);
                           return (
-                            <td key={key} style={{ fontWeight: key === ui.sort ? 800 : 500, color: key === ui.sort ? '#FFFFFF' : undefined }}>
+                            <td key={key} style={{ fontWeight: key === ui.sort ? 800 : 500, color: key === ui.sort ? 'var(--text-1)' : undefined }}>
                               {formatCell(value, key, ui.mode)}
                             </td>
                           );
@@ -605,7 +605,7 @@ export default function SpelersTab({
             </div>
           )}
 
-          <p style={{ color: '#A794C2', fontSize: '11px', marginTop: '12px', lineHeight: 1.5 }}>
+          <p style={{ color: 'var(--text-3)', fontSize: '11px', marginTop: '12px', lineHeight: 1.5 }}>
             {t('spelers.footnote')}
           </p>
         </>

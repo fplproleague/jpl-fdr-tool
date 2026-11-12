@@ -11,7 +11,7 @@ import { buildKaartenEntries, rankByMostCards, rankByClosestToSuspension, isOneC
 
 const retryButtonStyle = {
   display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0,
-  background: 'transparent', color: '#FBEAE7', border: '1px solid rgba(251,234,231,0.4)',
+  background: 'transparent', color: 'var(--text-1)', border: '1px solid rgba(251,234,231,0.4)',
   borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px', cursor: 'pointer',
 };
 
@@ -64,7 +64,7 @@ export default function KaartenTab({
 
   return (
     <>
-      <p style={{ color: '#8F79AD', fontSize: '13px', marginBottom: '18px' }}>
+      <p style={{ color: 'var(--text-3)', fontSize: '13px', marginBottom: '18px' }}>
         {t('kaarten.suspensionExplainer')}
       </p>
 
@@ -78,10 +78,10 @@ export default function KaartenTab({
               key={key}
               onClick={() => setSortMode(key)}
               style={{
-                background: isSelected ? 'rgba(78,205,196,0.12)' : 'rgba(255,255,255,0.04)',
-                border: isSelected ? '1px solid #4ECDC4' : '1px solid rgba(255,255,255,0.08)',
+                background: isSelected ? 'rgba(51,237,213,0.12)' : 'rgba(255,255,255,0.04)',
+                border: isSelected ? '1px solid var(--accent)' : '1px solid rgba(255,255,255,0.08)',
                 borderRadius: '10px', padding: '8px 14px', cursor: 'pointer',
-                color: isSelected ? '#4ECDC4' : '#C9B8E0', fontWeight: 700, fontSize: '12px',
+                color: isSelected ? 'var(--accent)' : 'var(--text-2)', fontWeight: 700, fontSize: '12px',
               }}
             >
               {t(labelKey)}
@@ -91,7 +91,7 @@ export default function KaartenTab({
       </div>
 
       {playerDatabaseLoading && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#C9B8E0', fontSize: '13px', marginBottom: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-2)', fontSize: '13px', marginBottom: '12px' }}>
           <Loader2 size={16} className="fdr-spin" /> {t('kaarten.loading')}
         </div>
       )}
@@ -99,11 +99,11 @@ export default function KaartenTab({
       {!playerDatabaseLoading && playerDatabaseError && (
         <div style={{
           display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
-          background: 'rgba(194,64,44,0.12)', border: '1px solid rgba(194,64,44,0.4)',
+          background: 'rgba(255,90,71,0.12)', border: '1px solid rgba(255,90,71,0.4)',
           borderRadius: '10px', padding: '12px 14px', marginBottom: '12px',
         }}>
-          <AlertCircle size={16} color="#C2402C" style={{ flexShrink: 0 }} />
-          <span style={{ color: '#FBEAE7', fontSize: '13px', flex: 1 }}>{playerDatabaseError}</span>
+          <AlertCircle size={16} color="var(--danger)" style={{ flexShrink: 0 }} />
+          <span style={{ color: 'var(--text-1)', fontSize: '13px', flex: 1 }}>{playerDatabaseError}</span>
           <button onClick={fetchPlayerDatabase} style={retryButtonStyle}>
             <RotateCcw size={14} /> {t('shared.retry')}
           </button>
@@ -119,7 +119,7 @@ export default function KaartenTab({
           background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
           borderRadius: '10px', padding: '16px',
         }}>
-          <p style={{ color: '#C9B8E0', fontSize: '13px', margin: 0 }}>{t('kaarten.emptyNoData')}</p>
+          <p style={{ color: 'var(--text-2)', fontSize: '13px', margin: 0 }}>{t('kaarten.emptyNoData')}</p>
         </div>
       )}
 
@@ -128,7 +128,7 @@ export default function KaartenTab({
           background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
           borderRadius: '10px', padding: '16px',
         }}>
-          <p style={{ color: '#C9B8E0', fontSize: '13px', margin: 0 }}>
+          <p style={{ color: 'var(--text-2)', fontSize: '13px', margin: 0 }}>
             {t('kaarten.emptyNoQualifying', { min: MIN_VISIBLE_CARDS })}
           </p>
         </div>

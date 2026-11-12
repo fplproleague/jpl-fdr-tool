@@ -11,7 +11,7 @@ import { Loader2, AlertCircle, RotateCcw } from 'lucide-react';
 
 const retryButtonStyle = {
   display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0,
-  background: 'transparent', color: '#FBEAE7', border: '1px solid rgba(251,234,231,0.4)',
+  background: 'transparent', color: 'var(--text-1)', border: '1px solid rgba(251,234,231,0.4)',
   borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px', cursor: 'pointer',
 };
 
@@ -22,7 +22,7 @@ function CategoryBadge({ label }) {
     <span style={{
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
       width: '20px', height: '20px', borderRadius: '50%',
-      background: 'rgba(78,205,196,0.15)', border: '1px solid #4ECDC4', color: '#4ECDC4',
+      background: 'rgba(51,237,213,0.15)', border: '1px solid var(--accent)', color: 'var(--accent)',
       fontSize: label.length > 1 ? '8px' : '10px', fontWeight: 800,
     }}>
       {label}
@@ -53,7 +53,7 @@ function resolvePlayerName(rawName, clubCode, playerDatabase) {
 // uitkomt is een loze belofte, en deze sheet bevat ook vrije tekst die geen spelersnaam is.
 function formatSetPieceValue(value, { clubCode, playerDatabase, onOpenPlayer, t }) {
   return value.split(/([/?])/g).filter(part => part !== '').map((part, i) => {
-    if (part === '?') return <span key={i} style={{ color: '#E8C547', fontWeight: 800 }}>?</span>;
+    if (part === '?') return <span key={i} style={{ color: 'var(--warning)', fontWeight: 800 }}>?</span>;
     if (part === '/') return <span key={i}>{part}</span>;
     const fullName = onOpenPlayer ? resolvePlayerName(part, clubCode, playerDatabase) : null;
     if (!fullName) return <span key={i}>{part}</span>;
@@ -75,7 +75,7 @@ function formatSetPieceValue(value, { clubCode, playerDatabase, onOpenPlayer, t 
           className="fdr-hit-line"
           style={{
             background: 'none', border: 'none', padding: 0, font: 'inherit', color: 'inherit',
-            cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'rgba(78,205,196,0.5)',
+            cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'rgba(51,237,213,0.5)',
             textUnderlineOffset: '3px',
           }}
         >
@@ -91,8 +91,8 @@ function SetPieceRow({ label, value, ...linkProps }) {
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', padding: '4px 0' }}>
       <CategoryBadge label={label} />
-      <span style={{ color: '#EDE4F5', fontSize: '13px', fontWeight: 600, lineHeight: 1.45, wordBreak: 'break-word' }}>
-        {value ? formatSetPieceValue(value, linkProps) : <span style={{ color: '#6B5289' }}>—</span>}
+      <span style={{ color: 'var(--text-1)', fontSize: '13px', fontWeight: 600, lineHeight: 1.45, wordBreak: 'break-word' }}>
+        {value ? formatSetPieceValue(value, linkProps) : <span style={{ color: 'var(--text-4)' }}>—</span>}
       </span>
     </div>
   );
@@ -133,7 +133,7 @@ function SetPieceCard({ entry, playerDatabase, onOpenPlayer, onOpenClub, t }) {
           />
         ) : null,
         <span key="naam" style={{
-          color: '#FFF', fontWeight: 800, fontSize: '14px', textTransform: 'uppercase', letterSpacing: '0.01em',
+          color: 'var(--text-1)', fontWeight: 800, fontSize: '14px', textTransform: 'uppercase', letterSpacing: '0.01em',
         }}>
           {entry.clubName}
         </span>,
@@ -165,7 +165,7 @@ export default function SetPiecesTab({
       }}>
         <div style={{
           display: 'flex', gap: '14px', flexWrap: 'wrap', alignItems: 'center',
-          fontSize: '11px', fontWeight: 700, color: '#C9B8E0',
+          fontSize: '11px', fontWeight: 700, color: 'var(--text-2)',
         }}>
           {CATEGORY_LEGEND.map(({ label, textKey }) => (
             <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -174,14 +174,14 @@ export default function SetPiecesTab({
             </div>
           ))}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ color: '#E8C547', fontWeight: 800, fontSize: '13px' }}>?</span>
+            <span style={{ color: 'var(--warning)', fontWeight: 800, fontSize: '13px' }}>?</span>
             {t('setpieces.legend.uncertain')}
           </div>
         </div>
         {updatedGw && (
           <span style={{
-            color: '#4ECDC4', fontWeight: 800, fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase',
-            background: 'rgba(78,205,196,0.12)', border: '1px solid rgba(78,205,196,0.3)',
+            color: 'var(--accent)', fontWeight: 800, fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase',
+            background: 'rgba(51,237,213,0.12)', border: '1px solid rgba(51,237,213,0.3)',
             borderRadius: '999px', padding: '5px 14px', whiteSpace: 'nowrap',
           }}>
             {t('setpieces.updatedLabel', { gw: updatedGw })}
@@ -190,7 +190,7 @@ export default function SetPiecesTab({
       </div>
 
       {loading && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#C9B8E0', fontSize: '13px', marginBottom: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-2)', fontSize: '13px', marginBottom: '12px' }}>
           <Loader2 size={16} className="fdr-spin" /> {t('setpieces.loading')}
         </div>
       )}
@@ -198,11 +198,11 @@ export default function SetPiecesTab({
       {!loading && error && (
         <div style={{
           display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
-          background: 'rgba(194,64,44,0.12)', border: '1px solid rgba(194,64,44,0.4)',
+          background: 'rgba(255,90,71,0.12)', border: '1px solid rgba(255,90,71,0.4)',
           borderRadius: '10px', padding: '12px 14px', marginBottom: '12px',
         }}>
-          <AlertCircle size={16} color="#C2402C" style={{ flexShrink: 0 }} />
-          <span style={{ color: '#FBEAE7', fontSize: '13px', flex: 1 }}>{t(error)}</span>
+          <AlertCircle size={16} color="var(--danger)" style={{ flexShrink: 0 }} />
+          <span style={{ color: 'var(--text-1)', fontSize: '13px', flex: 1 }}>{t(error)}</span>
           <button onClick={retry} style={retryButtonStyle}>
             <RotateCcw size={14} /> {t('shared.retry')}
           </button>
@@ -214,7 +214,7 @@ export default function SetPiecesTab({
           background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
           borderRadius: '10px', padding: '16px',
         }}>
-          <p style={{ color: '#C9B8E0', fontSize: '13px', margin: 0 }}>
+          <p style={{ color: 'var(--text-2)', fontSize: '13px', margin: 0 }}>
             {t('setpieces.emptyState')}
           </p>
         </div>

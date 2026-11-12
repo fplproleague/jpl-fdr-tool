@@ -41,10 +41,10 @@ export default function ScopeFilter({ t, scope, onChange }) {
             aria-pressed={isSelected}
             className="fdr-hit-44"
             style={{
-              background: isSelected ? 'rgba(78,205,196,0.12)' : 'rgba(255,255,255,0.04)',
-              border: isSelected ? '1px solid #4ECDC4' : '1px solid rgba(255,255,255,0.08)',
+              background: isSelected ? 'rgba(51,237,213,0.12)' : 'rgba(255,255,255,0.04)',
+              border: isSelected ? '1px solid var(--accent)' : '1px solid rgba(255,255,255,0.08)',
               borderRadius: '10px', padding: '8px 14px', cursor: 'pointer',
-              color: isSelected ? '#4ECDC4' : '#C9B8E0', fontWeight: 700, fontSize: '12px',
+              color: isSelected ? 'var(--accent)' : 'var(--text-2)', fontWeight: 700, fontSize: '12px',
               fontFamily: 'inherit',
             }}
           >
@@ -67,7 +67,7 @@ export function ScopeEmptyMessage({ t, scope, hasAny }) {
       background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
       borderRadius: '10px', padding: '16px',
     }}>
-      <p style={{ color: '#C9B8E0', fontSize: '13px', margin: 0 }}>{t(sleutel)}</p>
+      <p style={{ color: 'var(--text-2)', fontSize: '13px', margin: 0 }}>{t(sleutel)}</p>
     </div>
   );
 }

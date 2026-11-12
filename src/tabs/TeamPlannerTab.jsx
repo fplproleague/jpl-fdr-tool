@@ -26,7 +26,7 @@ import { PlayerSearchInput } from '../components/PlayerSearchInput';
 import { TeamScreenshotUpload } from './TeamScreenshotUpload';
 
 const teamPlannerInputStyle = {
-  background: '#3D1E5C', color: '#FFF', border: '1px solid rgba(255,255,255,0.15)',
+  background: 'var(--ink-1)', color: 'var(--text-1)', border: '1px solid rgba(255,255,255,0.15)',
   borderRadius: '6px', padding: '6px 8px', fontSize: '13px', width: '100%'
 };
 
@@ -44,8 +44,8 @@ const PITCH_ROW_ORDER = ['GK', 'DEF', 'MID', 'FWD'];
 // een half ingevuld formulier of een nog niet volledige bank is nog geen fout). Gebruikt voor zowel
 // de positie-tellers als de bank-teller in de veld-sectie hieronder.
 function countBadgeStyle(count, required) {
-  if (count === required) return { background: '#4ECDC4', color: '#0B2E1B' };
-  if (count > required) return { background: '#C2402C', color: '#FBEAE7' };
+  if (count === required) return { background: 'var(--accent)', color: 'var(--accent-ink)' };
+  if (count > required) return { background: 'var(--danger)', color: 'var(--text-1)' };
   return { background: 'rgba(255,255,255,0.08)', color: COLORS.textBody };
 }
 
@@ -55,15 +55,15 @@ function countBadgeStyle(count, required) {
 // de bekeken GW, neutraal grijs zodra dat op is (géén rood — "0 over" is op zich geen fout/waarschuwing,
 // enkel de effectief gemaakte extra transfers die punten kosten krijgen de rode stijl, zie hieronder).
 function transferBudgetBadgeStyle(isRecharge, remainingFree) {
-  if (isRecharge) return { background: 'rgba(232,197,71,0.15)', color: '#E8C547' };
-  return remainingFree > 0 ? { background: '#4ECDC4', color: '#0B2E1B' } : { background: 'rgba(255,255,255,0.08)', color: COLORS.textBody };
+  if (isRecharge) return { background: 'rgba(242,163,58,0.15)', color: 'var(--warning)' };
+  return remainingFree > 0 ? { background: 'var(--accent)', color: 'var(--accent-ink)' } : { background: 'rgba(255,255,255,0.08)', color: COLORS.textBody };
 }
 
 // Kleurstaat voor de formatie-pill: neutraal zolang de bank nog niet exact 4 spelers telt (de
 // basisploeg staat dan nog niet vast op 11), anders teal (geldig) of rood (ongeldig).
 function formationBadgeStyle(isBenchComplete, isValidFormation) {
   if (!isBenchComplete) return { background: 'rgba(255,255,255,0.08)', color: COLORS.textBody };
-  return isValidFormation ? { background: '#4ECDC4', color: '#0B2E1B' } : { background: '#C2402C', color: '#FBEAE7' };
+  return isValidFormation ? { background: 'var(--accent)', color: 'var(--accent-ink)' } : { background: 'var(--danger)', color: 'var(--text-1)' };
 }
 
 // Kleine, subtiele ronde icoon-knop voor de booster-stapel rechtsboven in het veld-kaartje (zie
@@ -107,9 +107,9 @@ function BoosterButton({ t, icon: Icon, label, glyph, description, state, gw, on
       style={{
         display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 150px', minWidth: 0,
         textAlign: 'left', borderRadius: '10px', padding: '8px 10px',
-        background: isActive ? 'rgba(78,205,196,0.18)' : 'rgba(255,255,255,0.04)',
-        color: isActive ? '#4ECDC4' : isUsedElsewhere ? COLORS.textDisabled : COLORS.textBody,
-        border: `1px solid ${isActive ? '#4ECDC4' : isUsedElsewhere ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.18)'}`,
+        background: isActive ? 'rgba(51,237,213,0.18)' : 'rgba(255,255,255,0.04)',
+        color: isActive ? 'var(--accent)' : isUsedElsewhere ? COLORS.textDisabled : COLORS.textBody,
+        border: `1px solid ${isActive ? 'var(--accent)' : isUsedElsewhere ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.18)'}`,
         opacity: isUsedElsewhere ? 0.7 : 1,
         cursor: isUsedElsewhere ? 'not-allowed' : isAutomatic ? 'default' : 'pointer',
         fontFamily: 'inherit',
@@ -120,7 +120,7 @@ function BoosterButton({ t, icon: Icon, label, glyph, description, state, gw, on
         style={{
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           width: '26px', height: '26px', borderRadius: '50%', flexShrink: 0,
-          border: `1px solid ${isActive ? '#4ECDC4' : 'rgba(255,255,255,0.25)'}`,
+          border: `1px solid ${isActive ? 'var(--accent)' : 'rgba(255,255,255,0.25)'}`,
           fontSize: '11px', fontWeight: 900, lineHeight: 1,
         }}
       >
@@ -130,7 +130,7 @@ function BoosterButton({ t, icon: Icon, label, glyph, description, state, gw, on
         <span style={{ display: 'block', fontSize: '12px', fontWeight: 700, lineHeight: 1.2 }}>{label}</span>
         <span style={{
           display: 'block', fontSize: '10px', fontWeight: 500, lineHeight: 1.2, marginTop: '2px',
-          color: isActive ? '#4ECDC4' : COLORS.textMuted,
+          color: isActive ? 'var(--accent)' : COLORS.textMuted,
         }}>
           {statusText}
         </span>
@@ -198,9 +198,9 @@ function PlayerPitchCard({ player, gw, ratings, homeAdvantage, isBenched, isCapt
             width: '20px', height: '20px', borderRadius: '50%', display: 'flex',
             alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 900,
             lineHeight: 1,
-            background: isTripleCaptainActive ? '#E8C547' : '#4ECDC4',
-            color: '#0B2E1B',
-            border: `1px solid ${isTripleCaptainActive ? '#E8C547' : '#4ECDC4'}`,
+            background: isTripleCaptainActive ? 'var(--warning)' : 'var(--accent)',
+            color: 'var(--accent-ink)',
+            border: `1px solid ${isTripleCaptainActive ? 'var(--warning)' : 'var(--accent)'}`,
           }}
         >
           {isTripleCaptainActive ? '3×' : 'C'}
@@ -238,8 +238,8 @@ function PlayerPitchCard({ player, gw, ratings, homeAdvantage, isBenched, isCapt
         style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
           background: 'rgba(255,255,255,0.06)',
-          border: isSelectedForSwap ? '1px solid #4ECDC4' : accentActive ? '1px solid #4ECDC4' : benchReorderMode && !benchToggleDisabled ? '1px dashed rgba(78,205,196,0.5)' : '1px solid rgba(255,255,255,0.1)',
-          boxShadow: isSelectedForSwap ? '0 0 0 2px rgba(78,205,196,0.6)' : accentActive ? '0 0 0 1px rgba(78,205,196,0.4)' : 'none',
+          border: isSelectedForSwap ? '1px solid var(--accent)' : accentActive ? '1px solid var(--accent)' : benchReorderMode && !benchToggleDisabled ? '1px dashed rgba(51,237,213,0.5)' : '1px solid rgba(255,255,255,0.1)',
+          boxShadow: isSelectedForSwap ? '0 0 0 2px rgba(51,237,213,0.6)' : accentActive ? '0 0 0 1px rgba(51,237,213,0.4)' : 'none',
           borderRadius: '10px', padding: '8px 10px', minWidth: '78px', flexShrink: 0,
           // Gedimd wanneer niet-klikbaar (bv. de keeper tijdens herschik-modus) — maakt in één oogopslag
           // duidelijk dat deze kaart nu geen wisselkandidaat is, i.p.v. dat de gebruiker het pas merkt
@@ -257,7 +257,7 @@ function PlayerPitchCard({ player, gw, ratings, homeAdvantage, isBenched, isCapt
             onError={(e) => { e.target.style.display = 'none'; }}
           />
         )}
-        <span className="fdr-pitch-card-name" style={{ color: '#FFF', fontSize: '11px', fontWeight: 700, textAlign: 'center', lineHeight: 1.2 }}>
+        <span className="fdr-pitch-card-name" style={{ color: 'var(--text-1)', fontSize: '11px', fontWeight: 700, textAlign: 'center', lineHeight: 1.2 }}>
           {player.name || '—'}
         </span>
         {fixture && (
@@ -280,8 +280,8 @@ function TransferPlayerCard({ player, highlight }) {
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', minWidth: '120px',
-      background: highlight ? 'rgba(78,205,196,0.1)' : 'rgba(255,255,255,0.06)',
-      border: highlight ? '1px solid rgba(78,205,196,0.4)' : '1px solid rgba(255,255,255,0.1)',
+      background: highlight ? 'rgba(51,237,213,0.1)' : 'rgba(255,255,255,0.06)',
+      border: highlight ? '1px solid rgba(51,237,213,0.4)' : '1px solid rgba(255,255,255,0.1)',
       borderRadius: '10px', padding: '10px 12px',
     }}>
       {player.teamCode && (
@@ -293,9 +293,9 @@ function TransferPlayerCard({ player, highlight }) {
           onError={(e) => { e.target.style.display = 'none'; }}
         />
       )}
-      <span style={{ color: '#FFF', fontSize: '12px', fontWeight: 700, textAlign: 'center' }}>{player.name || '—'}</span>
+      <span style={{ color: 'var(--text-1)', fontSize: '12px', fontWeight: 700, textAlign: 'center' }}>{player.name || '—'}</span>
       <span style={{ color: COLORS.textMuted, fontSize: '10px' }}>{teamNameFor(player.teamCode)} · {player.position}</span>
-      <span style={{ color: '#4ECDC4', fontSize: '11px', fontWeight: 700 }}>{formatPrice(player.price)}</span>
+      <span style={{ color: 'var(--accent)', fontSize: '11px', fontWeight: 700 }}>{formatPrice(player.price)}</span>
     </div>
   );
 }
@@ -376,8 +376,8 @@ function TransferPanel({ t, gw, resolvedIndexedPlayers, playerDatabase, playerDa
         onClick={handleToggle}
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', width: '100%',
-          background: isOpen ? '#4ECDC4' : 'transparent', color: isOpen ? '#0B2E1B' : '#4ECDC4',
-          border: '1px solid #4ECDC4', borderRadius: '8px', padding: '9px 14px',
+          background: isOpen ? 'var(--accent)' : 'transparent', color: isOpen ? 'var(--accent-ink)' : 'var(--accent)',
+          border: '1px solid var(--accent)', borderRadius: '8px', padding: '9px 14px',
           fontWeight: 700, fontSize: '13px', cursor: 'pointer',
         }}
       >
@@ -427,22 +427,22 @@ function TransferPanel({ t, gw, resolvedIndexedPlayers, playerDatabase, playerDa
             <>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
                 <TransferPlayerCard player={outPlayer} />
-                <ArrowRight size={18} color="#4ECDC4" style={{ flexShrink: 0 }} />
+                <ArrowRight size={18} color="var(--accent)" style={{ flexShrink: 0 }} />
                 <TransferPlayerCard player={inPlayer} highlight />
               </div>
 
               {isPositionMismatch && (
-                <p style={{ color: '#C2402C', fontSize: '12px', margin: 0, textAlign: 'center' }}>
+                <p style={{ color: 'var(--danger)', fontSize: '12px', margin: 0, textAlign: 'center' }}>
                   {t('teamPlanner.positionMismatch', { inName: inPlayer.name, inPosition: inPlayer.position, outName: outPlayer.name, outPosition: outPlayer.position })}
                 </p>
               )}
               {isOverBudgetAfter && (
-                <p style={{ color: '#C2402C', fontSize: '12px', margin: 0, textAlign: 'center' }}>
+                <p style={{ color: 'var(--danger)', fontSize: '12px', margin: 0, textAlign: 'center' }}>
                   {t('teamPlanner.overBudgetAfter', { newTotal: newTotal.toFixed(1), budget: TEAM_PLANNER_BUDGET, over: (newTotal - TEAM_PLANNER_BUDGET).toFixed(1) })}
                 </p>
               )}
               {isClubOverCapAfter && (
-                <p style={{ color: '#C2402C', fontSize: '12px', margin: 0, textAlign: 'center' }}>
+                <p style={{ color: 'var(--danger)', fontSize: '12px', margin: 0, textAlign: 'center' }}>
                   {t('teamPlanner.overCapAfter', { max: TEAM_PLANNER_MAX_PER_CLUB, club: teamNameFor(inPlayer.teamCode) })}
                 </p>
               )}
@@ -455,7 +455,7 @@ function TransferPanel({ t, gw, resolvedIndexedPlayers, playerDatabase, playerDa
               <button
                 onClick={handleConfirm}
                 style={{
-                  background: '#4ECDC4', color: '#0B2E1B', border: 'none', borderRadius: '8px',
+                  background: 'var(--accent)', color: 'var(--accent-ink)', border: 'none', borderRadius: '8px',
                   padding: '9px 14px', fontWeight: 700, fontSize: '13px', cursor: 'pointer'
                 }}
               >
@@ -721,8 +721,8 @@ export default function TeamPlannerTab({
                 disabled={isRosterEmpty}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0,
-                  background: 'transparent', color: isRosterEmpty ? COLORS.textDisabled : '#C2402C',
-                  border: `1px solid ${isRosterEmpty ? 'rgba(255,255,255,0.15)' : 'rgba(194,64,44,0.4)'}`,
+                  background: 'transparent', color: isRosterEmpty ? COLORS.textDisabled : 'var(--danger)',
+                  border: `1px solid ${isRosterEmpty ? 'rgba(255,255,255,0.15)' : 'rgba(255,90,71,0.4)'}`,
                   borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px',
                   cursor: isRosterEmpty ? 'not-allowed' : 'pointer', marginBottom: '12px',
                 }}
@@ -738,16 +738,16 @@ export default function TeamPlannerTab({
                 {isRechargeActiveForGw && (
                   <div style={{
                     display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
-                    background: 'rgba(232,197,71,0.12)', border: '1px solid rgba(232,197,71,0.4)',
+                    background: 'rgba(242,163,58,0.12)', border: '1px solid rgba(242,163,58,0.4)',
                     borderRadius: '10px', padding: '10px 14px', marginBottom: '16px',
                   }}>
-                    <RefreshCw size={16} color="#E8C547" style={{ flexShrink: 0 }} />
-                    <span style={{ color: '#E8C547', fontSize: '13px', flex: 1, fontWeight: 700 }}>
+                    <RefreshCw size={16} color="var(--warning)" style={{ flexShrink: 0 }} />
+                    <span style={{ color: 'var(--warning)', fontSize: '13px', flex: 1, fontWeight: 700 }}>
                       {t('teamPlanner.rechargeActive', { gw: teamPlannerGw, editingSuffix: rechargeDraft ? t('teamPlanner.rechargeActiveEditingSuffix') : '' })}
                     </span>
                     {rechargeDraft === null ? (
                       <button onClick={handleStartRecharge} style={{
-                        background: 'transparent', color: '#E8C547', border: '1px solid #E8C547',
+                        background: 'transparent', color: 'var(--warning)', border: '1px solid var(--warning)',
                         borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px', cursor: 'pointer',
                       }}>
                         {t('teamPlanner.startEditing')}
@@ -762,8 +762,8 @@ export default function TeamPlannerTab({
                           onClick={handleConfirmRecharge}
                           disabled={isRechargeInvalid}
                           style={{
-                            background: isRechargeInvalid ? 'rgba(255,255,255,0.08)' : '#4ECDC4',
-                            color: isRechargeInvalid ? COLORS.textSubtle : '#0B2E1B', border: 'none',
+                            background: isRechargeInvalid ? 'rgba(255,255,255,0.08)' : 'var(--accent)',
+                            color: isRechargeInvalid ? COLORS.textSubtle : 'var(--accent-ink)', border: 'none',
                             borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px',
                             cursor: isRechargeInvalid ? 'not-allowed' : 'pointer',
                           }}
@@ -793,11 +793,11 @@ export default function TeamPlannerTab({
                 {!playerDatabaseLoading && playerDatabaseError && (
                   <div style={{
                     display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
-                    background: 'rgba(194,64,44,0.12)', border: '1px solid rgba(194,64,44,0.4)',
+                    background: 'rgba(255,90,71,0.12)', border: '1px solid rgba(255,90,71,0.4)',
                     borderRadius: '10px', padding: '12px 14px', marginBottom: '16px'
                   }}>
-                    <AlertCircle size={16} color="#C2402C" style={{ flexShrink: 0 }} />
-                    <span style={{ color: '#FBEAE7', fontSize: '13px', flex: 1 }}>{playerDatabaseError}</span>
+                    <AlertCircle size={16} color="var(--danger)" style={{ flexShrink: 0 }} />
+                    <span style={{ color: 'var(--text-1)', fontSize: '13px', flex: 1 }}>{playerDatabaseError}</span>
                     <button onClick={fetchPlayerDatabase} style={retryButtonStyle}>
                       <RotateCcw size={14} /> {t('shared.retry')}
                     </button>
@@ -817,20 +817,20 @@ export default function TeamPlannerTab({
                 <div style={{
                   display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center',
                   background: 'rgba(255,255,255,0.04)',
-                  border: isOverBudget ? '1px solid #C2402C' : '1px solid rgba(255,255,255,0.08)',
+                  border: isOverBudget ? '1px solid var(--danger)' : '1px solid rgba(255,255,255,0.08)',
                   borderRadius: '10px', padding: '12px 14px', marginBottom: '16px'
                 }}>
-                  <div style={{ color: '#FFF', fontWeight: 700, fontSize: '15px' }}>
+                  <div style={{ color: 'var(--text-1)', fontWeight: 700, fontSize: '15px' }}>
                     {t('teamPlanner.squadCount', { count: effectiveRosterList.filter(p => p.name).length, total: TEAM_PLANNER_SQUAD_SIZE })}
                   </div>
                   {/* Bij overschrijding volstaat het negatieve bedrag zelf (bv. "-3.0M") als signaal — geen
                       aparte "X.XM te veel"-herhaling van hetzelfde getal. Budget- en club-overschrijding
                       delen bewust dezelfde tekststijl (rood, vet, 15px), zodat beide even prominent ogen. */}
-                  <div style={{ color: isOverBudget ? '#C2402C' : '#4ECDC4', fontWeight: 700, fontSize: '15px'}}>
+                  <div style={{ color: isOverBudget ? 'var(--danger)' : 'var(--accent)', fontWeight: 700, fontSize: '15px'}}>
                     {t('teamPlanner.remainingBudget', { value: remainingBudget.toFixed(1) })}
                   </div>
                   {overCapClubs.length > 0 && (
-                    <div style={{ color: '#C2402C', fontWeight: 700, fontSize: '15px' }}>
+                    <div style={{ color: 'var(--danger)', fontWeight: 700, fontSize: '15px' }}>
                       {t('teamPlanner.overCapClubs', { max: TEAM_PLANNER_MAX_PER_CLUB, clubs: overCapClubs.map(([code, count]) => `${teamNameFor(code)} (${count})`).join(', ') })}
                     </div>
                   )}
@@ -872,12 +872,12 @@ export default function TeamPlannerTab({
                         // een dun rood randje + lichte tint, zelfde rode kleur als de waarschuwingstekst
                         // hierboven, maar zonder de tabel drukker te maken dan nodig.
                         const isOverCapClub = player.teamCode && overCapClubCodes.has(player.teamCode);
-                        const rowBg = isOverCapClub ? 'rgba(194,64,44,0.08)' : 'transparent';
+                        const rowBg = isOverCapClub ? 'rgba(255,90,71,0.08)' : 'transparent';
                         return (
                           <tr key={index}>
                             <td style={{
                               color: COLORS.textSubtle, fontSize: '12px', padding: '4px 8px', background: rowBg,
-                              borderLeft: isOverCapClub ? '3px solid #C2402C' : '3px solid transparent',
+                              borderLeft: isOverCapClub ? '3px solid var(--danger)' : '3px solid transparent',
                             }}>
                               {index + 1}
                             </td>
@@ -916,7 +916,7 @@ export default function TeamPlannerTab({
                             <td style={{ padding: '4px 6px', color: COLORS.textBody, fontSize: '13px', fontWeight: 700, background: rowBg }}>
                               {TEAM_PLANNER_SLOT_POSITIONS[index]}
                             </td>
-                            <td style={{ padding: '4px 6px', width: '80px', color: '#FFF', fontSize: '13px', fontWeight: 700, background: rowBg }}>
+                            <td style={{ padding: '4px 6px', width: '80px', color: 'var(--text-1)', fontSize: '13px', fontWeight: 700, background: rowBg }}>
                               {formatPrice(player.price)}
                             </td>
                             <td style={{ padding: '4px 6px', width: '44px', background: rowBg }}>
@@ -951,7 +951,7 @@ export default function TeamPlannerTab({
 
         <section>
           <h2 className="fdr-title fdr-section-title" style={{ ...sectionTitleStyle, marginBottom: '12px' }}>
-            <Shirt size={18} color="#4ECDC4" style={{ flexShrink: 0 }} />
+            <Shirt size={18} color="var(--accent)" style={{ flexShrink: 0 }} />
             <span style={sectionTitleTextStyle}>{t('teamPlanner.pitch')}</span>
           </h2>
 
@@ -963,14 +963,14 @@ export default function TeamPlannerTab({
               className="fdr-icon-btn"
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px',
-                background: 'transparent', color: teamPlannerGw <= 1 ? COLORS.textDisabled : '#C9B8E0',
+                background: 'transparent', color: teamPlannerGw <= 1 ? COLORS.textDisabled : 'var(--text-2)',
                 border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px',
                 cursor: teamPlannerGw <= 1 ? 'default' : 'pointer'
               }}
             >
               <ChevronLeft size={16} />
             </button>
-            <span className="fdr-title" style={{ color: '#FFF', fontWeight: 900, fontSize: '16px', minWidth: '60px', textAlign: 'center' }}>
+            <span className="fdr-title" style={{ color: 'var(--text-1)', fontWeight: 900, fontSize: '16px', minWidth: '60px', textAlign: 'center' }}>
               GW{teamPlannerGw}
             </span>
             <button
@@ -980,7 +980,7 @@ export default function TeamPlannerTab({
               className="fdr-icon-btn"
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px',
-                background: 'transparent', color: teamPlannerGw >= GW_COUNT ? COLORS.textDisabled : '#C9B8E0',
+                background: 'transparent', color: teamPlannerGw >= GW_COUNT ? COLORS.textDisabled : 'var(--text-2)',
                 border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px',
                 cursor: teamPlannerGw >= GW_COUNT ? 'default' : 'pointer'
               }}
@@ -1042,7 +1042,7 @@ export default function TeamPlannerTab({
             </p>
           )}
           {isBenchComplete && hasFullStartingXi && !isValidFormation && (
-            <p style={{ textAlign: 'center', color: '#C2402C', fontSize: '12px', margin: '0 0 12px' }}>
+            <p style={{ textAlign: 'center', color: 'var(--danger)', fontSize: '12px', margin: '0 0 12px' }}>
               {t('teamPlanner.invalidFormation', { formation: `${defCount}-${midCount}-${fwdCount}`, gk: gkCount })}
             </p>
           )}
@@ -1053,8 +1053,8 @@ export default function TeamPlannerTab({
           {isTripleCaptainActive && (
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginBottom: '10px',
-              background: 'rgba(232,197,71,0.12)', border: '1px solid rgba(232,197,71,0.4)',
-              borderRadius: '8px', padding: '6px 10px', color: '#E8C547', fontSize: '12px', fontWeight: 700,
+              background: 'rgba(242,163,58,0.12)', border: '1px solid rgba(242,163,58,0.4)',
+              borderRadius: '8px', padding: '6px 10px', color: 'var(--warning)', fontSize: '12px', fontWeight: 700,
             }}>
               <Star size={14} /> {t('teamPlanner.tripleCaptainActive', { gw: teamPlannerGw })}
             </div>
@@ -1062,8 +1062,8 @@ export default function TeamPlannerTab({
           {isRechargeActiveForGw && (
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginBottom: '10px',
-              background: 'rgba(232,197,71,0.12)', border: '1px solid rgba(232,197,71,0.4)',
-              borderRadius: '8px', padding: '6px 10px', color: '#E8C547', fontSize: '12px', fontWeight: 700,
+              background: 'rgba(242,163,58,0.12)', border: '1px solid rgba(242,163,58,0.4)',
+              borderRadius: '8px', padding: '6px 10px', color: 'var(--warning)', fontSize: '12px', fontWeight: 700,
             }}>
               <RefreshCw size={14} /> {t('teamPlanner.rechargeActiveEditAbove', { gw: teamPlannerGw })}
             </div>
@@ -1123,7 +1123,7 @@ export default function TeamPlannerTab({
 
           <div className="fdr-pitch-container" style={{
             position: 'relative',
-            background: 'linear-gradient(180deg, rgba(78,205,196,0.08), rgba(78,205,196,0.02))',
+            background: 'linear-gradient(180deg, rgba(51,237,213,0.08), rgba(51,237,213,0.02))',
             border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '16px'
           }}>
             {/* Gratis-transfersaldo linksboven IN het veld-kaartje — de overkant van de booster-stapel
@@ -1150,7 +1150,7 @@ export default function TeamPlannerTab({
                     <TooltipTrigger
                       as="span"
                       text={`${budget.used} transfers deze GW, waarvan ${Math.min(budget.used, budget.freeAvailable)} gratis`}
-                      style={{ color: '#FF9E90', fontSize: '11px', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: '2px' }}
+                      style={{ color: 'var(--danger)', fontSize: '11px', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: '2px' }}
                     >
                       {t('teamPlanner.pointsCost', { cost: budget.pointsCost })}
                     </TooltipTrigger>
@@ -1244,9 +1244,9 @@ export default function TeamPlannerTab({
                   disabled={benchOutfieldPlayers.length < 2}
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: '6px',
-                    background: isBenchReorderMode ? '#4ECDC4' : 'transparent',
-                    color: isBenchReorderMode ? '#0B2E1B' : benchOutfieldPlayers.length < 2 ? COLORS.textDisabled : '#4ECDC4',
-                    border: `1px solid ${isBenchReorderMode ? '#4ECDC4' : benchOutfieldPlayers.length < 2 ? 'rgba(255,255,255,0.15)' : '#4ECDC4'}`,
+                    background: isBenchReorderMode ? 'var(--accent)' : 'transparent',
+                    color: isBenchReorderMode ? 'var(--accent-ink)' : benchOutfieldPlayers.length < 2 ? COLORS.textDisabled : 'var(--accent)',
+                    border: `1px solid ${isBenchReorderMode ? 'var(--accent)' : benchOutfieldPlayers.length < 2 ? 'rgba(255,255,255,0.15)' : 'var(--accent)'}`,
                     borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px',
                     cursor: benchOutfieldPlayers.length < 2 ? 'not-allowed' : 'pointer',
                   }}
@@ -1261,22 +1261,22 @@ export default function TeamPlannerTab({
               </div>
               <button onClick={handleOptimizeTeamPlannerLineup} style={{
                 display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'transparent',
-                color: '#4ECDC4', border: '1px solid #4ECDC4', borderRadius: '8px',
+                color: 'var(--accent)', border: '1px solid var(--accent)', borderRadius: '8px',
                 padding: '6px 12px', fontWeight: 700, fontSize: '12px', cursor: 'pointer', flexShrink: 0,
               }}>
                 <Wand2 size={14} /> {t('teamPlanner.optimizeLineup')}
               </button>
             </div>
             {teamPlannerOptimized && (
-              <p style={{ color: '#4ECDC4', fontSize: '12px', margin: '0 0 10px' }}>
+              <p style={{ color: 'var(--accent)', fontSize: '12px', margin: '0 0 10px' }}>
                 {t('teamPlanner.lineupOptimized', { gw: teamPlannerGw })}
               </p>
             )}
             {isBenchBoostActive && (
               <div style={{
                 display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px',
-                background: 'rgba(78,205,196,0.12)', border: '1px solid rgba(78,205,196,0.4)',
-                borderRadius: '8px', padding: '6px 10px', color: '#4ECDC4', fontSize: '12px', fontWeight: 700,
+                background: 'rgba(51,237,213,0.12)', border: '1px solid rgba(51,237,213,0.4)',
+                borderRadius: '8px', padding: '6px 10px', color: 'var(--accent)', fontSize: '12px', fontWeight: 700,
               }}>
                 <Zap size={14} /> {t('teamPlanner.benchBoostActive', { gw: teamPlannerGw })}
               </div>
@@ -1288,11 +1288,11 @@ export default function TeamPlannerTab({
             {isBenchReorderMode && (
               <div role="status" style={{
                 display: 'flex', alignItems: 'flex-start', gap: '8px', margin: '0 0 10px',
-                background: 'rgba(78,205,196,0.12)', border: '1px solid rgba(78,205,196,0.45)',
+                background: 'rgba(51,237,213,0.12)', border: '1px solid rgba(51,237,213,0.45)',
                 borderRadius: '8px', padding: '8px 12px',
               }}>
-                <ArrowUpDown size={14} color="#4ECDC4" style={{ flexShrink: 0, marginTop: '2px' }} aria-hidden="true" />
-                <p style={{ margin: 0, color: '#4ECDC4', fontSize: '12px', lineHeight: 1.5, fontWeight: 700 }}>
+                <ArrowUpDown size={14} color="var(--accent)" style={{ flexShrink: 0, marginTop: '2px' }} aria-hidden="true" />
+                <p style={{ margin: 0, color: 'var(--accent)', fontSize: '12px', lineHeight: 1.5, fontWeight: 700 }}>
                   {t('teamPlanner.reorderModeActive')}
                   <span style={{ display: 'block', color: COLORS.textBody, fontWeight: 400, marginTop: '2px' }}>
                     {benchSwapSlot === null
@@ -1358,8 +1358,8 @@ export default function TeamPlannerTab({
                 disabled={transferGroups.length === 0}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0,
-                  background: 'transparent', color: transferGroups.length === 0 ? COLORS.textDisabled : '#C2402C',
-                  border: `1px solid ${transferGroups.length === 0 ? 'rgba(255,255,255,0.15)' : 'rgba(194,64,44,0.4)'}`,
+                  background: 'transparent', color: transferGroups.length === 0 ? COLORS.textDisabled : 'var(--danger)',
+                  border: `1px solid ${transferGroups.length === 0 ? 'rgba(255,255,255,0.15)' : 'rgba(255,90,71,0.4)'}`,
                   borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px',
                   cursor: transferGroups.length === 0 ? 'not-allowed' : 'pointer', marginBottom: '12px',
                 }}
@@ -1385,13 +1385,13 @@ export default function TeamPlannerTab({
                             en als de transfer-budgetberekening) dekt zowel een handmatig geactiveerde
                             Recharge op precies deze GW als GW8's automatische Recharge voor iedereen. */}
                         {isRechargeActiveForGwRule(teamPlannerBoosters, group.gw) && (
-                          <RefreshCw size={12} color="#E8C547" title="Recharge" />
+                          <RefreshCw size={12} color="var(--warning)" title="Recharge" />
                         )}
                         {teamPlannerTransferBudget[group.gw]?.pointsCost > 0 && (
                           <span
                             title={`${teamPlannerTransferBudget[group.gw].used} transfers, ${Math.min(teamPlannerTransferBudget[group.gw].used, teamPlannerTransferBudget[group.gw].freeAvailable)} gratis`}
                             style={{
-                              background: 'rgba(194,64,44,0.15)', color: '#FF9E90', fontSize: '10px', fontWeight: 900,
+                              background: 'rgba(255,90,71,0.15)', color: 'var(--danger)', fontSize: '10px', fontWeight: 900,
                               padding: '1px 6px', borderRadius: '999px', textTransform: 'none', letterSpacing: 'normal',
                             }}
                           >
@@ -1413,11 +1413,11 @@ export default function TeamPlannerTab({
                               style={{ width: '18px', height: '18px', objectFit: 'contain', flexShrink: 0 }}
                               onError={(e) => { e.target.style.display = 'none'; }}
                             />
-                            <span style={{ color: '#FFF', fontSize: '13px' }}>
+                            <span style={{ color: 'var(--text-1)', fontSize: '13px' }}>
                               {entry.outPlayer.name || '—'}{' '}
                               <span style={{ color: COLORS.textMuted, fontSize: '11px' }}>({formatPrice(entry.outPlayer.price)})</span>
                             </span>
-                            <ArrowRight size={14} color="#4ECDC4" style={{ flexShrink: 0 }} />
+                            <ArrowRight size={14} color="var(--accent)" style={{ flexShrink: 0 }} />
                             <img
                               src={`/club-logos/${entry.inPlayer.teamCode}.webp`}
                               alt=""
@@ -1425,9 +1425,9 @@ export default function TeamPlannerTab({
                               style={{ width: '18px', height: '18px', objectFit: 'contain', flexShrink: 0 }}
                               onError={(e) => { e.target.style.display = 'none'; }}
                             />
-                            <span style={{ color: '#FFF', fontSize: '13px', fontWeight: 700, flex: 1, minWidth: 0 }}>
+                            <span style={{ color: 'var(--text-1)', fontSize: '13px', fontWeight: 700, flex: 1, minWidth: 0 }}>
                               {entry.inPlayer.name}{' '}
-                              <span style={{ color: '#4ECDC4', fontSize: '11px' }}>({formatPrice(entry.inPlayer.price)})</span>
+                              <span style={{ color: 'var(--accent)', fontSize: '11px' }}>({formatPrice(entry.inPlayer.price)})</span>
                             </span>
                             <button
                               onClick={() => removeTeamPlannerTransfer(entry.slotIndex, entry.id)}

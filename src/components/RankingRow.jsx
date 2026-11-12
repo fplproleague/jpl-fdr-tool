@@ -69,7 +69,7 @@ export function RankingRow({
       }}
     >
       <span className="fdr-title" style={{
-        color: rank === 1 ? '#4ECDC4' : '#C9B8E0', fontWeight: 900, fontSize: '18px', width: '22px', flexShrink: 0,
+        color: rank === 1 ? 'var(--accent)' : 'var(--text-2)', fontWeight: 900, fontSize: '18px', width: '22px', flexShrink: 0,
       }}>
         {rank}
       </span>
@@ -102,23 +102,23 @@ export function RankingRow({
       >
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
-            color: '#FFF', fontWeight: 700, fontSize: '14px',
+            color: 'var(--text-1)', fontWeight: 700, fontSize: '14px',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
             {player}
           </div>
-          {subtitle && <div style={{ color: '#8F79AD', fontSize: '11px', marginTop: '1px' }}>{subtitle}</div>}
+          {subtitle && <div style={{ color: 'var(--text-3)', fontSize: '11px', marginTop: '1px' }}>{subtitle}</div>}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
-          {warning && <AlertTriangle size={13} color="#E8C547" aria-hidden="true" />}
+          {warning && <AlertTriangle size={13} color="var(--warning)" aria-hidden="true" />}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
             <span style={{
-              color: qualifies ? '#4ECDC4' : '#C9B8E0', fontWeight: 900, fontSize: '16px', textAlign: 'right',
+              color: qualifies ? 'var(--accent)' : 'var(--text-2)', fontWeight: 900, fontSize: '16px', textAlign: 'right',
             }}>
               {value}
             </span>
             {valueSub && (
-              <span style={{ color: '#8F79AD', fontSize: '10px', fontWeight: 500, lineHeight: 1.3 }}>
+              <span style={{ color: 'var(--text-3)', fontSize: '10px', fontWeight: 500, lineHeight: 1.3 }}>
                 {valueSub}
               </span>
             )}
@@ -137,12 +137,12 @@ export function RankingRow({
             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             alignSelf: 'stretch', minWidth: '44px', padding: '0 12px 0 2px',
             background: 'none', border: 'none', cursor: 'pointer',
-            color: isWatched ? '#4ECDC4' : '#8F79AD',
+            color: isWatched ? 'var(--accent)' : 'var(--text-3)',
           }}
         >
           {/* Gevuld = staat op de watchlist, omlijnd = niet. Het verschil zit dus niet alleen in de
               kleur, wat het ook zonder kleurwaarneming leesbaar houdt. */}
-          <Star size={17} fill={isWatched ? '#4ECDC4' : 'none'} aria-hidden="true" />
+          <Star size={17} fill={isWatched ? 'var(--accent)' : 'none'} aria-hidden="true" />
         </button>
       )}
     </div>

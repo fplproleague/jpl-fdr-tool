@@ -17,7 +17,7 @@ export const MiniFixtureBadge = memo(function MiniFixtureBadge({ teamCode, fixtu
         className="fdr-postponed-mini"
         text={postponedText}
         style={{
-          background: '#4A4560', color: '#9B93AD', fontSize: '10px', fontWeight: 700,
+          background: 'var(--ink-2)', color: 'var(--text-3)', fontSize: '10px', fontWeight: 700,
           padding: '3px 6px', borderRadius: '5px', cursor: 'pointer', textAlign: 'center'
         }}
       />
@@ -36,7 +36,7 @@ export const MiniFixtureBadge = memo(function MiniFixtureBadge({ teamCode, fixtu
             fontSize: '8px', fontWeight: 700, padding: '2px 5px', lineHeight: 1.3, whiteSpace: 'nowrap',
             // Zie FixtureCell hierboven: border-bottom op de bovenste helft (i===0) i.p.v. border-top
             // op de onderste, in dezelfde paarse achtergrondkleur voor een consistente scheiding.
-            borderBottom: i === 0 ? '2px solid #2A1440' : undefined
+            borderBottom: i === 0 ? '2px solid var(--ink-0)' : undefined
           }}>
             {leg.opp} ({leg.venue})
           </span>

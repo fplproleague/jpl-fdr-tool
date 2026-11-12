@@ -155,7 +155,7 @@ function buildGwHeaderCells(t, { sortedGw = null, onSortGw = null } = {}) {
   return GW_INDEXES.map(i => {
     const gw = i + 1;
     const isSorted = sortedGw === gw;
-    const baseStyle = { color: '#C9B8E0', fontSize: '11px', textTransform: 'uppercase', padding: '6px 4px', minWidth: '58px' };
+    const baseStyle = { color: 'var(--text-2)', fontSize: '11px', textTransform: 'uppercase', padding: '6px 4px', minWidth: '58px' };
     if (!onSortGw) {
       return (
         <th key={i} scope="col" aria-label={t('fdr.gwColumnAria', { gw })} style={baseStyle}>
@@ -178,9 +178,9 @@ function buildGwHeaderCells(t, { sortedGw = null, onSortGw = null } = {}) {
           className="fdr-touch-target"
           style={{
             width: '100%', minHeight: '32px', padding: '6px 4px',
-            background: isSorted ? 'rgba(78,205,196,0.15)' : 'transparent',
-            color: isSorted ? '#4ECDC4' : '#C9B8E0',
-            border: isSorted ? '1px solid rgba(78,205,196,0.55)' : '1px solid transparent',
+            background: isSorted ? 'rgba(51,237,213,0.15)' : 'transparent',
+            color: isSorted ? 'var(--accent)' : 'var(--text-2)',
+            border: isSorted ? '1px solid rgba(51,237,213,0.55)' : '1px solid transparent',
             borderRadius: '6px', font: 'inherit', fontSize: '11px', fontWeight: 700,
             textTransform: 'uppercase', cursor: 'pointer',
           }}
@@ -801,8 +801,10 @@ export default function FDRTool() {
       // wanneer iemand effectief op "Download als afbeelding" klikt. Statisch geïmporteerd zat het
       // in de bundle die élke bezoeker bij het openen van de site binnenhaalt.
       const { default: html2canvas } = await import('html2canvas');
+      // Wacht tot de lettertypes geladen zijn, anders rendert de export met het fallback-font.
+      if (document.fonts?.ready) await document.fonts.ready;
       const canvas = await html2canvas(el, {
-        backgroundColor: '#2A1440',
+        backgroundColor: '#061B1C', // = --ink-0 (canvas kent geen CSS-variabelen)
         scale: 2,
         windowWidth: el.scrollWidth,
         width: el.scrollWidth,
@@ -813,10 +815,10 @@ export default function FDRTool() {
       finalCanvas.width = canvas.width;
       finalCanvas.height = canvas.height + watermarkHeight;
       const ctx = finalCanvas.getContext('2d');
-      ctx.fillStyle = '#2A1440';
+      ctx.fillStyle = '#061B1C'; // = --ink-0
       ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
       ctx.drawImage(canvas, 0, 0);
-      ctx.fillStyle = '#4ECDC4';
+      ctx.fillStyle = '#33EDD5'; // = --accent
       ctx.font = 'bold 26px Archivo, Arial, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -1564,13 +1566,11 @@ export default function FDRTool() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#2A1440', fontFamily: "'Archivo', 'Arial Black', sans-serif", position: 'relative' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--ink-0)', fontFamily: 'var(--font-ui)', position: 'relative' }}>
       <style>{`
         /* De lettertypes worden geladen via <link rel="stylesheet"> in index.html. Vroeger stond hier
            een @import: die kon pas ontdekt worden nadat de hele JS-bundle was uitgevoerd en React deze
            <style> had geïnjecteerd, waardoor het merklettertype altijd als laatste binnenkwam. */
-        * { box-sizing: border-box; }
-        html, body { background: #2A1440; margin: 0; padding: 0; }
 
         /* Breedte van één tabelkolom, als variabele zodat de FDR- en vergelijk-tabel er allebei aan
            hangen en er maar één plek is waar hij per schermbreedte verschilt. Zie TABLE_SLOT_MIN_WIDTH
@@ -1633,23 +1633,23 @@ export default function FDRTool() {
              op een telefoon weg — 0 betekent hier "neem je natuurlijke breedte". */
           :root { --fdr-roster-min-width: 0px; }
         }
-        body { font-family: 'Inter', sans-serif; }
-        .fdr-title { font-family: 'Archivo', sans-serif; }
+        /* Archivo condensed voor titels en tabs (sportaffiche); body-font staat in styles/base.css. */
+        .fdr-title { font-family: var(--font-ui); font-stretch: 68%; }
         .fdr-cell { transition: transform 0.12s ease; }
         /* 8px -> 6px verticaal: scheelt ~4px per rij en dus ~72px over achttien rijen. Bewust het
            laatste wat we verkleind hebben — hieronder wordt het onaangenaam tikken, en de rijhoogte
            wordt toch mede bepaald door de teamcel ernaast (logo + vormbalk). */
         .fdr-cell { padding-top: 6px !important; padding-bottom: 6px !important; }
-        input[type=range] { accent-color: #4ECDC4; }
+        input[type=range] { accent-color: var(--accent); }
         .fdr-postponed-tooltip {
           position: fixed;
           z-index: 45;
-          background: #3D1E5C;
-          color: #EDE4F5;
+          background: var(--ink-1);
+          color: var(--text-1);
           border: 1px solid rgba(255,255,255,0.15);
           border-radius: 8px;
           padding: 8px 10px;
-          font-family: 'Inter', sans-serif;
+          font-family: var(--font-ui);
           font-size: 11px;
           font-weight: 500;
           line-height: 1.4;
@@ -1666,26 +1666,9 @@ export default function FDRTool() {
           transform: translateX(-50%);
           border: 5px solid transparent;
         }
-        .fdr-postponed-tooltip--top::after { top: 100%; border-top-color: #3D1E5C; }
-        .fdr-postponed-tooltip--bottom::after { bottom: 100%; border-bottom-color: #3D1E5C; }
-        /* Zie de skip-link bovenaan .fdr-content. Buiten beeld geparkeerd i.p.v. display:none, want
-           een element met display:none kan geen focus krijgen en zou dus nooit verschijnen. */
-        .fdr-skip-link {
-          position: absolute;
-          left: -9999px;
-          top: 0;
-          z-index: 100;
-          background: #4ECDC4;
-          color: #0B2E1B;
-          font-weight: 700;
-          font-size: 13px;
-          padding: 10px 16px;
-          border-radius: 0 0 8px 0;
-          text-decoration: none;
-        }
-        .fdr-skip-link:focus {
-          left: 0;
-        }
+        .fdr-postponed-tooltip--top::after { top: 100%; border-top-color: var(--ink-1); }
+        .fdr-postponed-tooltip--bottom::after { bottom: 100%; border-bottom-color: var(--ink-1); }
+        /* De skip-link (.fdr-skip-link) staat in src/styles/base.css. */
         /* Moeilijkheidscijfer in de hoek van een fixture-cel — zie CellRating in tabs/FDRTab.jsx voor
            waarom dit er staat. De cel is al position: relative (stacked), en de 0.62em/absolute
            plaatsing houdt 'm buiten de tekstflow zodat de bestaande celbreedtes niet veranderen. */
@@ -1712,11 +1695,6 @@ export default function FDRTool() {
           color: inherit;
           pointer-events: none;
         }
-        ::-webkit-scrollbar { height: 8px; width: 8px; }
-        ::-webkit-scrollbar-thumb { background: #4ECDC4; border-radius: 4px; }
-        ::-webkit-scrollbar-track { background: #3D1E5C; }
-        .fdr-spin { animation: fdr-spin 0.8s linear infinite; }
-        @keyframes fdr-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .fdr-tabs { scrollbar-width: none; -ms-overflow-style: none; }
         .fdr-tabs::-webkit-scrollbar { display: none; }
         /* De tabbalk scrollt horizontaal en de scrollbar is verborgen, dus zonder extra signaal is er
@@ -1755,13 +1733,7 @@ export default function FDRTool() {
           font-size: 10px !important; letter-spacing: 0.01em !important;
         }
 
-        /* Zichtbare toetsenbord-focus. De browserstandaard is op deze donkerpaarse achtergrond
-           nauwelijks te zien; :focus-visible raakt enkel toetsenbordgebruikers, nooit muisklikken. */
-        :focus-visible {
-          outline: 2px solid #4ECDC4;
-          outline-offset: 2px;
-          border-radius: 4px;
-        }
+        /* Toetsenbord-focus staat in src/styles/base.css. */
 
         /* --- Interactielaag -------------------------------------------------------------
            Tot hiertoe had de site precies twee hover-regels, allebei op .fdr-footer-link, terwijl
@@ -1789,24 +1761,24 @@ export default function FDRTool() {
         @media (hover: hover) and (pointer: fine) {
           .fdr-toolbar-btn:not(:disabled):hover, .fdr-icon-btn:not(:disabled):hover {
             background: rgba(255,255,255,.08) !important;
-            border-color: rgba(78,205,196,.55) !important;
-            color: #FFF !important;
+            border-color: rgba(51,237,213,.55) !important;
+            color: var(--text-1) !important;
           }
           .fdr-ranking-row:hover {
             background: rgba(255,255,255,.07) !important;
-            border-color: rgba(78,205,196,.35) !important;
+            border-color: rgba(51,237,213,.35) !important;
           }
           /* Niet op de actieve tab: die staat al teal onderlijnd, en hem bij hover naar wit
              trekken leest juist als "niet actief". */
           .fdr-tab-btn:not([aria-current="page"]):hover {
-            color: #FFF !important;
-            border-bottom-color: rgba(78,205,196,.5) !important;
+            color: var(--text-1) !important;
+            border-bottom-color: rgba(51,237,213,.5) !important;
           }
           /* Een al geselecteerde chip houdt bewust zijn eigen staat: de vergelijk-chips in
              FDRTab zijn dan ingevuld teal met donkere tekst, en daar een halftransparante laag
              overheen leggen maakt die tekst onleesbaar. */
           .fdr-club-chip:not(:disabled):not([aria-pressed="true"]):hover {
-            background: rgba(78,205,196,.2) !important;
+            background: rgba(51,237,213,.2) !important;
           }
         }
 
@@ -1924,7 +1896,7 @@ export default function FDRTool() {
           transition: color 0.15s ease;
         }
         .fdr-footer-link:hover, .fdr-footer-link:focus-visible {
-          color: #C9B8E0;
+          color: var(--text-2);
         }
         .fdr-footer-link img {
           vertical-align: -4px;
@@ -2198,18 +2170,6 @@ export default function FDRTool() {
 
       `}</style>
 
-      {/* Stippenpatroon dat radiaal uitdooft vanuit de linkerbovenhoek: de mask is een cirkel met vaste
-          straal rond die hoek (i.p.v. een percentage, zodat de vorm van de fade niet verandert met de
-          breedte van het scherm) — hoe verder een stip van de hoek af staat, hoe transparanter hij wordt,
-          tot volledig onzichtbaar op de rand van de cirkel. */}
-      <div style={{
-        position: 'absolute', top: 0, left: 0, width: '100%', height: '600px',
-        backgroundImage: 'radial-gradient(#4ECDC4 1.5px, transparent 1.5px)',
-        backgroundSize: '18px 18px', opacity: 0.25,
-        maskImage: 'radial-gradient(circle 550px at top left, black 0%, black 15%, transparent 100%)',
-        WebkitMaskImage: 'radial-gradient(circle 550px at top left, black 0%, black 15%, transparent 100%)',
-        pointerEvents: 'none'
-      }} />
 
       <div className="fdr-content" style={{
         maxWidth: '1200px', margin: '0 auto', padding: '32px var(--fdr-page-gutter) 32px', position: 'relative',
@@ -2237,12 +2197,12 @@ export default function FDRTool() {
             />
             <div style={{ minWidth: 0 }}>
               <h1 className="fdr-title fdr-brand-title" style={{
-                color: '#FFFFFF', fontSize: 'clamp(28px, 5vw, 44px)', fontWeight: 900,
+                color: 'var(--text-1)', fontSize: 'clamp(28px, 5vw, 44px)', fontWeight: 900,
                 textTransform: 'uppercase', lineHeight: 1.05, margin: 0, letterSpacing: '-0.01em'
               }}>
-                FPL Pro League <span style={{ color: '#4ECDC4' }}>Tools</span>
+                FPL Pro League <span style={{ color: 'var(--accent)' }}>Tools</span>
               </h1>
-              <p className="fdr-tagline" style={{ color: '#C9B8E0', fontSize: '15px', marginTop: '6px', maxWidth: '640px' }}>
+              <p className="fdr-tagline" style={{ color: 'var(--text-2)', fontSize: '15px', marginTop: '6px', maxWidth: '640px' }}>
                 {t('header.tagline')}
               </p>
             </div>
@@ -2281,7 +2241,7 @@ export default function FDRTool() {
                   {t('header.deadlineLabel', { gw: CURRENT_GW })}
                 </span>
                 <span className="fdr-title" style={{
-                  color: deadlineRemaining.totalMinutes <= 180 ? COLORS.warning : '#4ECDC4',
+                  color: deadlineRemaining.totalMinutes <= 180 ? COLORS.warning : 'var(--accent)',
                   fontSize: '15px', fontWeight: 900, lineHeight: 1, whiteSpace: 'nowrap',
                 }}>
                   {formatCountdown(deadlineRemaining)}
@@ -2303,7 +2263,7 @@ export default function FDRTool() {
               height: HEADER_CHIP_HEIGHT, boxSizing: 'border-box', padding: '0 3px 0 10px',
             }}>
               <span style={{ color: COLORS.textMuted, fontSize: '12px' }}>
-                {t('header.minileagueLabel')} <strong style={{ color: '#4ECDC4', fontWeight: 700, letterSpacing: '0.05em' }}>{MINILEAGUE_CODE}</strong>
+                {t('header.minileagueLabel')} <strong style={{ color: 'var(--accent)', fontWeight: 700, letterSpacing: '0.05em' }}>{MINILEAGUE_CODE}</strong>
               </span>
               <button
                 onClick={handleCopyMinileagueCode}
@@ -2347,8 +2307,8 @@ export default function FDRTool() {
                       height: '100%', minWidth: '28px', padding: '0 8px', borderRadius: '999px',
                       border: 'none', fontFamily: 'inherit', fontSize: '11px', fontWeight: 700,
                       letterSpacing: '0.03em', cursor: isActive ? 'default' : 'pointer',
-                      background: isActive ? '#4ECDC4' : 'transparent',
-                      color: isActive ? '#0B2E1B' : COLORS.textBody,
+                      background: isActive ? 'var(--accent)' : 'transparent',
+                      color: isActive ? 'var(--accent-ink)' : COLORS.textBody,
                     }}
                   >
                     {lang.toUpperCase()}
@@ -2391,8 +2351,8 @@ export default function FDRTool() {
                 className="fdr-title fdr-tab-btn"
                 aria-current={isActive ? 'page' : undefined}
                 style={{
-                  color: isActive ? '#4ECDC4' : COLORS.textBody,
-                  borderBottom: isActive ? '2px solid #4ECDC4' : '2px solid transparent',
+                  color: isActive ? 'var(--accent)' : COLORS.textBody,
+                  borderBottom: isActive ? '2px solid var(--accent)' : '2px solid transparent',
                   display: 'inline-flex', alignItems: 'center', gap: '5px', textDecoration: 'none',
                 }}
               >
@@ -2434,8 +2394,8 @@ export default function FDRTool() {
                 aria-label={t(`nav.${tab.key}`)}
                 title={t(`nav.${tab.key}`)}
                 style={{
-                  color: isActive ? '#4ECDC4' : COLORS.textBody,
-                  borderBottom: isActive ? '2px solid #4ECDC4' : '2px solid transparent',
+                  color: isActive ? 'var(--accent)' : COLORS.textBody,
+                  borderBottom: isActive ? '2px solid var(--accent)' : '2px solid transparent',
                   textDecoration: 'none',
                 }}
               >
@@ -2460,9 +2420,9 @@ export default function FDRTool() {
                   aria-expanded={moreMenuOpen}
                   className="fdr-title fdr-tab-btn fdr-tab-btn-mobile-primary"
                   style={{
-                    color: isActive ? '#4ECDC4' : COLORS.textBody,
-                    borderBottom: isActive ? '2px solid #4ECDC4' : '2px solid transparent',
-                    background: 'none', border: 'none', borderBottomColor: isActive ? '#4ECDC4' : 'transparent',
+                    color: isActive ? 'var(--accent)' : COLORS.textBody,
+                    borderBottom: isActive ? '2px solid var(--accent)' : '2px solid transparent',
+                    background: 'none', border: 'none', borderBottomColor: isActive ? 'var(--accent)' : 'transparent',
                     borderBottomWidth: '2px', borderBottomStyle: 'solid', borderRadius: 0, cursor: 'pointer',
                     fontFamily: 'inherit', width: '100%', position: 'relative',
                   }}
@@ -2476,7 +2436,7 @@ export default function FDRTool() {
             {moreMenuOpen && (
               <div style={{
                 position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 45, minWidth: '190px',
-                background: '#2A1547', border: `1px solid ${COLORS.border}`, borderRadius: '10px',
+                background: 'var(--ink-1)', border: `1px solid ${COLORS.border}`, borderRadius: '10px',
                 boxShadow: '0 8px 24px rgba(0,0,0,0.4)', overflow: 'hidden',
               }}>
                 {MOBILE_OVERFLOW_TABS.map(tab => {
@@ -2494,8 +2454,8 @@ export default function FDRTool() {
                       aria-current={isActive ? 'page' : undefined}
                       style={{
                         display: 'block', padding: '10px 14px', fontSize: '13px', fontWeight: 700,
-                        color: isActive ? '#4ECDC4' : '#FFF', textDecoration: 'none',
-                        background: isActive ? 'rgba(78,205,196,0.1)' : 'none',
+                        color: isActive ? 'var(--accent)' : 'var(--text-1)', textDecoration: 'none',
+                        background: isActive ? 'rgba(51,237,213,0.1)' : 'none',
                       }}
                     >
                       {t(`nav.${tab.key}`)}
@@ -2784,22 +2744,22 @@ export default function FDRTool() {
           alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 50
         }}>
           <div onClick={e => e.stopPropagation()} style={{
-            background: '#3D1E5C', borderRadius: '14px', padding: '24px', maxWidth: '440px',
+            background: 'var(--ink-1)', borderRadius: '14px', padding: '24px', maxWidth: '440px',
             border: '1px solid rgba(255,255,255,0.1)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-              <h3 className="fdr-title" style={{ color: '#4ECDC4', fontSize: '16px', margin: 0, textTransform: 'uppercase' }}>{t('infoModal.title')}</h3>
-              <button onClick={() => setShowInfo(false)} aria-label={t('infoModal.close')} style={{ background: 'none', border: 'none', color: '#C9B8E0', cursor: 'pointer' }}>
+              <h3 className="fdr-title" style={{ color: 'var(--accent)', fontSize: '16px', margin: 0, textTransform: 'uppercase' }}>{t('infoModal.title')}</h3>
+              <button onClick={() => setShowInfo(false)} aria-label={t('infoModal.close')} style={{ background: 'none', border: 'none', color: 'var(--text-2)', cursor: 'pointer' }}>
                 <X size={18} />
               </button>
             </div>
-            <p style={{ color: '#C9B8E0', fontSize: '13px', lineHeight: 1.6 }}>
+            <p style={{ color: 'var(--text-2)', fontSize: '13px', lineHeight: 1.6 }}>
               {t('infoModal.p1')}
             </p>
-            <p style={{ color: '#C9B8E0', fontSize: '13px', lineHeight: 1.6, marginTop: '8px' }}>
+            <p style={{ color: 'var(--text-2)', fontSize: '13px', lineHeight: 1.6, marginTop: '8px' }}>
               {t('infoModal.p2')}
             </p>
-            <p style={{ color: '#C9B8E0', fontSize: '13px', lineHeight: 1.6, marginTop: '8px' }}>
+            <p style={{ color: 'var(--text-2)', fontSize: '13px', lineHeight: 1.6, marginTop: '8px' }}>
               {t('infoModal.p3')}
             </p>
           </div>
@@ -2814,12 +2774,12 @@ export default function FDRTool() {
           position: 'fixed', left: '50%', bottom: '20px', transform: 'translateX(-50%)',
           zIndex: 60, width: 'calc(100% - 40px)', maxWidth: '360px',
           display: 'flex', alignItems: 'center', gap: '10px',
-          background: COLORS.surface, color: '#EDE4F5', border: '1px solid rgba(255,255,255,0.15)',
+          background: COLORS.surface, color: 'var(--text-1)', border: '1px solid rgba(255,255,255,0.15)',
           borderRadius: '10px', padding: '10px 12px', boxShadow: '0 8px 20px rgba(0,0,0,0.4)',
-          fontFamily: "'Inter', sans-serif"
+          fontFamily: 'var(--font-ui)'
         }}>
           <span style={{ margin: 0, fontSize: '13px', lineHeight: 1.4, flex: 1, minWidth: 0 }}>
-            <strong style={{ color: '#FFFFFF' }}>{watchlistNotice.player.name}</strong>{' '}
+            <strong style={{ color: 'var(--text-1)' }}>{watchlistNotice.player.name}</strong>{' '}
             {watchlistNotice.kind === 'removed' ? t('undo.removedSuffix') : t('watchlist.addedSuffix')}
           </span>
           {watchlistNotice.kind === 'removed' && (
@@ -2828,7 +2788,7 @@ export default function FDRTool() {
               className="fdr-touch-target"
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: '6px', flexShrink: 0,
-                background: 'transparent', color: '#4ECDC4', border: '1px solid #4ECDC4',
+                background: 'transparent', color: 'var(--accent)', border: '1px solid var(--accent)',
                 borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px',
                 fontFamily: 'inherit', cursor: 'pointer'
               }}
@@ -2852,18 +2812,18 @@ export default function FDRTool() {
           position: 'fixed', left: '50%', bottom: '20px', transform: 'translateX(-50%)',
           zIndex: 60, width: 'calc(100% - 40px)', maxWidth: '320px',
           display: 'flex', alignItems: 'flex-start', gap: '10px',
-          background: '#3D1E5C', color: '#EDE4F5', border: '1px solid rgba(255,255,255,0.15)',
+          background: 'var(--ink-1)', color: 'var(--text-1)', border: '1px solid rgba(255,255,255,0.15)',
           borderRadius: '10px', padding: '12px 14px', boxShadow: '0 8px 20px rgba(0,0,0,0.4)',
-          fontFamily: "'Inter', sans-serif"
+          fontFamily: 'var(--font-ui)'
         }}>
-          <Info size={16} color="#4ECDC4" style={{ flexShrink: 0, marginTop: '2px' }} />
+          <Info size={16} color="var(--accent)" style={{ flexShrink: 0, marginTop: '2px' }} />
           <p style={{ margin: 0, fontSize: '12px', lineHeight: 1.5, flex: 1 }}>
-            <strong style={{ color: '#FFFFFF' }}>{t('fdr.homeAdvantage')}</strong> {t('homeAdvantageToast.bodySuffix')}
+            <strong style={{ color: 'var(--text-1)' }}>{t('fdr.homeAdvantage')}</strong> {t('homeAdvantageToast.bodySuffix')}
           </p>
           <button
             onClick={() => setShowHomeAdvantageIntro(false)}
             aria-label={t('homeAdvantageToast.closeAria')}
-            style={{ background: 'transparent', border: 'none', color: '#C9B8E0', cursor: 'pointer', flexShrink: 0, padding: 0 }}
+            style={{ background: 'transparent', border: 'none', color: 'var(--text-2)', cursor: 'pointer', flexShrink: 0, padding: 0 }}
           >
             <X size={14} />
           </button>

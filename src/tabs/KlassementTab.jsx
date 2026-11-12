@@ -14,21 +14,21 @@ const lastPlayedGw = Math.max(1, CURRENT_GW - 1);
 const weekOptions = Array.from({ length: lastPlayedGw }, (_, i) => lastPlayedGw - i);
 
 const inputStyle = {
-  width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.06)', color: '#FFFFFF',
+  width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.06)', color: 'var(--text-1)',
   border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', padding: '10px 12px',
   fontSize: '14px', fontFamily: 'inherit',
 };
 const selectStyle = {
-  background: '#3D1E5C', color: '#FFFFFF', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px',
+  background: 'var(--ink-1)', color: 'var(--text-1)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px',
   padding: '9px 10px', fontSize: '13px', fontFamily: 'inherit',
 };
 const primaryBtn = {
-  display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#4ECDC4', color: '#0B2E1B', border: 'none',
+  display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'var(--accent)', color: 'var(--accent-ink)', border: 'none',
   borderRadius: '10px', padding: '9px 16px', fontWeight: 800, fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit',
 };
 const ghostBtn = {
   background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px',
-  padding: '8px 14px', color: '#C9B8E0', fontWeight: 700, fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit',
+  padding: '8px 14px', color: 'var(--text-2)', fontWeight: 700, fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit',
 };
 const cardStyle = {
   background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px',
@@ -103,8 +103,8 @@ function usePagedRankings() {
 }
 
 function RankingTable({ t, rows, highlight }) {
-  const th = { color: '#A794C2', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', padding: '6px 8px', textAlign: 'left' };
-  const td = { color: '#EDE4F5', fontSize: '13px', padding: '8px', borderTop: '1px solid rgba(255,255,255,0.06)' };
+  const th = { color: 'var(--text-3)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', padding: '6px 8px', textAlign: 'left' };
+  const td = { color: 'var(--text-1)', fontSize: '13px', padding: '8px', borderTop: '1px solid rgba(255,255,255,0.06)' };
   return (
     <div style={{ overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -120,10 +120,10 @@ function RankingTable({ t, rows, highlight }) {
             const isMatch = highlight && r.team.toLowerCase().includes(highlight.toLowerCase());
             return (
               <tr key={`${r.teamId}-${i}`}>
-                <td style={{ ...td, fontWeight: 800, color: r.rank && r.rank <= 3 ? '#E8C547' : td.color }}>
+                <td style={{ ...td, fontWeight: 800, color: r.rank && r.rank <= 3 ? 'var(--warning)' : td.color }}>
                   {r.rank ? r.rank.toLocaleString('nl-BE') : '—'}
                 </td>
-                <td style={{ ...td, fontWeight: isMatch ? 800 : 600, color: isMatch ? '#4ECDC4' : '#FFFFFF', wordBreak: 'break-word' }}>{r.team || '—'}</td>
+                <td style={{ ...td, fontWeight: isMatch ? 800 : 600, color: isMatch ? 'var(--accent)' : 'var(--text-1)', wordBreak: 'break-word' }}>{r.team || '—'}</td>
                 <td style={{ ...td, textAlign: 'right', fontWeight: 800 }}>{r.points}</td>
               </tr>
             );
@@ -137,7 +137,7 @@ function RankingTable({ t, rows, highlight }) {
 function Status({ t, state, emptyText, notFoundText }) {
   if (state.loading && state.rows.length === 0) {
     return (
-      <div role="status" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#C9B8E0', fontSize: '13px', marginTop: '12px' }}>
+      <div role="status" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-2)', fontSize: '13px', marginTop: '12px' }}>
         <Loader2 size={16} className="fdr-spin" aria-hidden="true" /> {t('klassement.loading')}
       </div>
     );
@@ -145,13 +145,13 @@ function Status({ t, state, emptyText, notFoundText }) {
   if (state.error) {
     const text = state.error.status === 404 && notFoundText ? notFoundText : t('klassement.error');
     return (
-      <div role="alert" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#FBEAE7', fontSize: '13px', marginTop: '12px' }}>
-        <AlertCircle size={16} color="#C2402C" aria-hidden="true" /> {text}
+      <div role="alert" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-1)', fontSize: '13px', marginTop: '12px' }}>
+        <AlertCircle size={16} color="var(--danger)" aria-hidden="true" /> {text}
       </div>
     );
   }
   if (state.page > 0 && state.rows.length === 0) {
-    return <p style={{ color: '#C9B8E0', fontSize: '13px', marginTop: '12px' }}>{emptyText}</p>;
+    return <p style={{ color: 'var(--text-2)', fontSize: '13px', marginTop: '12px' }}>{emptyText}</p>;
   }
   return null;
 }
@@ -207,18 +207,18 @@ export default function KlassementTab({ t }) {
 
   return (
     <>
-      <p style={{ color: '#A794C2', fontSize: '13px', marginBottom: '18px', lineHeight: 1.5 }}>{t('klassement.intro')}</p>
+      <p style={{ color: 'var(--text-3)', fontSize: '13px', marginBottom: '18px', lineHeight: 1.5 }}>{t('klassement.intro')}</p>
 
       <section style={cardStyle} aria-labelledby="klassement-team-title">
-        <h2 id="klassement-team-title" className="fdr-title" style={{ color: '#FFFFFF', fontSize: '15px', margin: '0 0 12px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Trophy size={17} color="#4ECDC4" aria-hidden="true" /> {t('klassement.teamTitle')}
+        <h2 id="klassement-team-title" className="fdr-title" style={{ color: 'var(--text-1)', fontSize: '15px', margin: '0 0 12px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Trophy size={17} color="var(--accent)" aria-hidden="true" /> {t('klassement.teamTitle')}
         </h2>
         <form
           onSubmit={e => { e.preventDefault(); runTeamSearch(teamQuery.trim(), rgw); }}
           style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}
         >
           <div style={{ position: 'relative', flex: '1 1 220px' }}>
-            <Search size={16} color="#A794C2" aria-hidden="true" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+            <Search size={16} color="var(--text-3)" aria-hidden="true" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
             <input
               type="search" value={teamQuery} maxLength={40}
               onChange={e => setTeamQuery(e.target.value)}
@@ -233,10 +233,10 @@ export default function KlassementTab({ t }) {
           </select>
           <button type="submit" style={primaryBtn}><Search size={14} aria-hidden="true" /> {t('klassement.search')}</button>
         </form>
-        {showGeneralNote && <p style={{ color: '#A794C2', fontSize: '12px', margin: '8px 0 0' }}>{t('klassement.generalNote', { gw: GENERAL_START_GW })}</p>}
+        {showGeneralNote && <p style={{ color: 'var(--text-3)', fontSize: '12px', margin: '8px 0 0' }}>{t('klassement.generalNote', { gw: GENERAL_START_GW })}</p>}
 
         {!teamState.loading && !teamState.error && teamState.page > 0 && teamState.rows.length > 0 && (
-          <p style={{ color: '#C9B8E0', fontSize: '12px', margin: '12px 0 6px' }}>
+          <p style={{ color: 'var(--text-2)', fontSize: '12px', margin: '12px 0 6px' }}>
             {lastSearch
               ? t('klassement.resultsFor', { n: teamState.total.toLocaleString('nl-BE'), q: lastSearch })
               : t(rgw ? 'klassement.topWeek' : 'klassement.topGeneral', { gw: rgw, n: teamState.total.toLocaleString('nl-BE') })}
@@ -248,10 +248,10 @@ export default function KlassementTab({ t }) {
       </section>
 
       <section style={cardStyle} aria-labelledby="klassement-league-title">
-        <h2 id="klassement-league-title" className="fdr-title" style={{ color: '#FFFFFF', fontSize: '15px', margin: '0 0 6px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Users size={17} color="#4ECDC4" aria-hidden="true" /> {t('klassement.leagueTitle')}
+        <h2 id="klassement-league-title" className="fdr-title" style={{ color: 'var(--text-1)', fontSize: '15px', margin: '0 0 6px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Users size={17} color="var(--accent)" aria-hidden="true" /> {t('klassement.leagueTitle')}
         </h2>
-        <p style={{ color: '#A794C2', fontSize: '12px', margin: '0 0 12px', lineHeight: 1.5 }}>{t('klassement.leagueHelp')}</p>
+        <p style={{ color: 'var(--text-3)', fontSize: '12px', margin: '0 0 12px', lineHeight: 1.5 }}>{t('klassement.leagueHelp')}</p>
         <form
           onSubmit={e => { e.preventDefault(); runLeague(leagueId, lgw); }}
           style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}
@@ -271,9 +271,9 @@ export default function KlassementTab({ t }) {
         </form>
 
         {leagueState.meta && !leagueState.error && (
-          <p style={{ color: '#FFFFFF', fontSize: '14px', fontWeight: 800, margin: '14px 0 6px' }}>
+          <p style={{ color: 'var(--text-1)', fontSize: '14px', fontWeight: 800, margin: '14px 0 6px' }}>
             {leagueState.meta.name}{' '}
-            <span style={{ color: '#A794C2', fontWeight: 600, fontSize: '12px' }}>
+            <span style={{ color: 'var(--text-3)', fontWeight: 600, fontSize: '12px' }}>
               · {t('klassement.teamsCount', { n: leagueState.total })} · {lgw ? t('klassement.weekOption', { gw: lgw }) : t('klassement.total')}
             </span>
           </p>
@@ -283,7 +283,7 @@ export default function KlassementTab({ t }) {
         <MoreButton t={t} state={leagueState} onMore={() => loadLeague(leagueState.params, leagueState.page + 1)} />
       </section>
 
-      <p style={{ color: '#A794C2', fontSize: '11px', lineHeight: 1.5 }}>{t('klassement.privacy')}</p>
+      <p style={{ color: 'var(--text-3)', fontSize: '11px', lineHeight: 1.5 }}>{t('klassement.privacy')}</p>
     </>
   );
 }
