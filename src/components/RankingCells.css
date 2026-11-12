@@ -1,0 +1,36 @@
+/* Ranglijsten (spec §7.5–7.6): Bonuspunten en Kaarten. */
+.rk-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3); margin-bottom: var(--s-3); }
+.rk-toolbar__search { flex: 0 1 320px; }
+.rk-caption { color: var(--text-3); margin: var(--s-4) 0 var(--s-2); }
+.rk .ui-notice { margin-bottom: var(--s-3); }
+.rk .ui-error { margin-bottom: var(--s-3); }
+.rk-note { color: var(--text-3); font-size: var(--fs-label); line-height: var(--lh-label); margin: var(--s-5) 0 0; max-width: 72ch; }
+
+.rk-ident { display: inline-flex; align-items: center; gap: var(--s-1); min-width: 0; max-width: 100%; vertical-align: middle; }
+.rk-rank {
+  display: inline-block; width: 24px; flex-shrink: 0; text-align: right;
+  color: var(--text-3); font-size: var(--fs-meta);
+}
+.rk-ident .ui-pcell { margin-left: var(--s-1); }
+.rk-table .ui-table thead th.rk-col-player { padding-left: calc(var(--s-2) + 24px + 32px + var(--s-2)); }
+
+.rk-club {
+  display: inline-flex; align-items: center; gap: var(--s-1);
+  color: var(--text-2); font: 400 var(--fs-meta)/var(--lh-meta) var(--font-ui);
+}
+.rk-club--btn { border: 0; padding: 0; background: none; cursor: pointer; min-height: 32px; }
+.rk-club--btn:hover span { text-decoration: underline; text-underline-offset: 2px; }
+
+.rk-table .is-top { color: var(--accent); }
+.rk-value { font-weight: 700; color: var(--text-1); }
+.rk-badges { margin-right: var(--s-2); vertical-align: middle; }
+
+@media (max-width: 700px) {
+  .rk-toolbar__search { flex: 1 1 100%; }
+  .rk-toolbar > .ui-seg-wrap { width: 100%; }
+  .rk-col-club, .rk-col-extra { display: none; }
+  .rk-table .ui-table .is-sticky { max-width: 200px; }
+}
+@media (pointer: coarse) {
+  .rk-table .ui-table thead th.rk-col-player { padding-left: calc(var(--s-2) + 24px + 40px + var(--s-2)); }
+}

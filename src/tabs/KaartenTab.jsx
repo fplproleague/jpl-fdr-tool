@@ -1,23 +1,30 @@
-// Inhoud van de Kaarten-tab: rangschikking van gele kaarten per speler, met twee sorteermodi ("Meeste
-// gele kaarten" en "Dichtst bij schorsing"). Bron van de gele-kaarten-telling is de gedeelde
-// spelersdatabank (playerDatabase.yellowCards, zie parsePlayerDatabaseCsv in constants.js) — die is al
-// elders in FDRTool.jsx opgehaald/geparset (zelfde props als WatchlistTab/TeamPlannerTab), dus geen eigen
-// CSV-fetch/parsing meer hier (voorheen een aparte, nooit ingevulde KAARTEN_CSV_URL-sheet).
+// Inhoud van de Kaarten-tab: rangschikking van gele kaarten per speler, met de afstand tot de volgende
+// schorsing. Bron van de gele kaarten is de gedeelde spelersdatabank (playerDatabase.yellowCards, zie
+// parsePlayerDatabaseCsv in constants.js), die FDRTool.jsx al ophaalt. De schorsingslogica staat in
+// src/kaarten.js en is ongewijzigd.
+//
+// Sinds de rework (spec §7.6): één tabel (# · ster · speler · club · Geel · Rood · Tot schorsing).
+// Wie bij de volgende gele kaart geschorst is, krijgt een rode badge "1 tot schorsing"; geen rode rij.
+// Rode kaarten staan niet in de spelersdatabank: die komen uit de Fantasy Pro League-data (dezelfde
+// bron als de Spelers-tab), en tonen "—" zolang die niet geladen is of de speler er niet in staat.
 import { useMemo, useState } from 'react';
-import { Loader2, AlertCircle, RotateCcw } from 'lucide-react';
-import { RankingRow, watchProps, clubProps } from '../components/RankingRow';
+import { resolveStatsUpdatedGw } from '../constants';
 import ScopeFilter, { ScopeEmptyMessage, makeScopeMatcher } from '../components/ScopeFilter';
+import { RankingIdent, ClubCell } from '../components/RankingCells';
+import PageHeader from '../ui/PageHeader';
+import Segmented from '../ui/Segmented';
+import DataTable from '../ui/DataTable';
+import Badge from '../ui/Badge';
+import ErrorBanner from '../ui/ErrorBanner';
+import EmptyState from '../ui/EmptyState';
+import usePlayerIndex from '../data/usePlayerIndex';
 import { buildKaartenEntries, rankByMostCards, rankByClosestToSuspension, isOneCardFromSuspension } from '../kaarten';
 
-const retryButtonStyle = {
-  display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0,
-  background: 'transparent', color: 'var(--text-1)', border: '1px solid rgba(251,234,231,0.4)',
-  borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px', cursor: 'pointer',
-};
+const KAARTEN_UPDATED_GW = resolveStatsUpdatedGw();
 
-// Tijdelijk verborgen (sinds 16 aug 2026, ±1 maand) — het aantal kaarten is dit vroeg in het seizoen nog
-// te laag om "dichtst bij schorsing" zinvol te maken. Zet terug op true om de sorteermodus-knop weer te
-// tonen; sortMode's default ('mostCards') blijft ondertussen gewoon werken.
+// Tijdelijk verborgen (sinds 16 aug 2026, ±1 maand): het aantal kaarten is dit vroeg in het seizoen nog
+// te laag om "dichtst bij schorsing" zinvol te maken. Zet terug op true om de sorteerkeuze weer te
+// tonen; de standaard ('mostCards') blijft ondertussen gewoon werken.
 const SHOW_CLOSEST_TO_SUSPENSION_MODE = false;
 
 const SORT_MODES = [
@@ -25,11 +32,9 @@ const SORT_MODES = [
   { key: 'closestToSuspension', labelKey: 'kaarten.sortMode.closestToSuspension' },
 ];
 
-// Enkel spelers vanaf 2 gele kaarten zijn relevant genoeg om in de lijst over de hele competitie te
-// tonen — 0 of 1 kaart is nog te vroeg om interessant te zijn. Die drempel geldt alleen ZONDER filter:
-// kijk je naar je eigen ploeg of watchlist, dan wil je je spelers zien staan, ook de brave (zie
-// visibleRanking hieronder). De rangschikking zelf loopt sowieso over iedereen, zodat ook een speler
-// met één kaart een echte plaats in de ranglijst heeft.
+// Zonder filter enkel spelers vanaf 2 gele kaarten: 0 of 1 is te vroeg om interessant te zijn in een
+// lijst over de hele competitie. Filter je op je eigen ploeg of watchlist, dan valt die drempel weg.
+// De rangschikking zelf loopt over iedereen, zodat ook een speler met één kaart een echte plaats heeft.
 const MIN_VISIBLE_CARDS = 2;
 
 export default function KaartenTab({
@@ -39,127 +44,111 @@ export default function KaartenTab({
 }) {
   const [sortMode, setSortMode] = useState('mostCards');
   const [scope, setScope] = useState('all');
+  const { find } = usePlayerIndex();
 
   const allEntries = useMemo(() => buildKaartenEntries(playerDatabase), [playerDatabase]);
-
-  // De rangschikking loopt over ÁLLE spelers, ook die met 0 of 1 kaart. Dat is nieuw: vroeger werd er
-  // pas gerangschikt na de 2+-drempel. Het verandert niets aan wat je zonder filter ziet — spelers met
-  // meer kaarten staan sowieso bovenaan — maar het maakt de rang van iemand met één kaart wél
-  // uitdrukbaar, en dat heb je nodig zodra je op je eigen ploeg filtert.
-  //
-  // De rang zelf komt uit kaarten.js (competition ranking: gelijk aantal kaarten = gelijke rang) en
-  // wordt na het filteren niet herberekend: hij blijft de plaats in de volledige ranglijst.
+  // De rang komt uit kaarten.js (gelijk aantal kaarten = gelijke rang) en wordt na het filteren niet
+  // herberekend: hij blijft de plaats in de volledige ranglijst.
   const ranking = useMemo(
     () => (sortMode === 'closestToSuspension' ? rankByClosestToSuspension(allEntries) : rankByMostCards(allEntries)),
     [allEntries, sortMode],
   );
   const matchesScope = makeScopeMatcher(scope, { isPlayerWatched, isPlayerInMyTeam });
-  // Zonder filter blijft de 2+-drempel gelden: 0 of 1 kaart is te vroeg om interessant te zijn in een
-  // lijst over de hele competitie. Filter je op je eigen ploeg of watchlist, dan valt die drempel weg —
-  // dan wil je je vijftien spelers zien staan, ook de brave.
   const visibleRanking = scope === 'all'
     ? ranking.filter(e => e.cards >= MIN_VISIBLE_CARDS)
     : ranking.filter(e => matchesScope(e.player, e.clubCode));
   const visibleSortModes = SORT_MODES.filter(m => SHOW_CLOSEST_TO_SUSPENSION_MODE || m.key !== 'closestToSuspension');
+  const closest = sortMode === 'closestToSuspension';
+
+  const columns = [
+    {
+      key: 'player', label: t('bonuspunten.col.player'), sticky: true, stickyEdge: true, rowHeader: true,
+      className: 'rk-col-player',
+      render: e => (
+        <RankingIdent
+          t={t} rank={e.rank} name={e.player} clubCode={e.clubCode}
+          isPlayerWatched={isPlayerWatched} toggleWatchlistPlayer={toggleWatchlistPlayer}
+        />
+      ),
+    },
+    {
+      key: 'club', label: t('bonuspunten.col.club'), className: 'rk-col-club',
+      render: e => <ClubCell t={t} clubCode={e.clubCode} clubName={e.clubName} onOpenClub={onOpenClub} />,
+    },
+    {
+      key: 'yellow', label: t('kaarten.col.yellow'), title: t('kaarten.col.yellowTitle'), num: true,
+      render: e => e.cards,
+      cellClass: () => (closest ? '' : 'rk-value'),
+    },
+    {
+      key: 'red', label: t('kaarten.col.red'), num: true, className: 'rk-col-extra',
+      render: e => find(e.player, e.clubCode)?.rc ?? null,
+    },
+    {
+      key: 'remaining', label: t('kaarten.col.remaining'), title: t('kaarten.col.remainingTitle'), num: true,
+      // Nog 1 kaart tot schorsing: de badge zegt het al, dus geen los cijfer ernaast.
+      render: e => (isOneCardFromSuspension(e)
+        ? <Badge tone="danger">{t('kaarten.oneToSuspension')}</Badge>
+        : e.cardsRemaining),
+      cellClass: () => (closest ? 'rk-value' : ''),
+    },
+  ];
+
+  const ready = !playerDatabaseLoading && !playerDatabaseError;
+  const meta = KAARTEN_UPDATED_GW > 0
+    ? <span className="num">{t('bonuspunten.updatedMeta', { gw: KAARTEN_UPDATED_GW })}</span>
+    : null;
 
   return (
-    <>
-      <p style={{ color: 'var(--text-3)', fontSize: '13px', marginBottom: '18px' }}>
-        {t('kaarten.suspensionExplainer')}
-      </p>
+    <div className="rk">
+      <PageHeader
+        title={t('nav.kaarten')}
+        meta={meta}
+        intro={t('kaarten.introShort')}
+        more={<p>{t('kaarten.suspensionExplainer')}</p>}
+        moreLabel={t('shared.explain')}
+      />
 
-      <ScopeFilter t={t} scope={scope} onChange={setScope} />
-
-      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '18px' }}>
-        {visibleSortModes.map(({ key, labelKey }) => {
-          const isSelected = sortMode === key;
-          return (
-            <button
-              key={key}
-              onClick={() => setSortMode(key)}
-              style={{
-                background: isSelected ? 'rgba(51,237,213,0.12)' : 'rgba(255,255,255,0.04)',
-                border: isSelected ? '1px solid var(--accent)' : '1px solid rgba(255,255,255,0.08)',
-                borderRadius: '10px', padding: '8px 14px', cursor: 'pointer',
-                color: isSelected ? 'var(--accent)' : 'var(--text-2)', fontWeight: 700, fontSize: '12px',
-              }}
-            >
-              {t(labelKey)}
-            </button>
-          );
-        })}
+      <div className="rk-toolbar">
+        {visibleSortModes.length > 1 && (
+          <Segmented
+            ariaLabel={t('bonuspunten.sortLabel')}
+            value={sortMode}
+            onChange={setSortMode}
+            options={visibleSortModes.map(({ key, labelKey }) => ({ value: key, label: t(labelKey) }))}
+          />
+        )}
+        <ScopeFilter t={t} scope={scope} onChange={setScope} />
       </div>
 
-      {playerDatabaseLoading && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-2)', fontSize: '13px', marginBottom: '12px' }}>
-          <Loader2 size={16} className="fdr-spin" /> {t('kaarten.loading')}
-        </div>
-      )}
-
       {!playerDatabaseLoading && playerDatabaseError && (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
-          background: 'rgba(255,90,71,0.12)', border: '1px solid rgba(255,90,71,0.4)',
-          borderRadius: '10px', padding: '12px 14px', marginBottom: '12px',
-        }}>
-          <AlertCircle size={16} color="var(--danger)" style={{ flexShrink: 0 }} />
-          <span style={{ color: 'var(--text-1)', fontSize: '13px', flex: 1 }}>{playerDatabaseError}</span>
-          <button onClick={fetchPlayerDatabase} style={retryButtonStyle}>
-            <RotateCcw size={14} /> {t('shared.retry')}
-          </button>
-        </div>
+        <ErrorBanner onRetry={fetchPlayerDatabase} retryLabel={t('shared.retry')}>{playerDatabaseError}</ErrorBanner>
       )}
 
-      {/* Drie lege toestanden, in deze volgorde: geen databank, wel een databank maar (zonder filter)
-          niemand met 2+ kaarten, en de filter-specifieke uitleg. De tweede geldt bewust enkel zonder
-          filter — met een filter aan zegt "niemand heeft 2+ kaarten" niets over jouw ploeg, want die
-          drempel telt dan niet. */}
-      {!playerDatabaseLoading && !playerDatabaseError && allEntries.length === 0 && (
-        <div style={{
-          background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-          borderRadius: '10px', padding: '16px',
-        }}>
-          <p style={{ color: 'var(--text-2)', fontSize: '13px', margin: 0 }}>{t('kaarten.emptyNoData')}</p>
-        </div>
+      {/* Drie lege toestanden: geen databank; wel een databank maar (zonder filter) niemand met 2+
+          kaarten; en de filter-specifieke uitleg. */}
+      {ready && allEntries.length === 0 && <EmptyState>{t('kaarten.emptyNoData')}</EmptyState>}
+      {ready && allEntries.length > 0 && scope === 'all' && visibleRanking.length === 0 && (
+        <EmptyState>{t('kaarten.emptyNoQualifying', { min: MIN_VISIBLE_CARDS })}</EmptyState>
       )}
-
-      {!playerDatabaseLoading && !playerDatabaseError && allEntries.length > 0 && scope === 'all' && visibleRanking.length === 0 && (
-        <div style={{
-          background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-          borderRadius: '10px', padding: '16px',
-        }}>
-          <p style={{ color: 'var(--text-2)', fontSize: '13px', margin: 0 }}>
-            {t('kaarten.emptyNoQualifying', { min: MIN_VISIBLE_CARDS })}
-          </p>
-        </div>
-      )}
-
-      {!playerDatabaseLoading && !playerDatabaseError && allEntries.length > 0 && scope !== 'all' && visibleRanking.length === 0 && (
+      {ready && allEntries.length > 0 && scope !== 'all' && visibleRanking.length === 0 && (
         <ScopeEmptyMessage t={t} scope={scope} hasAny={scope === 'myTeam' ? hasMyTeam : hasWatchlist} />
       )}
 
-      {!playerDatabaseLoading && !playerDatabaseError && visibleRanking.length > 0 && (
-        <div style={{ display: 'grid', gap: '8px' }}>
-          {visibleRanking.map(entry => {
-            const warning = isOneCardFromSuspension(entry);
-            const subtitle = sortMode === 'closestToSuspension'
-              ? `${entry.clubName} · ${entry.cards}/${entry.nextThreshold} ${t('kaarten.cardsUnit')}`
-              : entry.clubName;
-            const value = sortMode === 'closestToSuspension' ? entry.cardsRemaining : entry.cards;
-            return (
-              <RankingRow
-                key={entry.player} rank={entry.rank} clubCode={entry.clubCode} player={entry.player}
-                subtitle={subtitle} value={value}
-                qualifies={sortMode === 'closestToSuspension' || warning}
-                warning={warning}
-                onClick={onOpenPlayer ? () => onOpenPlayer(entry.player, entry.clubCode) : undefined}
-                {...watchProps({ name: entry.player, teamCode: entry.clubCode }, { isPlayerWatched, toggleWatchlistPlayer, t })}
-                {...clubProps({ clubCode: entry.clubCode, clubName: entry.clubName }, { onOpenClub, t })}
-              />
-            );
-          })}
-        </div>
+      {(playerDatabaseLoading || (ready && visibleRanking.length > 0)) && (
+        <DataTable
+          className="rk-table"
+          bleed
+          loading={playerDatabaseLoading}
+          columns={columns}
+          rows={visibleRanking}
+          rowKey={e => `${e.player}|${e.clubCode}`}
+          onRowClick={onOpenPlayer ? (e => onOpenPlayer(e.player, e.clubCode)) : undefined}
+          rowLabel={e => t('playerSheet.openAria', { name: e.player })}
+          sort={{ key: closest ? 'remaining' : 'yellow', dir: closest ? 'asc' : 'desc' }}
+          ariaLabel={t('nav.kaarten')}
+        />
       )}
-    </>
+    </div>
   );
 }

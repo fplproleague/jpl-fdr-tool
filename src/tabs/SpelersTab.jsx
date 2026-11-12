@@ -13,7 +13,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SlidersHorizontal, X, Link2, Check, GitCompareArrows } from 'lucide-react';
 import { CURRENT_GW, TEAMS_ALPHA } from '../constants';
-import { ScopeEmptyMessage, SCOPES } from '../components/ScopeFilter';
+import ScopeFilter, { ScopeEmptyMessage } from '../components/ScopeFilter';
 import { Sparkline, UpcomingFixtures, ClubLogo } from '../components/SpelersParts';
 import Sheet from '../components/Sheet';
 import PageHeader from '../ui/PageHeader';
@@ -148,12 +148,7 @@ function FilterSheet({ t, ui, update, priceBounds, resultCount, onReset, onClose
 
         <div className="spl-field">
           <span className="label spl-field__label">{t('spelers.filter.scope')}</span>
-          <Segmented
-            ariaLabel={t('scopeFilter.label')}
-            value={ui.scope}
-            onChange={scope => update({ scope })}
-            options={SCOPES.map(key => ({ value: key, label: t(`scopeFilter.${key}`) }))}
-          />
+          <ScopeFilter t={t} scope={ui.scope} onChange={scope => update({ scope })} />
         </div>
 
         <div className="spl-field">

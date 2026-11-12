@@ -1,0 +1,41 @@
+/* Set pieces (spec §7.7): één matrix, clubs × penalty's / corners / vrije trappen. */
+.sp-legend {
+  display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-4); margin-bottom: var(--s-3);
+  color: var(--text-2); font-size: var(--fs-meta); line-height: var(--lh-meta);
+}
+.sp-legend__item { display: inline-flex; align-items: center; gap: var(--s-2); }
+
+/* Zekerheidsstippen: dezelfde weergave als de startzekerheid (spec §3.3). */
+.sp-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; box-sizing: border-box; }
+.sp-dot.is-sure { background: var(--positive); }
+.sp-dot.is-shared { background: transparent; border: 2px solid var(--positive); }
+.sp-dot.is-uncertain { background: var(--warning); }
+
+.sp-kind { display: none; margin-bottom: var(--s-3); }
+
+.sp-table .ui-table tbody td, .sp-table .ui-table tbody th { height: auto; padding-top: var(--s-2); padding-bottom: var(--s-2); vertical-align: top; }
+.sp-col { width: 30%; }
+.sp-cell { display: inline-flex; align-items: flex-start; gap: var(--s-2); min-width: 0; white-space: normal; }
+.sp-cell .sp-dot { margin-top: 6px; }
+.sp-cell__text { display: flex; flex-direction: column; min-width: 0; }
+.sp-cell__first { font-weight: 600; color: var(--text-1); }
+.sp-cell__rest { color: var(--text-3); font-size: var(--fs-meta); line-height: var(--lh-meta); }
+.sp-name-btn {
+  border: 0; padding: 0; background: none; font: inherit; color: inherit; cursor: pointer; text-align: left;
+}
+.sp-name-btn:hover { text-decoration: underline; text-underline-offset: 2px; }
+
+.sp-club { display: inline-flex; align-items: center; gap: var(--s-2); color: var(--text-1); font: 600 var(--fs-ui)/var(--lh-ui) var(--font-ui); }
+.sp-club--btn { border: 0; padding: 0; background: none; cursor: pointer; min-height: 32px; text-align: left; }
+.sp-club--btn:hover .sp-club__name, .sp-club--btn:hover .sp-club__code { text-decoration: underline; text-underline-offset: 2px; }
+.sp-club__code { display: none; }
+
+@media (max-width: 700px) {
+  .sp-kind { display: block; }
+  .sp-club__name { display: none; }
+  .sp-club__code { display: inline; }
+  .sp-col { width: auto; }
+  .sp-table.is-show-penalties .sp-col--corners, .sp-table.is-show-penalties .sp-col--freeKicks,
+  .sp-table.is-show-corners .sp-col--penalties, .sp-table.is-show-corners .sp-col--freeKicks,
+  .sp-table.is-show-freeKicks .sp-col--penalties, .sp-table.is-show-freeKicks .sp-col--corners { display: none; }
+}
