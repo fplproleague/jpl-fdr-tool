@@ -12,6 +12,8 @@ export const PlayerPhoto = memo(function PlayerPhoto({ player, size = 24 }) {
 
 // Punten per speeldag als mini-staafjes. Niet gespeeld = een klein grijs streepje (geen staaf van 0,
 // want "0 punten gespeeld" en "niet gespeeld" zijn voor een manager twee heel verschillende dingen).
+// Spec §7.4: hoekige staafjes en geen accentkleur. Vorm is neutraal; enkel uitschieters springen eruit
+// (8+ punten helder, 4-7 middel, 0-3 gedempt, negatief rood).
 export const Sparkline = memo(function Sparkline({ spark, width = 64, height = 20, label }) {
   if (!spark?.length) return null;
   const max = Math.max(10, ...spark.map(s => s.pts ?? 0));
@@ -22,11 +24,11 @@ export const Sparkline = memo(function Sparkline({ spark, width = 64, height = 2
       {spark.map((s, i) => {
         const x = i * (barW + gap);
         if (s.pts == null) {
-          return <rect key={s.gw} x={x} y={height - 2} width={barW} height={2} rx={1} fill="rgba(255,255,255,0.18)" />;
+          return <rect key={s.gw} x={x} y={height - 2} width={barW} height={2} fill="var(--text-4)" />;
         }
         const h = Math.max(2, (Math.max(0, s.pts) / max) * (height - 1));
-        const color = s.pts >= 8 ? 'var(--accent)' : s.pts >= 4 ? 'var(--text-2)' : s.pts < 0 ? 'var(--danger)' : 'var(--text-3)';
-        return <rect key={s.gw} x={x} y={height - h} width={barW} height={h} rx={1} fill={color} />;
+        const color = s.pts >= 8 ? 'var(--text-1)' : s.pts >= 4 ? 'var(--text-2)' : s.pts < 0 ? 'var(--danger)' : 'var(--text-3)';
+        return <rect key={s.gw} x={x} y={height - h} width={barW} height={h} fill={color} />;
       })}
     </svg>
   );

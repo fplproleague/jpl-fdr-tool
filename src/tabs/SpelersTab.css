@@ -1,0 +1,93 @@
+/* Spelers-tab (spec §7.4 + §8). */
+
+/* Toolbar: rij 1 zoeken, rij 2 positie + preset + knoppen. */
+.spl-toolbar { display: flex; flex-direction: column; gap: var(--s-3); margin-bottom: var(--s-3); }
+.spl-search { max-width: 320px; }
+.spl-toolbar__row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3); }
+.spl-toolbar__actions { display: flex; gap: var(--s-2); margin-left: auto; }
+
+.spl-chipsline {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-2) var(--s-4);
+  margin-bottom: var(--s-3);
+}
+.spl-chipsline__count { color: var(--text-3); font-size: var(--fs-meta); margin-left: auto; }
+
+.spl .ui-notice { margin-bottom: var(--s-3); }
+.spl .ui-error { margin-bottom: var(--s-3); }
+
+/* Tabel. De eerste (sticky) kolom bevat [vinkje] [ster] [speler]. */
+.spl-ident { display: inline-flex; align-items: center; gap: var(--s-1); min-width: 0; max-width: 100%; vertical-align: middle; }
+.spl-ident .ui-star { margin-left: calc(var(--s-2) * -1); }
+.spl-check { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 32px; flex-shrink: 0; }
+.spl-check input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); cursor: pointer; }
+.spl-table .ui-table thead th.spl-col-player .ui-th-sort { margin-left: 24px; }
+.spl.is-compare .spl-table .ui-table thead th.spl-col-player .ui-th-sort { margin-left: 52px; }
+.spl-table .ui-table tbody tr.is-compared > td,
+.spl-table .ui-table tbody tr.is-compared > th { background: var(--ink-2); }
+
+.spl-club { display: inline-flex; align-items: center; gap: var(--s-1); color: var(--text-2); font-size: var(--fs-meta); }
+.spl-col-pos { color: var(--text-2); font-size: var(--fs-meta); }
+.spl-col-spark svg { display: inline-block; vertical-align: middle; }
+
+.spl-note { color: var(--text-3); font-size: var(--fs-meta); line-height: var(--lh-meta); margin: var(--s-2) 0 0; max-width: 72ch; }
+.spl-footnote { margin-top: var(--s-5); font-size: var(--fs-label); line-height: var(--lh-label); }
+
+/* Watchlist-spelers die niet in de spelersdata staan. */
+.spl-nf { margin-top: var(--s-6); }
+.spl-nf__title { color: var(--text-2); margin: 0; }
+.spl-nf .spl-note { margin-bottom: var(--s-3); }
+.spl-nf__name { font-weight: 600; }
+.spl-nf__actions { text-align: right; width: 1%; }
+
+/* Vergelijkbalk: plakt onderaan, boven de onderbalk op gsm. */
+.spl-comparebar {
+  position: sticky; bottom: 0; z-index: var(--z-sticky);
+  display: flex; align-items: center; gap: var(--s-2);
+  margin: var(--s-4) calc(var(--gutter) * -1) 0; padding: var(--s-3) var(--gutter);
+  background: var(--ink-1); border-top: 1px solid var(--line-strong);
+}
+.spl-comparebar__text { flex: 1; min-width: 0; font-weight: 600; }
+
+/* Filterlade. */
+.spl-filters { display: flex; flex-direction: column; gap: var(--s-5); }
+.spl-field { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s-2); }
+.spl-field__label { color: var(--text-3); }
+.spl-field__value { color: var(--text-1); text-transform: none; letter-spacing: 0; margin-left: var(--s-2); }
+.spl-field__control { width: 100%; }
+.spl-field__note { color: var(--text-3); font-size: var(--fs-meta); line-height: var(--lh-meta); margin: 0; }
+.spl-range { display: grid; gap: var(--s-1); width: 100%; }
+.spl-range input[type="range"] { width: 100%; margin: 0; accent-color: var(--accent); }
+.spl-sheet-actions { display: flex; justify-content: flex-end; gap: var(--s-2); flex-wrap: wrap; }
+
+/* Vergelijken (in een Sheet). */
+.spl-compare { overflow-x: auto; overscroll-behavior-x: contain; margin-top: var(--s-2); }
+.spl-compare__table { width: auto; min-width: 100%; }
+.spl-compare__table thead th { position: static; height: auto; vertical-align: bottom; padding-bottom: var(--s-2); }
+.spl-compare__stat {
+  position: sticky; left: 0; z-index: 1; background: var(--ink-1);
+  text-align: left; color: var(--text-3); font-size: var(--fs-meta); font-weight: 600; min-width: 132px;
+}
+.spl-compare__table tbody th.spl-compare__stat { font-weight: 600; }
+.spl-compare__player { min-width: 112px; text-transform: none; letter-spacing: 0; }
+.spl-compare__head { display: flex; flex-direction: column; align-items: center; gap: var(--s-1); }
+.spl-compare__remove { align-self: flex-end; }
+.spl-compare__name {
+  border: 0; padding: 0; background: none; cursor: pointer; text-align: center;
+  font: 600 var(--fs-ui)/var(--lh-ui) var(--font-ui); color: var(--text-1);
+}
+.spl-compare__name:hover { text-decoration: underline; text-underline-offset: 2px; }
+.spl-compare__meta { color: var(--text-3); font-size: var(--fs-meta); font-weight: 400; }
+.spl-compare__spark { display: inline-block; }
+
+@media (max-width: 899px) {
+  .spl-comparebar { bottom: calc(var(--bottomnav-h) + env(safe-area-inset-bottom, 0px)); }
+}
+@media (max-width: 700px) {
+  .spl-search { max-width: none; }
+  .spl-toolbar__row { gap: var(--s-2); }
+  .spl-toolbar__row > .ui-seg-wrap { width: 100%; }
+  .spl-toolbar__actions { margin-left: 0; width: 100%; }
+  .spl-toolbar__actions > .ui-btn { flex: 1; }
+  .spl-table .ui-table .is-sticky { max-width: 200px; }
+  .spl-col-club, .spl-col-pos { display: none; }
+}
