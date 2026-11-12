@@ -1,59 +1,36 @@
-// Klassement-tab (fase 2 van de Spelers-opdracht): zoek een team op naam in het algemene of
-// speeldagklassement, en bekijk het klassement van een minileague. Data via /api/rankings (zie
-// api/rankings.js), dat de namen van de managers er bewust uithaalt: de site toont enkel teamnamen.
+// Klassement-tab: zoek een team op naam in het algemene of speeldagklassement. Data via /api/rankings
+// (zie api/rankings.js), dat de namen van de managers er bewust uithaalt: de site toont enkel teamnamen.
 //
-// Wat NIET kan (de bron vraagt daarvoor een login): de opstelling of kapitein van een team, en de lijst
-// met minileagues van een team. Het league-ID haal je dus zelf uit de adresbalk van het spel.
+// Sinds de rework (spec §7.8): PageHeader + zoekveld + keuze Algemeen/Speeldag N + één tabel
+// (# · Team · Punten), met onderaan één regel promo voor de minileague van @fpl_proleague.
+// De minileague-zoekfunctie is weg; api/rankings.js kan het nog, maar de site vraagt het niet meer op.
+//
+// Wat NIET kan (de bron vraagt daarvoor een login): de opstelling of kapitein van een team.
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Loader2, AlertCircle, Search, Trophy, Users } from 'lucide-react';
+import { Check, Copy } from 'lucide-react';
 import { CURRENT_GW } from '../constants';
+import PageHeader from '../ui/PageHeader';
+import SearchField from '../ui/SearchField';
+import Select from '../ui/Select';
+import DataTable from '../ui/DataTable';
+import Button from '../ui/Button';
+import ErrorBanner from '../ui/ErrorBanner';
+import EmptyState from '../ui/EmptyState';
+import './KlassementTab.css';
 
-const LEAGUE_STORAGE_KEY = 'fpl_proleague_klassement_league_v1';
+// Vroeger bewaarde de tab hier de laatst bekeken minileague. Die functie is weg: eenmalig opruimen.
+const OLD_LEAGUE_STORAGE_KEY = 'fpl_proleague_klassement_league_v1';
 const GENERAL_START_GW = 8;
+const SEARCH_DELAY_MS = 350;
 const lastPlayedGw = Math.max(1, CURRENT_GW - 1);
 const weekOptions = Array.from({ length: lastPlayedGw }, (_, i) => lastPlayedGw - i);
-
-const inputStyle = {
-  width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.06)', color: 'var(--text-1)',
-  border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', padding: '10px 12px',
-  fontSize: '14px', fontFamily: 'inherit',
-};
-const selectStyle = {
-  background: 'var(--ink-1)', color: 'var(--text-1)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px',
-  padding: '9px 10px', fontSize: '13px', fontFamily: 'inherit',
-};
-const primaryBtn = {
-  display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'var(--accent)', color: 'var(--accent-ink)', border: 'none',
-  borderRadius: '10px', padding: '9px 16px', fontWeight: 800, fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit',
-};
-const ghostBtn = {
-  background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px',
-  padding: '8px 14px', color: 'var(--text-2)', fontWeight: 700, fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit',
-};
-const cardStyle = {
-  background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px',
-  padding: '16px', marginBottom: '18px',
-};
-
-// Een gedeelde link of een geplakte link uit het spel ("…/leagues/120000") -> het getal.
-export function parseLeagueId(value) {
-  const match = String(value ?? '').match(/(\d{3,9})(?!.*\d)/);
-  return match ? Number(match[1]) : null;
-}
 
 function readParams() {
   const p = new URLSearchParams(typeof window === 'undefined' ? '' : window.location.search);
   const gw = Number(p.get('rgw'));
-  const lgw = Number(p.get('lgw'));
-  let league = parseLeagueId(p.get('league'));
-  if (!league) {
-    try { league = parseLeagueId(window.localStorage?.getItem(LEAGUE_STORAGE_KEY)); } catch { league = null; }
-  }
   return {
     team: (p.get('team') ?? '').slice(0, 40),
     rgw: weekOptions.includes(gw) ? gw : 0, // 0 = algemeen klassement
-    league,
-    lgw: weekOptions.includes(lgw) ? lgw : 0, // 0 = totaal
   };
 }
 
@@ -80,19 +57,20 @@ async function fetchRankings(params) {
   return body;
 }
 
-// Gedeelde lijst-logica voor beide secties: eerste pagina laden, "meer laden", fouten.
+// Lijst-logica: eerste pagina laden, "meer laden", fouten. Een oudere aanvraag die later terugkomt,
+// overschrijft een nieuwere niet.
 function usePagedRankings() {
-  const [state, setState] = useState({ rows: [], total: 0, page: 0, loading: false, error: null, meta: null });
+  const [state, setState] = useState({ rows: [], total: 0, page: 0, loading: false, error: null });
   const requestRef = useRef(0);
   const load = useCallback(async (params, page = 1) => {
     const requestId = ++requestRef.current;
-    setState(s => ({ ...s, loading: true, error: null, ...(page === 1 ? { rows: [], total: 0, meta: null } : {}) }));
+    setState(s => ({ ...s, loading: true, error: null, params, ...(page === 1 ? { rows: [], total: 0, page: 0 } : {}) }));
     try {
       const body = await fetchRankings({ ...params, page });
       if (requestId !== requestRef.current) return;
       setState(s => ({
         rows: page === 1 ? body.rows : [...s.rows, ...body.rows],
-        total: body.total, page, loading: false, error: null, meta: body.league ?? null, params,
+        total: body.total, page, loading: false, error: null, params,
       }));
     } catch (err) {
       if (requestId !== requestRef.current) return;
@@ -102,188 +80,137 @@ function usePagedRankings() {
   return [state, load];
 }
 
-function RankingTable({ t, rows, highlight }) {
-  const th = { color: 'var(--text-3)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', padding: '6px 8px', textAlign: 'left' };
-  const td = { color: 'var(--text-1)', fontSize: '13px', padding: '8px', borderTop: '1px solid rgba(255,255,255,0.06)' };
-  return (
-    <div style={{ overflowX: 'auto' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead>
-          <tr>
-            <th scope="col" style={{ ...th, width: '70px' }}>{t('klassement.rank')}</th>
-            <th scope="col" style={th}>{t('klassement.team')}</th>
-            <th scope="col" style={{ ...th, textAlign: 'right' }}>{t('klassement.points')}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r, i) => {
-            const isMatch = highlight && r.team.toLowerCase().includes(highlight.toLowerCase());
-            return (
-              <tr key={`${r.teamId}-${i}`}>
-                <td style={{ ...td, fontWeight: 800, color: r.rank && r.rank <= 3 ? 'var(--warning)' : td.color }}>
-                  {r.rank ? r.rank.toLocaleString('nl-BE') : '—'}
-                </td>
-                <td style={{ ...td, fontWeight: isMatch ? 800 : 600, color: isMatch ? 'var(--accent)' : 'var(--text-1)', wordBreak: 'break-word' }}>{r.team || '—'}</td>
-                <td style={{ ...td, textAlign: 'right', fontWeight: 800 }}>{r.points}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
+const formatNumber = n => Number(n).toLocaleString('nl-BE');
 
-function Status({ t, state, emptyText, notFoundText }) {
-  if (state.loading && state.rows.length === 0) {
-    return (
-      <div role="status" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-2)', fontSize: '13px', marginTop: '12px' }}>
-        <Loader2 size={16} className="fdr-spin" aria-hidden="true" /> {t('klassement.loading')}
-      </div>
-    );
-  }
-  if (state.error) {
-    const text = state.error.status === 404 && notFoundText ? notFoundText : t('klassement.error');
-    return (
-      <div role="alert" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-1)', fontSize: '13px', marginTop: '12px' }}>
-        <AlertCircle size={16} color="var(--danger)" aria-hidden="true" /> {text}
-      </div>
-    );
-  }
-  if (state.page > 0 && state.rows.length === 0) {
-    return <p style={{ color: 'var(--text-2)', fontSize: '13px', marginTop: '12px' }}>{emptyText}</p>;
-  }
-  return null;
-}
-
-function MoreButton({ t, state, onMore }) {
-  if (state.rows.length === 0 || state.rows.length >= state.total) return null;
-  return (
-    <div style={{ display: 'flex', justifyContent: 'center', marginTop: '10px' }}>
-      <button type="button" onClick={onMore} disabled={state.loading} style={ghostBtn}>
-        {state.loading ? <Loader2 size={13} className="fdr-spin" aria-hidden="true" /> : t('klassement.more')}
-      </button>
-    </div>
-  );
-}
-
-export default function KlassementTab({ t }) {
+export default function KlassementTab({ t, minileagueCode, onCopyMinileague, minileagueCopied }) {
   const initial = useRef(readParams()).current;
-
-  // --- Team zoeken ---
-  const [teamQuery, setTeamQuery] = useState(initial.team);
+  const [query, setQuery] = useState(initial.team);
   const [rgw, setRgw] = useState(initial.rgw);
-  const [teamState, loadTeams] = usePagedRankings();
+  const [state, load] = usePagedRankings();
   const [lastSearch, setLastSearch] = useState(initial.team);
 
-  const runTeamSearch = useCallback((name, gw) => {
+  const runSearch = useCallback((name, gw) => {
     const params = gw ? { type: 'week', weekId: gw, name } : { type: 'general', name };
     setLastSearch(name);
     writeParams({ team: name, rgw: gw });
-    loadTeams(params, 1);
-  }, [loadTeams]);
+    load(params, 1);
+  }, [load]);
 
-  // --- Minileague ---
-  const [leagueInput, setLeagueInput] = useState(initial.league ? String(initial.league) : '');
-  const [lgw, setLgw] = useState(initial.lgw);
-  const [leagueState, loadLeague] = usePagedRankings();
-
-  const runLeague = useCallback((id, gw) => {
-    if (!id) return;
-    writeParams({ league: id, lgw: gw });
-    try { window.localStorage?.setItem(LEAGUE_STORAGE_KEY, String(id)); } catch { /* geen opslag: ook goed */ }
-    loadLeague({ type: 'league', leagueId: id, weekId: gw }, 1);
-  }, [loadLeague]);
-
-  // Bij het openen: het algemene klassement (of de zoekopdracht uit de URL), en de bewaarde league.
+  // Bij het openen: het klassement (of de zoekopdracht uit de URL) laden, en de oude bewaarde
+  // minileague opruimen.
   useEffect(() => {
-    runTeamSearch(initial.team, initial.rgw);
-    if (initial.league) runLeague(initial.league, initial.lgw);
+    try { window.localStorage?.removeItem(OLD_LEAGUE_STORAGE_KEY); } catch { /* geen opslag: ook goed */ }
+    runSearch(initial.team, initial.rgw);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const leagueId = parseLeagueId(leagueInput);
+  // Zoeken terwijl je typt, met een korte pauze zodat niet elke letter een aanvraag wordt.
+  useEffect(() => {
+    const name = query.trim();
+    if (name === lastSearch) return undefined;
+    const timer = setTimeout(() => runSearch(name, rgw), SEARCH_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [query, lastSearch, rgw, runSearch]);
+
+  const chooseRanking = value => {
+    const gw = Number(value);
+    setRgw(gw);
+    runSearch(query.trim(), gw);
+  };
+
   const showGeneralNote = !rgw && CURRENT_GW <= GENERAL_START_GW + 1;
+  const firstLoad = state.loading && state.rows.length === 0;
+  const hasRows = state.rows.length > 0;
+  const loaded = !state.loading && !state.error && state.page > 0;
+
+  const columns = [
+    {
+      key: 'rank', label: '#', title: t('klassement.rank'), num: true, className: 'kl-col-rank',
+      render: r => (r.rank ? formatNumber(r.rank) : null),
+      cellClass: r => (r.rank && r.rank <= 3 ? 'is-top' : ''),
+    },
+    {
+      key: 'team', label: t('klassement.team'), rowHeader: true, className: 'kl-col-team',
+      render: r => r.team || null,
+    },
+    {
+      key: 'points', label: t('klassement.points'), num: true, className: 'kl-col-points',
+      render: r => r.points,
+    },
+  ];
+
+  const caption = lastSearch
+    ? t('klassement.resultsFor', { n: formatNumber(state.total), q: lastSearch })
+    : t(rgw ? 'klassement.topWeek' : 'klassement.topGeneral', { gw: rgw, n: formatNumber(state.total) });
+
+  const moreButton = hasRows && state.rows.length < state.total ? (
+    <Button variant="secondary" onClick={() => load(state.params, state.page + 1)} disabled={state.loading}>
+      {t('klassement.more')}
+    </Button>
+  ) : null;
 
   return (
-    <>
-      <p style={{ color: 'var(--text-3)', fontSize: '13px', marginBottom: '18px', lineHeight: 1.5 }}>{t('klassement.intro')}</p>
+    <div className="kl">
+      <PageHeader title={t('nav.klassement')} intro={t('klassement.intro')} />
 
-      <section style={cardStyle} aria-labelledby="klassement-team-title">
-        <h2 id="klassement-team-title" className="fdr-title" style={{ color: 'var(--text-1)', fontSize: '15px', margin: '0 0 12px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Trophy size={17} color="var(--accent)" aria-hidden="true" /> {t('klassement.teamTitle')}
-        </h2>
-        <form
-          onSubmit={e => { e.preventDefault(); runTeamSearch(teamQuery.trim(), rgw); }}
-          style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}
-        >
-          <div style={{ position: 'relative', flex: '1 1 220px' }}>
-            <Search size={16} color="var(--text-3)" aria-hidden="true" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
-            <input
-              type="search" value={teamQuery} maxLength={40}
-              onChange={e => setTeamQuery(e.target.value)}
-              placeholder={t('klassement.teamPlaceholder')} aria-label={t('klassement.teamPlaceholder')}
-              style={{ ...inputStyle, paddingLeft: '36px' }}
-            />
-          </div>
-          <select value={rgw} onChange={e => { const v = Number(e.target.value); setRgw(v); runTeamSearch(teamQuery.trim(), v); }}
-            aria-label={t('klassement.rankingType')} style={selectStyle}>
-            <option value={0}>{t('klassement.general')}</option>
-            {weekOptions.map(w => <option key={w} value={w}>{t('klassement.weekOption', { gw: w })}</option>)}
-          </select>
-          <button type="submit" style={primaryBtn}><Search size={14} aria-hidden="true" /> {t('klassement.search')}</button>
-        </form>
-        {showGeneralNote && <p style={{ color: 'var(--text-3)', fontSize: '12px', margin: '8px 0 0' }}>{t('klassement.generalNote', { gw: GENERAL_START_GW })}</p>}
+      <form className="kl-toolbar" role="search" onSubmit={e => { e.preventDefault(); runSearch(query.trim(), rgw); }}>
+        <SearchField
+          className="kl-search"
+          value={query}
+          onChange={setQuery}
+          maxLength={40}
+          placeholder={t('klassement.teamPlaceholder')}
+          clearLabel={t('picker.clear')}
+        />
+        <Select
+          className="kl-select"
+          value={rgw}
+          onChange={chooseRanking}
+          aria-label={t('klassement.rankingType')}
+          options={[
+            { value: 0, label: t('klassement.general') },
+            ...weekOptions.map(w => ({ value: w, label: t('klassement.weekOption', { gw: w }) })),
+          ]}
+        />
+      </form>
+      {showGeneralNote && <p className="kl-note">{t('klassement.generalNote', { gw: GENERAL_START_GW })}</p>}
 
-        {!teamState.loading && !teamState.error && teamState.page > 0 && teamState.rows.length > 0 && (
-          <p style={{ color: 'var(--text-2)', fontSize: '12px', margin: '12px 0 6px' }}>
-            {lastSearch
-              ? t('klassement.resultsFor', { n: teamState.total.toLocaleString('nl-BE'), q: lastSearch })
-              : t(rgw ? 'klassement.topWeek' : 'klassement.topGeneral', { gw: rgw, n: teamState.total.toLocaleString('nl-BE') })}
-          </p>
-        )}
-        {teamState.rows.length > 0 && <RankingTable t={t} rows={teamState.rows} highlight={lastSearch} />}
-        <Status t={t} state={teamState} emptyText={t('klassement.noTeams', { q: lastSearch })} />
-        <MoreButton t={t} state={teamState} onMore={() => loadTeams(teamState.params, teamState.page + 1)} />
-      </section>
+      {state.error && (
+        <ErrorBanner onRetry={() => load(state.params, hasRows ? state.page + 1 : 1)} retryLabel={t('shared.retry')}>
+          {t('klassement.error')}
+        </ErrorBanner>
+      )}
 
-      <section style={cardStyle} aria-labelledby="klassement-league-title">
-        <h2 id="klassement-league-title" className="fdr-title" style={{ color: 'var(--text-1)', fontSize: '15px', margin: '0 0 6px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Users size={17} color="var(--accent)" aria-hidden="true" /> {t('klassement.leagueTitle')}
-        </h2>
-        <p style={{ color: 'var(--text-3)', fontSize: '12px', margin: '0 0 12px', lineHeight: 1.5 }}>{t('klassement.leagueHelp')}</p>
-        <form
-          onSubmit={e => { e.preventDefault(); runLeague(leagueId, lgw); }}
-          style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}
-        >
-          <input
-            type="text" inputMode="numeric" value={leagueInput} maxLength={120}
-            onChange={e => setLeagueInput(e.target.value)}
-            placeholder={t('klassement.leaguePlaceholder')} aria-label={t('klassement.leaguePlaceholder')}
-            style={{ ...inputStyle, flex: '1 1 220px', width: 'auto' }}
+      {loaded && !hasRows && <EmptyState>{t('klassement.noTeams', { q: lastSearch })}</EmptyState>}
+
+      {(firstLoad || hasRows) && (
+        <>
+          {!firstLoad && <p className="kl-caption">{caption}</p>}
+          <DataTable
+            className="kl-table"
+            bleed
+            loading={firstLoad}
+            columns={columns}
+            rows={state.rows}
+            rowKey={(r, i) => `${r.teamId}-${i}`}
+            ariaLabel={t('nav.klassement')}
+            footer={moreButton}
           />
-          <select value={lgw} onChange={e => { const v = Number(e.target.value); setLgw(v); if (leagueId) runLeague(leagueId, v); }}
-            aria-label={t('klassement.leaguePeriod')} style={selectStyle}>
-            <option value={0}>{t('klassement.total')}</option>
-            {weekOptions.map(w => <option key={w} value={w}>{t('klassement.weekOption', { gw: w })}</option>)}
-          </select>
-          <button type="submit" disabled={!leagueId} style={{ ...primaryBtn, opacity: leagueId ? 1 : 0.5 }}>{t('klassement.show')}</button>
-        </form>
+        </>
+      )}
 
-        {leagueState.meta && !leagueState.error && (
-          <p style={{ color: 'var(--text-1)', fontSize: '14px', fontWeight: 800, margin: '14px 0 6px' }}>
-            {leagueState.meta.name}{' '}
-            <span style={{ color: 'var(--text-3)', fontWeight: 600, fontSize: '12px' }}>
-              · {t('klassement.teamsCount', { n: leagueState.total })} · {lgw ? t('klassement.weekOption', { gw: lgw }) : t('klassement.total')}
-            </span>
-          </p>
-        )}
-        {leagueState.rows.length > 0 && <RankingTable t={t} rows={leagueState.rows} />}
-        <Status t={t} state={leagueState} emptyText={t('klassement.leagueEmpty')} notFoundText={t('klassement.leagueNotFound')} />
-        <MoreButton t={t} state={leagueState} onMore={() => loadLeague(leagueState.params, leagueState.page + 1)} />
-      </section>
-
-      <p style={{ color: 'var(--text-3)', fontSize: '11px', lineHeight: 1.5 }}>{t('klassement.privacy')}</p>
-    </>
+      <p className="kl-promo">
+        {t('klassement.promo')}{' '}
+        <button
+          type="button" className="kl-promo__code" onClick={onCopyMinileague}
+          aria-label={t('header.copyMinileagueAria', { code: minileagueCode })}
+        >
+          <span className="num">{minileagueCode}</span>
+          {minileagueCopied ? <Check aria-hidden="true" strokeWidth={2} /> : <Copy aria-hidden="true" strokeWidth={1.75} />}
+        </button>
+        {minileagueCopied && <span className="ui-sr-only" role="status">{t('shell.copied')}</span>}
+      </p>
+      <p className="kl-note">{t('klassement.privacy')}</p>
+    </div>
   );
 }
