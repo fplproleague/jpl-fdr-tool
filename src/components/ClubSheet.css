@@ -1,0 +1,66 @@
+/* Clubdetail (spec §7.10). */
+.cs-head { display: flex; align-items: center; gap: var(--s-3); min-width: 0; }
+.cs-logo { width: 48px; height: 48px; object-fit: contain; flex-shrink: 0; }
+.cs-head__text { flex: 1; min-width: 0; }
+.cs-name { margin: 0; font: 700 var(--fs-title)/var(--lh-title) var(--font-ui); color: var(--text-1); }
+
+/* Vorm: W/G/V als vierkantjes, zelfde kleurtaal als de vormkolom in de FDR-tabel. */
+.cs-form { display: flex; gap: 2px; margin-top: var(--s-1); }
+.cs-form__r {
+  display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px;
+  font: 700 var(--fs-micro)/1 var(--font-ui);
+  background: var(--ink-3); color: var(--text-2);
+}
+.cs-form__r.is-W { background: var(--positive); color: var(--accent-ink); }
+.cs-form__r.is-V { background: var(--danger); color: var(--text-1); }
+
+/* De komende acht speeldagen als FDR-cellen in één rij. */
+.cs-fdr { display: grid; grid-template-columns: repeat(var(--cs-cols, 8), minmax(0, 1fr)); gap: 2px; }
+.cs-fdr__col { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cs-fdr__gw { color: var(--text-3); font-size: var(--fs-micro); line-height: 1; text-align: center; }
+.cs-fdr .ui-fdr { display: flex; align-items: center; justify-content: center; height: 32px; padding: 0 1px; overflow: hidden; }
+.cs-fdr .ui-fdr.is-dgw { display: block; }
+
+.cs-empty { margin: 0; color: var(--text-3); font-size: var(--fs-meta); }
+.cs-note { margin: 0 0 var(--s-2); color: var(--warning); font-size: var(--fs-meta); line-height: var(--lh-meta); }
+
+.cs-sp {
+  display: grid; grid-template-columns: max-content 1fr; gap: var(--s-2) var(--s-4); margin: 0;
+  font-size: var(--fs-ui); line-height: var(--lh-ui);
+}
+.cs-sp dt { color: var(--text-3); }
+.cs-sp dd { margin: 0; color: var(--text-1); overflow-wrap: anywhere; }
+
+/* Verwachte XI: genummerde lijst met statusstippen. */
+.cs-xi, .cs-top { list-style: none; margin: 0; padding: 0; }
+.cs-xi li {
+  display: flex; align-items: center; gap: var(--s-2); min-height: 32px;
+  border-bottom: 1px solid var(--line); font-size: var(--fs-ui);
+}
+.cs-xi__nr { width: 18px; flex-shrink: 0; text-align: right; color: var(--text-3); font-size: var(--fs-meta); }
+.cs-xi__name {
+  border: 0; padding: 0; background: none; color: var(--text-1); font: 600 var(--fs-ui)/var(--lh-ui) var(--font-ui);
+  text-align: left; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+button.cs-xi__name { cursor: pointer; min-height: 32px; }
+button.cs-xi__name:hover { text-decoration: underline; text-underline-offset: 2px; }
+
+.cs-top__row {
+  display: flex; align-items: center; gap: var(--s-2); width: 100%; min-height: 40px; padding: 0;
+  border: 0; border-bottom: 1px solid var(--line); background: none; text-align: left; cursor: pointer;
+  color: var(--text-1); font: 600 var(--fs-ui)/var(--lh-ui) var(--font-ui);
+}
+.cs-top__row:hover .cs-top__name { text-decoration: underline; text-underline-offset: 2px; }
+.cs-top__row:disabled { cursor: default; }
+.cs-top__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cs-top__val { color: var(--text-1); font-weight: 700; }
+.cs-top__val.is-top { color: var(--accent); }
+
+/* Op gsm is een cel te smal voor tegenstander + moeilijkheidscijfer: de kleur blijft, het cijfer valt weg. */
+@media (max-width: 480px) {
+  .cs-fdr .ui-fdr__rating { display: none; }
+}
+@media (pointer: coarse) {
+  .cs-xi li, button.cs-xi__name { min-height: 44px; }
+  .cs-top__row { min-height: 44px; }
+}

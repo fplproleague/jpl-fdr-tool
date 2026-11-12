@@ -1,54 +1,30 @@
-// Eén paneel met alles wat de site over één club weet: komende fixtures met hun FDR-kleur, recente
-// vorm, wie de standaardsituaties neemt, de verwachte basiself en de vijf spelers van die club met de
-// meeste bonuspunten.
+// Eén paneel met alles wat de site over één club weet (spec §7.10): recente vorm, de komende acht
+// speeldagen in FDR-kleur, wie de stilstaande fases neemt, de verwachte XI en de spelers van die club
+// met de meeste bonuspunten.
 //
-// Tot nu toe waren de ruim honderd clublogo's op de site pure decoratie. Ze zijn nu de ingang naar dit
-// paneel — het antwoord op "en hoe staat die club er eigenlijk voor?", zonder dat je vier tabs moet
-// aflopen.
-//
-// Deelt zijn frame (dialoog-semantiek, focus, Escape, desktop-modal vs. bottom sheet) met de
-// speler-sheet, zie Sheet.jsx. Vanuit hier een speler openen vervángt deze sheet: FDRTool.jsx houdt
-// één sheet-state bij, dus er kan nooit een stapel ontstaan.
-import { CURRENT_GW, FIXTURES, PREDICTED_LINEUPS_GW, TEAMS } from '../constants';
+// Deelt zijn frame (dialoog, focus, Escape, lade op desktop / bottom sheet op gsm) met de spelerskaart,
+// zie Sheet.jsx. Vanuit hier een speler openen vervángt deze sheet: FDRTool.jsx houdt één sheet-state
+// bij, dus er kan nooit een stapel ontstaan.
+import { CURRENT_GW, FIXTURES, GW_COUNT, PREDICTED_LINEUPS_GW, TEAMS, getFixtureInfo } from '../constants';
 import { buildBonuspuntenEntries, rankByBonusPoints, SORT_MODES } from '../bonuspunten';
 import { PREDICTED_LINEUPS } from '../predictedLineupsData';
-import { SAFETY_STYLE } from '../predicted-xi/theme';
-import { FixtureStrip } from './FixtureStrip';
-import Sheet, { SheetSection as Section, sheetEmptyTextStyle as emptyTextStyle } from './Sheet';
+import Sheet, { SheetSection as Section } from './Sheet';
+import FdrCell from '../ui/FdrCell';
+import StatusDot from '../ui/StatusDot';
+import { PlayerFaceByName } from '../ui/PlayerFace';
+import './ClubSheet.css';
 
-// Vijf speeldagen vooruit: genoeg om een run te beoordelen, kort genoeg om naast de rest van het
-// paneel te passen. Bewust losgekoppeld van de GW-horizon van de hoofdtabel — dit is een
-// detailweergave, geen planningsoverzicht.
-const FIXTURES_AHEAD = 5;
-
-// Hoeveel spelers van deze club in de bonuspunten-top. Vijf, zoals de "Beste fixture runs"-lijst.
+// Acht speeldagen vooruit, zoals de FDR-tabel standaard toont.
+const FIXTURES_AHEAD = 8;
+// Hoeveel spelers van deze club in de bonuspunten-top.
 const TOP_PLAYERS = 5;
 
-// Zelfde kleurtaal als de vormbalk in de hoofdtabel (FDRTab.jsx): bewust subtieler dan RATING_STYLE,
-// want die kleuren betekenen iets heel anders (ingeschatte moeilijkheid, geen echte uitslag).
-const FORM_RESULT_STYLE = {
-  W: { bg: 'rgba(51,237,213,0.9)', text: 'var(--accent-ink)' },
-  G: { bg: 'rgba(255,255,255,0.18)', text: 'var(--text-2)' },
-  V: { bg: 'rgba(255,90,71,0.65)', text: 'var(--text-1)' },
+const SAFETY_LABEL_KEYS = {
+  darkgreen: 'predictedLineups.legend.certain',
+  green: 'predictedLineups.legend.starter',
+  orange: 'predictedLineups.legend.doubtful',
+  red: 'predictedLineups.legend.risk',
 };
-
-function SetPieceLine({ label, value }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', padding: '3px 0' }}>
-      <span style={{
-        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-        width: '20px', height: '20px', borderRadius: '50%',
-        background: 'rgba(51,237,213,0.15)', border: '1px solid var(--accent)', color: 'var(--accent)',
-        fontSize: label.length > 1 ? '8px' : '10px', fontWeight: 800,
-      }}>
-        {label}
-      </span>
-      <span style={{ color: 'var(--text-1)', fontSize: '13px', fontWeight: 600, lineHeight: 1.45, wordBreak: 'break-word' }}>
-        {value || <span style={{ color: 'var(--text-4)' }}>—</span>}
-      </span>
-    </div>
-  );
-}
 
 export default function ClubSheet({
   t, clubCode, onClose, playerDatabase = [], setPiecesEntries = [],
@@ -58,26 +34,20 @@ export default function ClubSheet({
   const club = TEAMS.find(x => x.code === clubCode);
   const clubName = club?.name ?? clubCode;
 
-  const upcoming = (FIXTURES[clubCode] ?? []).slice(CURRENT_GW - 1, CURRENT_GW - 1 + FIXTURES_AHEAD);
-  // teamForm komt uit FDRTool.jsx (berekend door api/team-form.js). Eén bron voor de hele app, zodat
-  // de clubkaart en de tabel niet uiteenlopen.
+  const fixtures = FIXTURES[clubCode] ?? [];
+  const upcomingGws = [];
+  for (let gw = CURRENT_GW; gw < CURRENT_GW + FIXTURES_AHEAD && gw <= GW_COUNT; gw++) upcomingGws.push(gw);
+
+  // teamForm komt uit FDRTool.jsx (berekend door api/team-form.js): één bron voor de hele site.
   const form = teamForm?.[clubCode] ?? [];
   const setPieces = setPiecesEntries.find(e => e.clubCode === clubCode) ?? null;
 
-  // findLast, net als in PredictedLineupsTab: mocht er ooit weer een oude en een nieuwe opstelling voor
-  // dezelfde club naast elkaar in de data staan, dan telt de laatste (de nieuwste).
+  // De laatst beschikbare verwachte opstelling (findLast: bij een oude én een nieuwe telt de nieuwste).
   const lineup = PREDICTED_LINEUPS.findLast(l => l.clubCode === clubCode) ?? null;
-  const lineupPlayers = (lineup?.slots ?? [])
-    .filter(s => s.positionId !== '_unassigned' && s.playerName);
-
-  // De verwachte opstellingen worden pas kort voor de deadline gepubliceerd. Staan ze nog op een
-  // vorige speeldag, dan hoort dit blok er helemaal niet te zijn: een opstelling van vorige week ziet
-  // er precies hetzelfde uit als een actuele, en is voor een fantasymanager schadelijker dan géén
-  // opstelling. Zelfde afweging als de stale-gate op de Verwachte XI's-tab.
+  const lineupPlayers = (lineup?.slots ?? []).filter(s => s.positionId !== '_unassigned' && s.playerName);
   const isStaleLineup = PREDICTED_LINEUPS_GW < CURRENT_GW;
 
-  // Enkel de spelers van deze club, daarna dezelfde rangschikking als de Bonuspunten-tab gebruikt —
-  // zo staat hier nooit een andere volgorde dan op die tab zelf.
+  // Enkel de spelers van deze club, met dezelfde rangschikking als de Bonuspunten-tab.
   const topPlayers = rankByBonusPoints(
     buildBonuspuntenEntries(playerDatabase).filter(e => e.clubCode === clubCode),
     SORT_MODES.total,
@@ -85,124 +55,97 @@ export default function ClubSheet({
   ).slice(0, TOP_PLAYERS);
 
   const header = (
-    <>
+    <div className="cs-head">
       <img
-        src={`/club-logos/${clubCode}.webp`}
-        alt=""
-        style={{ width: '34px', height: '34px', objectFit: 'contain', flexShrink: 0 }}
-        onError={(e) => { e.target.style.display = 'none'; }}
+        className="cs-logo" src={`/club-logos/${clubCode}.webp`} alt="" width={48} height={48}
+        onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
       />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <h3 id={headingId} className="fdr-title" style={{ color: 'var(--text-1)', fontSize: '17px', margin: 0 }}>
-          {clubName}
-        </h3>
+      <div className="cs-head__text">
+        <h2 id={headingId} className="cs-name">{clubName}</h2>
         {form.length > 0 && (
-          <div
-            aria-label={t('clubSheet.formAria', { results: form.join(', ') })}
-            style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}
-          >
-            {form.map((r, i) => (
-              <span key={i} title={r} aria-hidden="true" style={{
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                minWidth: '16px', height: '16px', borderRadius: '4px', padding: '0 3px',
-                fontSize: '9px', fontWeight: 800,
-                background: FORM_RESULT_STYLE[r]?.bg ?? 'rgba(255,255,255,0.25)',
-                color: FORM_RESULT_STYLE[r]?.text ?? 'var(--text-2)',
-              }}>
-                {r}
-              </span>
-            ))}
+          <div className="cs-form" role="img" aria-label={t('clubSheet.formAria', { results: form.join(', ') })}>
+            {form.map((r, i) => <span key={i} className={`cs-form__r is-${r}`} aria-hidden="true">{r}</span>)}
           </div>
         )}
       </div>
-    </>
+    </div>
   );
+
+  const openPlayer = (name, code) => onOpenPlayer?.(name, code || clubCode);
 
   return (
     <Sheet titleId={headingId} closeLabel={t('clubSheet.closeAria')} onClose={onClose} header={header}>
       <Section title={t('clubSheet.fixturesHeading')}>
-        {upcoming.length > 0 ? (
-          <FixtureStrip
-            teamCode={clubCode}
-            fixtures={upcoming}
-            startGw={CURRENT_GW}
-            ratings={ratings}
-            homeAdvantage={homeAdvantage}
-            gwLabel={t('fdr.gwLabel')}
-          />
-        ) : <p style={emptyTextStyle}>{t('clubSheet.noData')}</p>}
+        {upcomingGws.length > 0 ? (
+          <div className="cs-fdr" style={{ '--cs-cols': upcomingGws.length }}>
+            {upcomingGws.map(gw => {
+              const fixture = fixtures[gw - 1];
+              const info = fixture ? getFixtureInfo(clubCode, fixture, gw, ratings, homeAdvantage) : null;
+              return (
+                <div key={gw} className="cs-fdr__col">
+                  <span className="cs-fdr__gw num" aria-hidden="true">{t('fdr.gwLabel')}{gw}</span>
+                  <FdrCell as="span" info={info} ariaLabel={`${t('fdr.gwLabel')}${gw}`} />
+                </div>
+              );
+            })}
+          </div>
+        ) : <p className="cs-empty">{t('clubSheet.noData')}</p>}
       </Section>
 
       <Section title={t('clubSheet.setPiecesHeading')}>
         {setPieces ? (
-          <>
-            <SetPieceLine label="P" value={setPieces.penalties} />
-            <SetPieceLine label="C" value={setPieces.corners} />
-            <SetPieceLine label="FK" value={setPieces.freeKicks} />
-          </>
-        ) : <p style={emptyTextStyle}>{t('clubSheet.noData')}</p>}
+          <dl className="cs-sp">
+            <dt>{t('setpieces.col.penalties')}</dt><dd>{setPieces.penalties || '—'}</dd>
+            <dt>{t('setpieces.col.corners')}</dt><dd>{setPieces.corners || '—'}</dd>
+            <dt>{t('setpieces.col.freeKicks')}</dt><dd>{setPieces.freeKicks || '—'}</dd>
+          </dl>
+        ) : <p className="cs-empty">{t('clubSheet.noData')}</p>}
       </Section>
 
-      {!isStaleLineup && (
-        <Section title={t('clubSheet.lineupHeading')}>
-          {lineupPlayers.length > 0 ? (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+      <Section title={t('clubSheet.lineupHeadingGw', { gw: PREDICTED_LINEUPS_GW })}>
+        {lineupPlayers.length > 0 ? (
+          <>
+            {isStaleLineup && <p className="cs-note">{t('clubSheet.lineupOld', { gw: CURRENT_GW })}</p>}
+            <ol className="cs-xi">
               {lineupPlayers.map((slot, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => onOpenPlayer?.(slot.playerName, slot.playerTeamCode || clubCode)}
-                  aria-label={t('playerSheet.openAria', { name: slot.playerName })}
-                  disabled={!onOpenPlayer}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: '6px',
-                    background: 'rgba(255,255,255,0.05)',
-                    // Zelfde safety-kleur als de kaartrand op het veld, zodat "wie start er zeker"
-                    // hier hetzelfde leest als op de Verwachte XI's-tab.
-                    border: `1px solid ${SAFETY_STYLE[slot.safety]?.border ?? 'rgba(255,255,255,0.12)'}`,
-                    borderRadius: '999px', padding: '4px 10px',
-                    color: 'var(--text-1)', fontSize: '11px', fontWeight: 700,
-                    fontFamily: 'inherit', cursor: onOpenPlayer ? 'pointer' : 'default',
-                  }}
-                >
-                  {slot.playerName}
-                </button>
+                <li key={`${slot.playerName}-${i}`}>
+                  <span className="cs-xi__nr num">{i + 1}</span>
+                  <StatusDot level={slot.safety} label={t(SAFETY_LABEL_KEYS[slot.safety] ?? 'predictedLineups.legend.starter')} />
+                  {onOpenPlayer ? (
+                    <button
+                      type="button" className="cs-xi__name"
+                      onClick={() => openPlayer(slot.playerName, slot.playerTeamCode)}
+                      aria-label={t('playerSheet.openAria', { name: slot.playerName })}
+                    >
+                      {slot.playerName}
+                    </button>
+                  ) : <span className="cs-xi__name">{slot.playerName}</span>}
+                </li>
               ))}
-            </div>
-          ) : <p style={emptyTextStyle}>{t('clubSheet.noLineup')}</p>}
-        </Section>
-      )}
+            </ol>
+          </>
+        ) : <p className="cs-empty">{t('clubSheet.noLineup')}</p>}
+      </Section>
 
       <Section title={t('clubSheet.topPlayersHeading')}>
         {topPlayers.length > 0 ? (
-          <div style={{ display: 'grid', gap: '4px' }}>
+          <ol className="cs-top">
             {topPlayers.map((entry, i) => (
-              <button
-                key={entry.player}
-                type="button"
-                onClick={() => onOpenPlayer?.(entry.player, entry.clubCode)}
-                aria-label={t('playerSheet.openAria', { name: entry.player })}
-                disabled={!onOpenPlayer}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
-                  background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-                  borderRadius: '8px', padding: '7px 10px', textAlign: 'left',
-                  fontFamily: 'inherit', cursor: onOpenPlayer ? 'pointer' : 'default',
-                }}
-              >
-                <span style={{ color: i === 0 ? 'var(--accent)' : 'var(--text-2)', fontWeight: 900, fontSize: '13px', width: '14px', flexShrink: 0 }}>
-                  {i + 1}
-                </span>
-                <span style={{ flex: 1, minWidth: 0, color: 'var(--text-1)', fontSize: '13px', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {entry.player}
-                </span>
-                <span style={{ color: 'var(--accent)', fontWeight: 900, fontSize: '14px', flexShrink: 0 }}>
-                  {entry.bonusPoints}
-                </span>
-              </button>
+              <li key={entry.player}>
+                <button
+                  type="button" className="cs-top__row" disabled={!onOpenPlayer}
+                  onClick={() => openPlayer(entry.player, entry.clubCode)}
+                  aria-label={t('playerSheet.openAria', { name: entry.player })}
+                >
+                  <span className="cs-xi__nr num">{i + 1}</span>
+                  <PlayerFaceByName name={entry.player} clubCode={entry.clubCode} size={24} />
+                  <span className="cs-top__name">{entry.player}</span>
+                  <span className={`cs-top__val num${i === 0 ? ' is-top' : ''}`}>{entry.bonusPoints}</span>
+                </button>
+              </li>
             ))}
-          </div>
-        ) : <p style={emptyTextStyle}>{t('clubSheet.noData')}</p>}
+          </ol>
+        ) : <p className="cs-empty">{t('clubSheet.noData')}</p>}
       </Section>
     </Sheet>
   );

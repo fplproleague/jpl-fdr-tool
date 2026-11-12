@@ -163,7 +163,7 @@ span.fdr-team { cursor: default; }
   .fdr-legend--top { display: none; }
   .fdr-legend--bottom { display: inline-flex; }
   .fdr-runs__row { grid-template-columns: 20px 20px minmax(0, 1fr); row-gap: var(--s-1); }
-  .fdr-runs__row > .fdr-fixture-scroll, .fdr-runs__row > :last-child { grid-column: 1 / -1; }
+  .fdr-runs__row > .ui-fstrip-scroll, .fdr-runs__row > :last-child { grid-column: 1 / -1; }
   .fdr-rating-row { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'club switch' 'seg seg'; row-gap: var(--s-1); padding: var(--s-2) 0; }
   .fdr-rating-row__club { grid-area: club; }
   .fdr-rating-row .fdr-switch { grid-area: switch; }

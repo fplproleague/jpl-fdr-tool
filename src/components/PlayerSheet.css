@@ -1,0 +1,97 @@
+/* Spelersdetail (spec §7.9). */
+.ps-head { display: flex; align-items: flex-start; gap: var(--s-3); min-width: 0; }
+.ps-head__text { flex: 1; min-width: 0; }
+.ps-name { margin: 0; font: 700 var(--fs-title)/var(--lh-title) var(--font-ui); color: var(--text-1); overflow-wrap: anywhere; }
+.ps-meta {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1);
+  margin-top: 2px; color: var(--text-2); font-size: var(--fs-meta); line-height: var(--lh-meta);
+}
+.ps-club {
+  display: inline-flex; align-items: center; gap: var(--s-1);
+  border: 0; padding: 0; background: none; color: var(--text-1); font: 600 var(--fs-meta)/var(--lh-meta) var(--font-ui);
+}
+button.ps-club { cursor: pointer; min-height: 24px; }
+button.ps-club:hover { text-decoration: underline; text-underline-offset: 2px; }
+.ps-head__actions { display: flex; align-items: center; gap: var(--s-1); margin: var(--s-1) 0 0 -6px; }
+.ps-share svg { width: 16px; height: 16px; }
+.ps-copied { color: var(--accent); font-size: var(--fs-meta); }
+
+/* Cijferstrook: labels boven, cijfers eronder, 1px-lijnen ertussen, geen doosjes. */
+.ps-stats {
+  display: grid; grid-template-columns: repeat(6, minmax(0, 1fr));
+  margin: var(--s-4) 0 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+}
+.ps-stats--bonus { grid-template-columns: repeat(5, minmax(0, 1fr)); margin-top: 0; }
+.ps-stat { min-width: 0; padding: var(--s-2) var(--s-2) var(--s-2) 0; }
+.ps-stat + .ps-stat { border-left: 1px solid var(--line); padding-left: var(--s-2); }
+.ps-stat__label {
+  color: var(--text-3); font-size: var(--fs-label); line-height: var(--lh-label);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ps-stat dd { margin: 0; }
+.ps-stat__value { color: var(--text-1); font-size: var(--fs-body); line-height: var(--lh-body); font-weight: 600; }
+.ps-stat__sub { color: var(--text-3); font-size: var(--fs-micro); line-height: var(--lh-micro); white-space: nowrap; }
+.ps-stat .is-accent { color: var(--accent); }
+
+.ps-empty, .ps-muted { color: var(--text-3); }
+.ps-empty { margin: 0; font-size: var(--fs-meta); }
+.ps-warn { color: var(--warning); }
+.ps-note { margin: var(--s-2) 0 0; color: var(--text-3); font-size: var(--fs-label); line-height: var(--lh-label); }
+
+.ps-facts {
+  display: grid; grid-template-columns: max-content 1fr; gap: var(--s-2) var(--s-4); margin: 0;
+  font-size: var(--fs-ui); line-height: var(--lh-ui);
+}
+.ps-facts dt { color: var(--text-3); }
+.ps-facts dd { margin: 0; color: var(--text-1); }
+.ps-facts__status { display: inline-flex; align-items: center; gap: var(--s-2); }
+
+/* Punten per speeldag: vierkante staven, zelfde kleuren als de sparkline in Spelers. */
+.ps-chart { display: flex; align-items: flex-end; gap: 2px; padding-top: var(--s-4); }
+.ps-chart__col { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; }
+.ps-chart__area { position: relative; width: 100%; }
+.ps-chart__val {
+  position: absolute; left: 0; right: 0; text-align: center;
+  color: var(--text-2); font-size: var(--fs-micro); line-height: 12px;
+}
+.ps-chart__val.is-none { color: var(--text-4); }
+.ps-chart__bar { position: absolute; left: 15%; right: 15%; }
+.ps-chart__bar.is-high { background: var(--text-1); }
+.ps-chart__bar.is-mid { background: var(--text-2); }
+.ps-chart__bar.is-low { background: var(--text-3); }
+.ps-chart__bar.is-neg { background: var(--danger); }
+.ps-chart__gw { margin-top: var(--s-1); color: var(--text-3); font-size: var(--fs-micro); line-height: 1; }
+
+/* Compacte tabellen (per speeldag, vorige seizoenen). */
+.ps-table-wrap { overflow-x: auto; }
+.ps-table { width: 100%; border-collapse: collapse; font-size: var(--fs-meta); line-height: var(--lh-meta); }
+.ps-table th {
+  padding: 0 var(--s-1) var(--s-1); text-align: left; white-space: nowrap;
+  color: var(--text-3); font: 600 var(--fs-label)/var(--lh-label) var(--font-ui); text-transform: uppercase; letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--line-strong);
+}
+.ps-table td { padding: 0 var(--s-1); height: 32px; color: var(--text-1); white-space: nowrap; border-bottom: 1px solid var(--line); }
+.ps-table .is-num { text-align: right; }
+.ps-table th:first-child, .ps-table td:first-child { padding-left: 0; }
+.ps-table th:last-child, .ps-table td:last-child { padding-right: 0; }
+.ps-table .is-bonus { color: var(--accent); }
+.ps-table .is-zero { color: var(--text-4); }
+.ps-table__pts { font-weight: 700; }
+.ps-opp { display: inline-flex; align-items: center; gap: var(--s-1); }
+.ps-opp__venue { color: var(--text-3); font-size: var(--fs-label); }
+.ps-opp__score { color: var(--text-2); margin-left: var(--s-1); }
+.ps-opp__res { font-weight: 700; font-size: var(--fs-label); }
+.ps-opp__res.is-W { color: var(--positive); }
+.ps-opp__res.is-D { color: var(--text-3); }
+.ps-opp__res.is-L { color: var(--danger); }
+.ps-card { display: inline-block; width: 7px; height: 10px; margin-left: 2px; }
+.ps-card.is-yellow { background: var(--warning); }
+.ps-card.is-red { background: var(--danger); }
+
+@media (max-width: 480px) {
+  .ps-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .ps-stats .ps-stat:nth-child(3n + 1) { border-left: 0; padding-left: 0; }
+  .ps-stats .ps-stat:nth-child(n + 4) { border-top: 1px solid var(--line); }
+  .ps-stats--bonus { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .ps-opp .ui-club-logo, .ps-opp img { display: none; }
+}
