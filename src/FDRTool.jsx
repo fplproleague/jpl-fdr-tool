@@ -2143,6 +2143,8 @@ export default function FDRTool() {
               playerDatabase={playerDatabase}
               watchlist={watchlist}
               onRemoveWatchlistPlayer={handleRemoveWatchlistPlayer}
+              setPiecesEntries={setPiecesData.entries}
+              onGoToTeamPlanner={() => navigateToTab('teamplanner')}
               isPlayerWatched={isPlayerWatched}
               isPlayerInMyTeam={isPlayerInMyTeam}
               toggleWatchlistPlayer={toggleWatchlistPlayer}

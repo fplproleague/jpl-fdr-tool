@@ -1,0 +1,6 @@
+/* Startzekerheid (spec §3.3). */
+.ui-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; box-sizing: border-box; }
+.ui-dot.is-sure { background: var(--positive); }
+.ui-dot.is-starter { background: transparent; border: 2px solid var(--positive); }
+.ui-dot.is-doubt { background: var(--warning); }
+.ui-dot.is-risk { background: var(--danger); }

@@ -37,7 +37,8 @@ import {
 import { getSessionPlayers, loadPlayers } from '../data/playersApi';
 import './SpelersTab.css';
 
-const SpelerPopup = lazy(() => import('../components/SpelerPopup'));
+// Dezelfde spelerskaart als overal op de site (spec §7.9), hier geopend via ?speler=<id>.
+const PlayerSheet = lazy(() => import('../components/PlayerSheet'));
 
 const PAGE_SIZE = 60;
 const FIXED_SORT_KEYS = ['name', 'club', 'pos'];
@@ -259,7 +260,7 @@ function CompareSheet({ t, rows, mode, fromGw, ratings, homeAdvantage, onRemove,
 
 export default function SpelersTab({
   t, ratings, homeAdvantage, playerDatabase, watchlist = [], isPlayerWatched, isPlayerInMyTeam, toggleWatchlistPlayer,
-  onRemoveWatchlistPlayer, hasMyTeam, hasWatchlist, onOpenClub,
+  onRemoveWatchlistPlayer, hasMyTeam, hasWatchlist, onOpenClub, setPiecesEntries, onGoToTeamPlanner,
 }) {
   const { data, loading, error, fromLocal, reload } = useSpelersData();
   const [ui, setUi] = useState(() => (typeof window === 'undefined' ? DEFAULT_STATE : stateFromSearch(window.location.search)));
@@ -596,11 +597,12 @@ export default function SpelersTab({
 
       {popupRow && (
         <Suspense fallback={null}>
-          <SpelerPopup
+          <PlayerSheet
             t={t}
-            player={popupRow}
-            gw={gw}
-            fromGw={fromGw}
+            player={{ name: sheetName(popupRow), teamCode: popupRow.club }}
+            apiPlayer={popupRow}
+            playerDatabase={playerDatabase}
+            setPiecesEntries={setPiecesEntries}
             ratings={ratings}
             homeAdvantage={homeAdvantage}
             onClose={closePopup}
@@ -610,6 +612,7 @@ export default function SpelersTab({
             compareFull={compareFull}
             onToggleCompare={() => { setCompareMode(true); toggleCompare(popupRow.id); }}
             onOpenClub={onOpenClub ? (code) => { setUi(prev => ({ ...prev, speler: null })); onOpenClub(code); } : undefined}
+            onGoToTeamPlanner={onGoToTeamPlanner ? () => { setUi(prev => ({ ...prev, speler: null })); onGoToTeamPlanner(); } : undefined}
           />
         </Suspense>
       )}
