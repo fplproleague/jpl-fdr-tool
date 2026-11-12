@@ -185,6 +185,9 @@ export default function PitchSlot({
                 <button
                   onClick={readOnly ? undefined : (e) => { e.stopPropagation(); onCycleSafety(index); }}
                   title={safety.label}
+                  // data-safety: enkel een haakje voor de stijl op de publieke site (variant="site"
+                  // in PitchField.jsx); verandert niets aan hoe de builder eruitziet.
+                  data-safety={slot.safety ?? 'green'}
                   disabled={readOnly}
                   style={{
                     position: 'absolute', top: `${badgeOffsetPx}px`, right: `${badgeOffsetPx}px`, zIndex: 1,

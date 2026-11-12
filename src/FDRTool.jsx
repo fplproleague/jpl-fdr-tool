@@ -2077,7 +2077,7 @@ export default function FDRTool() {
 
         {activeTab === 'predictedlineups' && (
           <Suspense fallback={<TabLoading text={t('shared.loading')} />}>
-            <PredictedLineupsTab t={t} onOpenPlayer={openPlayerSheet} onOpenClub={openClubSheet} />
+            <PredictedLineupsTab t={t} language={language} onOpenPlayer={openPlayerSheet} onOpenClub={openClubSheet} />
           </Suspense>
         )}
 
