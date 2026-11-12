@@ -136,40 +136,28 @@ function resolvePlayerSlug(slug, playerDatabase) {
   return null;
 }
 
+// GW-kolomkoppen voor de FDR-tabellen. Met onSortGw wordt elke kop een sorteerknop (hoofdtabel);
+// zonder is het een gewone kop (vergelijk-tabel). De vormgeving staat in tabs/FDRTab.css.
 function buildGwHeaderCells(t, { sortedGw = null, onSortGw = null } = {}) {
   const prefix = t('fdr.gwLabel');
   return GW_INDEXES.map(i => {
     const gw = i + 1;
     const isSorted = sortedGw === gw;
-    const baseStyle = { color: 'var(--text-2)', fontSize: '11px', textTransform: 'uppercase', padding: '6px 4px', minWidth: '58px' };
     if (!onSortGw) {
       return (
-        <th key={i} scope="col" aria-label={t('fdr.gwColumnAria', { gw })} style={baseStyle}>
+        <th key={i} scope="col" className="fdr-grid__gw" aria-label={t('fdr.gwColumnAria', { gw })}>
           {prefix}{gw}
         </th>
       );
     }
     return (
-      <th
-        key={i}
-        scope="col"
-        aria-sort={isSorted ? 'ascending' : 'none'}
-        style={{ ...baseStyle, padding: 0 }}
-      >
+      <th key={i} scope="col" className="fdr-grid__gw" aria-sort={isSorted ? 'ascending' : 'none'}>
         <button
           type="button"
           onClick={() => onSortGw(gw)}
           aria-label={t('fdr.sortByGwAria', { gw })}
           aria-pressed={isSorted}
-          className="fdr-touch-target"
-          style={{
-            width: '100%', minHeight: '32px', padding: '6px 4px',
-            background: isSorted ? 'rgba(51,237,213,0.15)' : 'transparent',
-            color: isSorted ? 'var(--accent)' : 'var(--text-2)',
-            border: isSorted ? '1px solid rgba(51,237,213,0.55)' : '1px solid transparent',
-            borderRadius: '6px', font: 'inherit', fontSize: '11px', fontWeight: 700,
-            textTransform: 'uppercase', cursor: 'pointer',
-          }}
+          className={`fdr-grid__sort${isSorted ? ' is-sorted' : ''}`}
         >
           {prefix}{gw}
         </button>
@@ -635,13 +623,11 @@ export default function FDRTool() {
 
   const updateRating = (code, value) => {
     setRatings(prev => ({ ...prev, [code]: value }));
-    setSaved(false);
   };
 
   // Thuisvoordeel is losstaand van de sterkte-rating: een aparte aan/uit-toggle per team.
   const toggleHomeAdvantage = (code) => {
     setHomeAdvantage(prev => ({ ...prev, [code]: !prev[code] }));
-    setSaved(false);
     // First-time-uitleg: verschijnt enkel bij de allereerste toggle-klik ooit, daarna nooit meer.
     if (!hasSeenHomeAdvantageIntro()) {
       setShowHomeAdvantageIntro(true);
@@ -2010,6 +1996,7 @@ export default function FDRTool() {
             compareGwEnd={compareGwEnd}
             mainTableSlots={mainTableSlots}
             displayedTeams={displayedTeams}
+            teamAvgDifficulty={teamAvgDifficulty}
             tableRef={tableRef}
             rangeStart={rangeStart}
             setRangeStart={setRangeStart}
