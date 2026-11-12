@@ -1,0 +1,25 @@
+/* Spelerskiezer (spec §7.3). */
+.ui-picker__filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--s-3); margin-bottom: var(--s-4); }
+.ui-picker__search { flex: 1 1 100%; }
+.ui-picker__select { display: inline-flex; flex-direction: column; gap: var(--s-1); }
+.ui-picker__select .label { color: var(--text-3); }
+
+.ui-picker__table .ui-table thead th { top: 0; }
+.ui-picker__table .ui-table tbody td, .ui-picker__table .ui-table tbody th { height: 48px; }
+.ui-picker__table tr.is-blocked { cursor: default; }
+.ui-picker__player { display: inline-flex; align-items: center; gap: var(--s-2); min-width: 0; max-width: 100%; }
+.ui-picker__text { display: flex; flex-direction: column; min-width: 0; }
+.ui-picker__name { overflow: hidden; text-overflow: ellipsis; font-weight: 600; color: var(--text-1); }
+.ui-picker__sub { color: var(--text-3); font-size: var(--fs-meta); line-height: var(--lh-meta); }
+.ui-picker__sub.is-reason { color: var(--text-2); }
+.ui-picker__club-sm { display: none; }
+.ui-picker__fixtures { display: inline-flex; gap: 2px; }
+
+@media (max-width: 700px) {
+  .ui-picker__col-club, .ui-picker__col-price { display: none; }
+  .ui-picker__club-sm { display: inline; }
+  .ui-picker__table .ui-table .is-sticky { max-width: 170px; }
+}
+@media (min-width: 701px) {
+  .ui-picker__sub:not(.is-reason) { display: none; }
+}

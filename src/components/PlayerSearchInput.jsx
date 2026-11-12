@@ -8,13 +8,8 @@
 import { useState, useRef, useEffect, useCallback, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { Search } from 'lucide-react';
-import { COLORS } from '../theme';
-
-const dropdownItemStyle = {
-  display: 'flex', alignItems: 'center', gap: '8px', width: '100%', textAlign: 'left',
-  background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.06)',
-  cursor: 'pointer', padding: '8px 10px', color: 'var(--text-1)', fontSize: '13px',
-};
+import '../ui/Field.css';
+import './PlayerSearchInput.css';
 
 // Zoekt op elk deel van de naam (case-insensitief), niet enkel het begin — zo vindt "iels" ook
 // "Thielemans". `filterPosition`, indien gezet, beperkt de kandidaten vooraf tot die ene positie
@@ -117,57 +112,47 @@ export const PlayerSearchInput = memo(function PlayerSearchInput({
     // overschrijfbaar via de maxWidth-prop (default 320px) — de 15-koppige roster-tabel in
     // TeamPlannerTab.jsx geeft een kleinere waarde door, want dat veld staat daar 15× onder elkaar en
     // hoefde niet zo breed als de eenmalige zoekvelden in Watchlist/TransferPanel.
-    <div ref={containerRef} style={{ position: 'relative', width: '100%', maxWidth }}>
-      <Search size={13} color={COLORS.textMuted} style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+    <div ref={containerRef} className="ui-search ui-psearch" style={{ maxWidth }}>
+      <Search className="ui-search__icon" aria-hidden="true" strokeWidth={1.75} />
       <input
         type="text"
+        className="ui-input ui-psearch__input"
         value={query}
         disabled={disabled}
         onChange={e => { setQuery(e.target.value); setIsOpen(true); }}
         onFocus={() => setIsOpen(true)}
         placeholder={placeholder}
-        style={{
-          background: 'var(--ink-1)', color: 'var(--text-1)', border: '1px solid rgba(255,255,255,0.15)',
-          borderRadius: '6px', padding: '6px 8px 6px 26px', fontSize: '13px', width: '100%',
-          boxSizing: 'border-box', opacity: disabled ? 0.6 : 1,
-        }}
+        aria-label={placeholder}
+        autoComplete="off"
+        spellCheck={false}
       />
       {isOpen && coords && (matches.length > 0 || showNoMatches) && createPortal(
         <div
           ref={dropdownRef}
-          style={{
-            position: 'fixed', zIndex: 50, top: coords.top, left: coords.left, width: coords.width,
-            background: 'var(--ink-1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px',
-            boxShadow: '0 8px 20px rgba(0,0,0,0.35)', maxHeight: '220px', overflowY: 'auto',
-          }}
+          className="ui-psearch__list"
+          style={{ top: coords.top, left: coords.left, width: coords.width }}
         >
           {matches.length > 0 ? matches.map((p, i) => (
             <button
               key={`${p.teamCode}-${p.name}-${i}`}
               type="button"
               onClick={() => handleSelect(p)}
-              style={dropdownItemStyle}
+              className="ui-psearch__item"
             >
               <img
                 src={`/club-logos/${p.teamCode}.webp`}
                 alt=""
                 className="club-logo"
-                style={{ width: '18px', height: '18px', objectFit: 'contain', flexShrink: 0 }}
+                width="16"
+                height="16"
                 onError={(e) => { e.target.style.display = 'none'; }}
               />
-              <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 700 }}>
-                {p.name}
-              </span>
-              <span style={{ color: COLORS.textMuted, fontSize: '11px', flexShrink: 0 }}>{p.teamName}</span>
-              <span style={{ color: 'var(--text-2)', fontSize: '11px', flexShrink: 0 }}>{p.position}</span>
-              <span style={{ color: 'var(--accent)', fontSize: '11px', fontWeight: 700, flexShrink: 0 }}>
-                {p.price != null ? `${p.price.toFixed(1)}M` : '—'}
-              </span>
+              <span className="ui-psearch__name">{p.name}</span>
+              <span className="ui-psearch__meta">{p.teamCode} · {p.position}</span>
+              <span className="ui-psearch__price num">{p.price != null ? `€${p.price.toFixed(1)}` : '—'}</span>
             </button>
           )) : (
-            <div style={{ padding: '10px', color: COLORS.textMuted, fontSize: '12px' }}>
-              Geen spelers gevonden.
-            </div>
+            <div className="ui-psearch__none">Geen spelers gevonden.</div>
           )}
         </div>,
         document.body
