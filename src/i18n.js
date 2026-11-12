@@ -17,7 +17,11 @@
 export const LANGUAGES = ['nl', 'fr'];
 export const DEFAULT_LANGUAGE = 'nl';
 
-const STRINGS = {
+const STRINGS = {
+
+
+
+
   nl: {
     // --- Chrome: header, nav, footer, taal-toggle ---
     'header.tagline': 'Interactieve tools voor Fantasy Pro League — gemaakt door @fpl_proleague.',
@@ -32,7 +36,8 @@ const STRINGS = {
     'nav.fdr': 'FDR',
     'nav.teamplanner': 'Team Planner',
     'nav.predictedlineups': "Verwachte XI's",
-    'nav.bonuspunten': 'Bonuspunten',    'nav.setpieces': "Set pieces",
+    'nav.bonuspunten': 'Bonuspunten',
+    'nav.setpieces': "Set pieces",
     'nav.kaarten': 'Kaarten',
     'nav.spelers': 'Spelers',
     'nav.klassement': 'Klassement',
@@ -40,7 +45,8 @@ const STRINGS = {
     // Kort label voor de vaste mobiele tab-kolommen (zie MOBILE_PRIMARY_TABS/-ICONS in FDRTool.jsx) —
     // een enkel, kort woord dat naast een icoon past zonder af te breken; de volledige naam (nav.fdr
     // e.a. hierboven) is voor het brede scherm en de "Meer"-dropdown.
-    'nav.compact.fdr': 'FDR',    'nav.compact.teamplanner': "Planner",
+    'nav.compact.fdr': 'FDR',
+    'nav.compact.teamplanner': "Planner",
     'nav.compact.predictedlineups': "XI's",
     'route.fdr.title': 'FDR — Fixture Difficulty Rating | Fantasy Pro League Tools',
     'route.fdr.description': 'Interactieve Fixture Difficulty Rating voor alle 18 clubs van de Jupiler Pro League. Pas de ratings aan naar jouw eigen inschatting.',
@@ -55,10 +61,11 @@ const STRINGS = {
     'route.kaarten.title': 'Kaarten — schorsingsrisico | Fantasy Pro League Tools',
     'route.kaarten.description': 'Gele kaarten per speler en wie het dichtst bij een schorsing zit.',
     'route.spelers.title': 'Spelers — database met alle spelers | Fantasy Pro League Tools',
-    'route.spelers.description': 'Alle Fantasy Pro League-spelers: filter, sorteer en vergelijk op punten, vorm, prijs, bonuspunten en eigendom.',
+    'route.spelers.description': "Alle Fantasy Pro League-spelers: filter, sorteer en vergelijk op punten, vorm, prijs, bonuspunten en ownership.",
     'route.klassement.title': 'Klassement — zoek je team en minileague | Fantasy Pro League Tools',
     'route.klassement.description': 'Zoek je Fantasy Pro League-team op naam in het algemene of speeldagklassement en bekijk het klassement van je minileague.',
-    'footer.madeBy': 'Gemaakt door',    'footer.season': "Fantasy Pro League 26/27",
+    'footer.madeBy': 'Gemaakt door',
+    'footer.season': "Fantasy Pro League 26/27",
     'footer.lastUpdated': 'Laatst bijgewerkt: {{date}}',
 
     // --- Info-modal (FDR-uitleg) ---
@@ -81,7 +88,8 @@ const STRINGS = {
     'undo.action': 'Ongedaan maken',
     'undo.closeAria': 'Melding sluiten',
 
-    // --- FDRTab ---    'fdr.intro': "Hoe moeilijk zijn de komende wedstrijden? Pas de ratings aan naar jouw inschatting.",
+    // --- FDRTab ---
+    'fdr.intro': "Hoe moeilijk zijn de komende wedstrijden? Pas de ratings aan naar jouw inschatting.",
     'fdr.badge.custom': 'JOUW AANGEPASTE VERSIE',
     'fdr.badge.default': 'RATING VAN @FPL_PROLEAGUE',
     'fdr.copyLink': 'Kopieer link',
@@ -144,7 +152,7 @@ const STRINGS = {
     'scopeFilter.label': 'Toon spelers van',
     'scopeFilter.all': 'Iedereen',
     'scopeFilter.myTeam': 'Mijn team',
-    'scopeFilter.watchlist': 'Mijn watchlist',
+    'scopeFilter.watchlist': "★ Watchlist",
     'scopeFilter.emptyNoMatch.myTeam': 'Geen enkele speler uit jouw team staat in deze lijst.',
     'scopeFilter.emptyNoMatch.watchlist': 'Geen enkele speler van je watchlist staat in deze lijst.',
     'scopeFilter.emptySource.myTeam': 'Je hebt nog geen team samengesteld — doe dat in Team Planner, dan filtert dit meteen op jouw vijftien spelers.',
@@ -155,26 +163,19 @@ const STRINGS = {
     'fdr.compareNoTeams': 'Nog geen teams geselecteerd.',
 
     // --- Watchlist ---
-    'watchlist.intro': 'Houd je favoriete spelers in de gaten — voeg ze toe aan je persoonlijke watchlist, samen met hun eerstvolgende fixtures. Deze lijst slaat automatisch op in je browser.',
-    'watchlist.loadingDb': 'Spelersdatabank laden...',
-    'watchlist.addHeading': 'Speler toevoegen',
-    'watchlist.playerLabel': 'Speler',
-    'watchlist.searchPlaceholder': 'Zoek speler...',
-    'watchlist.searchLoadingPlaceholder': 'Databank laden...',
-    'watchlist.add': 'Toevoegen',
-    'watchlist.myWatchlist': 'Mijn watchlist',
-    'watchlist.empty': 'Je watchlist is nog leeg. Voeg spelers toe die je in de gaten wil houden.',
     'watchlist.removeAria': 'Verwijder {{name}} uit je watchlist',
     // Ster op een rij in Bonuspunten/Kaarten. De bevestiging is enkel het achtervoegsel: de naam zelf
     // staat al vetgedrukt in een eigen <strong> ervoor (zelfde opzet als undo.removedSuffix).
     'watchlist.addAria': 'Voeg {{name}} toe aan je watchlist',
     'watchlist.addedSuffix': 'toegevoegd aan je watchlist.',
 
-    // --- Predicted Lineups ---    'predictedLineups.intro': "Wie start er volgens ons? Kies een wedstrijd, of bekijk alle 18 clubs in het overzicht.",
+    // --- Predicted Lineups ---
+    'predictedLineups.intro': "Wie start er volgens ons? Kies een wedstrijd, of bekijk alle 18 clubs in het overzicht.",
     'predictedLineups.pitchGwLabel': 'GW{{gw}}',
     'predictedLineups.notPlaying': 'Geen wedstrijd deze speeldag',
     'predictedLineups.noMatchGeneric': '{{club}} speelt niet in GW{{gw}}.',
-    'predictedLineups.empty': 'Nog geen voorspelde lineups beschikbaar — kom binnenkort terug.',    'predictedLineups.legend.certain': "Zeker",
+    'predictedLineups.empty': 'Nog geen voorspelde lineups beschikbaar — kom binnenkort terug.',
+    'predictedLineups.legend.certain': "Zeker",
     'predictedLineups.legend.starter': 'Starter',
     'predictedLineups.legend.doubtful': 'Twijfel',
     'predictedLineups.legend.risk': 'Risico',
@@ -207,10 +208,12 @@ const STRINGS = {
     'teamPlanner.formation': 'Formatie: {{formation}}',
     'teamPlanner.formationIncomplete': 'Formatie: —',
     'teamPlanner.invalidFormation': 'Ongeldige formatie ({{formation}}, GK: {{gk}}). Geldige opties: 3-4-3, 3-5-2, 4-3-3, 4-4-2, 4-5-1, 5-3-2, 5-4-1 met exact 1 doelman.',
-    'teamPlanner.tripleCaptainActive': 'Driedubbele kapitein actief voor GW{{gw}} — de kapitein telt 3× mee.',    'teamPlanner.rechargeActiveEditAbove': "Recharge actief voor GW{{gw}}: bewerk je volledige team in de lijst.",
+    'teamPlanner.tripleCaptainActive': 'Driedubbele kapitein actief voor GW{{gw}} — de kapitein telt 3× mee.',
+    'teamPlanner.rechargeActiveEditAbove': "Recharge actief voor GW{{gw}}: bewerk je volledige team in de lijst.",
     'teamPlanner.boosters': 'Boosters',
     'teamPlanner.booster.benchBoost.label': 'Bankzitters',
-    'teamPlanner.booster.benchBoost.description': 'Je vier bankspelers tellen deze gameweek mee voor punten.',    'teamPlanner.booster.tripleCaptain.label': "3× Kapitein",
+    'teamPlanner.booster.benchBoost.description': 'Je vier bankspelers tellen deze gameweek mee voor punten.',
+    'teamPlanner.booster.tripleCaptain.label': "3× Kapitein",
     'teamPlanner.booster.tripleCaptain.description': 'Je kapitein levert deze gameweek drie keer zijn punten op i.p.v. twee keer.',
     'teamPlanner.booster.recharge.label': 'Recharge',
     'teamPlanner.booster.recharge.description': 'Herbouw je volledige team zonder puntenaftrek voor transfers.',
@@ -234,9 +237,11 @@ const STRINGS = {
     'teamPlanner.benchBoostActive': 'Bankzitters actief voor GW{{gw}} — bankspelers tellen mee.',
     'teamPlanner.reorderModeActive': 'Herschik-modus actief',
     'teamPlanner.reorderModeHintFirst': 'Tik een bankspeler aan (niet de keeper), daarna een tweede om ze van plaats te wisselen.',
-    'teamPlanner.reorderModeHintSecond': 'Tik nu een andere bankspeler aan om te wisselen, of dezelfde om te annuleren.',    'teamPlanner.emptyBench': "Nog geen bankspelers voor deze GW. Tik op een speler op het veld en kies \"Naar de bank\".",
+    'teamPlanner.reorderModeHintSecond': 'Tik nu een andere bankspeler aan om te wisselen, of dezelfde om te annuleren.',
+    'teamPlanner.emptyBench': "Nog geen bankspelers voor deze GW. Tik op een speler op het veld en kies \"Naar de bank\".",
     'teamPlanner.transfers': 'Transfers',
-    'teamPlanner.clearAllTransfers': 'Wis alle transfers',    'teamPlanner.emptyTransfers': "Nog geen transfers gepland. Gebruik \"Transfer plannen\" bij het veld om spelers vanaf een gekozen GW te vervangen.",
+    'teamPlanner.clearAllTransfers': 'Wis alle transfers',
+    'teamPlanner.emptyTransfers': "Nog geen transfers gepland. Gebruik \"Transfer plannen\" bij het veld om spelers vanaf een gekozen GW te vervangen.",
     'teamPlanner.removeTransferAria': 'Verwijder transfer {{out}} naar {{in}}',
     'teamPlanner.cancelTransfer': 'Annuleer transfer',
     'teamPlanner.planTransfer': 'Transfer plannen voor GW{{gw}}',
@@ -335,14 +340,11 @@ const STRINGS = {
 
     // --- Gedeelde statussen (loading/error, meerdere tabs) ---
     // --- Spelers-tab ---
-    'spelers.intro': 'Alle Fantasy Pro League-spelers op één plek. Zoek, filter op positie of club, en sorteer op elke kolom. Tik op een naam voor de wedstrijd-per-wedstrijd-historiek, of vink tot 4 spelers aan om ze te vergelijken.',
     'spelers.loading': 'Spelers laden...',
     'spelers.error': 'De spelersdata kon niet geladen worden. Probeer het straks opnieuw.',
     'spelers.staleNotice': 'Nieuwe data ophalen lukte niet; je ziet de laatst bekende data (t.e.m. GW{{gw}}).',
     'spelers.staleLocal': '(Opgeslagen in deze browser.)',
     'spelers.searchPlaceholder': 'Zoek een speler op naam...',
-    'spelers.count': '{{n}} spelers',
-    'spelers.dataUntil': 'data t.e.m. GW{{gw}} ({{season}})',
     'spelers.empty': 'Geen spelers gevonden met deze filters.',
     'spelers.showMore': 'Toon {{n}} meer ({{total}} resterend)',
     'spelers.tableCaption': 'Spelers met hun statistieken',
@@ -351,7 +353,6 @@ const STRINGS = {
     'spelers.footnote': 'Bron: Fantasy Pro League. Punten zijn de officiële totalen. Bonuspunten zijn per wedstrijd berekend volgens de officiële regels (1 punt per voorwaarde: meer duels gewonnen dan verloren, meer dan 3 verdedigende kopballen, meer dan 5 recoveries, meer dan 1 grote kans gecreëerd). Pnt/€M = punten per miljoen. Een "—" betekent te weinig minuten (minder dan 180) voor een betrouwbare per-90-waarde.',
     'spelers.filter.position': 'Positie',
     'spelers.filter.allPositions': 'Alle',
-    'spelers.filter.more': 'Meer filters',
     'spelers.filter.club': 'Club',
     'spelers.filter.allClubs': 'Alle clubs',
     'spelers.filter.price': 'Prijs',
@@ -375,7 +376,7 @@ const STRINGS = {
     'spelers.presets.attack': 'Aanval',
     'spelers.presets.defence': 'Verdediging',
     'spelers.presets.bonus': 'Bonus',
-    'spelers.presets.ownership': 'Eigendom',
+    'spelers.presets.ownership': "Ownership",
     'spelers.pos.GK': 'Doelman',
     'spelers.pos.DEF': 'Verdediger',
     'spelers.pos.MID': 'Middenvelder',
@@ -399,10 +400,8 @@ const STRINGS = {
     'spelers.col.ppgShort': 'Pnt/wed',
     'spelers.col.form': 'Vorm (punten laatste 5 GW\'s)',
     'spelers.col.formShort': 'Vorm',
-    'spelers.col.sel': '% geselecteerd',
-    'spelers.col.selShort': '% Sel',
-    'spelers.col.cap': '% kapitein',
-    'spelers.col.capShort': '% Kap',
+    'spelers.col.sel': "Ownership (% van alle managers)",
+    'spelers.col.selShort': "Own%",
     'spelers.col.min': 'Minuten',
     'spelers.col.minShort': 'Min',
     'spelers.col.mp': 'Wedstrijden',
@@ -412,7 +411,7 @@ const STRINGS = {
     'spelers.col.a': 'Assists',
     'spelers.col.aShort': 'A',
     'spelers.col.bc': 'Grote kansen gecreëerd',
-    'spelers.col.bcShort': 'Kansen',
+    'spelers.col.bcShort': "Kansen gecr.",
     'spelers.col.cs': 'Clean sheets',
     'spelers.col.csShort': 'CS',
     'spelers.col.hc': 'Verdedigende kopballen',
@@ -425,8 +424,6 @@ const STRINGS = {
     'spelers.col.brShort': 'Rec',
     'spelers.col.int': 'Interceptions',
     'spelers.col.intShort': 'Int',
-    'spelers.col.gc': 'Tegengoals',
-    'spelers.col.gcShort': 'TG',
     'spelers.col.sv': 'Reddingen',
     'spelers.col.svShort': 'Redd',
     'spelers.col.ps': 'Gestopte penalty\'s',
@@ -444,17 +441,17 @@ const STRINGS = {
     'spelers.col.bpRecoveries': 'Bonus: recoveries',
     'spelers.col.bpRecoveriesShort': 'B-Rec',
     'spelers.col.bpBigChances': 'Bonus: grote kansen',
-    'spelers.col.bpBigChancesShort': 'B-Kans',
+    'spelers.col.bpBigChancesShort': "B-Kansen gecr.",
     'spelers.compare.title': 'Vergelijken ({{n}}/{{max}})',
-    'spelers.compare.pickMore': 'Vink nog minstens één speler aan in de tabel om te vergelijken.',
+    'spelers.compare.pickMore': "Kies nog minstens één speler in de tabel om te vergelijken.",
     'spelers.compare.copyLink': 'Kopieer link',
     'spelers.compare.copied': 'Gekopieerd!',
     'spelers.compare.clear': 'Wis',
     'spelers.compare.stat': 'Statistiek',
     'spelers.compare.addAria': '{{name}} vergelijken',
     'spelers.compare.removeAria': '{{name}} uit de vergelijking halen',
-    'spelers.compare.bestNote': 'De beste waarde per rij staat in het turquoise.',
-    'spelers.popup.selected': '{{pct}}% geselecteerd',
+    'spelers.compare.bestNote': "De beste waarde per rij staat in het turquoise.",
+    'spelers.popup.selected': "{{pct}}% ownership",
     'spelers.popup.watch': 'Op watchlist zetten',
     'spelers.popup.watching': 'Op je watchlist',
     'spelers.popup.addCompare': 'Vergelijken',
@@ -513,143 +510,332 @@ const STRINGS = {
 
     'shared.loading': 'Laden...',
     'shared.loadError': 'Kon spelersdatabank niet laden, probeer opnieuw.',
-    'shared.retry': 'Probeer opnieuw',
-    'nav.compact.spelers': "Spelers",
-    'nav.compact.more': "Meer",
-    'shell.brandSub': "tools",
-    'shell.homeAria': "FPL Pro League Tools — naar de FDR",
-    'shell.deadline': "GW{{gw}}",
-    'shell.deadlineAria': "Deadline GW{{gw}} over {{time}}",
-    'shell.live': "GW{{gw}} loopt",
-    'shell.minileague': "Minileague",
-    'shell.copyMinileague': "Kopieer",
-    'shell.copied': "Gekopieerd",
-    'shell.language': "Taal",
-    'shell.moreTitle': "Meer",
-    'shell.followX': "@fpl_proleague op X",
-    'shell.newMarker': "Nieuwe verwachte XI's",
-    'shell.closeMenu': "Menu sluiten",
-    'footer.data': "Data: Fantasy Pro League + eigen analyse",
-    'footer.updated': "Bijgewerkt {{date}}",
-    'fdr.pageTitle': "FDR",
-    'fdr.metaDefault': "Ratings: @fpl_proleague",
-    'fdr.metaCustom': "Ratings: eigen (aangepast)",
-    'fdr.metaRange': "GW{{from}} → GW{{to}}",
-    'fdr.editRatings': "Ratings aanpassen",
-    'fdr.ratingsSheetTitle': "Ratings aanpassen",
-    'fdr.ratingsSheetIntro': "1 = makkelijke tegenstander, 5 = moeilijke tegenstander. Thuisvoordeel maakt een uitwedstrijd bij deze club één punt moeilijker. Je wijzigingen worden meteen bewaard in deze browser.",
-    'fdr.strengthGroupAria': "Sterkte {{team}} (1 = makkelijk, 5 = moeilijk)",
-    'fdr.avgColumn': "Σ",
-    'fdr.avgColumnTitle': "Gemiddelde moeilijkheid over de gekozen speeldagen",
-    'fdr.sortByAvgAria': "Sorteer op gemiddelde moeilijkheid (makkelijkste eerst)",
-    'fdr.avgCellAria': "Gemiddelde moeilijkheid {{value}}",
-    'fdr.legendEasy': "makkelijk",
-    'fdr.legendHard': "moeilijk",
-    'fdr.formAria': "Recente vorm: {{results}}",
-    'fdr.form.W': "gewonnen",
-    'fdr.form.G': "gelijk",
-    'fdr.form.V': "verloren",
-    'fdr.runsAvg': "gem.",
-    'predictedLineups.pageTitle': "Verwachte XI's",
-    'predictedLineups.by': "door",
-    'predictedLineups.metaPrevious': "Vorige speeldag: GW{{gw}}",
-    'predictedLineups.releaseLine': "Verwachte XI's voor GW{{gw}} verschijnen {{when}}",
-    'predictedLineups.releaseIn': "over {{time}}",
-    'predictedLineups.releaseAt': "om",
-    'predictedLineups.view.pitch': "Veld",
-    'predictedLineups.view.overview': "Overzicht",
-    'predictedLineups.viewAria': "Weergave",
-    'predictedLineups.onlyDoubts': "Enkel twijfels",
-    'predictedLineups.noDoubts': "Geen twijfelgevallen: iedereen staat als zeker of als starter in de opstelling.",
-    'predictedLineups.pickMatchAria': "Kies een wedstrijd",
-    'predictedLineups.pickTeamAria': "Kies een ploeg",
-    'predictedLineups.matchAria': "{{home}} tegen {{away}}",
-    'predictedLineups.prevMatch': "Vorige wedstrijd",
-    'predictedLineups.nextMatch': "Volgende wedstrijd",
-    'predictedLineups.postponed': "uitgesteld",
-    'predictedLineups.noLineup': "Nog geen opstelling voor {{club}}.",
-    'predictedLineups.colClub': "Club",
-    'predictedLineups.colMatch': "Wedstrijd",
-    'predictedLineups.colFormation': "Formatie",
-    'predictedLineups.colPlayers': "Spelers",
-    'predictedLineups.legendAria': "Startzekerheid",
-    'predictedLineups.vs': "vs",
-    'teamPlanner.pageTitle': "Team Planner",
-    'teamPlanner.introShort': "Plan je selectie, bank, kapitein en transfers per speeldag. Alles blijft in je browser.",
-    'teamPlanner.emptyLead': "Begin met een screenshot van je team, of tik op een leeg vak.",
-    'teamPlanner.view.pitch': "Veld",
-    'teamPlanner.view.list': "Lijst",
-    'teamPlanner.view.transfers': "Transfers",
-    'teamPlanner.viewAria': "Weergave",
-    'teamPlanner.status.aria': "Status van je team",
-    'teamPlanner.status.squad': "Selectie {{count}}/{{total}}",
-    'teamPlanner.status.bank': "Bank",
-    'teamPlanner.status.freeShort': "VT {{count}}",
-    'teamPlanner.status.costTip': "{{used}} transfers deze GW, waarvan {{free}} gratis",
-    'teamPlanner.status.benchNeededOne': "Kies nog 1 bankspeler",
-    'teamPlanner.status.benchNeededMany': "Kies nog {{count}} bankspelers",
-    'teamPlanner.status.invalidFormation': "Ongeldige formatie {{formation}}",
-    'teamPlanner.pitchAria': "Veld voor GW{{gw}}",
-    'teamPlanner.selection': "Selectie",
-    'teamPlanner.colClub': "Club",
-    'teamPlanner.colPriceEuro': "Prijs",
-    'teamPlanner.colActions': "Acties",
-    'teamPlanner.benchTag': "bank",
-    'teamPlanner.emptySlot': "Leeg vak: kies een {{position}}",
-    'teamPlanner.emptySlotShort': "Kies {{position}}",
-    'teamPlanner.slotAria': "{{name}}, {{position}}: acties openen",
-    'teamPlanner.slotMenuAria': "Acties voor {{name}}",
-    'teamPlanner.swapAria': "{{name}} kiezen om te wisselen",
-    'teamPlanner.reorderGkDisabled': "Doelmannen kunnen niet van bankplaats wisselen",
-    'teamPlanner.listBaseNote': "Dit is je startselectie. Geplande transfers zie je op het veld en bij Transfers.",
-    'teamPlanner.menu.replace': "Vervang",
-    'teamPlanner.menu.captain': "Maak kapitein (GW{{gw}})",
-    'teamPlanner.menu.removeCaptain': "Geen kapitein meer",
-    'teamPlanner.menu.toBench': "Naar de bank (GW{{gw}})",
-    'teamPlanner.menu.toBenchFull': "Naar de bank (bank is vol)",
-    'teamPlanner.menu.toPitch': "Naar het veld (GW{{gw}})",
-    'teamPlanner.menu.transferOut': "Transfer: deze speler eruit",
-    'teamPlanner.menu.openPlayer': "Spelerskaart",
-    'teamPlanner.menu.remove': "Verwijder uit selectie",
-    'teamPlanner.transfersMeta': "GW{{from}}–GW{{to}}",
-    'teamPlanner.transferCol.out': "Uit",
-    'teamPlanner.transferCol.in': "In",
-    'teamPlanner.transferCol.diff': "Verschil",
-    'teamPlanner.transferCol.diffTitle': "Prijsverschil in miljoen (in − uit)",
-    'teamPlanner.booster.usedIn': "gebruikt in GW{{gw}}",
-    'screenshotUpload.importButton': "Screenshot importeren",
-    'screenshotUpload.reviewHint': "Controleer het voorstel en pas aan waar nodig. Er verandert niets tot je op Toepassen klikt.",
-    'picker.title.GK': "Kies een doelman",
-    'picker.title.DEF': "Kies een verdediger",
-    'picker.title.MID': "Kies een middenvelder",
-    'picker.title.FWD': "Kies een aanvaller",
-    'picker.close': "Sluiten",
-    'picker.search': "Zoek op naam",
-    'picker.clear': "Zoekterm wissen",
-    'picker.positionAria': "Positie",
-    'picker.maxPrice': "Max. prijs",
-    'picker.allPrices': "Alle prijzen",
-    'picker.budgetOption': "≤ €{{value}}M (budget)",
-    'picker.priceOption': "≤ €{{value}}M",
-    'picker.sort': "Sorteer",
-    'picker.sort.pts': "Punten",
-    'picker.sort.form': "Vorm",
-    'picker.sort.sel': "Ownership",
-    'picker.sort.price': "Prijs",
-    'picker.col.player': "Speler",
-    'picker.col.club': "Club",
-    'picker.col.price': "Prijs",
-    'picker.col.pts': "Ptn",
-    'picker.col.form': "Vorm",
-    'picker.col.formTitle': "Punten in de laatste {{count}} speeldagen",
-    'picker.col.next': "Volgende 3",
-    'picker.reasonInTeam': "al in je team",
-    'picker.reasonClubLimit': "max. {{max}} per club",
-    'picker.empty': "Geen spelers gevonden met deze filters.",
-    'picker.more': "Meer laden ({{count}})",
-    'picker.chooseAria': "Kies {{name}}",
+    'shared.retry': 'Probeer opnieuw',
+
+    'nav.compact.spelers': "Spelers",
+
+    'nav.compact.more': "Meer",
+
+    'shell.brandSub': "tools",
+
+    'shell.homeAria': "FPL Pro League Tools — naar de FDR",
+
+    'shell.deadline': "GW{{gw}}",
+
+    'shell.deadlineAria': "Deadline GW{{gw}} over {{time}}",
+
+    'shell.live': "GW{{gw}} loopt",
+
+    'shell.minileague': "Minileague",
+
+    'shell.copyMinileague': "Kopieer",
+
+    'shell.copied': "Gekopieerd",
+
+    'shell.language': "Taal",
+
+    'shell.moreTitle': "Meer",
+
+    'shell.followX': "@fpl_proleague op X",
+
+    'shell.newMarker': "Nieuwe verwachte XI's",
+
+    'shell.closeMenu': "Menu sluiten",
+
+    'footer.data': "Data: Fantasy Pro League + eigen analyse",
+
+    'footer.updated': "Bijgewerkt {{date}}",
+
+    'fdr.pageTitle': "FDR",
+
+    'fdr.metaDefault': "Ratings: @fpl_proleague",
+
+    'fdr.metaCustom': "Ratings: eigen (aangepast)",
+
+    'fdr.metaRange': "GW{{from}} → GW{{to}}",
+
+    'fdr.editRatings': "Ratings aanpassen",
+
+    'fdr.ratingsSheetTitle': "Ratings aanpassen",
+
+    'fdr.ratingsSheetIntro': "1 = makkelijke tegenstander, 5 = moeilijke tegenstander. Thuisvoordeel maakt een uitwedstrijd bij deze club één punt moeilijker. Je wijzigingen worden meteen bewaard in deze browser.",
+
+    'fdr.strengthGroupAria': "Sterkte {{team}} (1 = makkelijk, 5 = moeilijk)",
+
+    'fdr.avgColumn': "Σ",
+
+    'fdr.avgColumnTitle': "Gemiddelde moeilijkheid over de gekozen speeldagen",
+
+    'fdr.sortByAvgAria': "Sorteer op gemiddelde moeilijkheid (makkelijkste eerst)",
+
+    'fdr.avgCellAria': "Gemiddelde moeilijkheid {{value}}",
+
+    'fdr.legendEasy': "makkelijk",
+
+    'fdr.legendHard': "moeilijk",
+
+    'fdr.formAria': "Recente vorm: {{results}}",
+
+    'fdr.form.W': "gewonnen",
+
+    'fdr.form.G': "gelijk",
+
+    'fdr.form.V': "verloren",
+
+    'fdr.runsAvg': "gem.",
+
+    'predictedLineups.pageTitle': "Verwachte XI's",
+
+    'predictedLineups.by': "door",
+
+    'predictedLineups.metaPrevious': "Vorige speeldag: GW{{gw}}",
+
+    'predictedLineups.releaseLine': "Verwachte XI's voor GW{{gw}} verschijnen {{when}}",
+
+    'predictedLineups.releaseIn': "over {{time}}",
+
+    'predictedLineups.releaseAt': "om",
+
+    'predictedLineups.view.pitch': "Veld",
+
+    'predictedLineups.view.overview': "Overzicht",
+
+    'predictedLineups.viewAria': "Weergave",
+
+    'predictedLineups.onlyDoubts': "Enkel twijfels",
+
+    'predictedLineups.noDoubts': "Geen twijfelgevallen: iedereen staat als zeker of als starter in de opstelling.",
+
+    'predictedLineups.pickMatchAria': "Kies een wedstrijd",
+
+    'predictedLineups.pickTeamAria': "Kies een ploeg",
+
+    'predictedLineups.matchAria': "{{home}} tegen {{away}}",
+
+    'predictedLineups.prevMatch': "Vorige wedstrijd",
+
+    'predictedLineups.nextMatch': "Volgende wedstrijd",
+
+    'predictedLineups.postponed': "uitgesteld",
+
+    'predictedLineups.noLineup': "Nog geen opstelling voor {{club}}.",
+
+    'predictedLineups.colClub': "Club",
+
+    'predictedLineups.colMatch': "Wedstrijd",
+
+    'predictedLineups.colFormation': "Formatie",
+
+    'predictedLineups.colPlayers': "Spelers",
+
+    'predictedLineups.legendAria': "Startzekerheid",
+
+    'predictedLineups.vs': "vs",
+
+    'teamPlanner.pageTitle': "Team Planner",
+
+    'teamPlanner.introShort': "Plan je selectie, bank, kapitein en transfers per speeldag. Alles blijft in je browser.",
+
+    'teamPlanner.emptyLead': "Begin met een screenshot van je team, of tik op een leeg vak.",
+
+    'teamPlanner.view.pitch': "Veld",
+
+    'teamPlanner.view.list': "Lijst",
+
+    'teamPlanner.view.transfers': "Transfers",
+
+    'teamPlanner.viewAria': "Weergave",
+
+    'teamPlanner.status.aria': "Status van je team",
+
+    'teamPlanner.status.squad': "Selectie {{count}}/{{total}}",
+
+    'teamPlanner.status.bank': "Bank",
+
+    'teamPlanner.status.freeShort': "VT {{count}}",
+
+    'teamPlanner.status.costTip': "{{used}} transfers deze GW, waarvan {{free}} gratis",
+
+    'teamPlanner.status.benchNeededOne': "Kies nog 1 bankspeler",
+
+    'teamPlanner.status.benchNeededMany': "Kies nog {{count}} bankspelers",
+
+    'teamPlanner.status.invalidFormation': "Ongeldige formatie {{formation}}",
+
+    'teamPlanner.pitchAria': "Veld voor GW{{gw}}",
+
+    'teamPlanner.selection': "Selectie",
+
+    'teamPlanner.colClub': "Club",
+
+    'teamPlanner.colPriceEuro': "Prijs",
+
+    'teamPlanner.colActions': "Acties",
+
+    'teamPlanner.benchTag': "bank",
+
+    'teamPlanner.emptySlot': "Leeg vak: kies een {{position}}",
+
+    'teamPlanner.emptySlotShort': "Kies {{position}}",
+
+    'teamPlanner.slotAria': "{{name}}, {{position}}: acties openen",
+
+    'teamPlanner.slotMenuAria': "Acties voor {{name}}",
+
+    'teamPlanner.swapAria': "{{name}} kiezen om te wisselen",
+
+    'teamPlanner.reorderGkDisabled': "Doelmannen kunnen niet van bankplaats wisselen",
+
+    'teamPlanner.listBaseNote': "Dit is je startselectie. Geplande transfers zie je op het veld en bij Transfers.",
+
+    'teamPlanner.menu.replace': "Vervang",
+
+    'teamPlanner.menu.captain': "Maak kapitein (GW{{gw}})",
+
+    'teamPlanner.menu.removeCaptain': "Geen kapitein meer",
+
+    'teamPlanner.menu.toBench': "Naar de bank (GW{{gw}})",
+
+    'teamPlanner.menu.toBenchFull': "Naar de bank (bank is vol)",
+
+    'teamPlanner.menu.toPitch': "Naar het veld (GW{{gw}})",
+
+    'teamPlanner.menu.transferOut': "Transfer: deze speler eruit",
+
+    'teamPlanner.menu.openPlayer': "Spelerskaart",
+
+    'teamPlanner.menu.remove': "Verwijder uit selectie",
+
+    'teamPlanner.transfersMeta': "GW{{from}}–GW{{to}}",
+
+    'teamPlanner.transferCol.out': "Uit",
+
+    'teamPlanner.transferCol.in': "In",
+
+    'teamPlanner.transferCol.diff': "Verschil",
+
+    'teamPlanner.transferCol.diffTitle': "Prijsverschil in miljoen (in − uit)",
+
+    'teamPlanner.booster.usedIn': "gebruikt in GW{{gw}}",
+
+    'screenshotUpload.importButton': "Screenshot importeren",
+
+    'screenshotUpload.reviewHint': "Controleer het voorstel en pas aan waar nodig. Er verandert niets tot je op Toepassen klikt.",
+
+    'picker.title.GK': "Kies een doelman",
+
+    'picker.title.DEF': "Kies een verdediger",
+
+    'picker.title.MID': "Kies een middenvelder",
+
+    'picker.title.FWD': "Kies een aanvaller",
+
+    'picker.close': "Sluiten",
+
+    'picker.search': "Zoek op naam",
+
+    'picker.clear': "Zoekterm wissen",
+
+    'picker.positionAria': "Positie",
+
+    'picker.maxPrice': "Max. prijs",
+
+    'picker.allPrices': "Alle prijzen",
+
+    'picker.budgetOption': "≤ €{{value}}M (budget)",
+
+    'picker.priceOption': "≤ €{{value}}M",
+
+    'picker.sort': "Sorteer",
+
+    'picker.sort.pts': "Punten",
+
+    'picker.sort.form': "Vorm",
+
+    'picker.sort.sel': "Ownership",
+
+    'picker.sort.price': "Prijs",
+
+    'picker.col.player': "Speler",
+
+    'picker.col.club': "Club",
+
+    'picker.col.price': "Prijs",
+
+    'picker.col.pts': "Ptn",
+
+    'picker.col.form': "Vorm",
+
+    'picker.col.formTitle': "Punten in de laatste {{count}} speeldagen",
+
+    'picker.col.next': "Volgende 3",
+
+    'picker.reasonInTeam': "al in je team",
+
+    'picker.reasonClubLimit': "max. {{max}} per club",
+
+    'picker.empty': "Geen spelers gevonden met deze filters.",
+
+    'picker.more': "Meer laden ({{count}})",
+
+    'picker.chooseAria': "Kies {{name}}",
+
     'teamPlanner.transfersMetaOne': "GW{{gw}}",
-  },
+
+    'spelers.pageTitle': "Spelers",
+
+    'spelers.introShort': "Zoek, filter en vergelijk alle spelers. Tik op een speler voor de details, of zet hem met de ster op je watchlist.",
+
+    'spelers.meta': "Data t.e.m. GW{{gw}} · {{n}} spelers",
+
+    'spelers.countOf': "{{n}} van {{total}} spelers",
+
+    'spelers.filter.button': "Filters",
+
+    'spelers.filter.buttonCount': "Filters ({{n}})",
+
+    'spelers.filter.sheetTitle': "Filters",
+
+    'spelers.filter.showResults': "Toon {{n}} spelers",
+
+    'spelers.filter.diff': "Differentials (<{{max}}% ownership)",
+
+    'spelers.filter.diffChip': "Differentials (<{{max}}%)",
+
+    'spelers.filter.removeChip': "Filter {{label}} wissen",
+
+    'spelers.period.seasonShort': "Seizoen",
+
+    'spelers.period.lastShort': "Laatste {{n}}",
+
+    'spelers.col.sparklineShort': "Vorm (8)",
+
+    'spelers.compare.mode': "Vergelijken",
+
+    'spelers.compare.modeHint': "Vink tot {{max}} spelers aan (of tik op een rij) om ze te vergelijken.",
+
+    'spelers.compare.bar': "{{n}} spelers",
+
+    'spelers.compare.open': "Vergelijk",
+
+    'spelers.notFound.title': "Niet gevonden in de spelersdatabase ({{n}})",
+
+    'spelers.notFound.intro': "Deze spelers staan op je watchlist, maar zitten niet in de spelersdata (bijvoorbeeld vertrokken, of met de hand toegevoegd met een andere schrijfwijze).",
+
+    'spelers.notFound.remove': "Verwijder",
+
+    'watchlistMoved.lead': "Je watchlist zit nu in",
+
+    'watchlistMoved.place': "Spelers",
+
+    'watchlistMoved.tail': "→ filter ★ Watchlist.",
+
+    'watchlistMoved.action': "Bekijk",
+  },
+
+
+
+
   fr: {
     'header.tagline': "Outils interactifs pour Fantasy Pro League — créés par @fpl_proleague.",
     'header.deadlineLabel': 'Deadline J{{gw}}',
@@ -663,12 +849,14 @@ const STRINGS = {
     'nav.fdr': 'FDR',
     'nav.teamplanner': 'Team Planner',
     'nav.predictedlineups': 'Compositions probables',
-    'nav.bonuspunten': 'Points bonus',    'nav.setpieces': "Coups de pied arrêtés",
+    'nav.bonuspunten': 'Points bonus',
+    'nav.setpieces': "Coups de pied arrêtés",
     'nav.kaarten': 'Cartons',
     'nav.spelers': 'Joueurs',
     'nav.klassement': 'Classement',
     'nav.more': 'Plus',
-    'nav.compact.fdr': 'FDR',    'nav.compact.teamplanner': "Planner",
+    'nav.compact.fdr': 'FDR',
+    'nav.compact.teamplanner': "Planner",
     'nav.compact.predictedlineups': "XI",
     'route.fdr.title': 'FDR — Difficulté des matchs | Fantasy Pro League Tools',
     'route.fdr.description': "Difficulté des matchs interactive pour les 18 clubs de Jupiler Pro League. Adaptez les évaluations à votre propre avis.",
@@ -686,7 +874,8 @@ const STRINGS = {
     'route.spelers.description': 'Tous les joueurs Fantasy Pro League : filtrez, triez et comparez selon les points, la forme, le prix, les points bonus et la popularité.',
     'route.klassement.title': 'Classement — trouvez votre équipe et votre mini-ligue | Fantasy Pro League Tools',
     'route.klassement.description': "Recherchez votre équipe Fantasy Pro League par nom dans le classement général ou d'une journée, et consultez le classement de votre mini-ligue.",
-    'footer.madeBy': 'Créé par',    'footer.season': "Fantasy Pro League 26/27",
+    'footer.madeBy': 'Créé par',
+    'footer.season': "Fantasy Pro League 26/27",
     'footer.lastUpdated': 'Dernière mise à jour : {{date}}',
 
     'infoModal.title': 'Comment ça marche ?',
@@ -701,7 +890,8 @@ const STRINGS = {
 
     'undo.removedSuffix': 'retiré.',
     'undo.action': 'Annuler',
-    'undo.closeAria': 'Fermer la notification',    'fdr.intro': "Quelle est la difficulté des prochains matchs ? Adaptez les évaluations à votre avis.",
+    'undo.closeAria': 'Fermer la notification',
+    'fdr.intro': "Quelle est la difficulté des prochains matchs ? Adaptez les évaluations à votre avis.",
     'fdr.badge.custom': 'VERSION PERSONNALISÉE',
     'fdr.badge.default': 'SELON @FPL_PROLEAGUE',
     'fdr.copyLink': 'Copier le lien',
@@ -754,7 +944,7 @@ const STRINGS = {
     'scopeFilter.label': 'Afficher les joueurs de',
     'scopeFilter.all': 'Tout le monde',
     'scopeFilter.myTeam': 'Mon équipe',
-    'scopeFilter.watchlist': 'Ma watchlist',
+    'scopeFilter.watchlist': "★ Watchlist",
     'scopeFilter.emptyNoMatch.myTeam': "Aucun joueur de votre équipe ne figure dans cette liste.",
     'scopeFilter.emptyNoMatch.watchlist': "Aucun joueur de votre watchlist ne figure dans cette liste.",
     'scopeFilter.emptySource.myTeam': "Vous n'avez pas encore composé d'équipe — faites-le dans Team Planner et ce filtre portera aussitôt sur vos quinze joueurs.",
@@ -764,22 +954,15 @@ const STRINGS = {
     'fdr.sharedRangeHint': 'Cette période vaut pour Meilleurs calendriers et Comparer des équipes.',
     'fdr.compareNoTeams': 'Aucune équipe sélectionnée pour le moment.',
 
-    'watchlist.intro': "Gardez un œil sur vos joueurs préférés — ajoutez-les à votre watchlist personnelle, avec leurs prochains matchs. Cette liste est enregistrée automatiquement dans votre navigateur.",
-    'watchlist.loadingDb': 'Chargement de la base de joueurs...',
-    'watchlist.addHeading': 'Ajouter un joueur',
-    'watchlist.playerLabel': 'Joueur',
-    'watchlist.searchPlaceholder': 'Rechercher un joueur...',
-    'watchlist.searchLoadingPlaceholder': 'Chargement de la base...',
-    'watchlist.add': 'Ajouter',
-    'watchlist.myWatchlist': 'Ma watchlist',
-    'watchlist.empty': 'Votre watchlist est encore vide. Ajoutez des joueurs que vous voulez suivre.',
     'watchlist.removeAria': 'Retirer {{name}} de votre watchlist',
     'watchlist.addAria': 'Ajouter {{name}} à votre watchlist',
-    'watchlist.addedSuffix': 'ajouté à votre watchlist.',    'predictedLineups.intro': "Qui sera titulaire selon nous ? Choisissez un match, ou parcourez les 18 clubs dans l’aperçu.",
+    'watchlist.addedSuffix': 'ajouté à votre watchlist.',
+    'predictedLineups.intro': "Qui sera titulaire selon nous ? Choisissez un match, ou parcourez les 18 clubs dans l’aperçu.",
     'predictedLineups.pitchGwLabel': 'J{{gw}}',
     'predictedLineups.notPlaying': 'Pas de match cette journée',
     'predictedLineups.noMatchGeneric': "{{club}} ne joue pas en J{{gw}}.",
-    'predictedLineups.empty': 'Aucune composition probable disponible pour le moment — revenez bientôt.',    'predictedLineups.legend.certain': "Certain",
+    'predictedLineups.empty': 'Aucune composition probable disponible pour le moment — revenez bientôt.',
+    'predictedLineups.legend.certain': "Certain",
     'predictedLineups.legend.starter': 'Titulaire',
     'predictedLineups.legend.doubtful': 'Incertain',
     'predictedLineups.legend.risk': 'Risque',
@@ -810,10 +993,12 @@ const STRINGS = {
     'teamPlanner.formation': 'Formation : {{formation}}',
     'teamPlanner.formationIncomplete': 'Formation : —',
     'teamPlanner.invalidFormation': 'Formation invalide ({{formation}}, GB : {{gk}}). Options valides : 3-4-3, 3-5-2, 4-3-3, 4-4-2, 4-5-1, 5-3-2, 5-4-1 avec exactement 1 gardien.',
-    'teamPlanner.tripleCaptainActive': 'Capitaine triple actif pour la J{{gw}} — le capitaine compte 3×.',    'teamPlanner.rechargeActiveEditAbove': "Recharge active pour la J{{gw}} : modifiez toute votre équipe dans la liste.",
+    'teamPlanner.tripleCaptainActive': 'Capitaine triple actif pour la J{{gw}} — le capitaine compte 3×.',
+    'teamPlanner.rechargeActiveEditAbove': "Recharge active pour la J{{gw}} : modifiez toute votre équipe dans la liste.",
     'teamPlanner.boosters': 'Boosters',
     'teamPlanner.booster.benchBoost.label': 'Banc qui compte',
-    'teamPlanner.booster.benchBoost.description': 'Vos quatre remplaçants comptent pour les points cette journée.',    'teamPlanner.booster.tripleCaptain.label': "Triple capitaine",
+    'teamPlanner.booster.benchBoost.description': 'Vos quatre remplaçants comptent pour les points cette journée.',
+    'teamPlanner.booster.tripleCaptain.label': "Triple capitaine",
     'teamPlanner.booster.tripleCaptain.description': 'Votre capitaine rapporte trois fois ses points cette journée au lieu de deux.',
     'teamPlanner.booster.recharge.label': 'Recharge',
     'teamPlanner.booster.recharge.description': 'Reconstruisez toute votre équipe sans pénalité de points pour les transferts.',
@@ -837,9 +1022,11 @@ const STRINGS = {
     'teamPlanner.benchBoostActive': 'Banc qui compte actif pour la J{{gw}} — les remplaçants comptent.',
     'teamPlanner.reorderModeActive': 'Mode réorganisation actif',
     'teamPlanner.reorderModeHintFirst': "Touchez un joueur de banc (pas le gardien), puis un second pour les échanger.",
-    'teamPlanner.reorderModeHintSecond': 'Touchez maintenant un autre joueur de banc pour échanger, ou le même pour annuler.',    'teamPlanner.emptyBench': "Pas encore de remplaçants pour cette journée. Touchez un joueur sur le terrain et choisissez « Sur le banc ».",
+    'teamPlanner.reorderModeHintSecond': 'Touchez maintenant un autre joueur de banc pour échanger, ou le même pour annuler.',
+    'teamPlanner.emptyBench': "Pas encore de remplaçants pour cette journée. Touchez un joueur sur le terrain et choisissez « Sur le banc ».",
     'teamPlanner.transfers': 'Transferts',
-    'teamPlanner.clearAllTransfers': 'Effacer tous les transferts',    'teamPlanner.emptyTransfers': "Aucun transfert prévu. Utilisez « Planifier un transfert » près du terrain pour remplacer des joueurs à partir d’une journée.",
+    'teamPlanner.clearAllTransfers': 'Effacer tous les transferts',
+    'teamPlanner.emptyTransfers': "Aucun transfert prévu. Utilisez « Planifier un transfert » près du terrain pour remplacer des joueurs à partir d’une journée.",
     'teamPlanner.removeTransferAria': 'Supprimer le transfert {{out}} vers {{in}}',
     'teamPlanner.cancelTransfer': 'Annuler le transfert',
     'teamPlanner.planTransfer': 'Planifier un transfert pour la J{{gw}}',
@@ -934,14 +1121,11 @@ const STRINGS = {
     'kaarten.suspensionExplainer': "Le nombre de cartons jaunes qui comptent pour une suspension éventuelle : à 5 cartons jaunes, une suspension suit, puis à nouveau à 10. Un deuxième carton jaune dans le même match (entraînant un carton rouge) ne compte pas dans ce total.",
 
     // --- Onglet Joueurs ---
-    'spelers.intro': "Tous les joueurs Fantasy Pro League au même endroit. Recherchez, filtrez par poste ou par club, et triez sur chaque colonne. Touchez un nom pour l'historique match par match, ou cochez jusqu'à 4 joueurs pour les comparer.",
     'spelers.loading': 'Chargement des joueurs...',
     'spelers.error': "Les données des joueurs n'ont pas pu être chargées. Réessayez plus tard.",
     'spelers.staleNotice': "Impossible de récupérer de nouvelles données ; vous voyez les dernières données connues (jusqu'à la J{{gw}}).",
     'spelers.staleLocal': '(Enregistrées dans ce navigateur.)',
     'spelers.searchPlaceholder': 'Rechercher un joueur par nom...',
-    'spelers.count': '{{n}} joueurs',
-    'spelers.dataUntil': "données jusqu'à la J{{gw}} ({{season}})",
     'spelers.empty': 'Aucun joueur trouvé avec ces filtres.',
     'spelers.showMore': 'Afficher {{n}} de plus ({{total}} restants)',
     'spelers.tableCaption': 'Joueurs et leurs statistiques',
@@ -950,7 +1134,6 @@ const STRINGS = {
     'spelers.footnote': "Source : Fantasy Pro League. Les points sont les totaux officiels. Les points bonus sont calculés par match selon les règles officielles (1 point par condition : plus de duels gagnés que perdus, plus de 3 duels aériens défensifs, plus de 5 récupérations, plus d'une grosse occasion créée). Pts/M€ = points par million. Un « — » signifie trop peu de minutes (moins de 180) pour une valeur par 90 fiable.",
     'spelers.filter.position': 'Poste',
     'spelers.filter.allPositions': 'Tous',
-    'spelers.filter.more': 'Plus de filtres',
     'spelers.filter.club': 'Club',
     'spelers.filter.allClubs': 'Tous les clubs',
     'spelers.filter.price': 'Prix',
@@ -998,10 +1181,8 @@ const STRINGS = {
     'spelers.col.ppgShort': 'Pts/match',
     'spelers.col.form': 'Forme (points des 5 dernières J)',
     'spelers.col.formShort': 'Forme',
-    'spelers.col.sel': '% sélectionné',
-    'spelers.col.selShort': '% Sél',
-    'spelers.col.cap': '% capitaine',
-    'spelers.col.capShort': '% Cap',
+    'spelers.col.sel': "Popularité (% des managers)",
+    'spelers.col.selShort': "Pop%",
     'spelers.col.min': 'Minutes',
     'spelers.col.minShort': 'Min',
     'spelers.col.mp': 'Matchs',
@@ -1011,7 +1192,7 @@ const STRINGS = {
     'spelers.col.a': 'Passes décisives',
     'spelers.col.aShort': 'PD',
     'spelers.col.bc': 'Grosses occasions créées',
-    'spelers.col.bcShort': 'Occ.',
+    'spelers.col.bcShort': "Occ. créées",
     'spelers.col.cs': 'Clean sheets',
     'spelers.col.csShort': 'CS',
     'spelers.col.hc': 'Duels aériens défensifs',
@@ -1024,8 +1205,6 @@ const STRINGS = {
     'spelers.col.brShort': 'Récup',
     'spelers.col.int': 'Interceptions',
     'spelers.col.intShort': 'Int',
-    'spelers.col.gc': 'Buts encaissés',
-    'spelers.col.gcShort': 'BE',
     'spelers.col.sv': 'Arrêts',
     'spelers.col.svShort': 'Arrêts',
     'spelers.col.ps': 'Penalties arrêtés',
@@ -1043,17 +1222,17 @@ const STRINGS = {
     'spelers.col.bpRecoveries': 'Bonus : récupérations',
     'spelers.col.bpRecoveriesShort': 'B-Récup',
     'spelers.col.bpBigChances': 'Bonus : grosses occasions',
-    'spelers.col.bpBigChancesShort': 'B-Occ.',
+    'spelers.col.bpBigChancesShort': "B-Occ. créées",
     'spelers.compare.title': 'Comparer ({{n}}/{{max}})',
-    'spelers.compare.pickMore': 'Cochez au moins un autre joueur dans le tableau pour comparer.',
+    'spelers.compare.pickMore': "Choisissez au moins un autre joueur dans le tableau pour comparer.",
     'spelers.compare.copyLink': 'Copier le lien',
     'spelers.compare.copied': 'Copié !',
     'spelers.compare.clear': 'Effacer',
     'spelers.compare.stat': 'Statistique',
     'spelers.compare.addAria': 'Comparer {{name}}',
     'spelers.compare.removeAria': 'Retirer {{name}} de la comparaison',
-    'spelers.compare.bestNote': 'La meilleure valeur de chaque ligne est en turquoise.',
-    'spelers.popup.selected': '{{pct}} % sélectionné',
+    'spelers.compare.bestNote': "La meilleure valeur de chaque ligne est en turquoise.",
+    'spelers.popup.selected': "{{pct}}% de popularité",
     'spelers.popup.watch': 'Ajouter à la watchlist',
     'spelers.popup.watching': 'Dans votre watchlist',
     'spelers.popup.addCompare': 'Comparer',
@@ -1112,142 +1291,327 @@ const STRINGS = {
 
     'shared.loading': 'Chargement...',
     'shared.loadError': "Impossible de charger la base de joueurs, réessayez.",
-    'shared.retry': 'Réessayer',
-    'nav.compact.spelers': "Joueurs",
-    'nav.compact.more': "Plus",
-    'shell.brandSub': "tools",
-    'shell.homeAria': "FPL Pro League Tools — vers la FDR",
-    'shell.deadline': "J{{gw}}",
-    'shell.deadlineAria': "Deadline J{{gw}} dans {{time}}",
-    'shell.live': "J{{gw}} en cours",
-    'shell.minileague': "Mini-ligue",
-    'shell.copyMinileague': "Copier",
-    'shell.copied': "Copié",
-    'shell.language': "Langue",
-    'shell.moreTitle': "Plus",
-    'shell.followX': "@fpl_proleague sur X",
-    'shell.newMarker': "Nouvelles compositions probables",
-    'shell.closeMenu': "Fermer le menu",
-    'footer.data': "Données : Fantasy Pro League + analyse maison",
-    'footer.updated': "Mis à jour le {{date}}",
-    'fdr.pageTitle': "FDR",
-    'fdr.metaDefault': "Évaluations : @fpl_proleague",
-    'fdr.metaCustom': "Évaluations : personnalisées",
-    'fdr.metaRange': "J{{from}} → J{{to}}",
-    'fdr.editRatings': "Modifier les évaluations",
-    'fdr.ratingsSheetTitle': "Modifier les évaluations",
-    'fdr.ratingsSheetIntro': "1 = adversaire facile, 5 = adversaire difficile. L’avantage du terrain rend un déplacement chez ce club un point plus difficile. Vos modifications sont enregistrées immédiatement dans ce navigateur.",
-    'fdr.strengthGroupAria': "Force {{team}} (1 = facile, 5 = difficile)",
-    'fdr.avgColumn': "Σ",
-    'fdr.avgColumnTitle': "Difficulté moyenne sur les journées choisies",
-    'fdr.sortByAvgAria': "Trier par difficulté moyenne (le plus facile en premier)",
-    'fdr.avgCellAria': "Difficulté moyenne {{value}}",
-    'fdr.legendEasy': "facile",
-    'fdr.legendHard': "difficile",
-    'fdr.formAria': "Forme récente : {{results}}",
-    'fdr.form.W': "victoire",
-    'fdr.form.G': "nul",
-    'fdr.form.V': "défaite",
-    'fdr.runsAvg': "moy.",
-    'predictedLineups.pageTitle': "Compositions probables",
-    'predictedLineups.by': "par",
-    'predictedLineups.metaPrevious': "Journée précédente : J{{gw}}",
-    'predictedLineups.releaseLine': "Les compositions probables pour la J{{gw}} paraissent {{when}}",
-    'predictedLineups.releaseIn': "dans {{time}}",
-    'predictedLineups.releaseAt': "à",
-    'predictedLineups.view.pitch': "Terrain",
-    'predictedLineups.view.overview': "Aperçu",
-    'predictedLineups.viewAria': "Affichage",
-    'predictedLineups.onlyDoubts': "Seulement les incertains",
-    'predictedLineups.noDoubts': "Aucun cas incertain : tout le monde est certain ou titulaire.",
-    'predictedLineups.pickMatchAria': "Choisissez un match",
-    'predictedLineups.pickTeamAria': "Choisissez une équipe",
-    'predictedLineups.matchAria': "{{home}} contre {{away}}",
-    'predictedLineups.prevMatch': "Match précédent",
-    'predictedLineups.nextMatch': "Match suivant",
-    'predictedLineups.postponed': "reporté",
-    'predictedLineups.noLineup': "Pas encore de composition pour {{club}}.",
-    'predictedLineups.colClub': "Club",
-    'predictedLineups.colMatch': "Match",
-    'predictedLineups.colFormation': "Système",
-    'predictedLineups.colPlayers': "Joueurs",
-    'predictedLineups.legendAria': "Certitude de titularisation",
-    'predictedLineups.vs': "vs",
-    'teamPlanner.pageTitle': "Team Planner",
-    'teamPlanner.introShort': "Planifiez votre sélection, banc, capitaine et transferts par journée. Tout reste dans votre navigateur.",
-    'teamPlanner.emptyLead': "Commencez par une capture d’écran de votre équipe, ou touchez une case vide.",
-    'teamPlanner.view.pitch': "Terrain",
-    'teamPlanner.view.list': "Liste",
-    'teamPlanner.view.transfers': "Transferts",
-    'teamPlanner.viewAria': "Affichage",
-    'teamPlanner.status.aria': "Statut de votre équipe",
-    'teamPlanner.status.squad': "Sélection {{count}}/{{total}}",
-    'teamPlanner.status.bank': "Reste",
-    'teamPlanner.status.freeShort': "TG {{count}}",
-    'teamPlanner.status.costTip': "{{used}} transferts cette journée, dont {{free}} gratuits",
-    'teamPlanner.status.benchNeededOne': "Choisissez encore 1 remplaçant",
-    'teamPlanner.status.benchNeededMany': "Choisissez encore {{count}} remplaçants",
-    'teamPlanner.status.invalidFormation': "Système invalide {{formation}}",
-    'teamPlanner.pitchAria': "Terrain pour la J{{gw}}",
-    'teamPlanner.selection': "Sélection",
-    'teamPlanner.colClub': "Club",
-    'teamPlanner.colPriceEuro': "Prix",
-    'teamPlanner.colActions': "Actions",
-    'teamPlanner.benchTag': "banc",
-    'teamPlanner.emptySlot': "Case vide : choisissez un {{position}}",
-    'teamPlanner.emptySlotShort': "Choisir {{position}}",
-    'teamPlanner.slotAria': "{{name}}, {{position}} : ouvrir les actions",
-    'teamPlanner.slotMenuAria': "Actions pour {{name}}",
-    'teamPlanner.swapAria': "Choisir {{name}} pour échanger",
-    'teamPlanner.reorderGkDisabled': "Les gardiens ne peuvent pas changer de place sur le banc",
-    'teamPlanner.listBaseNote': "Voici votre sélection de départ. Les transferts prévus apparaissent sur le terrain et dans Transferts.",
-    'teamPlanner.menu.replace': "Remplacer",
-    'teamPlanner.menu.captain': "Nommer capitaine (J{{gw}})",
-    'teamPlanner.menu.removeCaptain': "Retirer le brassard",
-    'teamPlanner.menu.toBench': "Sur le banc (J{{gw}})",
-    'teamPlanner.menu.toBenchFull': "Sur le banc (banc complet)",
-    'teamPlanner.menu.toPitch': "Sur le terrain (J{{gw}})",
-    'teamPlanner.menu.transferOut': "Transfert : faire sortir ce joueur",
-    'teamPlanner.menu.openPlayer': "Fiche joueur",
-    'teamPlanner.menu.remove': "Retirer de la sélection",
-    'teamPlanner.transfersMeta': "J{{from}}–J{{to}}",
-    'teamPlanner.transferCol.out': "Sortant",
-    'teamPlanner.transferCol.in': "Entrant",
-    'teamPlanner.transferCol.diff': "Écart",
-    'teamPlanner.transferCol.diffTitle': "Écart de prix en millions (entrant − sortant)",
-    'teamPlanner.booster.usedIn': "utilisé à la J{{gw}}",
-    'screenshotUpload.importButton': "Importer une capture",
-    'screenshotUpload.reviewHint': "Vérifiez la proposition et corrigez si nécessaire. Rien ne change avant de cliquer sur « Appliquer ».",
-    'picker.title.GK': "Choisissez un gardien",
-    'picker.title.DEF': "Choisissez un défenseur",
-    'picker.title.MID': "Choisissez un milieu",
-    'picker.title.FWD': "Choisissez un attaquant",
-    'picker.close': "Fermer",
-    'picker.search': "Rechercher un nom",
-    'picker.clear': "Effacer la recherche",
-    'picker.positionAria': "Poste",
-    'picker.maxPrice': "Prix max.",
-    'picker.allPrices': "Tous les prix",
-    'picker.budgetOption': "≤ €{{value}}M (budget)",
-    'picker.priceOption': "≤ €{{value}}M",
-    'picker.sort': "Trier",
-    'picker.sort.pts': "Points",
-    'picker.sort.form': "Forme",
-    'picker.sort.sel': "Popularité",
-    'picker.sort.price': "Prix",
-    'picker.col.player': "Joueur",
-    'picker.col.club': "Club",
-    'picker.col.price': "Prix",
-    'picker.col.pts': "Pts",
-    'picker.col.form': "Forme",
-    'picker.col.formTitle': "Points sur les {{count}} dernières journées",
-    'picker.col.next': "3 prochains",
-    'picker.reasonInTeam': "déjà dans votre équipe",
-    'picker.reasonClubLimit': "max. {{max}} par club",
-    'picker.empty': "Aucun joueur trouvé avec ces filtres.",
-    'picker.more': "Charger plus ({{count}})",
-    'picker.chooseAria': "Choisir {{name}}",
+    'shared.retry': 'Réessayer',
+
+    'nav.compact.spelers': "Joueurs",
+
+    'nav.compact.more': "Plus",
+
+    'shell.brandSub': "tools",
+
+    'shell.homeAria': "FPL Pro League Tools — vers la FDR",
+
+    'shell.deadline': "J{{gw}}",
+
+    'shell.deadlineAria': "Deadline J{{gw}} dans {{time}}",
+
+    'shell.live': "J{{gw}} en cours",
+
+    'shell.minileague': "Mini-ligue",
+
+    'shell.copyMinileague': "Copier",
+
+    'shell.copied': "Copié",
+
+    'shell.language': "Langue",
+
+    'shell.moreTitle': "Plus",
+
+    'shell.followX': "@fpl_proleague sur X",
+
+    'shell.newMarker': "Nouvelles compositions probables",
+
+    'shell.closeMenu': "Fermer le menu",
+
+    'footer.data': "Données : Fantasy Pro League + analyse maison",
+
+    'footer.updated': "Mis à jour le {{date}}",
+
+    'fdr.pageTitle': "FDR",
+
+    'fdr.metaDefault': "Évaluations : @fpl_proleague",
+
+    'fdr.metaCustom': "Évaluations : personnalisées",
+
+    'fdr.metaRange': "J{{from}} → J{{to}}",
+
+    'fdr.editRatings': "Modifier les évaluations",
+
+    'fdr.ratingsSheetTitle': "Modifier les évaluations",
+
+    'fdr.ratingsSheetIntro': "1 = adversaire facile, 5 = adversaire difficile. L’avantage du terrain rend un déplacement chez ce club un point plus difficile. Vos modifications sont enregistrées immédiatement dans ce navigateur.",
+
+    'fdr.strengthGroupAria': "Force {{team}} (1 = facile, 5 = difficile)",
+
+    'fdr.avgColumn': "Σ",
+
+    'fdr.avgColumnTitle': "Difficulté moyenne sur les journées choisies",
+
+    'fdr.sortByAvgAria': "Trier par difficulté moyenne (le plus facile en premier)",
+
+    'fdr.avgCellAria': "Difficulté moyenne {{value}}",
+
+    'fdr.legendEasy': "facile",
+
+    'fdr.legendHard': "difficile",
+
+    'fdr.formAria': "Forme récente : {{results}}",
+
+    'fdr.form.W': "victoire",
+
+    'fdr.form.G': "nul",
+
+    'fdr.form.V': "défaite",
+
+    'fdr.runsAvg': "moy.",
+
+    'predictedLineups.pageTitle': "Compositions probables",
+
+    'predictedLineups.by': "par",
+
+    'predictedLineups.metaPrevious': "Journée précédente : J{{gw}}",
+
+    'predictedLineups.releaseLine': "Les compositions probables pour la J{{gw}} paraissent {{when}}",
+
+    'predictedLineups.releaseIn': "dans {{time}}",
+
+    'predictedLineups.releaseAt': "à",
+
+    'predictedLineups.view.pitch': "Terrain",
+
+    'predictedLineups.view.overview': "Aperçu",
+
+    'predictedLineups.viewAria': "Affichage",
+
+    'predictedLineups.onlyDoubts': "Seulement les incertains",
+
+    'predictedLineups.noDoubts': "Aucun cas incertain : tout le monde est certain ou titulaire.",
+
+    'predictedLineups.pickMatchAria': "Choisissez un match",
+
+    'predictedLineups.pickTeamAria': "Choisissez une équipe",
+
+    'predictedLineups.matchAria': "{{home}} contre {{away}}",
+
+    'predictedLineups.prevMatch': "Match précédent",
+
+    'predictedLineups.nextMatch': "Match suivant",
+
+    'predictedLineups.postponed': "reporté",
+
+    'predictedLineups.noLineup': "Pas encore de composition pour {{club}}.",
+
+    'predictedLineups.colClub': "Club",
+
+    'predictedLineups.colMatch': "Match",
+
+    'predictedLineups.colFormation': "Système",
+
+    'predictedLineups.colPlayers': "Joueurs",
+
+    'predictedLineups.legendAria': "Certitude de titularisation",
+
+    'predictedLineups.vs': "vs",
+
+    'teamPlanner.pageTitle': "Team Planner",
+
+    'teamPlanner.introShort': "Planifiez votre sélection, banc, capitaine et transferts par journée. Tout reste dans votre navigateur.",
+
+    'teamPlanner.emptyLead': "Commencez par une capture d’écran de votre équipe, ou touchez une case vide.",
+
+    'teamPlanner.view.pitch': "Terrain",
+
+    'teamPlanner.view.list': "Liste",
+
+    'teamPlanner.view.transfers': "Transferts",
+
+    'teamPlanner.viewAria': "Affichage",
+
+    'teamPlanner.status.aria': "Statut de votre équipe",
+
+    'teamPlanner.status.squad': "Sélection {{count}}/{{total}}",
+
+    'teamPlanner.status.bank': "Reste",
+
+    'teamPlanner.status.freeShort': "TG {{count}}",
+
+    'teamPlanner.status.costTip': "{{used}} transferts cette journée, dont {{free}} gratuits",
+
+    'teamPlanner.status.benchNeededOne': "Choisissez encore 1 remplaçant",
+
+    'teamPlanner.status.benchNeededMany': "Choisissez encore {{count}} remplaçants",
+
+    'teamPlanner.status.invalidFormation': "Système invalide {{formation}}",
+
+    'teamPlanner.pitchAria': "Terrain pour la J{{gw}}",
+
+    'teamPlanner.selection': "Sélection",
+
+    'teamPlanner.colClub': "Club",
+
+    'teamPlanner.colPriceEuro': "Prix",
+
+    'teamPlanner.colActions': "Actions",
+
+    'teamPlanner.benchTag': "banc",
+
+    'teamPlanner.emptySlot': "Case vide : choisissez un {{position}}",
+
+    'teamPlanner.emptySlotShort': "Choisir {{position}}",
+
+    'teamPlanner.slotAria': "{{name}}, {{position}} : ouvrir les actions",
+
+    'teamPlanner.slotMenuAria': "Actions pour {{name}}",
+
+    'teamPlanner.swapAria': "Choisir {{name}} pour échanger",
+
+    'teamPlanner.reorderGkDisabled': "Les gardiens ne peuvent pas changer de place sur le banc",
+
+    'teamPlanner.listBaseNote': "Voici votre sélection de départ. Les transferts prévus apparaissent sur le terrain et dans Transferts.",
+
+    'teamPlanner.menu.replace': "Remplacer",
+
+    'teamPlanner.menu.captain': "Nommer capitaine (J{{gw}})",
+
+    'teamPlanner.menu.removeCaptain': "Retirer le brassard",
+
+    'teamPlanner.menu.toBench': "Sur le banc (J{{gw}})",
+
+    'teamPlanner.menu.toBenchFull': "Sur le banc (banc complet)",
+
+    'teamPlanner.menu.toPitch': "Sur le terrain (J{{gw}})",
+
+    'teamPlanner.menu.transferOut': "Transfert : faire sortir ce joueur",
+
+    'teamPlanner.menu.openPlayer': "Fiche joueur",
+
+    'teamPlanner.menu.remove': "Retirer de la sélection",
+
+    'teamPlanner.transfersMeta': "J{{from}}–J{{to}}",
+
+    'teamPlanner.transferCol.out': "Sortant",
+
+    'teamPlanner.transferCol.in': "Entrant",
+
+    'teamPlanner.transferCol.diff': "Écart",
+
+    'teamPlanner.transferCol.diffTitle': "Écart de prix en millions (entrant − sortant)",
+
+    'teamPlanner.booster.usedIn': "utilisé à la J{{gw}}",
+
+    'screenshotUpload.importButton': "Importer une capture",
+
+    'screenshotUpload.reviewHint': "Vérifiez la proposition et corrigez si nécessaire. Rien ne change avant de cliquer sur « Appliquer ».",
+
+    'picker.title.GK': "Choisissez un gardien",
+
+    'picker.title.DEF': "Choisissez un défenseur",
+
+    'picker.title.MID': "Choisissez un milieu",
+
+    'picker.title.FWD': "Choisissez un attaquant",
+
+    'picker.close': "Fermer",
+
+    'picker.search': "Rechercher un nom",
+
+    'picker.clear': "Effacer la recherche",
+
+    'picker.positionAria': "Poste",
+
+    'picker.maxPrice': "Prix max.",
+
+    'picker.allPrices': "Tous les prix",
+
+    'picker.budgetOption': "≤ €{{value}}M (budget)",
+
+    'picker.priceOption': "≤ €{{value}}M",
+
+    'picker.sort': "Trier",
+
+    'picker.sort.pts': "Points",
+
+    'picker.sort.form': "Forme",
+
+    'picker.sort.sel': "Popularité",
+
+    'picker.sort.price': "Prix",
+
+    'picker.col.player': "Joueur",
+
+    'picker.col.club': "Club",
+
+    'picker.col.price': "Prix",
+
+    'picker.col.pts': "Pts",
+
+    'picker.col.form': "Forme",
+
+    'picker.col.formTitle': "Points sur les {{count}} dernières journées",
+
+    'picker.col.next': "3 prochains",
+
+    'picker.reasonInTeam': "déjà dans votre équipe",
+
+    'picker.reasonClubLimit': "max. {{max}} par club",
+
+    'picker.empty': "Aucun joueur trouvé avec ces filtres.",
+
+    'picker.more': "Charger plus ({{count}})",
+
+    'picker.chooseAria': "Choisir {{name}}",
+
     'teamPlanner.transfersMetaOne': "J{{gw}}",
+
+    'spelers.pageTitle': "Joueurs",
+
+    'spelers.introShort': "Recherchez, filtrez et comparez tous les joueurs. Touchez un joueur pour les détails, ou ajoutez-le à votre watchlist avec l’étoile.",
+
+    'spelers.meta': "Données jusqu’à la J{{gw}} · {{n}} joueurs",
+
+    'spelers.countOf': "{{n}} sur {{total}} joueurs",
+
+    'spelers.filter.button': "Filtres",
+
+    'spelers.filter.buttonCount': "Filtres ({{n}})",
+
+    'spelers.filter.sheetTitle': "Filtres",
+
+    'spelers.filter.showResults': "Afficher {{n}} joueurs",
+
+    'spelers.filter.diff': "Différentiels (<{{max}} % de popularité)",
+
+    'spelers.filter.diffChip': "Différentiels (<{{max}} %)",
+
+    'spelers.filter.removeChip': "Retirer le filtre {{label}}",
+
+    'spelers.period.seasonShort': "Saison",
+
+    'spelers.period.lastShort': "{{n}} dernières",
+
+    'spelers.col.sparklineShort': "Forme (8)",
+
+    'spelers.compare.mode': "Comparer",
+
+    'spelers.compare.modeHint': "Cochez jusqu’à {{max}} joueurs (ou touchez une ligne) pour les comparer.",
+
+    'spelers.compare.bar': "{{n}} joueurs",
+
+    'spelers.compare.open': "Comparer",
+
+    'spelers.notFound.title': "Introuvables dans la base de joueurs ({{n}})",
+
+    'spelers.notFound.intro': "Ces joueurs sont dans votre watchlist, mais pas dans les données des joueurs (par exemple partis, ou ajoutés à la main avec une autre orthographe).",
+
+    'spelers.notFound.remove': "Retirer",
+
+    'watchlistMoved.lead': "Votre watchlist se trouve maintenant dans",
+
+    'watchlistMoved.place': "Joueurs",
+
+    'watchlistMoved.tail': "→ filtre ★ Watchlist.",
+
+    'watchlistMoved.action': "Voir",
   },
 };
 

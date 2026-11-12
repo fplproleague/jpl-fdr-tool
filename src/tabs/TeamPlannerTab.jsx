@@ -275,6 +275,7 @@ export default function TeamPlannerTab({
   handleOptimizeTeamPlannerLineup, teamPlannerOptimized,
   teamPlannerBoosters, toggleTeamPlannerBooster,
   handleClearTeamPlanner, handleClearTeamPlannerTransfers, swapTeamPlannerBenchPlayers,
+  isPlayerWatched, toggleWatchlistPlayer,
 }) {
   const index = usePlayerIndex();
   // "Wis team" heeft enkel zin als er iets ingevuld is. Gebaseerd op de echte basisploeg.
@@ -943,6 +944,8 @@ export default function TeamPlannerTab({
           gw={teamPlannerGw}
           ratings={ratings}
           homeAdvantage={homeAdvantage}
+          isWatched={isPlayerWatched}
+          onToggleWatch={toggleWatchlistPlayer}
         />
       )}
     </>

@@ -11,6 +11,7 @@
 import { useMemo, useState } from 'react';
 import Sheet from '../components/Sheet';
 import { MiniFixtureBadge } from '../components/MiniFixtureBadge';
+import StarButton from './StarButton';
 import { FIXTURES, GW_COUNT } from '../constants';
 import usePlayerIndex, { normalizePlayerName } from '../data/usePlayerIndex';
 import { PlayerFaceByName } from './PlayerFace';
@@ -37,6 +38,7 @@ const isDesktop = () => typeof window !== 'undefined' && window.matchMedia?.('(m
 
 export default function PlayerPicker({
   t, onClose, onSelect, players, loading = false, position, blockedReason, budgetMax, gw, ratings, homeAdvantage,
+  isWatched, onToggleWatch,
 }) {
   const index = usePlayerIndex();
   const [query, setQuery] = useState('');
@@ -100,6 +102,15 @@ export default function PlayerPicker({
       key: 'player', label: t('picker.col.player'), rowHeader: true, sticky: true, stickyEdge: true,
       render: ({ player, reason }) => (
         <span className="ui-picker__player">
+          {onToggleWatch && (
+            <StarButton
+              className="ui-picker__star"
+              active={!!isWatched?.(player.name, player.teamCode)}
+              onClick={() => onToggleWatch({ name: player.name, teamCode: player.teamCode })}
+              addLabel={t('watchlist.addAria', { name: player.name })}
+              removeLabel={t('watchlist.removeAria', { name: player.name })}
+            />
+          )}
           <PlayerFaceByName name={player.name} clubCode={player.teamCode} size={32} />
           <span className="ui-picker__text">
             <span className="ui-picker__name">{player.name}</span>

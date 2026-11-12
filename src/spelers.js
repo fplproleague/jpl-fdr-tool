@@ -31,7 +31,6 @@ export const COLUMNS = {
   ppg: { label: 'spelers.col.ppg', get: r => r.ppg, decimals: 1 },
   form: { label: 'spelers.col.form', get: r => r.form },
   sel: { label: 'spelers.col.sel', get: r => r.sel, format: v => `${v}%` },
-  cap: { label: 'spelers.col.cap', get: r => r.cap, format: v => `${v}%` },
   min: { label: 'spelers.col.min', get: r => r.min, period: true },
   mp: { label: 'spelers.col.mp', get: r => r.mp, period: true },
   g: { label: 'spelers.col.g', get: r => r.g, period: true, per90: true },
@@ -43,7 +42,6 @@ export const COLUMNS = {
   dl: { label: 'spelers.col.dl', get: r => r.dl, per90: true, lowerIsBetter: true },
   br: { label: 'spelers.col.br', get: r => r.br, per90: true },
   int: { label: 'spelers.col.int', get: r => r.int, per90: true },
-  gc: { label: 'spelers.col.gc', get: r => r.gc, per90: true, lowerIsBetter: true },
   sv: { label: 'spelers.col.sv', get: r => r.sv, per90: true },
   ps: { label: 'spelers.col.ps', get: r => r.ps },
   yc: { label: 'spelers.col.yc', get: r => r.yc, lowerIsBetter: true },
@@ -55,20 +53,27 @@ export const COLUMNS = {
   bpBigChances: { label: 'spelers.col.bpBigChances', get: r => r.bpBigChances },
 };
 
-// Kolompresets (knoppen boven de tabel). Foto, naam, club en positie staan er altijd bij.
-// "Eigendom" heeft geen trendkolom: de bron geeft het selectiepercentage enkel als huidig getal (in
-// elke speeldag hetzelfde), dus een trend zou verzonnen zijn.
+// Kolompresets (keuze boven de tabel). Foto, naam, club en positie staan er altijd bij.
+// "Ownership" heeft geen trendkolom: de bron geeft het selectiepercentage enkel als huidig getal (in
+// elke speeldag hetzelfde), dus een trend zou verzonnen zijn. "% kapitein" en "tegengoals" zijn sinds
+// de rework (spec §7.4) geen kolommen meer; een oude link met sort=cap of sort=gc valt terug op punten.
 export const PRESETS = {
   overview: ['price', 'pts', 'ppm', 'form', 'sel', 'min'],
   attack: ['price', 'pts', 'g', 'a', 'bc', 'min'],
-  defence: ['price', 'pts', 'cs', 'hc', 'dw', 'dl', 'br', 'gc'],
+  defence: ['price', 'pts', 'cs', 'hc', 'dw', 'dl', 'br'],
   bonus: ['pts', 'bp', 'bpDuels', 'bpHeaders', 'bpRecoveries', 'bpBigChances'],
-  ownership: ['price', 'pts', 'sel', 'cap', 'form'],
+  ownership: ['price', 'sel', 'pts', 'ppm', 'form'],
 };
 export const PRESET_KEYS = Object.keys(PRESETS);
 
+// Standaardsortering wanneer je een preset kiest (enkel waar die afwijkt van punten).
+export const PRESET_SORT = { ownership: { sort: 'sel', dir: 'desc' } };
+
+// "Differentials": spelers met een ownership onder deze grens (in %).
+export const DIFFERENTIAL_MAX_SEL = 10;
+
 // Rijen in Vergelijken.
-export const COMPARE_ROWS = ['price', 'pts', 'ppm', 'ppg', 'form', 'mp', 'min', 'g', 'a', 'bp', 'cs', 'bc', 'br', 'sel', 'cap'];
+export const COMPARE_ROWS = ['price', 'pts', 'ppm', 'ppg', 'form', 'mp', 'min', 'g', 'a', 'bp', 'cs', 'bc', 'br', 'sel'];
 export const MAX_COMPARE = 4;
 
 // --- Rijen berekenen -----------------------------------------------------------------------------
@@ -186,6 +191,7 @@ export function filterRows(rows, f, { matchesScope } = {}) {
     if (f.pmin != null && r.price < f.pmin) return false;
     if (f.pmax != null && r.price > f.pmax) return false;
     if (f.mins > 0 && r.min < f.mins) return false;
+    if (f.diff && (r.sel ?? 0) >= DIFFERENTIAL_MAX_SEL) return false;
     if (query && !normalizeName(r.name).includes(query)) return false;
     if (matchesScope && !matchesScope(r)) return false;
     return true;
@@ -229,11 +235,11 @@ export function bestIndexes(values, { lowerIsBetter = false } = {}) {
 // Alles wat je instelt (filters, sortering, kolommen, vergelijking) staat in de URL, zodat je een
 // gefilterde lijst of een vergelijking kan delen (bv. /spelers?compare=107,99). Enkel waarden die
 // afwijken van de standaard komen in de URL, zodat een gewone link kort blijft.
-export const SPELERS_QUERY_PARAMS = ['q', 'pos', 'club', 'pmin', 'pmax', 'mins', 'scope', 'per', 'mode', 'cols', 'sort', 'dir', 'compare', 'speler'];
+export const SPELERS_QUERY_PARAMS = ['q', 'pos', 'club', 'pmin', 'pmax', 'mins', 'scope', 'per', 'mode', 'cols', 'sort', 'dir', 'compare', 'speler', 'diff'];
 
 export const DEFAULT_STATE = {
   q: '', pos: [], club: '', pmin: null, pmax: null, mins: 0, scope: 'all', per: 'season',
-  mode: 'total', cols: 'overview', sort: 'pts', dir: 'desc', compare: [], speler: null,
+  mode: 'total', cols: 'overview', sort: 'pts', dir: 'desc', compare: [], speler: null, diff: false,
 };
 
 const toNumberOrNull = (v) => {
@@ -262,6 +268,7 @@ export function stateFromSearch(search) {
     dir: p.get('dir') === 'asc' ? 'asc' : 'desc',
     compare: (p.get('compare') ?? '').split(',').map(Number).filter(n => Number.isInteger(n) && n > 0).slice(0, MAX_COMPARE),
     speler: toNumberOrNull(p.get('speler')),
+    diff: p.get('diff') === '1',
   };
 }
 
@@ -285,6 +292,7 @@ export function searchFromState(state, currentSearch = '') {
   if (state.dir !== 'desc') set('dir', state.dir);
   if (state.compare.length) set('compare', state.compare.join(','));
   if (state.speler) set('speler', state.speler);
+  if (state.diff) set('diff', 1);
   const s = p.toString().replace(/%2C/g, ',');
   return s ? `?${s}` : '';
 }

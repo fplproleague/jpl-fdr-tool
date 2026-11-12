@@ -13,6 +13,7 @@
 .ui-picker__sub { color: var(--text-3); font-size: var(--fs-meta); line-height: var(--lh-meta); }
 .ui-picker__sub.is-reason { color: var(--text-2); }
 .ui-picker__club-sm { display: none; }
+.ui-picker__star { margin-left: calc(var(--s-2) * -1); }
 .ui-picker__fixtures { display: inline-flex; gap: 2px; }
 
 @media (max-width: 700px) {

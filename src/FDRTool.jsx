@@ -40,7 +40,6 @@ import './ui/Toast.css';
 // zou hij in de hoofdbundel belanden en de FDR-tab (die 'm niet nodig heeft) mee laten groeien.
 const PlayerSheet = lazy(() => import('./components/PlayerSheet'));
 const ClubSheet = lazy(() => import('./components/ClubSheet'));
-const WatchlistTab = lazy(() => import('./tabs/WatchlistTab'));
 const TeamPlannerTab = lazy(() => import('./tabs/TeamPlannerTab'));
 const PredictedLineupsTab = lazy(() => import('./tabs/PredictedLineupsTab'));
 const BonuspuntenTab = lazy(() => import('./tabs/BonuspuntenTab'));
@@ -57,7 +56,7 @@ const TABS = ROUTES;
 // FDR-tab staat er bewust niet bij: die rendert volledig uit constants.js.
 // De Spelers-tab haalt zijn eigen data uit /api/players, maar heeft de databank nodig om spelers aan de
 // watchlist en "Mijn team" te koppelen (die kennen spelers op hun naam in de sheet).
-const PLAYER_DATABASE_TABS = new Set(['watchlist', 'teamplanner', 'bonuspunten', 'kaarten', 'spelers']);
+const PLAYER_DATABASE_TABS = new Set(['teamplanner', 'bonuspunten', 'kaarten', 'spelers']);
 
 // Eén plek voor de canonieke oorsprong van de site; stond eerder als letterlijke string in de
 // title/canonical-useEffect en moet nu ook door de hreflang-alternates gebruikt worden.
@@ -83,6 +82,8 @@ const STORAGE_KEY = 'fpl_proleague_fdr_ratings_v1';
 const HOME_ADVANTAGE_STORAGE_KEY = 'fpl_proleague_fdr_home_advantage_v1';
 // Eigen storage key voor de watch list — los van de FDR-ratings hierboven, zodat ze elkaar niet raken.
 const WATCHLIST_STORAGE_KEY = 'fpl_proleague_watchlist_v1';
+// Onthoudt of de eenmalige melding "je watchlist zit nu in Spelers" al getoond is (spec §8.6).
+const WATCHLIST_MOVED_SEEN_KEY = 'fpl_proleague_watchlist_moved_seen_v1';
 // Onthoudt of de first-time-uitleg over Thuisvoordeel al getoond is, zodat die maar één keer ooit verschijnt.
 const HOME_ADVANTAGE_INTRO_SEEN_KEY = 'fpl_proleague_ha_intro_seen_v1';
 // Eigen storage key voor de Team Planner — los van de watch list hierboven.
@@ -556,11 +557,13 @@ export default function FDRTool() {
   const [compareTeams, setCompareTeams] = useState([]);
   const tableRef = useRef(null);
 
-  // --- Watch list (Watch List-tab), los van de FDR-state hierboven ---
+  // --- Watch list, los van de FDR-state hierboven. Sinds de rework (spec §8) geen eigen tab meer: de
+  // ster in Spelers/Bonuspunten/Kaarten/de spelerskiezer voegt toe, en Spelers toont de lijst via de
+  // filter "★ Watchlist". Opslag en formaat zijn ongewijzigd.
   const [watchlist, setWatchlist] = useState(() => loadStoredWatchlist());
-  const [newPlayerName, setNewPlayerName] = useState('');
-  const [newPlayerTeam, setNewPlayerTeam] = useState('');
-  const [newPlayerPrice, setNewPlayerPrice] = useState('');
+  const [showWatchlistMoved, setShowWatchlistMoved] = useState(false);
+  // Verhogen = de Spelers-tab opnieuw opbouwen, zodat die zijn filters opnieuw uit de URL leest.
+  const [spelersMountKey, setSpelersMountKey] = useState(0);
 
   // --- Team Planner (Team Planner-tab), los van de FDR-/watch-list-state hierboven ---
   const [teamPlannerPlayers, setTeamPlannerPlayers] = useState(() => loadStoredTeamPlanner().players);
@@ -1136,18 +1139,35 @@ export default function FDRTool() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchSetPieces]);
 
-  const handleAddWatchlistPlayer = (e) => {
-    e.preventDefault();
-    const name = newPlayerName.trim();
-    if (!name || !newPlayerTeam) return; // extra guard naast de native 'required' velden
-    const parsedPrice = newPlayerPrice.trim() === '' ? null : Number(newPlayerPrice);
-    setWatchlist(prev => [
-      ...prev,
-      { id: createUniqueId(), name, teamCode: newPlayerTeam, price: Number.isFinite(parsedPrice) ? parsedPrice : null },
-    ]);
-    setNewPlayerName('');
-    setNewPlayerTeam('');
-    setNewPlayerPrice('');
+  // Eenmalige melding voor wie al een watchlist had (spec §8.6): de oude Watchlist-tab is weg, de lijst
+  // zit nu in Spelers. Wie binnenkomt via de /watchlist-redirect ziet de filter al aanstaan en krijgt
+  // de melding niet. Kan de browser niets onthouden, dan tonen we ze niet (anders bij elk bezoek).
+  useEffect(() => {
+    if (watchlist.length === 0) return;
+    let seen = true;
+    try { seen = window.localStorage?.getItem(WATCHLIST_MOVED_SEEN_KEY) === '1'; } catch { seen = true; }
+    if (seen) return;
+    try { window.localStorage?.setItem(WATCHLIST_MOVED_SEEN_KEY, '1'); } catch { return; }
+    const viaRedirect = activeTab === 'spelers' && new URLSearchParams(window.location.search).get('scope') === 'watchlist';
+    if (!viaRedirect) setShowWatchlistMoved(true);
+    // Bewust enkel bij het laden van de pagina.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!showWatchlistMoved) return undefined;
+    const timer = setTimeout(() => setShowWatchlistMoved(false), 12000);
+    return () => clearTimeout(timer);
+  }, [showWatchlistMoved]);
+
+  const openWatchlistInSpelers = () => {
+    setShowWatchlistMoved(false);
+    const params = new URLSearchParams(searchForTab(window.location.search, 'spelers'));
+    params.set('scope', 'watchlist');
+    const search = `?${params.toString().replace(/%2C/g, ',')}`;
+    window.history.pushState({ tab: 'spelers' }, '', urlForRoute('spelers', search, language));
+    setActiveTab('spelers');
+    setSpelersMountKey(k => k + 1);
   };
 
   // Verwijderen uit de watch list is nu terugdraaibaar i.p.v. definitief bij één tik. Bewust "undo"
@@ -2010,30 +2030,6 @@ export default function FDRTool() {
           />
         )}
 
-        {activeTab === 'watchlist' && (
-          <Suspense fallback={<TabLoading text={t('shared.loading')} />}>
-          <WatchlistTab
-            t={t}
-            ratings={ratings}
-            homeAdvantage={homeAdvantage}
-            watchlist={watchlist}
-            newPlayerName={newPlayerName}
-            setNewPlayerName={setNewPlayerName}
-            newPlayerTeam={newPlayerTeam}
-            setNewPlayerTeam={setNewPlayerTeam}
-            newPlayerPrice={newPlayerPrice}
-            setNewPlayerPrice={setNewPlayerPrice}
-            handleAddWatchlistPlayer={handleAddWatchlistPlayer}
-            handleRemoveWatchlistPlayer={handleRemoveWatchlistPlayer}
-            playerDatabase={playerDatabase}
-            playerDatabaseLoading={playerDatabaseLoading}
-            playerDatabaseError={playerDatabaseError}
-            fetchPlayerDatabase={fetchPlayerDatabase}
-            onOpenPlayer={openPlayerSheet}
-          />
-          </Suspense>
-        )}
-
         {activeTab === 'teamplanner' && (
           <Suspense fallback={<TabLoading text={t('shared.loading')} />}>
           <TeamPlannerTab
@@ -2071,6 +2067,8 @@ export default function FDRTool() {
             handleClearTeamPlanner={handleClearTeamPlanner}
             handleClearTeamPlannerTransfers={handleClearTeamPlannerTransfers}
             swapTeamPlannerBenchPlayers={swapTeamPlannerBenchPlayers}
+            isPlayerWatched={isPlayerWatched}
+            toggleWatchlistPlayer={toggleWatchlistPlayer}
           />
           </Suspense>
         )}
@@ -2138,10 +2136,13 @@ export default function FDRTool() {
         {activeTab === 'spelers' && (
           <Suspense fallback={<TabLoading text={t('shared.loading')} />}>
             <SpelersTab
+              key={spelersMountKey}
               t={t}
               ratings={ratings}
               homeAdvantage={homeAdvantage}
               playerDatabase={playerDatabase}
+              watchlist={watchlist}
+              onRemoveWatchlistPlayer={handleRemoveWatchlistPlayer}
               isPlayerWatched={isPlayerWatched}
               isPlayerInMyTeam={isPlayerInMyTeam}
               toggleWatchlistPlayer={toggleWatchlistPlayer}
@@ -2221,6 +2222,20 @@ export default function FDRTool() {
             </button>
           )}
           <button type="button" onClick={() => setWatchlistNotice(null)} aria-label={t('undo.closeAria')} className="ui-toast__close">
+            <X aria-hidden="true" strokeWidth={2} />
+          </button>
+        </div>
+      )}
+
+      {showWatchlistMoved && !watchlistNotice && !showHomeAdvantageIntro && (
+        <div role="status" aria-live="polite" className="ui-toast">
+          <p className="ui-toast__text">
+            {t('watchlistMoved.lead')} <strong>{t('watchlistMoved.place')}</strong> {t('watchlistMoved.tail')}
+          </p>
+          <button type="button" onClick={openWatchlistInSpelers} className="ui-toast__action">
+            {t('watchlistMoved.action')}
+          </button>
+          <button type="button" onClick={() => setShowWatchlistMoved(false)} aria-label={t('undo.closeAria')} className="ui-toast__close">
             <X aria-hidden="true" strokeWidth={2} />
           </button>
         </div>
