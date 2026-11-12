@@ -1522,7 +1522,7 @@ export default function FDRTool() {
         /* Breedte van één tabelkolom, als variabele zodat de FDR- en vergelijk-tabel er allebei aan
            hangen en er maar één plek is waar hij per schermbreedte verschilt. Zie TABLE_SLOT_MIN_WIDTH
            in constants.js voor waarom 84 en waarom mobiel kleiner. */
-        :root { --fdr-table-slot: ${TABLE_SLOT_MIN_WIDTH}px; --fdr-page-gutter: 20px; }
+        :root { --fdr-table-slot: ${TABLE_SLOT_MIN_WIDTH}px; --fdr-page-gutter: var(--gutter); }
         @media (max-width: ${MOBILE_TABLE_BREAKPOINT}px) {
           :root { --fdr-table-slot: ${TABLE_SLOT_MIN_WIDTH_MOBILE}px; }
 
@@ -1588,33 +1588,6 @@ export default function FDRTool() {
            wordt toch mede bepaald door de teamcel ernaast (logo + vormbalk). */
         .fdr-cell { padding-top: 6px !important; padding-bottom: 6px !important; }
         input[type=range] { accent-color: var(--accent); }
-        .fdr-postponed-tooltip {
-          position: fixed;
-          z-index: 45;
-          background: var(--ink-1);
-          color: var(--text-1);
-          border: 1px solid rgba(255,255,255,0.15);
-          border-radius: 8px;
-          padding: 8px 10px;
-          font-family: var(--font-ui);
-          font-size: 11px;
-          font-weight: 500;
-          line-height: 1.4;
-          width: max-content;
-          max-width: 200px;
-          text-align: left;
-          box-shadow: 0 8px 20px rgba(0,0,0,0.4);
-          pointer-events: none;
-        }
-        .fdr-postponed-tooltip::after {
-          content: '';
-          position: absolute;
-          left: 50%;
-          transform: translateX(-50%);
-          border: 5px solid transparent;
-        }
-        .fdr-postponed-tooltip--top::after { top: 100%; border-top-color: var(--ink-1); }
-        .fdr-postponed-tooltip--bottom::after { bottom: 100%; border-bottom-color: var(--ink-1); }
         /* De skip-link (.fdr-skip-link) staat in src/styles/base.css. */
         /* Moeilijkheidscijfer in de hoek van een fixture-cel — zie CellRating in tabs/FDRTab.jsx voor
            waarom dit er staat. De cel is al position: relative (stacked), en de 0.62em/absolute
@@ -1642,43 +1615,6 @@ export default function FDRTool() {
           color: inherit;
           pointer-events: none;
         }
-        .fdr-tabs { scrollbar-width: none; -ms-overflow-style: none; }
-        .fdr-tabs::-webkit-scrollbar { display: none; }
-        /* De tabbalk scrollt horizontaal en de scrollbar is verborgen, dus zonder extra signaal is er
-           niets dat verraadt dat er nog tabs rechts staan. Deze mask laat de laatste 28px subtiel
-           uitfaden; zodra er niet meer te scrollen valt zet de JS-klasse .fdr-tabs--end de mask uit,
-           zodat de laatste tab nooit onnodig vervaagd oogt. */
-        .fdr-tabs {
-          -webkit-mask-image: linear-gradient(to right, black calc(100% - 28px), transparent 100%);
-          mask-image: linear-gradient(to right, black calc(100% - 28px), transparent 100%);
-        }
-        .fdr-tabs.fdr-tabs--end {
-          -webkit-mask-image: none;
-          mask-image: none;
-        }
-
-        /* Onder de 700px-drempel (telefoons) wisselt de tabbalk van "alle 8 tabs, horizontaal
-           scrollend" naar "3 vaste tabs + Meer" in een grid met evenveel kolommen als items — geen
-           scroll meer nodig (zie MOBILE_PRIMARY_TAB_COUNT hierboven): een eerdere versie liet dat
-           stripje zelf ook scrollen, maar dat oogde op een telefoon gewoon als "2 tabs + Meer" zonder
-           enig duidelijk signaal dat Verwachte XI's nog een derde, verborgen tab was. Elke kolom is nu
-           altijd volledig zichtbaar; lange labels breken desnoods over 2 regels (zie
-           .fdr-tab-btn-mobile-primary). Boven de drempel is er ruim plaats voor alle 8 tabs, dus blijft
-           de vertrouwde scrollbalk daar actief. */
-        .fdr-tabs-mobile { display: none; }
-        @media (max-width: 700px) {
-          .fdr-tabs-desktop { display: none !important; }
-          .fdr-tabs-mobile { display: grid; }
-        }
-        /* Icoon boven een kort label, zelfde verticale opbouw als een bottom-nav-bar in een native app
-           — gekozen nadat het vroegere patroon (volledige tab-naam, evt. over 2 regels) op smalle
-           telefoons alsnog middenin woorden ("Verwachte" -> "Verwa/chte") bleek af te breken. */
-        .fdr-tab-btn-mobile-primary {
-          display: flex; flex-direction: column; align-items: center; justify-content: center;
-          gap: 3px; text-align: center; white-space: nowrap !important; line-height: 1.1;
-          min-height: 44px; min-width: 0; padding: 6px 2px !important;
-          font-size: 10px !important; letter-spacing: 0.01em !important;
-        }
 
         /* Toetsenbord-focus staat in src/styles/base.css. */
 
@@ -1691,7 +1627,7 @@ export default function FDRTool() {
            Expliciete properties i.p.v. 'all': dat laatste laat de browser bij elke repaint élke
            eigenschap bewaken, inclusief layout-properties. */
         button, select, [role="button"],
-        .fdr-toolbar-btn, .fdr-icon-btn, .fdr-tab-btn, .fdr-touch-target,
+        .fdr-toolbar-btn, .fdr-icon-btn, .fdr-touch-target,
         .fdr-ranking-row, .fdr-club-chip {
           transition: background-color .15s ease, border-color .15s ease,
                       color .15s ease, transform .12s ease, filter .15s ease;
@@ -1714,12 +1650,6 @@ export default function FDRTool() {
           .fdr-ranking-row:hover {
             background: rgba(255,255,255,.07) !important;
             border-color: rgba(51,237,213,.35) !important;
-          }
-          /* Niet op de actieve tab: die staat al teal onderlijnd, en hem bij hover naar wit
-             trekken leest juist als "niet actief". */
-          .fdr-tab-btn:not([aria-current="page"]):hover {
-            color: var(--text-1) !important;
-            border-bottom-color: rgba(51,237,213,.5) !important;
           }
           /* Een al geselecteerde chip houdt bewust zijn eigen staat: de vergelijk-chips in
              FDRTab zijn dan ingevuld teal met donkere tekst, en daar een halftransparante laag
@@ -1790,27 +1720,6 @@ export default function FDRTool() {
           }
         }
 
-        /* Speler-sheet (zie components/PlayerSheet.jsx). Op desktop een gecentreerde modal, op
-           mobiel een bottom sheet: daar is de bovenkant van het scherm buiten duimbereik, en een
-           paneel dat van onder komt sluit aan bij wat een telefoongebruiker van een detailweergave
-           verwacht. Zelfde breekpunt als de rest van de mobiele opmaak. */
-        .fdr-sheet-overlay { align-items: center; padding: 20px; }
-        .fdr-sheet { border-radius: 16px; }
-        @media (max-width: 640px) {
-          /* Gecentreerd i.p.v. vastgeplakt aan de onderrand. Als bottom sheet vulde hij het scherm tot
-             de onderste pixel, waardoor het paneel eerder aanvoelde als een nieuwe pagina dan als iets
-             dat bovenop de lijst ligt; met marge rondom en een rondom afgeronde rand blijft zichtbaar
-             dat de lijst eronder gewoon blijft staan. */
-          .fdr-sheet-overlay { align-items: center; padding: 12px; }
-          .fdr-sheet {
-            border-radius: 16px;
-            max-width: none;
-            max-height: 84vh;
-            /* Respecteert de home-indicator op toestellen zonder fysieke knop. */
-            margin-bottom: env(safe-area-inset-bottom, 0px);
-          }
-        }
-
         /* Alleen de transities, niet de animaties: de enige animatie op de site is de
            laad-spinner (.fdr-spin), en die stilzetten maakt van een "bezig"-signaal een
            bevroren icoontje. */
@@ -1829,30 +1738,9 @@ export default function FDRTool() {
             min-width: 44px !important;
             min-height: 44px !important;
           }
-          .fdr-tab-btn {
-            min-height: 44px;
-          }
           .fdr-touch-target {
             min-height: 44px;
           }
-        }
-        .fdr-footer-link {
-          color: inherit;
-          text-decoration: underline;
-          text-underline-offset: 2px;
-          transition: color 0.15s ease;
-        }
-        .fdr-footer-link:hover, .fdr-footer-link:focus-visible {
-          color: var(--text-2);
-        }
-        .fdr-footer-link img {
-          vertical-align: -4px;
-          margin-right: 3px;
-          opacity: 0.8;
-          transition: opacity 0.15s ease;
-        }
-        .fdr-footer-link:hover img, .fdr-footer-link:focus-visible img {
-          opacity: 1;
         }
         .fpl-toolbar-actions {
           display: flex;
@@ -1868,18 +1756,7 @@ export default function FDRTool() {
           flex-wrap: wrap;
         }
         .fdr-btn-label-short { display: none; }
-        .fdr-tab-btn {
-          background: none; border: none; cursor: pointer;
-          padding: 10px 18px; font-size: 14px; font-weight: 800;
-          text-transform: uppercase; letter-spacing: 0.03em;
-          margin-bottom: -1px; transition: color 0.15s ease, border-color 0.15s ease;
-          flex-shrink: 0; white-space: nowrap;
-        }
         @media (max-width: 640px) {
-          .fdr-tab-btn {
-            font-size: 12px !important;
-            padding: 8px 12px !important;
-          }
           .fdr-section-title {
             font-size: 14px !important;
             gap: 6px !important;
@@ -1935,44 +1812,9 @@ export default function FDRTool() {
           .fpl-toolbar-secondary .fdr-btn-label-short {
             display: inline !important;
           }
-          /* De header nam op een telefoon 246 van de 844 beschikbare pixels in — bijna een derde van
-             het scherm, waardoor de eerste tabelrij pas op y=856 begon en je dus nul fixtures zag
-             zonder te scrollen. Alles hieronder dient dat ene doel: de header onder de 140px.
-
-             Logo en titel staan nu weer NAAST elkaar (i.p.v. gestapeld) en de titel past dankzij de
-             kleinere maat hieronder op één regel — gestapeld kostte dat twee blokken onder elkaar,
-             terwijl één regel met een kleiner logo hetzelfde zegt in de helft van de hoogte. */
-          .fdr-header {
-            flex-direction: column !important;
-            align-items: flex-start !important;
-            gap: 8px !important;
-          }
-          .fdr-header img {
-            margin-top: 0 !important;
-            width: 30px !important;
-            height: 30px !important;
-          }
-          .fdr-brand {
-            flex-direction: row !important;
-            align-items: center !important;
-            gap: 10px !important;
-          }
-          /* Op één regel: 28px (de ondergrens van de clamp) brak "FPL PRO LEAGUE TOOLS" nog steeds in
-             tweeën binnen 390px. */
-          .fdr-brand-title {
-            font-size: 19px !important;
-            white-space: nowrap !important;
-            letter-spacing: 0 !important;
-          }
-          /* De tagline legt uit wat de site is; dat weet je na één blik op de tabbalk eronder ook. Op
-             een telefoon is die uitleg 3 regels waard die je van de tool zelf afhouden. */
-          .fdr-tagline { display: none !important; }
           /* Intro-tekst van de FDR-tab: zelfde afweging, en de uitleg staat sowieso al achter de
              ⓘ-knop in de toolbar. */
           .fdr-tab-intro { display: none !important; }
-          .fdr-content {
-            padding-top: 10px !important;
-          }
           /* Sectiekoppen staan op een telefoon dicht op elkaar gestapeld (vier stuks boven de tabel);
              12px eronder is daar meer lucht dan nodig. De kop zelf blijft 44px hoog, dus het
              aanraakdoel verandert niet. */

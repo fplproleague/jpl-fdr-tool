@@ -17,58 +17,31 @@ import {
   stateFromSearch, searchFromState, buildSheetNameResolver, MIN_MINUTES_PER90,
 } from '../spelers';
 
+import { getSessionPlayers, loadPlayers } from '../data/playersApi';
+
 const SpelerPopup = lazy(() => import('../components/SpelerPopup'));
 
 const PAGE_SIZE = 60;
-const LOCAL_CACHE_KEY = 'fpl_proleague_spelers_cache_v1';
-
 // --- Data ophalen --------------------------------------------------------------------------------
-// Eén keer per sessie (module-niveau), zodat terugkeren naar de tab niet opnieuw laadt.
-let sessionData = null;
-
-function readLocalCache() {
-  try {
-    const raw = window.localStorage?.getItem(LOCAL_CACHE_KEY);
-    const parsed = raw ? JSON.parse(raw) : null;
-    return parsed && Array.isArray(parsed.players) ? parsed : null;
-  } catch {
-    return null;
-  }
-}
-
-function writeLocalCache(data) {
-  try {
-    window.localStorage?.setItem(LOCAL_CACHE_KEY, JSON.stringify(data));
-  } catch {
-    // vol of geblokkeerd: geen probleem, dan is er gewoon geen reservekopie in deze browser
-  }
-}
-
+// Eén keer per sessie, gedeeld met de andere tabs (zie src/data/playersApi.js): terugkeren naar de
+// tab laadt niet opnieuw, en de spelersfoto's op andere tabs gebruiken dezelfde data.
 function useSpelersData() {
-  const [state, setState] = useState(() => (
-    sessionData ? { data: sessionData, loading: false, error: null, fromLocal: false } : { data: null, loading: true, error: null, fromLocal: false }
-  ));
+  const [state, setState] = useState(() => {
+    const data = getSessionPlayers();
+    return data ? { data, loading: false, error: null, fromLocal: false } : { data: null, loading: true, error: null, fromLocal: false };
+  });
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (force = true) => {
     setState(s => ({ ...s, loading: true, error: null }));
-    try {
-      const response = await fetch('/api/players');
-      const body = await response.json().catch(() => null);
-      if (!response.ok || !body || !Array.isArray(body.players)) throw new Error(body?.error || `HTTP ${response.status}`);
-      sessionData = body;
-      if (!body.stale) writeLocalCache(body);
-      setState({ data: body, loading: false, error: null, fromLocal: false });
-    } catch (err) {
-      const local = readLocalCache();
-      setState({ data: local, loading: false, error: String(err?.message ?? err), fromLocal: Boolean(local) });
-    }
+    const result = await loadPlayers({ force });
+    setState({ ...result, loading: false });
   }, []);
 
   useEffect(() => {
-    if (!sessionData) load();
+    if (!getSessionPlayers()) load(false);
   }, [load]);
 
-  return { ...state, reload: load };
+  return { ...state, reload: () => load(true) };
 }
 
 // --- Kleine UI-stukken ---------------------------------------------------------------------------
