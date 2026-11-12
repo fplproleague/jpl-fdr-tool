@@ -3,36 +3,11 @@
 import { memo } from 'react';
 import { FIXTURES, GW_COUNT } from '../constants';
 import { MiniFixtureBadge } from './MiniFixtureBadge';
+import { PlayerFace } from '../ui/PlayerFace';
 
-export const PlayerPhoto = memo(function PlayerPhoto({ player, size = 28 }) {
-  const initials = (player.short || player.name || '?')
-    .split(/\s+/).map(s => s[0]).join('').slice(0, 2).toUpperCase();
-  const box = {
-    width: `${size}px`, height: `${size}px`, borderRadius: '50%', flexShrink: 0,
-    background: 'rgba(255,255,255,0.08)', overflow: 'hidden',
-    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-  };
-  if (!player.photo) {
-    return (
-      <span aria-hidden="true" style={{ ...box, color: 'var(--text-2)', fontSize: `${Math.round(size * 0.38)}px`, fontWeight: 800 }}>
-        {initials}
-      </span>
-    );
-  }
-  return (
-    <span aria-hidden="true" style={box}>
-      <img
-        src={player.photo}
-        alt=""
-        loading="lazy"
-        decoding="async"
-        width={size}
-        height={size}
-        style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top' }}
-        onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
-      />
-    </span>
-  );
+// Oude naam, blijft bestaan als alias: de foto komt sinds de rework uit ui/PlayerFace (vierkant, spec §5.7).
+export const PlayerPhoto = memo(function PlayerPhoto({ player, size = 24 }) {
+  return <PlayerFace player={player} size={size} />;
 });
 
 // Punten per speeldag als mini-staafjes. Niet gespeeld = een klein grijs streepje (geen staaf van 0,

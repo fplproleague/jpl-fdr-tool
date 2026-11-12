@@ -1,103 +1,124 @@
-// Gedeeld frame voor de detailpanelen (speler en club). Zat eerst in PlayerSheet.jsx; toen de
-// club-sheet erbij kwam is het hieruit gelicht, zodat er maar één plek is waar de dialoog-semantiek en
-// het focusgedrag staan — twee half-gelijke kopieën lopen gegarandeerd uit elkaar.
+// Gedeeld frame voor de detailpanelen (speler, club, ratings, filters, vergelijken, spelerskiezer).
+// Eén plek voor de dialoog-semantiek en het focusgedrag.
 //
-// Op desktop een gecentreerde modal (zelfde patroon als de info-modal in FDRTool.jsx), op mobiel een
-// bottom sheet — zie .fdr-sheet in het <style>-blok van FDRTool.jsx.
+// Sinds de rework (spec §5.10): op desktop een LADE RECHTS (480px, volle hoogte) zodat de tabel ernaast
+// zichtbaar blijft; op gsm een BOTTOM SHEET (max 88vh) met een greep bovenaan, te sluiten door naar
+// beneden te vegen, met Escape of met de terugknop (die laatste regelt FDRTool via de URL).
 //
 // Stapelen kan niet, en dat wordt hier niet afgedwongen maar in FDRTool.jsx: die houdt één sheet-state
-// bij, dus een sheet die vanuit een sheet opent, vervangt de vorige. Op een telefoon zijn drie lagen
-// diep onbruikbaar.
-import { useEffect, useRef } from 'react';
+// bij, dus een sheet die vanuit een sheet opent, vervangt de vorige.
+import { useCallback, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
+import '../ui/Button.css';
+import '../ui/Sheet.css';
 
-export function SheetSection({ title, children }) {
+export function SheetSection({ title, children, action }) {
   return (
-    <section style={{ marginTop: '16px' }}>
-      <h4 className="fdr-title" style={{
-        color: 'var(--text-3)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.06em',
-        margin: '0 0 8px', fontWeight: 800,
-      }}>
-        {title}
-      </h4>
+    <section className="ui-sheet-section">
+      {(title || action) && (
+        <div className="ui-sheet-section__head">
+          {title && <h3 className="label ui-sheet-section__title">{title}</h3>}
+          {action}
+        </div>
+      )}
       {children}
     </section>
   );
 }
 
-export const sheetEmptyTextStyle = { color: 'var(--text-3)', fontSize: '12px', margin: 0 };
+export const sheetEmptyTextStyle = { color: 'var(--text-3)', fontSize: 'var(--fs-meta)', margin: 0 };
 
-// maxWidth: standaard 460px; de spelers-popup van de Spelers-tab vraagt iets meer ruimte voor zijn
-// wedstrijdtabel.
-export default function Sheet({ titleId, closeLabel, onClose, header, children, maxWidth = '460px' }) {
-  const dialogRef = useRef(null);
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-  // Focus naar de sheet bij openen en terug naar het element dat 'm opende bij sluiten. Zonder dit
-  // staat de toetsenbordfocus na het openen nog achter de sheet, en na het sluiten bovenaan de pagina
-  // i.p.v. bij de rij waar de gebruiker gebleven was.
+// Gedeeld gedrag voor elke overlay (Sheet en het "Meer"-menu): focus erin bij openen en terug naar de
+// opener bij sluiten, focus-trap, Escape, scroll-lock op de pagina en vegen-om-te-sluiten op gsm.
+export function useOverlayBehavior({ onClose, panelRef }) {
   useEffect(() => {
     const opener = document.activeElement;
-    dialogRef.current?.focus();
+    panelRef.current?.focus({ preventScroll: true });
     return () => {
-      if (opener instanceof HTMLElement && document.contains(opener)) opener.focus();
+      if (opener instanceof HTMLElement && document.contains(opener)) opener.focus({ preventScroll: true });
     };
-  }, []);
+  }, [panelRef]);
 
   useEffect(() => {
-    const onKeyDown = (e) => { if (e.key === 'Escape') onClose(); };
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') { onClose(); return; }
+      if (e.key !== 'Tab' || !panelRef.current) return;
+      const items = [...panelRef.current.querySelectorAll(FOCUSABLE)].filter(el => el.offsetParent !== null);
+      if (items.length === 0) { e.preventDefault(); return; }
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (e.shiftKey && (document.activeElement === first || document.activeElement === panelRef.current)) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [onClose]);
+  }, [onClose, panelRef]);
 
-  // Scroll-lock. Zonder dit schuift de lijst áchter de sheet gewoon mee zodra je op de sheet scrollt,
-  // en ben je bij het sluiten je plek in de ranglijst kwijt — op mobiel meteen merkbaar, want daar
-  // vult de sheet bijna het hele scherm. De vorige waarde wordt bewaard en teruggezet i.p.v. hard op
-  // '' gezet, zodat een eventuele andere overflow-instelling op body niet stilletjes sneuvelt.
+  // Scroll-lock: anders schuift de lijst áchter de sheet mee en ben je bij het sluiten je plek kwijt.
   useEffect(() => {
     const previous = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = previous; };
   }, []);
 
+  // Vegen naar beneden om te sluiten (enkel op gsm, waar het paneel een bottom sheet is). Start enkel
+  // wanneer de inhoud bovenaan staat, zodat gewoon scrollen in de sheet niet per ongeluk sluit.
+  const drag = useRef(null);
+  const onTouchStart = useCallback((e) => {
+    const panel = panelRef.current;
+    if (!panel || window.matchMedia('(min-width: 900px)').matches) return;
+    const scroller = panel.querySelector('.ui-sheet__body') ?? panel;
+    if (scroller.scrollTop > 0 && !e.target.closest('.ui-sheet__grip, .ui-sheet__head')) return;
+    drag.current = { y: e.touches[0].clientY, dy: 0 };
+  }, [panelRef]);
+  const onTouchMove = useCallback((e) => {
+    if (!drag.current || !panelRef.current) return;
+    const dy = Math.max(0, e.touches[0].clientY - drag.current.y);
+    drag.current.dy = dy;
+    panelRef.current.style.transform = dy ? `translateY(${dy}px)` : '';
+  }, [panelRef]);
+  const onTouchEnd = useCallback(() => {
+    if (!drag.current || !panelRef.current) return;
+    const { dy } = drag.current;
+    drag.current = null;
+    if (dy > 90) { onClose(); return; }
+    panelRef.current.style.transform = '';
+  }, [onClose, panelRef]);
+
+  return { onTouchStart, onTouchMove, onTouchEnd };
+}
+
+// header: vrije inhoud links van de sluitknop (titel, foto, ...). title: eenvoudige titel als string.
+// width: breedte van de lade op desktop (standaard 480px).
+export default function Sheet({ titleId, title, closeLabel, onClose, header, children, footer, width, maxWidth }) {
+  const panelRef = useRef(null);
+  const touch = useOverlayBehavior({ onClose, panelRef });
+  const drawerWidth = width ?? (maxWidth && parseInt(maxWidth, 10) > 480 ? maxWidth : undefined);
+
   return (
-    <div
-      className="fdr-sheet-overlay"
-      onClick={onClose}
-      style={{
-        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 70,
-        display: 'flex', justifyContent: 'center',
-      }}
-    >
+    <div className="ui-sheet-overlay" onClick={onClose}>
       <div
-        ref={dialogRef}
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className="fdr-sheet"
+        className="ui-sheet"
+        style={drawerWidth ? { '--sheet-w': drawerWidth } : undefined}
         onClick={e => e.stopPropagation()}
-        style={{
-          background: 'var(--ink-1)', border: '1px solid rgba(255,255,255,0.1)',
-          width: '100%', maxWidth, maxHeight: '86vh', overflowY: 'auto',
-          padding: '20px', outline: 'none',
-        }}
+        {...touch}
       >
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-          {header}
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={closeLabel}
-            className="fdr-icon-btn"
-            style={{
-              background: 'none', border: 'none', color: 'var(--text-2)', cursor: 'pointer',
-              flexShrink: 0, padding: '4px', display: 'inline-flex',
-            }}
-          >
-            <X size={18} aria-hidden="true" />
+        <div className="ui-sheet__grip" aria-hidden="true" />
+        <div className="ui-sheet__head">
+          {header ?? <h2 id={titleId} className="ui-sheet__title">{title}</h2>}
+          <button type="button" onClick={onClose} aria-label={closeLabel} className="ui-btn ui-btn--icon ui-btn--bare ui-sheet__close">
+            <X aria-hidden="true" strokeWidth={1.75} />
           </button>
         </div>
-        {children}
+        <div className="ui-sheet__body">{children}</div>
+        {footer && <div className="ui-sheet__footer">{footer}</div>}
       </div>
     </div>
   );

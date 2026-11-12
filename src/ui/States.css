@@ -1,0 +1,28 @@
+/* Toestanden (spec §5.11): leeg, laden, fout. Geen iconen of illustraties bij leeg. */
+.ui-empty {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--s-3);
+  padding: var(--s-5) 0; color: var(--text-2);
+  font: 400 var(--fs-body)/var(--lh-body) var(--font-ui);
+  max-width: var(--max-read);
+}
+.ui-empty p { margin: 0; }
+
+.ui-error {
+  display: flex; align-items: center; flex-wrap: wrap; gap: var(--s-3);
+  padding: var(--s-3) var(--s-4); margin: var(--s-3) 0;
+  border: 1px solid rgba(255, 90, 71, 0.5); background: var(--danger-wash);
+  color: var(--text-1); font: 400 var(--fs-ui)/var(--lh-ui) var(--font-ui);
+}
+.ui-error__text { flex: 1; min-width: 200px; }
+.ui-error svg { color: var(--danger); flex-shrink: 0; width: 16px; height: 16px; }
+
+.ui-notice {
+  display: flex; align-items: center; flex-wrap: wrap; gap: var(--s-3);
+  padding: var(--s-3) 0; color: var(--text-2); font: 400 var(--fs-ui)/var(--lh-ui) var(--font-ui);
+  border-bottom: 1px solid var(--line);
+}
+
+.ui-skel { display: block; background: var(--ink-1); border-radius: var(--r-0); }
+.ui-skel-rows { display: flex; flex-direction: column; }
+.ui-skel-row { display: flex; align-items: center; gap: var(--s-3); height: 36px; border-bottom: 1px solid var(--line); }
+@media (pointer: coarse) { .ui-skel-row { height: 44px; } }

@@ -25,6 +25,7 @@
   /* Rollen */
   --accent:     #33EDD5;  /* aqua uit het logo, 12.0:1 op ink-0 */
   --accent-ink: #061B1C;  /* tekst op aqua */
+  --accent-hover: #5CF2DF; /* primary-knop bij hover */
   --danger:     #FF5A47;  /* 5.8:1 op ink-0, 5.1:1 op ink-1. Als tekst enkel op ink-0/ink-1 */
   --positive:   #3FD68F;  /* 9.5:1 als tekst */
   --warning:    #F2A33A;  /* oranje */

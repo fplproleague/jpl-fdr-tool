@@ -1,0 +1,25 @@
+/* PlayerCell (spec §5.8) */
+.ui-pcell { display: inline-flex; align-items: center; gap: var(--s-2); min-width: 0; max-width: 100%; vertical-align: middle; }
+.ui-pcell__text { display: flex; flex-direction: column; min-width: 0; }
+.ui-pcell__name {
+  display: inline-flex; align-items: center; gap: var(--s-1); min-width: 0;
+  font: 600 var(--fs-ui)/var(--lh-ui) var(--font-ui); color: var(--text-1);
+}
+.ui-pcell__name > span:not(.ui-badge), .ui-pcell__btn { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ui-pcell__btn {
+  border: 0; padding: 0; background: none; color: inherit; font: inherit; cursor: pointer; text-align: left;
+  min-width: 0;
+}
+.ui-pcell__btn:hover { text-decoration: underline; text-underline-offset: 2px; }
+.ui-pcell__sub {
+  font: 400 var(--fs-meta)/var(--lh-meta) var(--font-ui); color: var(--text-3);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ui-pcell__short { display: none; }
+@media (max-width: 700px) {
+  .ui-pcell__full { display: none; }
+  .ui-pcell__short { display: inline; }
+}
+@media (min-width: 701px) {
+  .ui-pcell__sub.is-mobile-only { display: none; }
+}

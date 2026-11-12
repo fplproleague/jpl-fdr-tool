@@ -1,0 +1,114 @@
+/* AppShell (spec §5.1) */
+.ui-shell { min-height: 100vh; background: var(--ink-0); display: flex; flex-direction: column; }
+
+/* --- Topbalk --------------------------------------------------------------------------- */
+.ui-topbar {
+  position: sticky; top: 0; z-index: var(--z-nav);
+  height: var(--topbar-h); background: var(--ink-0); border-bottom: 1px solid var(--line);
+}
+.ui-topbar__inner {
+  height: 100%; max-width: var(--max-data); margin: 0 auto; padding: 0 var(--gutter);
+  display: flex; align-items: stretch; gap: var(--s-5);
+}
+.ui-wordmark {
+  display: inline-flex; align-items: baseline; gap: 6px; align-self: center;
+  color: var(--text-1); text-decoration: none; white-space: nowrap; flex-shrink: 0;
+}
+.ui-wordmark__name {
+  font: 800 18px/1 var(--font-ui); font-stretch: 68%; text-transform: uppercase; letter-spacing: -0.01em;
+}
+.ui-wordmark__sub { font: 400 var(--fs-meta)/1 var(--font-ui); color: var(--text-3); }
+
+.ui-topnav { display: flex; align-items: stretch; gap: var(--s-1); min-width: 0; }
+.ui-topnav__item {
+  position: relative; display: inline-flex; align-items: center; padding: 0 var(--s-2);
+  color: var(--text-2); text-decoration: none; white-space: nowrap;
+  font: 600 var(--fs-ui)/var(--lh-ui) var(--font-ui);
+  transition: color var(--dur-fast) var(--ease);
+}
+.ui-topnav__item:hover { color: var(--text-1); }
+.ui-topnav__item[aria-current="page"] { color: var(--text-1); }
+/* De 2px aqua onderlijn valt precies op de 1px-lijn van de balk. */
+.ui-topnav__item[aria-current="page"]::after {
+  content: ''; position: absolute; left: var(--s-2); right: var(--s-2); bottom: -1px; height: 2px; background: var(--accent);
+}
+.ui-topnav__sep { width: 1px; background: var(--line-strong); margin: 16px var(--s-2); flex-shrink: 0; }
+
+.ui-new-marker {
+  display: inline-block; width: 6px; height: 6px; background: var(--accent);
+  position: absolute; top: 12px; right: 0;
+}
+
+.ui-topbar__end { margin-left: auto; display: flex; align-items: center; gap: var(--s-4); flex-shrink: 0; }
+.ui-deadline {
+  font: 600 var(--fs-ui)/1 var(--font-ui); color: var(--text-1); white-space: nowrap;
+}
+.ui-deadline .num { font-size: var(--fs-ui); }
+.ui-deadline__gw { color: var(--text-3); font-weight: 600; }
+.ui-deadline.is-soon, .ui-deadline.is-soon .ui-deadline__gw { color: var(--accent); }
+.ui-deadline.is-danger, .ui-deadline.is-danger .ui-deadline__gw { color: var(--danger); }
+
+.ui-minileague {
+  display: inline-flex; align-items: center; gap: 6px; border: 0; padding: 0; background: none;
+  color: var(--text-3); font: 400 var(--fs-meta)/var(--lh-meta) var(--font-ui); cursor: pointer; white-space: nowrap;
+}
+.ui-minileague .num { color: var(--text-1); }
+.ui-minileague svg { width: 14px; height: 14px; }
+.ui-minileague:hover { color: var(--text-1); }
+
+/* --- Inhoud ----------------------------------------------------------------------------- */
+.ui-main {
+  flex: 1; width: 100%; max-width: var(--max-data); margin: 0 auto; padding: 0 var(--gutter) var(--s-6);
+  outline: none;
+}
+
+/* --- Footer ----------------------------------------------------------------------------- */
+.ui-footer {
+  width: 100%; max-width: var(--max-data); margin: 0 auto; padding: var(--s-4) var(--gutter) var(--s-6);
+  border-top: 1px solid var(--line);
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1) var(--s-2);
+  color: var(--text-3); font: 400 var(--fs-meta)/var(--lh-meta) var(--font-ui);
+}
+.ui-footer__link { color: var(--text-2); text-decoration: underline; text-underline-offset: 2px; }
+.ui-footer__link:hover { color: var(--text-1); }
+
+/* --- Onderbalk (gsm) -------------------------------------------------------------------- */
+.ui-bottomnav { display: none; }
+
+@media (max-width: 1199px) {
+  .ui-minileague--top { display: none; }
+}
+@media (max-width: 1100px) and (min-width: 900px) {
+  .ui-topbar__inner { gap: var(--s-3); }
+  .ui-topnav__item { padding: 0 6px; }
+  .ui-topnav__item[aria-current="page"]::after { left: 6px; right: 6px; }
+  .ui-topbar__lang { display: none; }
+}
+
+@media (max-width: 899px) {
+  .ui-topnav, .ui-topbar__lang { display: none; }
+  .ui-wordmark__name { font-size: 15px; }
+  .ui-topbar__inner { gap: var(--s-3); }
+  .ui-main { padding-bottom: calc(var(--bottomnav-h) + env(safe-area-inset-bottom, 0px) + 16px); }
+  .ui-footer { padding-bottom: calc(var(--bottomnav-h) + env(safe-area-inset-bottom, 0px) + 24px); }
+
+  .ui-bottomnav {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: var(--z-nav);
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    height: calc(var(--bottomnav-h) + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: var(--ink-1); border-top: 1px solid var(--line-strong);
+  }
+  .ui-bottomnav__item {
+    position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    min-width: 0; border: 0; padding: 0; background: none; cursor: pointer;
+    color: var(--text-3); text-decoration: none; font: 500 var(--fs-label)/1 var(--font-ui);
+  }
+  .ui-bottomnav__item svg { width: 20px; height: 20px; }
+  .ui-bottomnav__label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .ui-bottomnav__item[aria-current="page"] { color: var(--text-1); }
+  .ui-bottomnav__item[aria-current="page"]::before {
+    content: ''; position: absolute; top: -1px; left: 20%; right: 20%; height: 2px; background: var(--accent);
+  }
+  .ui-bottomnav__item .ui-new-marker { top: 8px; right: calc(50% - 16px); }
+}

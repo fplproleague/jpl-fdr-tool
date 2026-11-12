@@ -1,0 +1,45 @@
+/* Segmented control (spec §5.4): één rij aaneengesloten segmenten, actief = omgekeerd. */
+.ui-seg-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.ui-seg-wrap::-webkit-scrollbar { display: none; }
+.ui-seg-wrap.is-overflowing {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
+}
+.ui-seg-wrap.is-overflowing.is-end { -webkit-mask-image: none; mask-image: none; }
+
+.ui-seg {
+  display: inline-flex; flex-wrap: nowrap; vertical-align: middle;
+  border: 1px solid var(--line-strong); border-radius: var(--r-1);
+  white-space: nowrap;
+}
+.ui-seg__item {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--s-1);
+  height: 30px; padding: 0 var(--s-3);
+  border: 0; border-left: 1px solid var(--line-strong);
+  background: transparent; color: var(--text-2);
+  font: 500 var(--fs-ui)/var(--lh-ui) var(--font-ui);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.ui-seg__item:first-child { border-left: 0; }
+.ui-seg__item svg { width: 14px; height: 14px; }
+.ui-seg__item[aria-checked="true"] {
+  background: var(--invert-bg); color: var(--invert-text); font-weight: 600; cursor: default;
+}
+.ui-seg__item:disabled { color: var(--text-4); cursor: default; }
+.ui-seg__item:focus-visible { outline-offset: -2px; }
+.ui-seg--sm .ui-seg__item { height: 22px; padding: 0 var(--s-2); font-size: var(--fs-meta); }
+
+@media (hover: hover) and (pointer: fine) {
+  .ui-seg__item:not([aria-checked="true"]):not(:disabled):hover { background: var(--ink-2); color: var(--text-1); }
+}
+@media (pointer: coarse) {
+  .ui-seg__item { height: 38px; }
+  .ui-seg--sm .ui-seg__item { height: 32px; }
+}

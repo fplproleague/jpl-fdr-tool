@@ -17,7 +17,7 @@
 export const LANGUAGES = ['nl', 'fr'];
 export const DEFAULT_LANGUAGE = 'nl';
 
-const STRINGS = {
+const STRINGS = {
   nl: {
     // --- Chrome: header, nav, footer, taal-toggle ---
     'header.tagline': 'Interactieve tools voor Fantasy Pro League — gemaakt door @fpl_proleague.',
@@ -32,19 +32,15 @@ const STRINGS = {
     'nav.fdr': 'FDR',
     'nav.teamplanner': 'Team Planner',
     'nav.predictedlineups': "Verwachte XI's",
-    'nav.bonuspunten': 'Bonuspunten',
-    'nav.setpieces': 'Set Pieces',
-    'nav.watchlist': 'Watchlist',
+    'nav.bonuspunten': 'Bonuspunten',    'nav.setpieces': "Set pieces",
     'nav.kaarten': 'Kaarten',
-    'nav.pricechanges': 'Price Changes',
     'nav.spelers': 'Spelers',
     'nav.klassement': 'Klassement',
     'nav.more': 'Meer',
     // Kort label voor de vaste mobiele tab-kolommen (zie MOBILE_PRIMARY_TABS/-ICONS in FDRTool.jsx) —
     // een enkel, kort woord dat naast een icoon past zonder af te breken; de volledige naam (nav.fdr
     // e.a. hierboven) is voor het brede scherm en de "Meer"-dropdown.
-    'nav.compact.fdr': 'FDR',
-    'nav.compact.teamplanner': 'Planner',
+    'nav.compact.fdr': 'FDR',    'nav.compact.teamplanner': "Planner",
     'nav.compact.predictedlineups': "XI's",
     'route.fdr.title': 'FDR — Fixture Difficulty Rating | Fantasy Pro League Tools',
     'route.fdr.description': 'Interactieve Fixture Difficulty Rating voor alle 18 clubs van de Jupiler Pro League. Pas de ratings aan naar jouw eigen inschatting.',
@@ -56,18 +52,13 @@ const STRINGS = {
     'route.bonuspunten.description': 'Ranking van Jupiler Pro League-spelers op bonuspunten, met een zoekbalk om een specifieke speler op te zoeken.',
     'route.setpieces.title': 'Set Pieces — strafschop-, corner- en vrijetrapnemers | Fantasy Pro League Tools',
     'route.setpieces.description': 'Huidige strafschop-, corner- en vrijetrapnemers voor elke Belgische Pro League-club.',
-    'route.watchlist.title': 'Watchlist — volg je spelers | Fantasy Pro League Tools',
-    'route.watchlist.description': 'Houd je favoriete Fantasy Pro League-spelers in de gaten, met hun eerstvolgende fixtures en moeilijkheidsgraad.',
     'route.kaarten.title': 'Kaarten — schorsingsrisico | Fantasy Pro League Tools',
     'route.kaarten.description': 'Gele kaarten per speler en wie het dichtst bij een schorsing zit.',
     'route.spelers.title': 'Spelers — database met alle spelers | Fantasy Pro League Tools',
     'route.spelers.description': 'Alle Fantasy Pro League-spelers: filter, sorteer en vergelijk op punten, vorm, prijs, bonuspunten en eigendom.',
     'route.klassement.title': 'Klassement — zoek je team en minileague | Fantasy Pro League Tools',
     'route.klassement.description': 'Zoek je Fantasy Pro League-team op naam in het algemene of speeldagklassement en bekijk het klassement van je minileague.',
-    'route.pricechanges.title': 'Price Changes — prijswijzigingen | Fantasy Pro League Tools',
-    'route.pricechanges.description': 'Prijswijzigingen in Fantasy Pro League. In het spel veranderen prijzen pas vanaf gameweek 7.',
-    'footer.madeBy': 'Gemaakt door',
-    'footer.season': 'Fantasy Pro League 26/27 · Data eigen analyse',
+    'footer.madeBy': 'Gemaakt door',    'footer.season': "Fantasy Pro League 26/27",
     'footer.lastUpdated': 'Laatst bijgewerkt: {{date}}',
 
     // --- Info-modal (FDR-uitleg) ---
@@ -209,8 +200,6 @@ const STRINGS = {
     'screenshotUpload.retry': 'Probeer opnieuw',
 
     // --- Price Changes ---
-    'priceChanges.p1': 'In Fantasy Pro League veranderen spelersprijzen pas vanaf gameweek 7. Tot dan blijft elke prijs gelijk aan de startprijs, dus valt er nog niets te melden.',
-    'priceChanges.p2': 'Vanaf GW7 documenteren we hier alle stijgers en dalers.',
 
     // --- Team Planner ---
     'teamPlanner.intro': 'Stel je selectie samen, plan transfers en bekijk je team, bank en kapitein op elk moment in het seizoen. Deze planner slaat automatisch op in je browser.',
@@ -555,8 +544,25 @@ const STRINGS = {
 
     'shared.loading': 'Laden...',
     'shared.loadError': 'Kon spelersdatabank niet laden, probeer opnieuw.',
-    'shared.retry': 'Probeer opnieuw',
-  },
+    'shared.retry': 'Probeer opnieuw',
+    'nav.compact.spelers': "Spelers",
+    'nav.compact.more': "Meer",
+    'shell.brandSub': "tools",
+    'shell.homeAria': "FPL Pro League Tools — naar de FDR",
+    'shell.deadline': "GW{{gw}}",
+    'shell.deadlineAria': "Deadline GW{{gw}} over {{time}}",
+    'shell.live': "GW{{gw}} loopt",
+    'shell.minileague': "Minileague",
+    'shell.copyMinileague': "Kopieer",
+    'shell.copied': "Gekopieerd",
+    'shell.language': "Taal",
+    'shell.moreTitle': "Meer",
+    'shell.followX': "@fpl_proleague op X",
+    'shell.newMarker': "Nieuwe verwachte XI's",
+    'shell.closeMenu': "Menu sluiten",
+    'footer.data': "Data: Fantasy Pro League + eigen analyse",
+    'footer.updated': "Bijgewerkt {{date}}",
+  },
   fr: {
     'header.tagline': "Outils interactifs pour Fantasy Pro League — créés par @fpl_proleague.",
     'header.deadlineLabel': 'Deadline J{{gw}}',
@@ -570,17 +576,13 @@ const STRINGS = {
     'nav.fdr': 'FDR',
     'nav.teamplanner': 'Team Planner',
     'nav.predictedlineups': 'Compositions probables',
-    'nav.bonuspunten': 'Points bonus',
-    'nav.setpieces': 'Coups de pied arrêtés',
-    'nav.watchlist': 'Watchlist',
+    'nav.bonuspunten': 'Points bonus',    'nav.setpieces': "Coups de pied arrêtés",
     'nav.kaarten': 'Cartons',
-    'nav.pricechanges': 'Changements de prix',
     'nav.spelers': 'Joueurs',
     'nav.klassement': 'Classement',
     'nav.more': 'Plus',
-    'nav.compact.fdr': 'FDR',
-    'nav.compact.teamplanner': 'Planner',
-    'nav.compact.predictedlineups': 'XI',
+    'nav.compact.fdr': 'FDR',    'nav.compact.teamplanner': "Planner",
+    'nav.compact.predictedlineups': "XI",
     'route.fdr.title': 'FDR — Difficulté des matchs | Fantasy Pro League Tools',
     'route.fdr.description': "Difficulté des matchs interactive pour les 18 clubs de Jupiler Pro League. Adaptez les évaluations à votre propre avis.",
     'route.teamplanner.title': 'Team Planner — planifiez vos transferts | Fantasy Pro League Tools',
@@ -591,18 +593,13 @@ const STRINGS = {
     'route.bonuspunten.description': "Classement des joueurs de Jupiler Pro League par points bonus, avec une barre de recherche pour retrouver un joueur précis.",
     'route.setpieces.title': 'Coups de pied arrêtés — tireurs de penalty, corner et coup franc | Fantasy Pro League Tools',
     'route.setpieces.description': "Tireurs actuels de penalty, corner et coup franc pour chaque club de Pro League belge.",
-    'route.watchlist.title': 'Watchlist — suivez vos joueurs | Fantasy Pro League Tools',
-    'route.watchlist.description': "Gardez un œil sur vos joueurs Fantasy Pro League préférés, avec leurs prochains matchs et leur difficulté.",
     'route.kaarten.title': 'Cartons — risque de suspension | Fantasy Pro League Tools',
     'route.kaarten.description': "Cartons jaunes par joueur et qui est le plus proche d'une suspension.",
     'route.spelers.title': 'Joueurs — base de données de tous les joueurs | Fantasy Pro League Tools',
     'route.spelers.description': 'Tous les joueurs Fantasy Pro League : filtrez, triez et comparez selon les points, la forme, le prix, les points bonus et la popularité.',
     'route.klassement.title': 'Classement — trouvez votre équipe et votre mini-ligue | Fantasy Pro League Tools',
     'route.klassement.description': "Recherchez votre équipe Fantasy Pro League par nom dans le classement général ou d'une journée, et consultez le classement de votre mini-ligue.",
-    'route.pricechanges.title': 'Changements de prix | Fantasy Pro League Tools',
-    'route.pricechanges.description': "Changements de prix en Fantasy Pro League. Dans le jeu, les prix ne bougent qu'à partir de la journée 7.",
-    'footer.madeBy': 'Créé par',
-    'footer.season': 'Fantasy Pro League 26/27 · Analyse maison',
+    'footer.madeBy': 'Créé par',    'footer.season': "Fantasy Pro League 26/27",
     'footer.lastUpdated': 'Dernière mise à jour : {{date}}',
 
     'infoModal.title': 'Comment ça marche ?',
@@ -721,8 +718,6 @@ const STRINGS = {
     'screenshotUpload.cancel': 'Annuler',
     'screenshotUpload.retry': 'Réessayer',
 
-    'priceChanges.p1': "En Fantasy Pro League, les prix des joueurs ne changent qu'à partir de la journée 7. Jusque-là, chaque prix reste égal au prix de départ, il n'y a donc encore rien à signaler.",
-    'priceChanges.p2': "À partir de la J7, nous documenterons ici toutes les hausses et les baisses.",
 
     // --- Team Planner ---
     'teamPlanner.intro': "Composez votre équipe, planifiez vos transferts et suivez votre équipe, banc et capitaine à tout moment de la saison. Ce planificateur s'enregistre automatiquement dans votre navigateur.",
@@ -1063,7 +1058,24 @@ const STRINGS = {
 
     'shared.loading': 'Chargement...',
     'shared.loadError': "Impossible de charger la base de joueurs, réessayez.",
-    'shared.retry': 'Réessayer',
+    'shared.retry': 'Réessayer',
+    'nav.compact.spelers': "Joueurs",
+    'nav.compact.more': "Plus",
+    'shell.brandSub': "tools",
+    'shell.homeAria': "FPL Pro League Tools — vers la FDR",
+    'shell.deadline': "J{{gw}}",
+    'shell.deadlineAria': "Deadline J{{gw}} dans {{time}}",
+    'shell.live': "J{{gw}} en cours",
+    'shell.minileague': "Mini-ligue",
+    'shell.copyMinileague': "Copier",
+    'shell.copied': "Copié",
+    'shell.language': "Langue",
+    'shell.moreTitle': "Plus",
+    'shell.followX': "@fpl_proleague sur X",
+    'shell.newMarker': "Nouvelles compositions probables",
+    'shell.closeMenu': "Fermer le menu",
+    'footer.data': "Données : Fantasy Pro League + analyse maison",
+    'footer.updated': "Mis à jour le {{date}}",
   },
 };
 

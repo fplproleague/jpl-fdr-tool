@@ -1,0 +1,15 @@
+/* Tooltip (spec §5.10): omgekeerd (licht op donker), geen pijltje, geen schaduw. De hover/tap-logica
+   staat in components/Tooltip.jsx. */
+.fdr-postponed-tooltip {
+  position: fixed;
+  z-index: var(--z-toast);
+  background: var(--invert-bg);
+  color: var(--invert-text);
+  border-radius: var(--r-1);
+  padding: 6px 8px;
+  font: 500 var(--fs-meta)/var(--lh-meta) var(--font-ui);
+  width: max-content;
+  max-width: 240px;
+  text-align: left;
+  pointer-events: none;
+}
