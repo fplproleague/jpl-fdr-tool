@@ -50,18 +50,18 @@ export function BonusStatTile({ label, value, perGame, perGameQualifies, detail,
       background: 'rgba(0,0,0,0.15)', border: '1px solid rgba(255,255,255,0.08)',
       borderRadius: '8px', padding: '8px 10px',
     }}>
-      <div style={{ color: '#8F79AD', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+      <div style={{ color: 'var(--text-3)', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
         {label}
       </div>
-      <div style={{ color: '#FFF', fontWeight: 900, fontSize: '18px', lineHeight: 1.3 }}>
+      <div style={{ color: 'var(--text-1)', fontWeight: 900, fontSize: '18px', lineHeight: 1.3 }}>
         {value}
       </div>
-      <div style={{ color: '#8F79AD', fontSize: '11px' }}>
+      <div style={{ color: 'var(--text-3)', fontSize: '11px' }}>
         {comingSoon ? comingSoon : (
           <>
             {detail && `${detail} · `}
             {perGame && (
-              <span style={{ color: perGameQualifies ? '#4ECDC4' : '#8F79AD', fontWeight: perGameQualifies ? 700 : 400 }}>
+              <span style={{ color: perGameQualifies ? 'var(--accent)' : 'var(--text-3)', fontWeight: perGameQualifies ? 700 : 400 }}>
                 {perGame}
               </span>
             )}
@@ -119,10 +119,10 @@ export default function PlayerSheet({
         onError={(e) => { e.target.style.display = 'none'; }}
       />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <h3 id={headingId} className="fdr-title" style={{ color: '#FFF', fontSize: '17px', margin: 0 }}>
+        <h3 id={headingId} className="fdr-title" style={{ color: 'var(--text-1)', fontSize: '17px', margin: 0 }}>
           {name}
         </h3>
-        <div style={{ color: '#8F79AD', fontSize: '12px', marginTop: '2px' }}>
+        <div style={{ color: 'var(--text-3)', fontSize: '12px', marginTop: '2px' }}>
           {/* De clubnaam is de doorstap naar de club-sheet. Vanuit een rangschikking is dat de
               kortste weg naar "en hoe staat die club er eigenlijk voor?", zonder dat het logo in
               elke rij een eigen knop hoeft te worden. */}
@@ -134,7 +134,7 @@ export default function PlayerSheet({
               style={{
                 background: 'none', border: 'none', padding: 0, font: 'inherit', color: 'inherit',
                 cursor: 'pointer', textDecoration: 'underline',
-                textDecorationColor: 'rgba(78,205,196,0.5)', textUnderlineOffset: '3px',
+                textDecorationColor: 'rgba(51,237,213,0.5)', textUnderlineOffset: '3px',
               }}
             >
               {clubName}
@@ -160,14 +160,14 @@ export default function PlayerSheet({
               className="fdr-touch-target fdr-toolbar-btn"
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: '6px',
-                background: isWatched ? 'rgba(78,205,196,0.14)' : 'transparent',
-                color: isWatched ? '#4ECDC4' : '#C9B8E0',
-                border: `1px solid ${isWatched ? '#4ECDC4' : 'rgba(255,255,255,0.2)'}`,
+                background: isWatched ? 'rgba(51,237,213,0.14)' : 'transparent',
+                color: isWatched ? 'var(--accent)' : 'var(--text-2)',
+                border: `1px solid ${isWatched ? 'var(--accent)' : 'rgba(255,255,255,0.2)'}`,
                 borderRadius: '8px', padding: '8px 14px', fontWeight: 700, fontSize: '12px',
                 fontFamily: 'inherit', cursor: 'pointer',
               }}
             >
-              <Star size={14} fill={isWatched ? '#4ECDC4' : 'none'} aria-hidden="true" />
+              <Star size={14} fill={isWatched ? 'var(--accent)' : 'none'} aria-hidden="true" />
               {t(isWatched ? 'playerSheet.onWatchlist' : 'playerSheet.addToWatchlist')}
             </button>
           )}
@@ -178,7 +178,7 @@ export default function PlayerSheet({
               className="fdr-touch-target fdr-toolbar-btn"
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: '6px',
-                background: 'transparent', color: '#C9B8E0',
+                background: 'transparent', color: 'var(--text-2)',
                 border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px',
                 padding: '8px 14px', fontWeight: 700, fontSize: '12px',
                 fontFamily: 'inherit', cursor: 'pointer',
@@ -213,9 +213,9 @@ export default function PlayerSheet({
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{
                   width: '12px', height: '12px', borderRadius: '3px', flexShrink: 0,
-                  background: SAFETY_STYLE[lineupSlot.safety]?.border ?? '#8F79AD',
+                  background: SAFETY_STYLE[lineupSlot.safety]?.border ?? 'var(--text-3)',
                 }} />
-                <span style={{ color: '#EDE4F5', fontSize: '13px', fontWeight: 700 }}>
+                <span style={{ color: 'var(--text-1)', fontSize: '13px', fontWeight: 700 }}>
                   {t(SAFETY_LABEL_KEYS[lineupSlot.safety] ?? 'playerSheet.noData')}
                 </span>
               </div>
@@ -228,7 +228,7 @@ export default function PlayerSheet({
             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
               {setPieceRoles.map(role => (
                 <span key={role} style={{
-                  background: 'rgba(78,205,196,0.15)', border: '1px solid #4ECDC4', color: '#4ECDC4',
+                  background: 'rgba(51,237,213,0.15)', border: '1px solid var(--accent)', color: 'var(--accent)',
                   borderRadius: '999px', padding: '4px 12px', fontSize: '11px', fontWeight: 800,
                 }}>
                   {role}
@@ -240,10 +240,10 @@ export default function PlayerSheet({
 
         <Section title={t('playerSheet.cardsHeading')}>
           {cardsEntry ? (
-            <p style={{ color: '#EDE4F5', fontSize: '13px', margin: 0 }}>
-              <strong style={{ color: '#FFF' }}>{cardsEntry.cards}</strong> {t('kaarten.cardsUnit')}
+            <p style={{ color: 'var(--text-1)', fontSize: '13px', margin: 0 }}>
+              <strong style={{ color: 'var(--text-1)' }}>{cardsEntry.cards}</strong> {t('kaarten.cardsUnit')}
               {cardsEntry.cardsRemaining > 0 && (
-                <span style={{ color: cardsEntry.cardsRemaining === 1 ? '#E8C547' : '#8F79AD' }}>
+                <span style={{ color: cardsEntry.cardsRemaining === 1 ? 'var(--warning)' : 'var(--text-3)' }}>
                   {' · '}{t('playerSheet.cardsUntilSuspension', { count: cardsEntry.cardsRemaining })}
                 </span>
               )}

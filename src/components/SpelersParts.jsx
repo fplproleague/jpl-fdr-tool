@@ -14,7 +14,7 @@ export const PlayerPhoto = memo(function PlayerPhoto({ player, size = 28 }) {
   };
   if (!player.photo) {
     return (
-      <span aria-hidden="true" style={{ ...box, color: '#C9B8E0', fontSize: `${Math.round(size * 0.38)}px`, fontWeight: 800 }}>
+      <span aria-hidden="true" style={{ ...box, color: 'var(--text-2)', fontSize: `${Math.round(size * 0.38)}px`, fontWeight: 800 }}>
         {initials}
       </span>
     );
@@ -50,7 +50,7 @@ export const Sparkline = memo(function Sparkline({ spark, width = 64, height = 2
           return <rect key={s.gw} x={x} y={height - 2} width={barW} height={2} rx={1} fill="rgba(255,255,255,0.18)" />;
         }
         const h = Math.max(2, (Math.max(0, s.pts) / max) * (height - 1));
-        const color = s.pts >= 8 ? '#4ECDC4' : s.pts >= 4 ? '#8FD9D3' : s.pts < 0 ? '#C2402C' : '#A794C2';
+        const color = s.pts >= 8 ? 'var(--accent)' : s.pts >= 4 ? 'var(--text-2)' : s.pts < 0 ? 'var(--danger)' : 'var(--text-3)';
         return <rect key={s.gw} x={x} y={height - h} width={barW} height={h} rx={1} fill={color} />;
       })}
     </svg>

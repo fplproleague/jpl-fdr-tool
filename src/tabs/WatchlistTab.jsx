@@ -31,7 +31,7 @@ export default function WatchlistTab({
             borderRadius: '10px', padding: '16px', marginBottom: '20px'
           }}>
           <h2 className="fdr-title fdr-section-title" style={{ ...sectionTitleStyle, marginBottom: '12px' }}>
-            <UserPlus size={18} color="#4ECDC4" style={{ flexShrink: 0 }} />
+            <UserPlus size={18} color="var(--accent)" style={{ flexShrink: 0 }} />
             <span style={sectionTitleTextStyle}>{t('watchlist.addHeading')}</span>
           </h2>
 
@@ -51,11 +51,11 @@ export default function WatchlistTab({
           {!playerDatabaseLoading && playerDatabaseError && (
             <div style={{
               display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
-              background: 'rgba(194,64,44,0.12)', border: '1px solid rgba(194,64,44,0.4)',
+              background: 'rgba(255,90,71,0.12)', border: '1px solid rgba(255,90,71,0.4)',
               borderRadius: '10px', padding: '12px 14px', marginBottom: '12px'
             }}>
-              <AlertCircle size={16} color="#C2402C" style={{ flexShrink: 0 }} />
-              <span style={{ color: '#FBEAE7', fontSize: '13px', flex: 1 }}>{playerDatabaseError}</span>
+              <AlertCircle size={16} color="var(--danger)" style={{ flexShrink: 0 }} />
+              <span style={{ color: 'var(--text-1)', fontSize: '13px', flex: 1 }}>{playerDatabaseError}</span>
               <button onClick={fetchPlayerDatabase} className="fdr-touch-target" style={retryButtonStyle}>
                 <RotateCcw size={14} aria-hidden="true" /> {t('shared.retry')}
               </button>
@@ -107,7 +107,7 @@ export default function WatchlistTab({
 
         <section>
           <h2 className="fdr-title fdr-section-title" style={{ ...sectionTitleStyle, marginBottom: '12px' }}>
-            <Eye size={18} color="#4ECDC4" style={{ flexShrink: 0 }} />
+            <Eye size={18} color="var(--accent)" style={{ flexShrink: 0 }} />
             <span style={sectionTitleTextStyle}>{t('watchlist.myWatchlist')}</span>
           </h2>
           {watchlist.length === 0 ? (
@@ -162,22 +162,22 @@ export default function WatchlistTab({
                             style={{
                               display: 'block', textAlign: 'left', width: '100%',
                               background: 'none', border: 'none', padding: 0, cursor: 'pointer',
-                              color: '#FFF', fontWeight: 700, fontSize: '14px', lineHeight: 1.25,
+                              color: 'var(--text-1)', fontWeight: 700, fontSize: '14px', lineHeight: 1.25,
                               fontFamily: 'inherit', textDecoration: 'underline',
-                              textDecorationColor: 'rgba(78,205,196,0.5)', textUnderlineOffset: '3px',
+                              textDecorationColor: 'rgba(51,237,213,0.5)', textUnderlineOffset: '3px',
                             }}
                           >
                             {player.name}
                           </button>
                         ) : (
-                          <div style={{ color: '#FFF', fontWeight: 700, fontSize: '14px', lineHeight: 1.25 }}>{player.name}</div>
+                          <div style={{ color: 'var(--text-1)', fontWeight: 700, fontSize: '14px', lineHeight: 1.25 }}>{player.name}</div>
                         )}
                         <div style={{ color: COLORS.textMuted, fontSize: '11px', marginTop: '1px' }}>{team?.name ?? player.teamCode}</div>
                       </div>
                       {player.price != null && (
                         <span style={{
                           fontSize: '12px', fontWeight: 700, padding: '3px 8px', borderRadius: '999px',
-                          background: 'rgba(255,255,255,0.1)', color: '#4ECDC4', flexShrink: 0
+                          background: 'rgba(255,255,255,0.1)', color: 'var(--accent)', flexShrink: 0
                         }}>{player.price}M</span>
                       )}
                     </div>

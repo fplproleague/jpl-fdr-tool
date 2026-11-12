@@ -7,7 +7,7 @@ export default function PlayerStatusTab() {
         background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
         borderRadius: '10px', padding: '16px'
       }}>
-        <p style={{ color: '#C9B8E0', fontSize: '13px', margin: 0 }}>
+        <p style={{ color: 'var(--text-2)', fontSize: '13px', margin: 0 }}>
           Hier komen binnenkort alle relevante updates over spelers die niet beschikbaar zijn.
         </p>
       </div>

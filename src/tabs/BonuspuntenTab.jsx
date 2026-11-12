@@ -20,7 +20,7 @@ import {
 
 const retryButtonStyle = {
   display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0,
-  background: 'transparent', color: '#FBEAE7', border: '1px solid rgba(251,234,231,0.4)',
+  background: 'transparent', color: 'var(--text-1)', border: '1px solid rgba(251,234,231,0.4)',
   borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px', cursor: 'pointer',
 };
 
@@ -48,7 +48,7 @@ function SortModeToggle({ t, value, onChange }) {
       aria-label={t('bonuspunten.sortLabel')}
       style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}
     >
-      <span style={{ color: '#8F79AD', fontSize: '12px' }}>{t('bonuspunten.sortLabel')}</span>
+      <span style={{ color: 'var(--text-3)', fontSize: '12px' }}>{t('bonuspunten.sortLabel')}</span>
       <div style={{
         display: 'flex', gap: '2px', background: 'rgba(255,255,255,0.04)',
         border: '1px solid rgba(255,255,255,0.08)', borderRadius: '999px', padding: '2px',
@@ -62,8 +62,8 @@ function SortModeToggle({ t, value, onChange }) {
               onClick={() => onChange(o.mode)}
               aria-pressed={active}
               style={{
-                background: active ? '#4ECDC4' : 'transparent',
-                color: active ? '#0B2E1B' : '#C9B8E0',
+                background: active ? 'var(--accent)' : 'transparent',
+                color: active ? 'var(--accent-ink)' : 'var(--text-2)',
                 border: 'none', borderRadius: '999px', padding: '5px 12px',
                 fontWeight: 700, fontSize: '12px', fontFamily: 'inherit', cursor: 'pointer',
               }}
@@ -166,20 +166,20 @@ export default function BonuspuntenTab({
           te wrappen, dus dit is voorspelbaarder. Geen badge zolang er nog geen enkele GW verwerkt is. */}
       {BONUSPUNTEN_UPDATED_GW > 0 && <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
         <span style={{
-          color: '#4ECDC4', fontWeight: 800, fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase',
-          background: 'rgba(78,205,196,0.12)', border: '1px solid rgba(78,205,196,0.3)',
+          color: 'var(--accent)', fontWeight: 800, fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase',
+          background: 'rgba(51,237,213,0.12)', border: '1px solid rgba(51,237,213,0.3)',
           borderRadius: '999px', padding: '5px 14px', whiteSpace: 'nowrap',
         }}>
           {t('bonuspunten.updatedLabel', { gw: BONUSPUNTEN_UPDATED_GW })}
         </span>
       </div>}
 
-      <p style={{ color: '#8F79AD', fontSize: '13px', marginBottom: '18px' }}>
+      <p style={{ color: 'var(--text-3)', fontSize: '13px', marginBottom: '18px' }}>
         {t('bonuspunten.intro')}
       </p>
 
       {playerDatabaseLoading && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#C9B8E0', fontSize: '13px', marginBottom: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-2)', fontSize: '13px', marginBottom: '12px' }}>
           <Loader2 size={16} className="fdr-spin" /> {t('bonuspunten.loading')}
         </div>
       )}
@@ -187,11 +187,11 @@ export default function BonuspuntenTab({
       {!playerDatabaseLoading && playerDatabaseError && (
         <div style={{
           display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
-          background: 'rgba(194,64,44,0.12)', border: '1px solid rgba(194,64,44,0.4)',
+          background: 'rgba(255,90,71,0.12)', border: '1px solid rgba(255,90,71,0.4)',
           borderRadius: '10px', padding: '12px 14px', marginBottom: '12px',
         }}>
-          <AlertCircle size={16} color="#C2402C" style={{ flexShrink: 0 }} />
-          <span style={{ color: '#FBEAE7', fontSize: '13px', flex: 1 }}>{playerDatabaseError}</span>
+          <AlertCircle size={16} color="var(--danger)" style={{ flexShrink: 0 }} />
+          <span style={{ color: 'var(--text-1)', fontSize: '13px', flex: 1 }}>{playerDatabaseError}</span>
           <button onClick={fetchPlayerDatabase} style={retryButtonStyle}>
             <RotateCcw size={14} /> {t('shared.retry')}
           </button>
@@ -203,7 +203,7 @@ export default function BonuspuntenTab({
           background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
           borderRadius: '10px', padding: '16px',
         }}>
-          <p style={{ color: '#C9B8E0', fontSize: '13px', margin: 0 }}>
+          <p style={{ color: 'var(--text-2)', fontSize: '13px', margin: 0 }}>
             {t('bonuspunten.emptyState')}
           </p>
         </div>
@@ -225,7 +225,7 @@ export default function BonuspuntenTab({
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', margin: '4px 0 18px' }}>
             <SortModeToggle t={t} value={sortMode} onChange={setSortMode} />
             {isPerMatch && (
-              <p style={{ color: '#8F79AD', fontSize: '11px', margin: 0, lineHeight: 1.5 }}>
+              <p style={{ color: 'var(--text-3)', fontSize: '11px', margin: 0, lineHeight: 1.5 }}>
                 {t('bonuspunten.sortPerMatchNote', { minGames })}
               </p>
             )}
@@ -318,7 +318,7 @@ export default function BonuspuntenTab({
                 background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
                 borderRadius: '8px', padding: '12px 14px',
               }}>
-                <p style={{ color: '#8F79AD', fontSize: '12px', margin: 0 }}>
+                <p style={{ color: 'var(--text-3)', fontSize: '12px', margin: 0 }}>
                   {t('bonuspunten.dataComingSoon')}
                 </p>
               </div>
@@ -327,7 +327,7 @@ export default function BonuspuntenTab({
         </>
       )}
 
-      <p style={{ color: '#A594C4', fontSize: '11px', marginTop: '24px' }}>
+      <p style={{ color: 'var(--text-3)', fontSize: '11px', marginTop: '24px' }}>
         {t('bonuspunten.sources')}
       </p>
     </>

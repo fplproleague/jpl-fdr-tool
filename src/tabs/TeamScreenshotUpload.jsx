@@ -15,9 +15,9 @@ import { downscaleImageToBase64 } from '../utils/imageDownscale';
 import { matchPlayer } from '../utils/playerFuzzyMatch';
 
 const CONFIDENCE_STYLE = {
-  hoog: { bg: 'rgba(78,205,196,0.15)', color: '#4ECDC4', label: 'Hoog' },
-  twijfelachtig: { bg: 'rgba(232,197,71,0.15)', color: '#E8C547', label: 'Twijfelachtig' },
-  'niet-gevonden': { bg: 'rgba(194,64,44,0.15)', color: '#FF9E90', label: 'Niet gevonden' },
+  hoog: { bg: 'rgba(51,237,213,0.15)', color: 'var(--accent)', label: 'Hoog' },
+  twijfelachtig: { bg: 'rgba(242,163,58,0.15)', color: 'var(--warning)', label: 'Twijfelachtig' },
+  'niet-gevonden': { bg: 'rgba(255,90,71,0.15)', color: 'var(--danger)', label: 'Niet gevonden' },
 };
 
 function buildSuggestion(recognizedPlayer, playerDatabase) {
@@ -48,10 +48,10 @@ function SuggestionRow({ suggestion, index, playerDatabase, onUpdate, onToggleCa
         style={{ flexShrink: 0 }}
       />
       <div style={{ minWidth: '150px', flexShrink: 0 }}>
-        <div style={{ color: '#FFF', fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div style={{ color: 'var(--text-1)', fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
           Herkend: &ldquo;{suggestion.rawName}&rdquo;
           {suggestion.isCaptain && (
-            <span title="Kapitein herkend" aria-label="Kapitein herkend" role="img" style={{ background: '#4ECDC4', color: '#0B2E1B', borderRadius: '999px', width: '16px', height: '16px', fontSize: '9px', fontWeight: 900, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>C</span>
+            <span title="Kapitein herkend" aria-label="Kapitein herkend" role="img" style={{ background: 'var(--accent)', color: 'var(--accent-ink)', borderRadius: '999px', width: '16px', height: '16px', fontSize: '9px', fontWeight: 900, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>C</span>
           )}
           {suggestion.isViceCaptain && (
             <span title="Vice-kapitein herkend (enkel ter info)" aria-label="Vice-kapitein herkend" role="img" style={{ background: 'rgba(255,255,255,0.15)', color: COLORS.textBody, borderRadius: '999px', width: '16px', height: '16px', fontSize: '9px', fontWeight: 900, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>V</span>
@@ -81,8 +81,8 @@ function SuggestionRow({ suggestion, index, playerDatabase, onUpdate, onToggleCa
         className="fdr-icon-btn"
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px',
-          borderRadius: '8px', flexShrink: 0, background: suggestion.isCaptain ? 'rgba(78,205,196,0.2)' : 'transparent',
-          color: suggestion.isCaptain ? '#4ECDC4' : COLORS.textMuted, border: `1px solid ${suggestion.isCaptain ? '#4ECDC4' : 'rgba(255,255,255,0.2)'}`,
+          borderRadius: '8px', flexShrink: 0, background: suggestion.isCaptain ? 'rgba(51,237,213,0.2)' : 'transparent',
+          color: suggestion.isCaptain ? 'var(--accent)' : COLORS.textMuted, border: `1px solid ${suggestion.isCaptain ? 'var(--accent)' : 'rgba(255,255,255,0.2)'}`,
           cursor: 'pointer',
         }}
       >
@@ -198,12 +198,12 @@ export function TeamScreenshotUpload({
     // vervangt vijftien keer handmatig zoeken en typen. Als dat eruitziet als zomaar weer een blok,
     // scrollen mensen er straal voorbij en beginnen ze aan het trage pad.
     <div style={{
-      background: isRosterEmpty ? 'rgba(78,205,196,0.08)' : 'rgba(255,255,255,0.04)',
-      border: `1px solid ${isRosterEmpty ? 'rgba(78,205,196,0.45)' : 'rgba(255,255,255,0.08)'}`,
+      background: isRosterEmpty ? 'rgba(51,237,213,0.08)' : 'rgba(255,255,255,0.04)',
+      border: `1px solid ${isRosterEmpty ? 'rgba(51,237,213,0.45)' : 'rgba(255,255,255,0.08)'}`,
       borderRadius: '10px', padding: '16px', marginBottom: '20px',
     }}>
       <h3 className="fdr-title" style={{
-        color: isRosterEmpty ? '#4ECDC4' : COLORS.textBody, fontSize: '13px',
+        color: isRosterEmpty ? 'var(--accent)' : COLORS.textBody, fontSize: '13px',
         textTransform: 'uppercase', letterSpacing: '0.03em', margin: '0 0 8px',
         display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap',
       }}>
@@ -211,7 +211,7 @@ export function TeamScreenshotUpload({
         {t('screenshotUpload.heading')}
         {isRosterEmpty && (
           <span style={{
-            background: '#4ECDC4', color: '#0B2E1B', fontSize: '10px', fontWeight: 900,
+            background: 'var(--accent)', color: 'var(--accent-ink)', fontSize: '10px', fontWeight: 900,
             padding: '2px 8px', borderRadius: '999px', letterSpacing: '0.03em',
           }}>
             {t('screenshotUpload.recommended')}
@@ -237,12 +237,12 @@ export function TeamScreenshotUpload({
       {persistentNotice && !proposal && (
         <div style={{
           display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
-          background: 'rgba(232,197,71,0.12)', border: '1px solid rgba(232,197,71,0.4)',
+          background: 'rgba(242,163,58,0.12)', border: '1px solid rgba(242,163,58,0.4)',
           borderRadius: '10px', padding: '10px 14px', marginBottom: '12px',
         }}>
-          <AlertCircle size={16} color="#E8C547" style={{ flexShrink: 0 }} />
-          <span style={{ color: '#E8C547', fontSize: '12px', flex: 1 }}>{persistentNotice}</span>
-          <button onClick={() => setPersistentNotice(null)} style={{ background: 'transparent', border: 'none', color: '#E8C547', cursor: 'pointer', padding: 0 }}>
+          <AlertCircle size={16} color="var(--warning)" style={{ flexShrink: 0 }} />
+          <span style={{ color: 'var(--warning)', fontSize: '12px', flex: 1 }}>{persistentNotice}</span>
+          <button onClick={() => setPersistentNotice(null)} style={{ background: 'transparent', border: 'none', color: 'var(--warning)', cursor: 'pointer', padding: 0 }}>
             <X size={14} />
           </button>
         </div>
@@ -253,8 +253,8 @@ export function TeamScreenshotUpload({
           {proposal.warning && (
             <div style={{
               display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap',
-              background: 'rgba(232,197,71,0.12)', border: '1px solid rgba(232,197,71,0.4)',
-              borderRadius: '10px', padding: '10px 14px', marginBottom: '12px', color: '#E8C547', fontSize: '12px',
+              background: 'rgba(242,163,58,0.12)', border: '1px solid rgba(242,163,58,0.4)',
+              borderRadius: '10px', padding: '10px 14px', marginBottom: '12px', color: 'var(--warning)', fontSize: '12px',
             }}>
               <AlertCircle size={16} style={{ flexShrink: 0 }} /> {proposal.warning}
             </div>
@@ -284,7 +284,7 @@ export function TeamScreenshotUpload({
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '14px' }}>
             <button onClick={handleApply} style={{
               display: 'inline-flex', alignItems: 'center', gap: '6px',
-              background: '#4ECDC4', color: '#0B2E1B', border: '1px solid #4ECDC4',
+              background: 'var(--accent)', color: 'var(--accent-ink)', border: '1px solid var(--accent)',
               borderRadius: '8px', padding: '8px 16px', fontWeight: 700, fontSize: '13px', cursor: 'pointer',
             }}>
               <Check size={15} /> {t('screenshotUpload.apply')}
@@ -305,11 +305,11 @@ export function TeamScreenshotUpload({
       ) : status === 'error' ? (
         <div style={{
           display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
-          background: 'rgba(194,64,44,0.12)', border: '1px solid rgba(194,64,44,0.4)',
+          background: 'rgba(255,90,71,0.12)', border: '1px solid rgba(255,90,71,0.4)',
           borderRadius: '10px', padding: '12px 14px',
         }}>
-          <AlertCircle size={16} color="#C2402C" style={{ flexShrink: 0 }} />
-          <span style={{ color: '#FBEAE7', fontSize: '13px', flex: 1 }}>{errorMessage}</span>
+          <AlertCircle size={16} color="var(--danger)" style={{ flexShrink: 0 }} />
+          <span style={{ color: 'var(--text-1)', fontSize: '13px', flex: 1 }}>{errorMessage}</span>
           <button onClick={() => fileInputRef.current?.click()} style={retryButtonStyle}>
             <RotateCcw size={14} /> {t('screenshotUpload.retry')}
           </button>
@@ -320,8 +320,8 @@ export function TeamScreenshotUpload({
           disabled={playerDatabaseLoading || !!playerDatabaseError}
           style={{
             display: 'inline-flex', alignItems: 'center', gap: '6px',
-            background: 'transparent', color: playerDatabaseLoading || playerDatabaseError ? COLORS.textDisabled : '#4ECDC4',
-            border: `1px solid ${playerDatabaseLoading || playerDatabaseError ? 'rgba(255,255,255,0.15)' : '#4ECDC4'}`,
+            background: 'transparent', color: playerDatabaseLoading || playerDatabaseError ? COLORS.textDisabled : 'var(--accent)',
+            border: `1px solid ${playerDatabaseLoading || playerDatabaseError ? 'rgba(255,255,255,0.15)' : 'var(--accent)'}`,
             borderRadius: '8px', padding: '8px 14px', fontWeight: 700, fontSize: '13px',
             cursor: playerDatabaseLoading || playerDatabaseError ? 'not-allowed' : 'pointer',
           }}

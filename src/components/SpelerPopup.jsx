@@ -41,7 +41,7 @@ function PointsChart({ matches, gw, t }) {
             <div style={{ height: `${height}px`, width: '100%', position: 'relative' }}>
               <span style={{
                 position: 'absolute', left: 0, right: 0, textAlign: 'center', fontSize: '9px', fontWeight: 700,
-                color: p.pts == null ? '#8878A5' : '#FFFFFF',
+                color: p.pts == null ? 'var(--text-4)' : 'var(--text-1)',
                 top: p.pts == null ? `${zeroY - 12}px` : negative ? `${zeroY + h + 1}px` : `${zeroY - h - 12}px`,
               }}>
                 {p.pts == null ? '–' : p.pts}
@@ -49,12 +49,12 @@ function PointsChart({ matches, gw, t }) {
               {p.pts != null && (
                 <span style={{
                   position: 'absolute', left: '15%', right: '15%', borderRadius: '2px',
-                  background: negative ? '#C2402C' : p.pts >= 8 ? '#4ECDC4' : '#8F79AD',
+                  background: negative ? 'var(--danger)' : p.pts >= 8 ? 'var(--accent)' : 'var(--text-3)',
                   top: negative ? `${zeroY}px` : `${zeroY - h}px`, height: `${h}px`,
                 }} />
               )}
             </div>
-            <span style={{ fontSize: '9px', color: '#A794C2', marginTop: '4px' }}>{p.gw}</span>
+            <span style={{ fontSize: '9px', color: 'var(--text-3)', marginTop: '4px' }}>{p.gw}</span>
           </div>
         );
       })}
@@ -62,12 +62,12 @@ function PointsChart({ matches, gw, t }) {
   );
 }
 
-const thStyle = { color: '#A794C2', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', padding: '4px 3px', textAlign: 'center', whiteSpace: 'nowrap' };
-const tdStyle = { color: '#EDE4F5', fontSize: '12px', padding: '5px 3px', textAlign: 'center', borderTop: '1px solid rgba(255,255,255,0.06)', whiteSpace: 'nowrap' };
+const thStyle = { color: 'var(--text-3)', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', padding: '4px 3px', textAlign: 'center', whiteSpace: 'nowrap' };
+const tdStyle = { color: 'var(--text-1)', fontSize: '12px', padding: '5px 3px', textAlign: 'center', borderTop: '1px solid rgba(255,255,255,0.06)', whiteSpace: 'nowrap' };
 
 function MatchTable({ matches, t }) {
   const resultLetter = { W: t('spelers.popup.resultW'), D: t('spelers.popup.resultD'), L: t('spelers.popup.resultL') };
-  const resultColor = { W: '#4ECDC4', D: '#E8C547', L: '#E07A6A' };
+  const resultColor = { W: 'var(--accent)', D: 'var(--warning)', L: 'var(--danger)' };
   return (
     <div style={{ overflowX: 'auto' }}>
       <table className="spl-popup-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -91,7 +91,7 @@ function MatchTable({ matches, t }) {
               <td style={{ ...tdStyle, textAlign: 'left' }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                   <span className="spl-popup-logo"><ClubLogo code={m.opp} size={14} /></span>
-                  {m.opp ?? '?'} <span style={{ color: '#A794C2', fontSize: '11px' }}>({m.home === false ? t('spelers.popup.away') : t('spelers.popup.home')})</span>
+                  {m.opp ?? '?'} <span style={{ color: 'var(--text-3)', fontSize: '11px' }}>({m.home === false ? t('spelers.popup.away') : t('spelers.popup.home')})</span>
                 </span>
               </td>
               <td style={tdStyle}>
@@ -101,14 +101,14 @@ function MatchTable({ matches, t }) {
               <td style={tdStyle}>{m.min}</td>
               <td style={tdStyle} title={m.goals.length ? m.goals.map(x => `${x}'`).join(', ') : undefined}>
                 {m.goals.length || ''}
-                {m.goals.length > 0 && <span className="spl-popup-minutes" style={{ color: '#A794C2', fontSize: '10px' }}> ({m.goals.map(x => `${x}'`).join(', ')})</span>}
+                {m.goals.length > 0 && <span className="spl-popup-minutes" style={{ color: 'var(--text-3)', fontSize: '10px' }}> ({m.goals.map(x => `${x}'`).join(', ')})</span>}
               </td>
               <td style={tdStyle} title={m.assists.length ? m.assists.map(x => `${x}'`).join(', ') : undefined}>{m.assists.length || ''}</td>
               <td style={tdStyle}>
-                {m.yc > 0 && <span aria-label={t('spelers.col.yc')} style={{ display: 'inline-block', width: '8px', height: '11px', background: '#E8C547', borderRadius: '1px', marginRight: '2px' }} />}
-                {m.rc > 0 && <span aria-label={t('spelers.col.rc')} style={{ display: 'inline-block', width: '8px', height: '11px', background: '#C2402C', borderRadius: '1px' }} />}
+                {m.yc > 0 && <span aria-label={t('spelers.col.yc')} style={{ display: 'inline-block', width: '8px', height: '11px', background: 'var(--warning)', borderRadius: '1px', marginRight: '2px' }} />}
+                {m.rc > 0 && <span aria-label={t('spelers.col.rc')} style={{ display: 'inline-block', width: '8px', height: '11px', background: 'var(--danger)', borderRadius: '1px' }} />}
               </td>
-              <td style={{ ...tdStyle, color: m.bonus > 0 ? '#4ECDC4' : '#8878A5' }}>{m.bonus}</td>
+              <td style={{ ...tdStyle, color: m.bonus > 0 ? 'var(--accent)' : 'var(--text-4)' }}>{m.bonus}</td>
               <td style={{ ...tdStyle, fontWeight: 800 }}>{m.pts}</td>
             </tr>
           ))}
@@ -145,13 +145,13 @@ export default function SpelerPopup({
     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
       <PlayerPhoto player={player} size={56} />
       <div style={{ minWidth: 0 }}>
-        <h3 id={titleId} className="fdr-title" style={{ color: '#FFFFFF', fontSize: '18px', margin: 0, lineHeight: 1.2 }}>
+        <h3 id={titleId} className="fdr-title" style={{ color: 'var(--text-1)', fontSize: '18px', margin: 0, lineHeight: 1.2 }}>
           {player.name}
         </h3>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '4px', color: '#C9B8E0', fontSize: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '4px', color: 'var(--text-2)', fontSize: '12px' }}>
           <button type="button" onClick={() => onOpenClub?.(player.club)} style={{
             display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', padding: 0,
-            color: '#C9B8E0', fontSize: '12px', cursor: onOpenClub ? 'pointer' : 'default', fontFamily: 'inherit',
+            color: 'var(--text-2)', fontSize: '12px', cursor: onOpenClub ? 'pointer' : 'default', fontFamily: 'inherit',
           }}>
             <ClubLogo code={player.club} size={16} /> {clubName}
           </button>
@@ -166,9 +166,9 @@ export default function SpelerPopup({
   const actionBtn = (active) => ({
     display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '8px', padding: '7px 12px',
     fontSize: '12px', fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
-    background: active ? 'rgba(78,205,196,0.12)' : 'transparent',
-    border: `1px solid ${active ? '#4ECDC4' : 'rgba(255,255,255,0.2)'}`,
-    color: active ? '#4ECDC4' : '#C9B8E0',
+    background: active ? 'rgba(51,237,213,0.12)' : 'transparent',
+    border: `1px solid ${active ? 'var(--accent)' : 'rgba(255,255,255,0.2)'}`,
+    color: active ? 'var(--accent)' : 'var(--text-2)',
   });
 
   const totals = [
@@ -185,7 +185,7 @@ export default function SpelerPopup({
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '14px' }}>
         {onToggleWatch && (
           <button type="button" onClick={onToggleWatch} aria-pressed={isWatched} style={actionBtn(isWatched)}>
-            <Star size={14} fill={isWatched ? '#4ECDC4' : 'none'} aria-hidden="true" />
+            <Star size={14} fill={isWatched ? 'var(--accent)' : 'none'} aria-hidden="true" />
             {isWatched ? t('spelers.popup.watching') : t('spelers.popup.watch')}
           </button>
         )}
@@ -207,8 +207,8 @@ export default function SpelerPopup({
       <div className="spl-popup-tiles">
         {totals.map(([label, value]) => (
           <div key={label} style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '8px', padding: '6px 4px', textAlign: 'center' }}>
-            <div style={{ color: '#FFFFFF', fontWeight: 800, fontSize: '15px' }}>{value}</div>
-            <div style={{ color: '#A794C2', fontSize: '9px', textTransform: 'uppercase', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</div>
+            <div style={{ color: 'var(--text-1)', fontWeight: 800, fontSize: '15px' }}>{value}</div>
+            <div style={{ color: 'var(--text-3)', fontSize: '9px', textTransform: 'uppercase', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</div>
           </div>
         ))}
       </div>
@@ -218,14 +218,14 @@ export default function SpelerPopup({
       </SheetSection>
 
       {loading && (
-        <div role="status" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#C9B8E0', fontSize: '13px', marginTop: '16px' }}>
+        <div role="status" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-2)', fontSize: '13px', marginTop: '16px' }}>
           <Loader2 size={16} className="fdr-spin" aria-hidden="true" /> {t('spelers.popup.loading')}
         </div>
       )}
 
       {error && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '16px', color: '#FBEAE7', fontSize: '13px' }}>
-          <AlertCircle size={16} color="#C2402C" aria-hidden="true" /> {t('spelers.popup.error')}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '16px', color: 'var(--text-1)', fontSize: '13px' }}>
+          <AlertCircle size={16} color="var(--danger)" aria-hidden="true" /> {t('spelers.popup.error')}
         </div>
       )}
 

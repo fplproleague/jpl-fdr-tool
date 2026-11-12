@@ -52,7 +52,7 @@ function StaleWarning({ t }) {
       role="status"
       style={{
         display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: '16px',
-        background: 'rgba(232,197,71,0.12)', border: '1px solid rgba(232,197,71,0.45)',
+        background: 'rgba(242,163,58,0.12)', border: '1px solid rgba(242,163,58,0.45)',
         borderRadius: '10px', padding: '12px 14px',
       }}
     >
@@ -156,8 +156,8 @@ export default function PredictedLineupsTab({ t, onOpenPlayer, onOpenClub }) {
               title={clubIsNotPlaying ? t('predictedLineups.notPlayingTitle', { club: clubTeam?.name ?? code }) : (clubTeam?.name ?? code)}
               style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
-                background: isSelected ? 'rgba(78,205,196,0.12)' : 'rgba(255,255,255,0.04)',
-                border: isSelected ? '1px solid #4ECDC4' : '1px solid rgba(255,255,255,0.08)',
+                background: isSelected ? 'rgba(51,237,213,0.12)' : 'rgba(255,255,255,0.04)',
+                border: isSelected ? '1px solid var(--accent)' : '1px solid rgba(255,255,255,0.08)',
                 borderRadius: '10px', padding: '6px 4px', width: '100%', cursor: 'pointer',
                 fontFamily: 'inherit', opacity: clubIsNotPlaying && !isSelected ? 0.55 : 1,
               }}
@@ -170,7 +170,7 @@ export default function PredictedLineupsTab({ t, onOpenPlayer, onOpenClub }) {
                 onError={(e) => { e.target.style.display = 'none'; }}
               />
               <span style={{
-                color: isSelected ? '#4ECDC4' : COLORS.textBody, fontSize: '9px', fontWeight: 700,
+                color: isSelected ? 'var(--accent)' : COLORS.textBody, fontSize: '9px', fontWeight: 700,
                 textAlign: 'center', lineHeight: 1.15, overflow: 'hidden', textOverflow: 'ellipsis',
                 display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
               }}>
@@ -202,7 +202,7 @@ export default function PredictedLineupsTab({ t, onOpenPlayer, onOpenClub }) {
               className="fdr-touch-target"
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                background: 'transparent', color: '#4ECDC4', border: '1px solid #4ECDC4',
+                background: 'transparent', color: 'var(--accent)', border: '1px solid var(--accent)',
                 borderRadius: '8px', padding: '8px 16px', marginTop: '4px',
                 fontWeight: 700, fontSize: '12px', fontFamily: 'inherit', cursor: 'pointer',
               }}
@@ -292,7 +292,7 @@ export default function PredictedLineupsTab({ t, onOpenPlayer, onOpenClub }) {
             href="https://discord.gg/EhEQjvdgW"
             target="_blank"
             rel="noopener noreferrer"
-            style={{ color: '#4ECDC4', textDecoration: 'underline', textUnderlineOffset: '2px' }}
+            style={{ color: 'var(--accent)', textDecoration: 'underline', textUnderlineOffset: '2px' }}
           >
             @5YSiebee
           </a>
@@ -300,7 +300,7 @@ export default function PredictedLineupsTab({ t, onOpenPlayer, onOpenClub }) {
             href="https://x.com/fpl_proleague"
             target="_blank"
             rel="noopener noreferrer"
-            style={{ color: '#4ECDC4', textDecoration: 'underline', textUnderlineOffset: '2px' }}
+            style={{ color: 'var(--accent)', textDecoration: 'underline', textUnderlineOffset: '2px' }}
           >
             @fpl_proleague
           </a>

@@ -42,7 +42,7 @@ export function FixtureStrip({
           {/* aria-hidden: de badge eronder draagt de speeldag al in zijn eigen toegankelijke naam, dus
               voorlezen zou het dubbel maken. */}
           <span aria-hidden="true" style={{
-            color: '#6B5289', fontSize: '8px', fontWeight: 800, letterSpacing: '0.04em', lineHeight: 1,
+            color: 'var(--text-4)', fontSize: '8px', fontWeight: 800, letterSpacing: '0.04em', lineHeight: 1,
           }}>
             {gwLabel}{startGw + i}
           </span>

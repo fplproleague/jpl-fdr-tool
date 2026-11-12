@@ -27,12 +27,12 @@ export const SectionHeader = memo(function SectionHeader({ icon: Icon, title, se
       style={sectionToggleButtonStyle}
     >
       <h2 className="fdr-title fdr-section-title" style={sectionTitleStyle}>
-        <Icon size={18} color="#4ECDC4" style={{ flexShrink: 0 }} />
+        <Icon size={18} color="var(--accent)" style={{ flexShrink: 0 }} />
         <span style={sectionTitleTextStyle}>{title}</span>
       </h2>
       {/* Vult de ruimte tussen titel en chevron; flex: 1 laat 'm meekrimpen/groeien met de knopbreedte. */}
       <span aria-hidden="true" style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)', margin: '0 8px' }} />
-      <ChevronDown size={20} color="#C9B8E0" style={chevronStyle(isOpen)} />
+      <ChevronDown size={20} color="var(--text-2)" style={chevronStyle(isOpen)} />
     </button>
   );
 });

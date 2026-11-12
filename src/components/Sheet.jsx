@@ -15,7 +15,7 @@ export function SheetSection({ title, children }) {
   return (
     <section style={{ marginTop: '16px' }}>
       <h4 className="fdr-title" style={{
-        color: '#8F79AD', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.06em',
+        color: 'var(--text-3)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.06em',
         margin: '0 0 8px', fontWeight: 800,
       }}>
         {title}
@@ -25,7 +25,7 @@ export function SheetSection({ title, children }) {
   );
 }
 
-export const sheetEmptyTextStyle = { color: '#8F79AD', fontSize: '12px', margin: 0 };
+export const sheetEmptyTextStyle = { color: 'var(--text-3)', fontSize: '12px', margin: 0 };
 
 // maxWidth: standaard 460px; de spelers-popup van de Spelers-tab vraagt iets meer ruimte voor zijn
 // wedstrijdtabel.
@@ -77,7 +77,7 @@ export default function Sheet({ titleId, closeLabel, onClose, header, children, 
         className="fdr-sheet"
         onClick={e => e.stopPropagation()}
         style={{
-          background: '#3D1E5C', border: '1px solid rgba(255,255,255,0.1)',
+          background: 'var(--ink-1)', border: '1px solid rgba(255,255,255,0.1)',
           width: '100%', maxWidth, maxHeight: '86vh', overflowY: 'auto',
           padding: '20px', outline: 'none',
         }}
@@ -90,7 +90,7 @@ export default function Sheet({ titleId, closeLabel, onClose, header, children, 
             aria-label={closeLabel}
             className="fdr-icon-btn"
             style={{
-              background: 'none', border: 'none', color: '#C9B8E0', cursor: 'pointer',
+              background: 'none', border: 'none', color: 'var(--text-2)', cursor: 'pointer',
               flexShrink: 0, padding: '4px', display: 'inline-flex',
             }}
           >
