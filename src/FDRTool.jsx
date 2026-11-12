@@ -19,7 +19,7 @@ import { parseSetPiecesCsv } from './setPieces';
 import { COLORS } from './theme';
 import {
   ROUTES, routeKeyFromPath, urlForRoute, pathForRoute, languageFromPath, SUPPORTED_LANGUAGES,
-  pathForSheet, sheetFromPath, playerSlug,
+  pathForSheet, sheetFromPath, playerSlug, searchForTab,
 } from './routes';
 import { t as translate, LANGUAGES, DEFAULT_LANGUAGE } from './i18n';
 import { PREDICTED_LINEUPS } from './predictedLineupsData';
@@ -43,6 +43,8 @@ const PredictedLineupsTab = lazy(() => import('./tabs/PredictedLineupsTab'));
 const BonuspuntenTab = lazy(() => import('./tabs/BonuspuntenTab'));
 const KaartenTab = lazy(() => import('./tabs/KaartenTab'));
 const SetPiecesTab = lazy(() => import('./tabs/SetPiecesTab'));
+const SpelersTab = lazy(() => import('./tabs/SpelersTab'));
+const KlassementTab = lazy(() => import('./tabs/KlassementTab'));
 
 // Tab-navigatie bovenaan de pagina. De lijst zelf (labels, paden, per-tab titel/omschrijving) staat
 // in src/routes.js, zodat de URL-afhandeling en de zichtbare tabs nooit uit elkaar kunnen lopen.
@@ -50,7 +52,9 @@ const TABS = ROUTES;
 
 // De tabs die de spelersdatabank-CSV effectief nodig hebben (zie de fetch-useEffect verderop). De
 // FDR-tab staat er bewust niet bij: die rendert volledig uit constants.js.
-const PLAYER_DATABASE_TABS = new Set(['watchlist', 'teamplanner', 'bonuspunten', 'kaarten']);
+// De Spelers-tab haalt zijn eigen data uit /api/players, maar heeft de databank nodig om spelers aan de
+// watchlist en "Mijn team" te koppelen (die kennen spelers op hun naam in de sheet).
+const PLAYER_DATABASE_TABS = new Set(['watchlist', 'teamplanner', 'bonuspunten', 'kaarten', 'spelers']);
 
 // Eén plek voor de canonieke oorsprong van de site; stond eerder als letterlijke string in de
 // title/canonical-useEffect en moet nu ook door de hreflang-alternates gebruikt worden.
@@ -449,7 +453,8 @@ export default function FDRTool() {
   const navigateToTab = useCallback((key) => {
     setActiveTab(key);
     if (typeof window === 'undefined') return;
-    const url = urlForRoute(key, window.location.search, language);
+    // Parameters die enkel bij een andere tab horen (filters van Spelers/Klassement) vallen weg.
+    const url = urlForRoute(key, searchForTab(window.location.search, key), language);
     if (url !== window.location.pathname + window.location.search) {
       window.history.pushState({ tab: key }, '', url);
     }
@@ -2678,6 +2683,29 @@ export default function FDRTool() {
               onOpenPlayer={openPlayerSheet}
               onOpenClub={openClubSheet}
             />
+          </Suspense>
+        )}
+
+        {activeTab === 'spelers' && (
+          <Suspense fallback={<TabLoading text={t('shared.loading')} />}>
+            <SpelersTab
+              t={t}
+              ratings={ratings}
+              homeAdvantage={homeAdvantage}
+              playerDatabase={playerDatabase}
+              isPlayerWatched={isPlayerWatched}
+              isPlayerInMyTeam={isPlayerInMyTeam}
+              toggleWatchlistPlayer={toggleWatchlistPlayer}
+              hasMyTeam={myTeamPlayerKeys.size > 0}
+              hasWatchlist={watchlist.length > 0}
+              onOpenClub={openClubSheet}
+            />
+          </Suspense>
+        )}
+
+        {activeTab === 'klassement' && (
+          <Suspense fallback={<TabLoading text={t('shared.loading')} />}>
+            <KlassementTab t={t} />
           </Suspense>
         )}
 
