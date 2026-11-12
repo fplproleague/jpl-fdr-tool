@@ -1,311 +1,417 @@
-// Publieke, volledig read-only weergave van de 18 voorspelde basiselven (één per club) — presentational
-// component zonder gedeelde/aanpasbare state vanuit FDRTool.jsx (enkel lokale UI-state voor "welke club
-// is geselecteerd"). Hergebruikt PitchField/PitchSlot rechtstreeks uit de privé Predicted XI Builder
-// (../predicted-xi/) via hun readOnly-prop, zodat de visuele stijl (veld, kaartjes, kleuren, header)
-// gegarandeerd exact dezelfde is als de privé-tool — geen duplicatie, geen risico op visuele drift.
-import { useState } from 'react';
-import { AlertTriangle, CalendarOff } from 'lucide-react';
-import { TEAMS, CURRENT_GW, PREDICTED_LINEUPS_GW, POSTPONED, FIXTURES, buildPostponedTooltipText } from '../constants';
-import { COLORS } from '../theme';
+// Verwachte XI's (spec §7.2): de voorspelde basiselftallen van @5YSiebee, read-only.
+//
+// - Eén duidelijke toestand: zijn de opstellingen van de komende speeldag er (PREDICTED_LINEUPS_GW ===
+//   CURRENT_GW), dan gewoon tonen. Zo niet, dan een statusregel "verschijnen vrijdag … om 16:00" met
+//   aftelklok, en meteen daaronder de opstellingen van de vorige speeldag (labels iets gedimd).
+// - Kiezen per wedstrijd: desktop toont beide ploegen naast elkaar, gsm één ploeg met een Segmented
+//   (en vegen of pijlen om te wisselen).
+// - "Overzicht": één tabel met alle 18 clubs, met de schakelaar "Enkel twijfels".
+//
+// Het veld komt uit de privé Predicted XI Builder (../predicted-xi/PitchField) met variant="site";
+// zonder die prop ziet het veld er exact uit zoals in de builder en de PNG-export.
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  TEAMS, TEAMS_ALPHA, CURRENT_GW, PREDICTED_LINEUPS_GW, POSTPONED, FIXTURES,
+  buildPostponedTooltipText, getPredictedLineupsRelease,
+} from '../constants';
 import PitchField from '../predicted-xi/PitchField';
-import { SAFETY_STYLE } from '../predicted-xi/theme';
 import { PREDICTED_LINEUPS } from '../predictedLineupsData';
+import PageHeader from '../ui/PageHeader';
+import Segmented from '../ui/Segmented';
+import Switch from '../ui/Switch';
+import Button from '../ui/Button';
+import EmptyState from '../ui/EmptyState';
+import { formatShellCountdown } from '../ui/AppShell';
+import '../ui/DataTable.css';
+import './PredictedLineupsTab.css';
 
 const noop = () => {};
 
-// Legt uit wat de kaartrand-kleur op elke kaart betekent (zie SAFETY_STYLE in theme.js voor de
-// kleurwaarden zelf — hier enkel de korte, publieksvriendelijke labels, bewust anders/beknopter dan de
-// interne titels op de safety-badge in de privé-tool, die daar als hover-tooltip dienen i.p.v. een
-// permanent zichtbare legende). labelKey i.p.v. een kant-en-klare tekst, zodat de legende meevertaalt.
-const SAFETY_LEGEND = [
+// Stijlwaarden voor het veld op de site (spec §5.13): vlak, geen gradient, geen strepen, radius 0.
+// Doorgegeven aan PitchField via siteTheme; src/predicted-xi/theme.js blijft onaangeroerd.
+const SITE_PITCH_THEME = {
+  field: { background: 'transparent', padding: 0, display: 'flex', flexDirection: 'column', gap: 0, maxWidth: '520px', width: '100%' },
+  pitch: { background: 'var(--pitch)', borderRadius: 0, border: '1px solid var(--pitch-line)' },
+  markings: { line: 'var(--pitch-line)' },
+};
+
+// Startzekerheid (spec §3.3). De sleutels zijn die uit de data van de builder.
+const SAFETY_LEVELS = [
   { level: 'darkgreen', labelKey: 'predictedLineups.legend.certain' },
   { level: 'green', labelKey: 'predictedLineups.legend.starter' },
   { level: 'orange', labelKey: 'predictedLineups.legend.doubtful' },
   { level: 'red', labelKey: 'predictedLineups.legend.risk' },
 ];
+const DOUBT_LEVELS = new Set(['orange', 'red']);
+const safetyLabelKey = (level) => (SAFETY_LEVELS.find(s => s.level === level) ?? SAFETY_LEVELS[1]).labelKey;
 
-// Filtert lineups zonder één enkele geplaatste speler eruit (bv. een club die nog niet af is) — zo
-// verschijnt zo'n club nooit als een lege, verwarrende kaart in de kiezer, ook niet als
-// predictedLineupsData.js per ongeluk een halfafgewerkte entry bevat.
+const SHOWN_GW = PREDICTED_LINEUPS_GW;
+const PUBLISHED = PREDICTED_LINEUPS_GW >= CURRENT_GW;
+
+// Enkel opstellingen met minstens één geplaatste speler (een halfafgewerkte entry toont nooit als leeg veld).
 const readyLineups = PREDICTED_LINEUPS.filter(l => l.slots.some(s => s.positionId !== '_unassigned' && s.playerName));
+// findLast: komt een club twee keer voor, dan is de laatste de meest recente.
+const lineupFor = (code) => readyLineups.findLast(l => l.clubCode === code) ?? null;
+const teamByCode = (code) => TEAMS.find(team => team.code === code);
 
-// Clubs zonder wedstrijd in de GW waarvoor deze opstellingen gelden (uitgestelde fixture — zie
-// POSTPONED in constants.js, al de bestaande bron van waarheid hiervoor, gebruikt door o.a. de
-// FDR-hoofdtabel). Deze clubs horen nog steeds in de klub-kiezer hieronder (anders lijkt het alsof de
-// site ze vergeten is), maar tonen een placeholder i.p.v. een opstelling: er valt nu eenmaal niets te
-// voorspellen voor een wedstrijd die niet doorgaat.
-const notPlayingClubCodes = TEAMS.filter(t => POSTPONED.has(`${t.code}-${PREDICTED_LINEUPS_GW}`)).map(t => t.code);
+function fixtureEntries(code, gw) {
+  const entry = FIXTURES[code]?.[gw - 1];
+  if (!entry) return [];
+  return (Array.isArray(entry) ? entry : [entry]).filter(x => typeof x === 'string' && x.includes('-'));
+}
 
-// De opstellingen zijn verouderd zodra de speeldag waarvoor ze gemaakt zijn achterloopt op de
-// gameweek die nu aan de beurt is. Beide waarden komen uit constants.js (PREDICTED_LINEUPS_GW wordt
-// handmatig bijgewerkt samen met de data; CURRENT_GW wordt afgeleid uit de echte deadlines), zodat
-// deze check niet stilzwijgend kan verlopen zoals de vroeger hardgecodeerde tekst "GW2".
-const isStale = PREDICTED_LINEUPS_GW < CURRENT_GW;
+// De wedstrijden van een speeldag, uit FIXTURES (in die volgorde; aftraptijden zijn niet gekend).
+function buildMatches(gw) {
+  const seen = new Set();
+  const matches = [];
+  for (const team of TEAMS) {
+    for (const entry of fixtureEntries(team.code, gw)) {
+      const [opp, venue] = entry.split('-');
+      const home = venue === 'H' ? team.code : opp;
+      const away = venue === 'H' ? opp : team.code;
+      const id = `${home}-${away}`;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      const postponed = POSTPONED.has(`${home}-${gw}`) && POSTPONED.has(`${away}-${gw}`);
+      matches.push({ id, home, away, postponed });
+    }
+  }
+  return matches;
+}
 
-// Waarschuwingsbanner bovenaan de tab zodra de opstellingen van een vorige speeldag zijn. Bewust
-// prominent en niet weg te klikken: verouderde team-info is voor een fantasymanager schadelijker dan
-// géén team-info, want ze ziet er precies hetzelfde uit als actuele info.
-function StaleWarning({ t }) {
-  if (!isStale) return null;
+// Speler-slots in leesvolgorde: doelman, verdediging, middenveld, aanval; binnen een linie van links naar rechts.
+function orderedSlots(lineup) {
+  return lineup.slots
+    .filter(s => s.positionId !== '_unassigned' && s.playerName)
+    .slice()
+    .sort((a, b) => (b.yPercent - a.yPercent) || (a.xPercent - b.xPercent));
+}
+
+// --- URL-state: ?match=CLU-AND&team=CLU&view=overzicht&twijfel=1 ---------------------------------
+function readUrlState(matches) {
+  const p = new URLSearchParams(typeof window === 'undefined' ? '' : window.location.search);
+  const matchParam = (p.get('match') || '').toUpperCase();
+  const teamParam = (p.get('team') || '').toUpperCase();
+  let match = matches.find(m => m.id === matchParam);
+  // Een oude link met enkel ?team=CLU: open de wedstrijd van die club.
+  if (!match && teamParam) match = matches.find(m => m.home === teamParam || m.away === teamParam);
+  match = match ?? matches.find(m => !m.postponed) ?? matches[0] ?? null;
+  const team = match && (teamParam === match.home || teamParam === match.away) ? teamParam : match?.home ?? null;
+  return {
+    matchId: match?.id ?? null,
+    team,
+    view: p.get('view') === 'overzicht' ? 'overview' : 'pitch',
+    onlyDoubts: p.get('twijfel') === '1',
+  };
+}
+
+function writeUrlState(state) {
+  const p = new URLSearchParams(window.location.search);
+  if (state.matchId) p.set('match', state.matchId); else p.delete('match');
+  if (state.team) p.set('team', state.team); else p.delete('team');
+  if (state.view === 'overview') p.set('view', 'overzicht'); else p.delete('view');
+  if (state.onlyDoubts) p.set('twijfel', '1'); else p.delete('twijfel');
+  const search = p.toString();
+  const url = window.location.pathname + (search ? `?${search}` : '');
+  if (url !== window.location.pathname + window.location.search) window.history.replaceState(window.history.state, '', url);
+}
+
+// Tikt elke 30 seconden: genoeg voor een aftelklok in dagen/uren/minuten.
+function useNow(intervalMs = 30000) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), intervalMs);
+    return () => clearInterval(id);
+  }, [intervalMs]);
+  return now;
+}
+
+function remainingParts(ms) {
+  if (ms <= 0) return null;
+  const totalMinutes = Math.floor(ms / 60000);
+  return { days: Math.floor(totalMinutes / 1440), hours: Math.floor((totalMinutes % 1440) / 60), minutes: totalMinutes % 60, totalMinutes };
+}
+
+function formatRelease(date, language, t) {
+  const locale = language === 'fr' ? 'fr-BE' : 'nl-BE';
+  const day = new Intl.DateTimeFormat(locale, { timeZone: 'Europe/Brussels', weekday: 'long', day: 'numeric', month: 'short' }).format(date).replace(/\.$/, '');
+  const time = new Intl.DateTimeFormat(locale, { timeZone: 'Europe/Brussels', hour: '2-digit', minute: '2-digit', hour12: false }).format(date);
+  return `${day} ${t('predictedLineups.releaseAt')} ${time}`;
+}
+
+// --- Kleine stukken ------------------------------------------------------------------------------
+function ClubLogo({ code, size = 20 }) {
   return (
-    <div
-      role="status"
-      style={{
-        display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: '16px',
-        background: 'rgba(242,163,58,0.12)', border: '1px solid rgba(242,163,58,0.45)',
-        borderRadius: '10px', padding: '12px 14px',
-      }}
+    <img
+      src={`/club-logos/${code}.webp`} alt="" width={size} height={size} className="club-logo"
+      style={{ width: size, height: size, objectFit: 'contain', flexShrink: 0 }}
+      onError={(e) => { e.target.style.display = 'none'; }}
+    />
+  );
+}
+
+function SafetyDot({ level, t }) {
+  return <span className={`pxl-dot is-${level ?? 'green'}`} role="img" aria-label={t(safetyLabelKey(level))} />;
+}
+
+function Legend({ t }) {
+  return (
+    <ul className="pxl-legend" aria-label={t('predictedLineups.legendAria')}>
+      {SAFETY_LEVELS.map(({ level, labelKey }) => (
+        <li key={level}><span className={`pxl-dot is-${level}`} aria-hidden="true" />{t(labelKey)}</li>
+      ))}
+    </ul>
+  );
+}
+
+function MatchButton({ match, active, onSelect, t }) {
+  const home = teamByCode(match.home);
+  const away = teamByCode(match.away);
+  return (
+    <button
+      type="button"
+      className={`pxl-match${active ? ' is-active' : ''}${match.postponed ? ' is-postponed' : ''}`}
+      aria-pressed={active}
+      aria-label={`${t('predictedLineups.matchAria', { home: home?.name ?? match.home, away: away?.name ?? match.away })}${match.postponed ? ` (${t('predictedLineups.postponed')})` : ''}`}
+      onClick={() => onSelect(match)}
     >
-      <AlertTriangle size={18} color={COLORS.warning} style={{ flexShrink: 0, marginTop: '1px' }} aria-hidden="true" />
-      <p style={{ margin: 0, color: COLORS.warning, fontSize: '13px', lineHeight: 1.55, fontWeight: 700 }}>
-        {t('predictedLineups.staleWarning', { predictedGw: PREDICTED_LINEUPS_GW, currentGw: CURRENT_GW })}
-      </p>
+      <ClubLogo code={match.home} />
+      <span className="pxl-match__code">{match.home}</span>
+      <span className="pxl-match__sep" aria-hidden="true">–</span>
+      <span className="pxl-match__code">{match.away}</span>
+      <ClubLogo code={match.away} />
+    </button>
+  );
+}
+
+// Eén kant van een wedstrijd: kop (logo, club, formatie) + veld, of een melding.
+function Side({ t, code, oppCode, isHome, onOpenPlayer, onOpenClub, hiddenOnMobile }) {
+  const club = teamByCode(code);
+  const lineup = lineupFor(code);
+  const postponed = POSTPONED.has(`${code}-${SHOWN_GW}`);
+  const className = `pxl-side${hiddenOnMobile ? ' is-hidden-mobile' : ''}`;
+
+  let body;
+  if (postponed) {
+    const entry = fixtureEntries(code, SHOWN_GW)[0];
+    const [opp, venue] = entry ? entry.split('-') : [oppCode, isHome ? 'H' : 'A'];
+    body = <EmptyState>{t('predictedLineups.notPlaying')}. {buildPostponedTooltipText(code, opp, venue)}</EmptyState>;
+  } else if (!lineup) {
+    body = <EmptyState>{t('predictedLineups.noLineup', { club: club?.name ?? code })}</EmptyState>;
+  } else {
+    body = (
+      <PitchField
+        readOnly
+        variant="site"
+        siteTheme={SITE_PITCH_THEME}
+        club={club}
+        opponent={teamByCode(oppCode)}
+        onViewPlayer={onOpenPlayer}
+        viewPlayerLabel={name => t('playerSheet.openAria', { name })}
+        slots={lineup.slots}
+        activeSlotIndex={null}
+        onSlotClick={noop}
+        onRemove={noop}
+        onCycleSafety={noop}
+        onDragStart={noop}
+        onSlotDrop={noop}
+      />
+    );
+  }
+
+  return (
+    <section className={className} aria-label={club?.name ?? code}>
+      <header className="pxl-side__head">
+        <ClubLogo code={code} size={24} />
+        <button type="button" className="pxl-side__club" onClick={() => onOpenClub?.(code)} aria-label={t('clubSheet.openAria', { club: club?.name ?? code })}>
+          {club?.name ?? code}
+        </button>
+        {lineup && !postponed && <span className="pxl-side__formation num">{lineup.formationKey}</span>}
+        {lineup?.lastUpdatedLabel && !postponed && (
+          <span className="pxl-side__updated">{t('predictedLineups.lastUpdated', { date: lineup.lastUpdatedLabel })}</span>
+        )}
+      </header>
+      {body}
+    </section>
+  );
+}
+
+function Overview({ t, onlyDoubts, onOpenPlayer, onOpenClub }) {
+  const rows = TEAMS_ALPHA.map(team => {
+    const lineup = lineupFor(team.code);
+    const entries = fixtureEntries(team.code, SHOWN_GW);
+    const postponed = POSTPONED.has(`${team.code}-${SHOWN_GW}`);
+    const players = lineup ? orderedSlots(lineup) : [];
+    const shown = onlyDoubts ? players.filter(s => DOUBT_LEVELS.has(s.safety)) : players;
+    return { team, lineup, entries, postponed, shown };
+  }).filter(r => !onlyDoubts || r.shown.length > 0);
+
+  if (onlyDoubts && rows.length === 0) return <EmptyState>{t('predictedLineups.noDoubts')}</EmptyState>;
+
+  return (
+    <div className="ui-table-scroll">
+      <table className="ui-table pxl-overview">
+        <thead>
+          <tr>
+            <th scope="col">{t('predictedLineups.colClub')}</th>
+            <th scope="col">{t('predictedLineups.colMatch')}</th>
+            <th scope="col">{t('predictedLineups.colFormation')}</th>
+            <th scope="col">{t('predictedLineups.colPlayers')}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(({ team, lineup, entries, postponed, shown }) => (
+            <tr key={team.code}>
+              <th scope="row" className="pxl-overview__club">
+                <button type="button" onClick={() => onOpenClub?.(team.code)} aria-label={t('clubSheet.openAria', { club: team.name })}>
+                  <ClubLogo code={team.code} size={16} />
+                  <span>{team.code}</span>
+                </button>
+              </th>
+              <td className="pxl-overview__match">
+                {postponed ? <span className="pxl-muted">{t('predictedLineups.postponed')}</span>
+                  : entries.length === 0 ? <span className="pxl-muted">—</span>
+                  : entries.map(e => {
+                    const [opp, venue] = e.split('-');
+                    return <span key={e} className="pxl-overview__opp">{t('predictedLineups.vs')} {opp} <span className="pxl-muted">({venue})</span></span>;
+                  })}
+              </td>
+              <td className="pxl-overview__formation num">{lineup ? lineup.formationKey : '—'}</td>
+              <td className="pxl-overview__players">
+                {lineup ? (
+                  <ul className="pxl-names">
+                    {shown.map((slot, i) => (
+                      <li key={`${slot.playerName}-${i}`}>
+                        <button type="button" className="pxl-name" onClick={() => onOpenPlayer?.(slot.playerName, slot.playerTeamCode || team.code)}>
+                          <SafetyDot level={slot.safety} t={t} />
+                          {slot.playerName}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : <span className="pxl-muted">{t('predictedLineups.noLineup', { club: team.name })}</span>}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
 
-export default function PredictedLineupsTab({ t, onOpenPlayer, onOpenClub }) {
-  // TEAMS-volgorde (canoniek, alfabetisch op code) i.p.v. data-invoervolgorde: nu dat niet-spelende
-  // clubs (zonder eigen entry in PREDICTED_LINEUPS) ertussen gemengd moeten worden, geeft dit een
-  // voorspelbare, stabiele kiezer-volgorde voor alle clubs samen i.p.v. twee losse groepjes.
-  const availableClubCodes = TEAMS.map(t => t.code).filter(code =>
-    readyLineups.some(l => l.clubCode === code) || notPlayingClubCodes.includes(code)
-  );
-  const [selectedClubCode, setSelectedClubCode] = useState(availableClubCodes[0] ?? '');
-  // Zolang de opstellingen verouderd zijn (isStale), blijft het veld zelf verborgen achter een
-  // expliciete klik — de banner alleen missen een bezoeker gemakkelijk, en dan stelt die zijn team op
-  // met data van vorige week. Bewust transiënte UI-state (geen localStorage): bij een volgend bezoek
-  // moet de keuze weer bewust gemaakt worden, net als bij een niet-weg-te-klikken banner.
-  const [showStaleReference, setShowStaleReference] = useState(false);
+export default function PredictedLineupsTab({ t, language = 'nl', onOpenPlayer, onOpenClub }) {
+  const matches = useMemo(() => buildMatches(SHOWN_GW), []);
+  const [state, setState] = useState(() => readUrlState(matches));
+  useEffect(() => { writeUrlState(state); }, [state]);
 
-  if (availableClubCodes.length === 0) {
-    return (
-      <>
-        <StaleWarning t={t} />
-        <p style={{ color: COLORS.textMuted, fontSize: '13px', marginBottom: '16px' }}>
-          {t('predictedLineups.introEmpty', { gw: PREDICTED_LINEUPS_GW })}
-        </p>
-        <div style={{
-          background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-          borderRadius: '10px', padding: '16px',
-        }}>
-          <p style={{ color: COLORS.textBody, fontSize: '13px', margin: 0 }}>
-            {t('predictedLineups.empty')}
-          </p>
-        </div>
-      </>
-    );
+  const now = useNow();
+  const release = PUBLISHED ? null : getPredictedLineupsRelease(CURRENT_GW);
+  const remaining = release ? remainingParts(release.getTime() - now) : null;
+
+  const matchIndex = Math.max(0, matches.findIndex(m => m.id === state.matchId));
+  const match = matches[matchIndex] ?? null;
+  const selectMatch = (m, team) => setState(s => ({ ...s, matchId: m.id, team: team ?? m.home }));
+  const stepMatch = (delta) => {
+    if (matches.length === 0) return;
+    const next = matches[(matchIndex + delta + matches.length) % matches.length];
+    selectMatch(next);
+  };
+
+  // Gsm: horizontaal vegen op het veld = de andere ploeg van dezelfde wedstrijd.
+  const touch = useRef(null);
+  const onTouchStart = (e) => { touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; };
+  const onTouchEnd = (e) => {
+    const start = touch.current;
+    touch.current = null;
+    if (!start || !match || window.matchMedia('(min-width: 900px)').matches) return;
+    const dx = e.changedTouches[0].clientX - start.x;
+    const dy = e.changedTouches[0].clientY - start.y;
+    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    setState(s => ({ ...s, team: s.team === match.home ? match.away : match.home }));
+  };
+
+  const credits = (
+    <>
+      <a href="https://discord.gg/EhEQjvdgW" target="_blank" rel="noopener noreferrer" className="pxl-credit">@5YSiebee</a>
+      <span aria-hidden="true"> · </span>
+      <a href="https://x.com/fpl_proleague" target="_blank" rel="noopener noreferrer" className="pxl-credit">@fpl_proleague</a>
+    </>
+  );
+  const meta = (
+    <>
+      {PUBLISHED
+        ? <span className="num">{t('predictedLineups.pitchGwLabel', { gw: SHOWN_GW })}</span>
+        : <span>{t('predictedLineups.metaPrevious', { gw: SHOWN_GW })}</span>}
+      <span aria-hidden="true"> · </span>
+      {t('predictedLineups.by')} {credits}
+    </>
+  );
+
+  const header = <PageHeader title={t('predictedLineups.pageTitle')} meta={meta} intro={t('predictedLineups.intro')} />;
+
+  if (readyLineups.length === 0) {
+    return (<>{header}<EmptyState>{t('predictedLineups.empty')}</EmptyState></>);
   }
 
-  // isNotPlaying wint altijd van een eventuele (verouderde) lineup-entry voor diezelfde club — zie
-  // notPlayingClubCodes hierboven. lineup/opponent hebben dan geen betekenis en worden
-  // niet berekend; de placeholder-tak hieronder gebruikt enkel club/postponedMessage.
-  const isNotPlaying = notPlayingClubCodes.includes(selectedClubCode);
-  const club = TEAMS.find(team => team.code === selectedClubCode);
-  // findLast i.p.v. find: predictedLineupsData.js wordt week na week AANGEVULD (nieuwe update voor een
-  // club komt er gewoon achteraan bij, de oude entry van vorige GW blijft gewoon staan), dus zodra een
-  // club twee entries heeft, is de LAATSTE altijd de meest recente. find() pakte hier voorheen
-  // ongemerkt de EERSTE (oudste) entry — onschadelijk zolang de stale-gate hierboven toch alles
-  // verborg, maar zou zodra PREDICTED_LINEUPS_GW wordt bijgewerkt gewoon de vorige speeldag als actueel
-  // tonen voor elke club met een dubbele entry.
-  const lineup = !isNotPlaying ? (readyLineups.findLast(l => l.clubCode === selectedClubCode) ?? readyLineups[0]) : null;
-  const opponent = lineup?.opponentCode ? TEAMS.find(team => team.code === lineup.opponentCode) : null;
-  // Hergebruikt buildPostponedTooltipText (constants.js) — dezelfde functie die de FDR-hoofdtabel al
-  // gebruikt voor de tooltip op een uitgestelde fixture-cel, zodat de uitleg hier ("uitgesteld naar
-  // X wegens Y") altijd woordelijk consistent is met wat elders op de site al over deze wedstrijd
-  // staat, i.p.v. een aparte, los onderhouden placeholder-tekst.
-  const postponedMessage = (() => {
-    if (!isNotPlaying) return null;
-    const fixtureEntry = FIXTURES[selectedClubCode]?.[PREDICTED_LINEUPS_GW - 1];
-    if (typeof fixtureEntry !== 'string') return t('predictedLineups.noMatchGeneric', { club: club?.name ?? selectedClubCode, gw: PREDICTED_LINEUPS_GW });
-    const [opp, venue] = fixtureEntry.split('-');
-    return buildPostponedTooltipText(selectedClubCode, opp, venue);
-  })();
+  const viewOptions = [
+    { value: 'pitch', label: t('predictedLineups.view.pitch') },
+    { value: 'overview', label: t('predictedLineups.view.overview') },
+  ];
 
   return (
-    <>
-      <StaleWarning t={t} />
-      <p style={{ color: COLORS.textMuted, fontSize: '13px', marginBottom: '16px' }}>
-        {t('predictedLineups.intro', { gw: PREDICTED_LINEUPS_GW })}
-      </p>
+    <div className={`pxl${PUBLISHED ? '' : ' pxl--previous'}`}>
+      {header}
 
-      {/* Responsief raster i.p.v. een flex-wrap van vaste 76px-blokken: op een telefoon leverde dat
-          vijf rijen clublogo's op vóór je de opstelling zelf zag. auto-fill met een minimum van 58px
-          geeft daar ~5-6 per rij, en op desktop vullen ze de breedte netjes op. */}
-      <div
-        role="group"
-        aria-label={t('predictedLineups.pickClubAria')}
-        className="fdr-club-picker"
-        style={{
-          display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(58px, 1fr))',
-          gap: '6px', marginBottom: '20px',
-        }}
-      >
-        {availableClubCodes.map(code => {
-          const clubTeam = TEAMS.find(team => team.code === code);
-          const isSelected = code === selectedClubCode;
-          // Gedimd (i.p.v. een apart icoontje): genoeg om in de kiezer zelf al te laten vermoeden dat
-          // deze club iets anders toont, zonder de rest van het raster drukker te maken — de
-          // placeholder na selectie legt de reden vervolgens expliciet uit.
-          const clubIsNotPlaying = notPlayingClubCodes.includes(code);
-          return (
-            <button
-              key={code}
-              onClick={() => setSelectedClubCode(code)}
-              className="fdr-club-chip"
-              title={clubIsNotPlaying ? t('predictedLineups.notPlayingTitle', { club: clubTeam?.name ?? code }) : (clubTeam?.name ?? code)}
-              style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
-                background: isSelected ? 'rgba(51,237,213,0.12)' : 'rgba(255,255,255,0.04)',
-                border: isSelected ? '1px solid var(--accent)' : '1px solid rgba(255,255,255,0.08)',
-                borderRadius: '10px', padding: '6px 4px', width: '100%', cursor: 'pointer',
-                fontFamily: 'inherit', opacity: clubIsNotPlaying && !isSelected ? 0.55 : 1,
-              }}
-              aria-pressed={isSelected}
-            >
-              <img
-                src={`/club-logos/${code}.webp`}
-                alt=""
-                style={{ width: '24px', height: '24px', objectFit: 'contain' }}
-                onError={(e) => { e.target.style.display = 'none'; }}
-              />
-              <span style={{
-                color: isSelected ? 'var(--accent)' : COLORS.textBody, fontSize: '9px', fontWeight: 700,
-                textAlign: 'center', lineHeight: 1.15, overflow: 'hidden', textOverflow: 'ellipsis',
-                display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-              }}>
-                {clubTeam?.name ?? code}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+      {!PUBLISHED && release && (
+        <p className="pxl-status" role="status">
+          <strong>{t('predictedLineups.releaseLine', { gw: CURRENT_GW, when: formatRelease(release, language, t) })}</strong>
+          {remaining && <> <span className="pxl-status__in">({t('predictedLineups.releaseIn', { time: '' })}<span className="num">{formatShellCountdown(remaining)}</span>)</span></>}
+        </p>
+      )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
-        {isStale && !showStaleReference ? (
-          /* Het veld zelf blijft verborgen zolang de data verouderd is (zie showStaleReference
-             hierboven) — enkel de StaleWarning-banner missen is voor een fantasymanager schadelijker
-             dan geen team-info krijgen, want een verouderd veld ziet er identiek uit aan een actueel
-             veld. De clubkiezer blijft wél gewoon werken, zodat een bezoeker al kan kiezen welke club
-             hij straks (na de klik) wil zien. */
-          <div style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px',
-            background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: '10px', padding: '40px 24px', width: '100%', maxWidth: '420px', textAlign: 'center',
-          }}>
-            <CalendarOff size={22} color={COLORS.textSubtle} aria-hidden="true" />
-            <p style={{ color: COLORS.textBody, fontSize: '14px', fontWeight: 700, margin: 0 }}>
-              {t('predictedLineups.staleGateText', { gw: CURRENT_GW })}
-            </p>
-            <button
-              onClick={() => setShowStaleReference(true)}
-              className="fdr-touch-target"
-              style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                background: 'transparent', color: 'var(--accent)', border: '1px solid var(--accent)',
-                borderRadius: '8px', padding: '8px 16px', marginTop: '4px',
-                fontWeight: 700, fontSize: '12px', fontFamily: 'inherit', cursor: 'pointer',
-              }}
-            >
-              {t('predictedLineups.staleGateButton', { gw: PREDICTED_LINEUPS_GW })}
-            </button>
-          </div>
-        ) : isNotPlaying ? (
-          /* Placeholder i.p.v. PitchField: er is voor deze club simpelweg geen wedstrijd (dus geen
-             opstelling) deze speeldag — zie notPlayingClubCodes/postponedMessage hierboven. Zelfde
-             kaart-look als de "nog geen lineups"-lege-staat verderop in dit bestand, maar dan
-             per-club en met de specifieke uitstel-reden. */
-          <div style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px',
-            background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: '10px', padding: '40px 24px', width: '100%', maxWidth: '420px', textAlign: 'center',
-          }}>
-            {club && (
-              <img
-                src={`/club-logos/${club.code}.webp`}
-                alt=""
-                style={{ width: '48px', height: '48px', objectFit: 'contain', opacity: 0.6 }}
-                onError={(e) => { e.target.style.display = 'none'; }}
-              />
-            )}
-            <CalendarOff size={22} color={COLORS.textSubtle} aria-hidden="true" />
-            <p style={{ color: COLORS.textBody, fontSize: '14px', fontWeight: 700, margin: 0 }}>
-              {t('predictedLineups.notPlaying')}
-            </p>
-            <p style={{ color: COLORS.textMuted, fontSize: '13px', lineHeight: 1.5, margin: 0 }}>
-              {postponedMessage}
-            </p>
-          </div>
-        ) : (
-          <>
-            {/* Kleurenlegende voor de kaartranden — zonder dit weten publieke bezoekers niet wat een
-                rode of oranje rand betekent (enkel de privé-tool toont de betekenis via een
-                hover-tooltip op de safety-badge, die hier bewust niet gerenderd wordt — zie
-                PitchSlot.jsx's readOnly-prop). */}
-            <div style={{
-              display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center',
-              fontSize: '11px', fontWeight: 700, color: COLORS.textBody,
-            }}>
-              {SAFETY_LEGEND.map(({ level, labelKey }) => (
-                <div key={level} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <span style={{
-                    width: '10px', height: '10px', borderRadius: '50%',
-                    background: SAFETY_STYLE[level].border, flexShrink: 0,
-                  }} />
-                  {t(labelKey)}
-                </div>
-              ))}
-            </div>
-            <PitchField
-              readOnly
-              club={club}
-              opponent={opponent}
-              gwLabel={t('predictedLineups.pitchGwLabel', { gw: PREDICTED_LINEUPS_GW })}
-              onViewPlayer={onOpenPlayer}
-              viewPlayerLabel={name => t('playerSheet.openAria', { name })}
-              onViewClub={onOpenClub}
-              viewClubLabel={clubName => t('clubSheet.openAria', { club: clubName })}
-              slots={lineup.slots}
-              activeSlotIndex={null}
-              onSlotClick={noop}
-              onRemove={noop}
-              onCycleSafety={noop}
-              onDragStart={noop}
-              onSlotDrop={noop}
-            />
-            {/* Per-lineup "laatst geüpdatet" — een handmatig ingevuld tekstveld in
-                predictedLineupsData.js (lastUpdatedLabel), bewust géén afgeleide/berekende datum: elke
-                lineup wordt onregelmatig en los van elkaar bijgewerkt, dus enkel de samensteller weet
-                wanneer een specifieke opstelling voor het laatst nagekeken is. */}
-            {lineup.lastUpdatedLabel && (
-              <p style={{ color: COLORS.textMuted, fontSize: '10px', margin: 0 }}>
-                {t('predictedLineups.lastUpdated', { date: lineup.lastUpdatedLabel })}
-              </p>
-            )}
-          </>
+      <div className="pxl-toolbar">
+        <Segmented options={viewOptions} value={state.view} onChange={v => setState(s => ({ ...s, view: v }))} ariaLabel={t('predictedLineups.viewAria')} />
+        {state.view === 'overview' && (
+          <Switch checked={state.onlyDoubts} onChange={v => setState(s => ({ ...s, onlyDoubts: v }))} label={t('predictedLineups.onlyDoubts')} />
         )}
-        {/* Publiek watermerk, specifiek voor deze read-only weergave — geen downloadknop (bewuste
-            keuze, enkel bekijken). Zit bewust hier en niet in PitchField.jsx zelf: dat blijft ook door
-            de privé-tool gebruikt, waar dit watermerk niet hoort. */}
-        <div style={{ display: 'flex', gap: '16px', fontSize: '11px', fontWeight: 700 }}>
-          <a
-            href="https://discord.gg/EhEQjvdgW"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ color: 'var(--accent)', textDecoration: 'underline', textUnderlineOffset: '2px' }}
-          >
-            @5YSiebee
-          </a>
-          <a
-            href="https://x.com/fpl_proleague"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ color: 'var(--accent)', textDecoration: 'underline', textUnderlineOffset: '2px' }}
-          >
-            @fpl_proleague
-          </a>
-        </div>
+        <Legend t={t} />
       </div>
-    </>
+
+      {state.view === 'overview' ? (
+        <Overview t={t} onlyDoubts={state.onlyDoubts} onOpenPlayer={onOpenPlayer} onOpenClub={onOpenClub} />
+      ) : (
+        <>
+          <div className="pxl-matches" role="group" aria-label={t('predictedLineups.pickMatchAria')}>
+            {matches.map(m => (
+              <MatchButton key={m.id} match={m} active={m.id === match?.id} onSelect={selectMatch} t={t} />
+            ))}
+          </div>
+
+          {match && (
+            <>
+              <div className="pxl-teamswitch">
+                <Segmented
+                  options={[match.home, match.away].map(code => ({ value: code, label: code }))}
+                  value={state.team ?? match.home}
+                  onChange={v => setState(s => ({ ...s, team: v }))}
+                  ariaLabel={t('predictedLineups.pickTeamAria')}
+                />
+              </div>
+              <div className="pxl-pitches" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+                <Side t={t} code={match.home} oppCode={match.away} isHome onOpenPlayer={onOpenPlayer} onOpenClub={onOpenClub} hiddenOnMobile={state.team === match.away} />
+                <span className="pxl-vs" aria-hidden="true">{t('predictedLineups.vs')}</span>
+                <Side t={t} code={match.away} oppCode={match.home} isHome={false} onOpenPlayer={onOpenPlayer} onOpenClub={onOpenClub} hiddenOnMobile={state.team !== match.away} />
+              </div>
+              <div className="pxl-steppers">
+                <Button variant="icon" icon={ChevronLeft} onClick={() => stepMatch(-1)} aria-label={t('predictedLineups.prevMatch')} />
+                <span className="pxl-steppers__pos num">{matchIndex + 1}/{matches.length}</span>
+                <Button variant="icon" icon={ChevronRight} onClick={() => stepMatch(1)} aria-label={t('predictedLineups.nextMatch')} />
+              </div>
+            </>
+          )}
+        </>
+      )}
+    </div>
   );
 }

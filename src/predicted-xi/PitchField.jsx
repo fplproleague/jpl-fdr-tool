@@ -23,8 +23,10 @@ const VIEWBOX_WIDTH = 68;
 const VIEWBOX_HEIGHT = VIEWBOX_WIDTH / PITCH_ASPECT_RATIO;
 const DEPTH_SCALE = VIEWBOX_HEIGHT / 105; // 105 = echte veldlengte in meters, referentie voor de originele diepte-maten
 
-function PitchMarkings() {
-  const stripeCount = 8;
+// theme: enkel meegegeven door de publieke site (variant="site"): vlak veld zonder strepen, dunne
+// lijnen in de sitekleur. Zonder theme exact zoals voorheen.
+function PitchMarkings({ theme = null }) {
+  const stripeCount = theme ? 0 : 8;
   const penaltyDepth = 16.5 * DEPTH_SCALE;
   const goalDepth = 5.5 * DEPTH_SCALE;
   return (
@@ -35,11 +37,16 @@ function PitchMarkings() {
           fill={i % 2 === 0 ? 'rgba(255,255,255,0.035)' : 'rgba(0,0,0,0.035)'}
         />
       ))}
-      <g fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth="0.4">
+      <g
+        fill="none"
+        stroke={theme ? theme.line : 'rgba(255,255,255,0.55)'}
+        strokeWidth={theme ? 1 : '0.4'}
+        vectorEffect={theme ? 'non-scaling-stroke' : undefined}
+      >
         <rect x="1" y="1" width={VIEWBOX_WIDTH - 2} height={VIEWBOX_HEIGHT - 2} />
         <line x1="1" y1={VIEWBOX_HEIGHT / 2} x2={VIEWBOX_WIDTH - 1} y2={VIEWBOX_HEIGHT / 2} />
         <circle cx="34" cy={VIEWBOX_HEIGHT / 2} r="9.15" />
-        <circle cx="34" cy={VIEWBOX_HEIGHT / 2} r="0.4" fill="rgba(255,255,255,0.55)" />
+        <circle cx="34" cy={VIEWBOX_HEIGHT / 2} r="0.4" fill={theme ? theme.line : 'rgba(255,255,255,0.55)'} />
         {/* strafschop-/doelgebied bovenaan (bij de aanvalslinie) */}
         <rect x="13.84" y="1" width="40.32" height={penaltyDepth} />
         <rect x="24.84" y="1" width="18.32" height={goalDepth} />
@@ -97,7 +104,14 @@ const PitchField = forwardRef(function PitchField({
   // X, los van elke pagina-context) zijn eigen speeldag meedraagt. null = niets extra tonen; de privé
   // Predicted XI Builder geeft dit nooit mee en is dus op geen enkele manier veranderd.
   gwLabel = null,
+  // Weergave op de publieke site (Verwachte XI's): variant="site" + siteTheme (stijlwaarden uit
+  // SITE_PITCH_THEME in tabs/PredictedLineupsTab.jsx). Vlak veld, geen eigen kop (de tab toont die
+  // zelf), en de klasse pxi-field--site voor het naamlabel. Zonder variant blijft alles exact zoals
+  // voorheen: de privé-builder en de PNG-export geven deze props nooit mee.
+  variant = 'default',
+  siteTheme = null,
 }, ref) {
+  const site = variant === 'site' && siteTheme;
   const pitchSlots = slots.filter(s => s.positionId !== '_unassigned');
   const pitchInnerRef = useRef(null);
   const [pitchWidthPx, setPitchWidthPx] = useState(DEFAULT_PITCH_WIDTH_PX);
@@ -189,8 +203,8 @@ const PitchField = forwardRef(function PitchField({
       <style>{MOBILE_STYLE}</style>
       <div
         ref={ref}
-        className="pxi-field"
-        style={{
+        className={site ? 'pxi-field pxi-field--site' : 'pxi-field'}
+        style={site ? siteTheme.field : {
           background: '#2A1440', borderRadius: '18px', padding: '18px',
           display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '560px', width: '100%',
         }}
@@ -200,6 +214,7 @@ const PitchField = forwardRef(function PitchField({
             veld toe voor een rustiger, "cleaner" export-header. Krimpt mee op mobiel (zie MOBILE_STYLE
             hierboven) — op mobiel neemt deze header anders onevenredig veel ruimte in t.o.v. het veld
             zelf, wat bijdraagt aan een "vol" ogende opstelling. */}
+        {!site && (
         <div className="pxi-field-header" style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
           paddingBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.08)',
@@ -265,17 +280,18 @@ const PitchField = forwardRef(function PitchField({
             </div>
           )}
         </div>
+        )}
 
         <div
           ref={pitchInnerRef}
           onDragOver={readOnly ? undefined : (e) => e.preventDefault()}
           onDrop={readOnly ? undefined : handleDrop}
-          style={{
+          style={site ? { position: 'relative', width: '100%', aspectRatio: PITCH_ASPECT_RATIO, overflow: 'hidden', ...siteTheme.pitch } : {
             position: 'relative', width: '100%', aspectRatio: PITCH_ASPECT_RATIO,
             borderRadius: '14px', overflow: 'hidden', background: PITCH_GRADIENT,
             border: '1px solid rgba(255,255,255,0.15)',
           }}>
-          <PitchMarkings />
+          <PitchMarkings theme={site ? siteTheme.markings : null} />
           {pitchSlots.map((slot) => {
             const index = slots.indexOf(slot);
             const position = cardPositions.get(slot);

@@ -488,6 +488,51 @@ export const GW_DEADLINES = Object.fromEntries(
 // verouderde team-info nooit meer stilzwijgend als actueel gepresenteerd worden.
 export const PREDICTED_LINEUPS_GW = 11;
 
+// Wanneer de Verwachte XI's voor een speeldag normaal online komen: de vrijdag vóór de deadline om
+// 16:00 Belgische tijd. Valt de deadline zelf vóór vrijdag 16:00 (bv. een speeldag die al op
+// donderdag begint), dan 3 uur vóór de deadline. Een afwijkend tijdstip zet je hieronder per GW, bv.
+// { 14: '2026-12-04T12:00:00+01:00' }.
+export const PREDICTED_LINEUPS_RELEASE_OVERRIDES = {};
+
+// Belgische kloktijd (jaar, maand, dag, uur, minuut, weekdag) van een Date.
+function brusselsWallClock(date) {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-GB', {
+      timeZone: BELGIAN_TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', weekday: 'short', hourCycle: 'h23',
+    }).formatToParts(date).filter(p => p.type !== 'literal').map(p => [p.type, p.value])
+  );
+  return {
+    year: Number(parts.year), month: Number(parts.month), day: Number(parts.day),
+    hour: Number(parts.hour), minute: Number(parts.minute),
+    weekday: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(parts.weekday),
+  };
+}
+
+// Een Belgische kloktijd omzetten naar een echte Date (houdt rekening met zomer- en wintertijd).
+function dateFromBrusselsWallClock(year, month, day, hour, minute) {
+  const guess = Date.UTC(year, month - 1, day, hour, minute);
+  const wall = brusselsWallClock(new Date(guess));
+  const offset = Date.UTC(wall.year, wall.month - 1, wall.day, wall.hour, wall.minute) - guess;
+  return new Date(guess - offset);
+}
+
+export function getPredictedLineupsRelease(gw) {
+  const override = PREDICTED_LINEUPS_RELEASE_OVERRIDES[gw];
+  if (override) {
+    const date = new Date(override);
+    if (!Number.isNaN(date.getTime())) return date;
+  }
+  const deadline = getGwDeadlineDate(gw);
+  if (!deadline) return null;
+  const wall = brusselsWallClock(deadline);
+  const daysBack = (wall.weekday - 5 + 7) % 7; // 5 = vrijdag
+  const friday = new Date(Date.UTC(wall.year, wall.month - 1, wall.day - daysBack, 12));
+  const release = dateFromBrusselsWallClock(friday.getUTCFullYear(), friday.getUTCMonth() + 1, friday.getUTCDate(), 16, 0);
+  if (release.getTime() >= deadline.getTime()) return new Date(deadline.getTime() - 3 * 60 * 60 * 1000);
+  return release;
+}
+
 // TEAMS is al alfabetisch op code — eenmalig gesorteerde kopie voor UI-lijsten die dat expliciet willen.
 export const TEAMS_ALPHA = [...TEAMS].sort((a, b) => a.code.localeCompare(b.code));
 export const GW_INDEXES = Array.from({ length: GW_COUNT }, (_, i) => i);

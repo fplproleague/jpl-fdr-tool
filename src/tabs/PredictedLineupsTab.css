@@ -1,0 +1,122 @@
+/* Verwachte XI's (spec §7.2, §3.3, §5.13). */
+.pxl-credit { color: var(--text-2); text-decoration: underline; text-underline-offset: 2px; }
+.pxl-credit:hover { color: var(--text-1); }
+.pxl-muted { color: var(--text-3); }
+
+.pxl-status { margin: 0 0 var(--s-4); color: var(--text-2); font-size: var(--fs-ui); line-height: var(--lh-ui); }
+.pxl-status strong { color: var(--text-1); font-weight: 700; }
+.pxl-status__in { color: var(--text-3); white-space: nowrap; }
+.pxl-status__in .num { color: var(--accent); }
+
+.pxl-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3) var(--s-5); margin-bottom: var(--s-4); }
+
+/* Startzekerheid: de enige plek met ronde statusstippen (spec §3.3), altijd met deze legende. */
+.pxl-legend { display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-4); margin: 0 0 0 auto; padding: 0; list-style: none; color: var(--text-2); font-size: var(--fs-meta); }
+.pxl-legend li { display: inline-flex; align-items: center; gap: 6px; }
+.pxl-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--positive); }
+.pxl-dot.is-green { background: transparent; box-sizing: border-box; border: 2px solid var(--positive); }
+.pxl-dot.is-orange { background: var(--warning); }
+.pxl-dot.is-red { background: var(--danger); }
+
+/* --- Wedstrijdkiezer ------------------------------------------------------------------------- */
+.pxl-matches {
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr);
+  border: 1px solid var(--line-strong); border-radius: var(--r-1); margin-bottom: var(--s-4);
+}
+.pxl-match {
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 0;
+  height: 40px; padding: 0 var(--s-2); border: 0; border-left: 1px solid var(--line-strong);
+  background: none; color: var(--text-2); font: 600 var(--fs-meta)/1 var(--font-ui); cursor: pointer; white-space: nowrap;
+}
+.pxl-match:first-child { border-left: 0; }
+.pxl-match__sep { color: var(--text-4); }
+.pxl-match.is-active { background: var(--invert-bg); color: var(--invert-text); }
+.pxl-match.is-active .pxl-match__sep { color: inherit; }
+.pxl-match.is-postponed:not(.is-active) { color: var(--text-4); }
+.pxl-match.is-postponed:not(.is-active) img { opacity: 0.5; }
+@media (hover: hover) and (pointer: fine) {
+  .pxl-match:not(.is-active):hover { background: var(--ink-2); color: var(--text-1); }
+}
+
+/* --- Velden ---------------------------------------------------------------------------------- */
+.pxl-teamswitch { display: none; }
+.pxl-pitches { display: grid; grid-template-columns: minmax(0, 520px) auto minmax(0, 520px); justify-content: center; gap: var(--s-5); align-items: start; }
+.pxl-vs { align-self: center; color: var(--text-3); font: 700 var(--fs-label)/1 var(--font-ui); text-transform: uppercase; letter-spacing: 0.06em; }
+.pxl-side { min-width: 0; }
+.pxl-side__head { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s-2); min-height: 40px; margin-bottom: var(--s-2); }
+.pxl-side__club { border: 0; padding: 0; background: none; color: var(--text-1); font: 700 var(--fs-title)/var(--lh-title) var(--font-ui); cursor: pointer; text-align: left; }
+.pxl-side__club:hover { text-decoration: underline; text-underline-offset: 3px; }
+.pxl-side__formation { color: var(--text-3); font-size: var(--fs-meta); }
+.pxl-side__updated { flex-basis: 100%; color: var(--text-3); font-size: var(--fs-label); }
+.pxl-steppers { display: none; }
+
+/* Het veld in de sitestijl (PitchField variant="site"). De inline stijlen van de builder blijven
+   staan voor de builder zelf; hier worden ze enkel binnen .pxi-field--site overschreven. */
+.pxi-field--site .pxi-card-shirt { filter: none !important; }
+.pxi-field--site .pxi-card-label { gap: 1px !important; max-width: 100%; }
+.pxi-field--site .pxi-card-name {
+  display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; padding: 1px 4px;
+  background: rgba(12, 13, 12, 0.88); color: var(--text-1) !important; text-shadow: none !important;
+  font: 600 11px/1.3 var(--font-ui) !important;
+}
+.pxi-field--site .pxi-card-price {
+  color: var(--text-2) !important; text-shadow: none !important;
+  font: 600 var(--fs-micro)/1.2 var(--font-num) !important;
+}
+.pxi-field--site [data-safety] {
+  width: 10px !important; height: 10px !important; top: -2px !important; right: -6px !important;
+  border: 0 !important; box-sizing: border-box; background: var(--positive) !important;
+}
+.pxi-field--site [data-safety="green"] { background: var(--pitch) !important; border: 2px solid var(--positive) !important; }
+.pxi-field--site [data-safety="orange"] { background: var(--warning) !important; }
+.pxi-field--site [data-safety="red"] { background: var(--danger) !important; }
+/* Opstellingen van de vorige speeldag: labels iets gedimd. */
+.pxl--previous .pxi-field--site .pxi-card-label { opacity: 0.7; }
+
+/* --- Overzicht ------------------------------------------------------------------------------- */
+.pxl-overview td, .pxl-overview th { vertical-align: top; padding-top: var(--s-2); padding-bottom: var(--s-2); }
+.pxl-overview tbody td, .pxl-overview tbody th { height: auto; }
+.pxl-overview__club button {
+  display: inline-flex; align-items: center; gap: var(--s-2); border: 0; padding: 0; background: none;
+  color: var(--text-1); font: 700 var(--fs-ui)/var(--lh-ui) var(--font-ui); cursor: pointer;
+}
+.pxl-overview__opp { display: block; color: var(--text-2); white-space: nowrap; }
+.pxl-overview__formation { color: var(--text-2); font-size: var(--fs-meta); }
+.pxl-overview__players { white-space: normal !important; width: 100%; }
+.pxl-names { display: flex; flex-wrap: wrap; gap: 2px var(--s-3); margin: 0; padding: 0; list-style: none; }
+.pxl-name {
+  display: inline-flex; align-items: center; gap: 5px; border: 0; padding: 0; background: none;
+  color: var(--text-1); font: 500 var(--fs-ui)/var(--lh-ui) var(--font-ui); cursor: pointer; white-space: nowrap;
+}
+.pxl-name:hover { text-decoration: underline; text-underline-offset: 2px; }
+
+/* --- Gsm ------------------------------------------------------------------------------------- */
+@media (max-width: 1099px) {
+  .pxl-pitches { gap: var(--s-3); }
+}
+@media (max-width: 899px) {
+  .pxl-legend { margin-left: 0; }
+  .pxl-matches {
+    display: flex; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none;
+    margin-left: calc(var(--gutter) * -1); margin-right: calc(var(--gutter) * -1);
+    border-left: 0; border-right: 0; border-radius: 0;
+  }
+  .pxl-matches::-webkit-scrollbar { display: none; }
+  .pxl-match { flex: 0 0 auto; height: 44px; padding: 0 var(--s-3); }
+  .pxl-teamswitch { display: flex; justify-content: center; margin-bottom: var(--s-3); }
+  .pxl-pitches { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+  .pxl-side { width: 100%; max-width: 520px; }
+  .pxl-side.is-hidden-mobile, .pxl-vs { display: none; }
+  .pxl-steppers { display: flex; align-items: center; justify-content: center; gap: var(--s-4); margin-top: var(--s-3); }
+  .pxl-steppers__pos { color: var(--text-3); font-size: var(--fs-meta); }
+  .pxi-field--site .pxi-card-name { font-size: 10px !important; padding: 1px 3px; }
+
+  .pxl-overview thead { display: none; }
+  .pxl-overview, .pxl-overview tbody { display: block; }
+  .pxl-overview tr {
+    display: grid; grid-template-columns: auto minmax(0, 1fr) auto; column-gap: var(--s-3);
+    padding: var(--s-2) 0; border-bottom: 1px solid var(--line);
+  }
+  .pxl-overview tbody td, .pxl-overview tbody th { display: block; border-bottom: 0; padding: 0; }
+  .pxl-overview__players { grid-column: 1 / -1; padding-top: var(--s-1) !important; }
+}
