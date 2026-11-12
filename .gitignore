@@ -6,3 +6,7 @@ dist/
 .env.*
 !.env.example
 .vercel
+
+# Screenshots van de rework (before/after): niet in git, ze staan op de branch redesign-screenshots
+docs/redesign/before/
+docs/redesign/after/
