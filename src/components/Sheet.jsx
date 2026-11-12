@@ -27,7 +27,9 @@ export function SheetSection({ title, children }) {
 
 export const sheetEmptyTextStyle = { color: '#8F79AD', fontSize: '12px', margin: 0 };
 
-export default function Sheet({ titleId, closeLabel, onClose, header, children }) {
+// maxWidth: standaard 460px; de spelers-popup van de Spelers-tab vraagt iets meer ruimte voor zijn
+// wedstrijdtabel.
+export default function Sheet({ titleId, closeLabel, onClose, header, children, maxWidth = '460px' }) {
   const dialogRef = useRef(null);
 
   // Focus naar de sheet bij openen en terug naar het element dat 'm opende bij sluiten. Zonder dit
@@ -76,7 +78,7 @@ export default function Sheet({ titleId, closeLabel, onClose, header, children }
         onClick={e => e.stopPropagation()}
         style={{
           background: '#3D1E5C', border: '1px solid rgba(255,255,255,0.1)',
-          width: '100%', maxWidth: '460px', maxHeight: '86vh', overflowY: 'auto',
+          width: '100%', maxWidth, maxHeight: '86vh', overflowY: 'auto',
           padding: '20px', outline: 'none',
         }}
       >

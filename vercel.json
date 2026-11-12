@@ -10,6 +10,8 @@
     { "source": "/watchlist", "destination": "/watchlist.html" },
     { "source": "/kaarten", "destination": "/kaarten.html" },
     { "source": "/price-changes", "destination": "/price-changes.html" },
+    { "source": "/spelers", "destination": "/spelers.html" },
+    { "source": "/klassement", "destination": "/klassement.html" },
 
     { "source": "/speler/:slug", "destination": "/speler/:slug.html" },
     { "source": "/club/:code", "destination": "/club/:code.html" },

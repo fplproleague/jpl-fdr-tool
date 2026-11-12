@@ -2,7 +2,7 @@
 
 Website met tools voor **Fantasy Pro League** (fantasy-spel van de Belgische Jupiler Pro League), gemaakt door @fpl_proleague. Live op https://fplproleague.vercel.app, GitHub: `fplproleague/jpl-fdr-tool` (openbaar).
 
-Tabs: FDR (Fixture Difficulty Rating), Team Planner, Verwachte XI's, Bonuspunten, Set Pieces, Watchlist, Kaarten, Price Changes (`src/tabs/PlayerStatusTab.jsx` bestaat, maar wordt nergens gebruikt). Plus een speler- en clubpagina per speler/club. De site bestaat in het Nederlands (`/fdr`) en het Frans (`/fr/fdr`).
+Tabs: FDR (Fixture Difficulty Rating), Team Planner, Verwachte XI's, Spelers, Bonuspunten, Set Pieces, Watchlist, Kaarten, Klassement, Price Changes (`src/tabs/PlayerStatusTab.jsx` bestaat, maar wordt nergens gebruikt). Plus een speler- en clubpagina per speler/club. De site bestaat in het Nederlands (`/fdr`) en het Frans (`/fr/fdr`).
 
 ## Werken met de eigenaar
 
@@ -18,6 +18,7 @@ Tabs: FDR (Fixture Difficulty Rating), Team Planner, Verwachte XI's, Bonuspunten
 - **Serverfuncties** in `api/` (Vercel Functions):
   - `api/team-form.js`: de vorm per club, uit API-Football. Gebruikt `API_FOOTBALL_KEY` en optioneel `API_FOOTBALL_SEASON`.
   - `api/analyze-screenshot.js`: een screenshot van een team inlezen met Claude. Gebruikt `ANTHROPIC_API_KEY`.
+  - `api/players.js`, `api/player/[id].js`, `api/rankings.js`: Spelers- en Klassement-tab, uit de publieke Fantasy Pro League-API (geen sleutel nodig). Gedeelde code in `api/_lib/proleague.js`. Zie `README.MD`.
 - **Geen database / geen Supabase.** Spelersdata (prijzen, stats, set pieces) komt uit openbaar gepubliceerde Google Sheets (CSV-links in `src/constants.js`). Gebruikersdata (team, watchlist) blijft in `localStorage` van de browser.
 
 ## Belangrijkste bestanden
@@ -42,7 +43,7 @@ npm run preview # de build lokaal bekijken
 ```
 
 Let op:
-- `npm run dev` voert de functies in `api/` **niet** uit: Vite stuurt dan gewoon de broncode terug. De vorm per club en de screenshot-import werken dus niet met `npm run dev`; de rest van de site wel. Om ze lokaal te testen: `npx vercel dev` (vraagt Vercel-login + `vercel link`), dat leest `.env`.
+- `npm run dev` voert de functies in `api/` ook uit (via `localApiFunctions` in `vite.config.js`), dus de Spelers- en Klassement-tab werken lokaal. De vorm per club en de screenshot-import hebben een geheime sleutel nodig die `npm run dev` niet uit `.env` leest; die test je met `npx vercel dev` (vraagt Vercel-login + `vercel link`).
 - `.env` bevat de echte sleutels (zie de namen hierboven) en staat in `.gitignore`. Nooit committen: de repo is openbaar. De waarden staan in Vercel → project → Settings → Environment Variables.
 - npm meldt bij `npm ci` dat het install-script van `esbuild` niet is uitgevoerd. Dat is onschuldig: de build werkt.
 - `.claude/launch.json` start de dev-server vanuit de Claude-app.

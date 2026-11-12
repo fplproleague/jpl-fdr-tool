@@ -34,6 +34,13 @@ export const ROUTES = [
     description: 'Verwachte basiselftallen voor alle 18 clubs van de Jupiler Pro League, met een duidelijke inschatting van de startkans per speler.',
   },
   {
+    key: 'spelers',
+    path: '/spelers',
+    label: 'Spelers',
+    title: 'Spelers — database met alle spelers | Fantasy Pro League Tools',
+    description: 'Alle Fantasy Pro League-spelers: filter, sorteer en vergelijk op punten, vorm, prijs, bonuspunten en eigendom.',
+  },
+  {
     key: 'bonuspunten',
     path: '/bonuspunten',
     label: 'Bonuspunten',
@@ -60,6 +67,13 @@ export const ROUTES = [
     label: 'Kaarten',
     title: 'Kaarten — schorsingsrisico | Fantasy Pro League Tools',
     description: 'Gele kaarten per speler en wie het dichtst bij een schorsing zit.',
+  },
+  {
+    key: 'klassement',
+    path: '/klassement',
+    label: 'Klassement',
+    title: 'Klassement — zoek je team en minileague | Fantasy Pro League Tools',
+    description: 'Zoek je Fantasy Pro League-team op naam in het algemene of speeldagklassement en bekijk het klassement van je minileague.',
   },
   {
     key: 'pricechanges',
@@ -128,6 +142,23 @@ export function routeByKey(key) {
 // uit elkaar kunnen lopen.
 export function pathForRoute(key, language = DEFAULT_ROUTE_LANGUAGE) {
   return `${prefixForLanguage(language)}${routeByKey(key).path}`;
+}
+
+// Query-parameters die bij één tab horen. Die worden bij het wisselen naar een ándere tab weggelaten,
+// zodat bv. de filters van de Spelers-tab niet blijven plakken aan de FDR-URL. Parameters die hier
+// niet staan (zoals ?r= en ?ha= van de FDR-ratings) gaan gewoon mee, zoals voorheen.
+export const TAB_QUERY_PARAMS = {
+  spelers: ['q', 'pos', 'club', 'pmin', 'pmax', 'mins', 'scope', 'per', 'mode', 'cols', 'sort', 'dir', 'compare', 'speler'],
+  klassement: ['team', 'rgw', 'league', 'lgw'],
+};
+
+export function searchForTab(search, key) {
+  const params = new URLSearchParams(search || '');
+  for (const [tab, keys] of Object.entries(TAB_QUERY_PARAMS)) {
+    if (tab !== key) keys.forEach(k => params.delete(k));
+  }
+  const s = params.toString().replace(/%2C/g, ',');
+  return s ? `?${s}` : '';
 }
 
 // Bouwt de volledige URL voor een tab, mét behoud van de bestaande query-parameters. Dat laatste is
