@@ -2155,7 +2155,12 @@ export default function FDRTool() {
 
         {activeTab === 'klassement' && (
           <Suspense fallback={<TabLoading text={t('shared.loading')} />}>
-            <KlassementTab t={t} />
+            <KlassementTab
+              t={t}
+              minileagueCode={MINILEAGUE_CODE}
+              onCopyMinileague={handleCopyMinileagueCode}
+              minileagueCopied={minileagueCodeCopied}
+            />
           </Suspense>
         )}
 
