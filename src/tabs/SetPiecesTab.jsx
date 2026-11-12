@@ -1,34 +1,27 @@
 // Inhoud van de Set Pieces-tab: huidige strafschop-/corner-/vrijetrapnemers per club. De data komt uit
 // een eigen werkblad in dezelfde Google Sheet als de spelersdatabank (zie SET_PIECES_CSV_URL in
-// constants.js) en blijft dus zonder codewijziging aanpasbaar door de sheet te bewerken.
+// constants.js) en blijft dus zonder codewijziging aanpasbaar door de sheet te bewerken. Het ophalen
+// gebeurt in FDRTool.jsx (de speler-sheet toont de nemer-rol ook vanuit andere tabs).
 //
-// Het ophalen zelf gebeurt niet meer hier maar in FDRTool.jsx: de speler-sheet toont de nemer-rol ook
-// wanneer hij vanuit Bonuspunten of Kaarten opent, en die data moet dan al binnen zijn zonder dat het
-// openen van een sheet een netwerkverzoek kost. Deze tab krijgt het resultaat dus als props, net als
-// WatchlistTab/BonuspuntenTab dat met de spelersdatabank doen.
-import React from 'react';
-import { Loader2, AlertCircle, RotateCcw } from 'lucide-react';
+// Sinds de rework (spec §7.7): één matrix i.p.v. 18 clubkaarten. Rijen = clubs (sticky), kolommen =
+// Penalty's · Corners · Vrije trappen. Een cel toont de eerste keuze (foto + naam, klikbaar) met de
+// andere namen eronder. Een stip zegt hoe zeker dat is (zie certaintyOf), met een legende erboven.
+// Op gsm standaard één kolom tegelijk, te kiezen met een Segmented.
+import { useState } from 'react';
+import PageHeader from '../ui/PageHeader';
+import Segmented from '../ui/Segmented';
+import DataTable from '../ui/DataTable';
+import ErrorBanner from '../ui/ErrorBanner';
+import EmptyState from '../ui/EmptyState';
+import { PlayerFaceByName } from '../ui/PlayerFace';
+import { ClubLogo } from '../components/SpelersParts';
+import './SetPiecesTab.css';
 
-const retryButtonStyle = {
-  display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0,
-  background: 'transparent', color: 'var(--text-1)', border: '1px solid rgba(251,234,231,0.4)',
-  borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px', cursor: 'pointer',
-};
-
-// P/C/FK-badge — zowel in de legende als vóór elke rij in een kaart, vandaar een gedeeld component i.p.v.
-// de opmaak dubbel te schrijven.
-function CategoryBadge({ label }) {
-  return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-      width: '20px', height: '20px', borderRadius: '50%',
-      background: 'rgba(51,237,213,0.15)', border: '1px solid var(--accent)', color: 'var(--accent)',
-      fontSize: label.length > 1 ? '8px' : '10px', fontWeight: 800,
-    }}>
-      {label}
-    </span>
-  );
-}
+const KINDS = [
+  { key: 'penalties', labelKey: 'setpieces.col.penalties' },
+  { key: 'corners', labelKey: 'setpieces.col.corners' },
+  { key: 'freeKicks', labelKey: 'setpieces.col.freeKicks' },
+];
 
 // De sheet gebruikt korte, leesbare namen ("Sikan"), de spelersdatabank volledige ("Danylo Sikan").
 // Zoekt binnen dezelfde club naar de speler die bij zo'n losse naam hoort, en geeft de volledige naam
@@ -44,196 +37,124 @@ function resolvePlayerName(rawName, clubCode, playerDatabase) {
   return match?.name ?? null;
 }
 
-// Splitst een waarde als "Sikan / Ambros / Cvetkovic ?" op de "/"-scheidingstekens en de "?" (allebei
-// als apart element behouden, zie de capturing group) zodat enkel het vraagteken in goud gerenderd kan
-// worden en elke naam apart aanklikbaar is. De tekst zelf blijft ongewijzigd en in de oorspronkelijke
-// volgorde staan. Geen alfabetische herordening, geen andere symbolen i.p.v. "?".
-//
-// Een naam wordt alleen een knop als hij ook écht een speler oplevert: een klik die op een lege kaart
-// uitkomt is een loze belofte, en deze sheet bevat ook vrije tekst die geen spelersnaam is.
-function formatSetPieceValue(value, { clubCode, playerDatabase, onOpenPlayer, t }) {
-  return value.split(/([/?])/g).filter(part => part !== '').map((part, i) => {
-    if (part === '?') return <span key={i} style={{ color: 'var(--warning)', fontWeight: 800 }}>?</span>;
-    if (part === '/') return <span key={i}>{part}</span>;
-    const fullName = onOpenPlayer ? resolvePlayerName(part, clubCode, playerDatabase) : null;
-    if (!fullName) return <span key={i}>{part}</span>;
-    // De omliggende spaties blijven buiten de knop staan, anders krijgt het onderstreepte
-    // klikgebied een losse spatie mee aan het begin of einde.
-    const [, before, name, after] = part.match(/^(\s*)(.*?)(\s*)$/);
-    return (
-      <span key={i}>
-        {before}
-        <button
-          type="button"
-          onClick={() => onOpenPlayer(fullName, clubCode)}
-          aria-label={t('playerSheet.openAria', { name: fullName })}
-          // Puur inline, zonder eigen hoogte of padding: een naam staat middenin een zin ("Sikan /
-          // Ambros ?") en moet dus gewoon op dezelfde regel meelopen als de tekst eromheen. Een
-          // eerdere poging om het aanraakdoel te vergroten met inline-block + min-height duwde elke
-          // naam uit de lijn en maakte de kaarten ongelijk hoog. .fdr-hit-line doet dat werk via een
-          // pseudo-element en laat de lay-out volledig met rust.
-          className="fdr-hit-line"
-          style={{
-            background: 'none', border: 'none', padding: 0, font: 'inherit', color: 'inherit',
-            cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'rgba(51,237,213,0.5)',
-            textUnderlineOffset: '3px',
-          }}
-        >
-          {name}
-        </button>
-        {after}
-      </span>
-    );
-  });
+// "Sikan / Ambros / Cvetkovic ?" -> namen in volgorde. De tekst zelf blijft ongewijzigd (geen
+// herordening). Een "?" in de cel betekent: niet bevestigd.
+function parseValue(value) {
+  const text = (value ?? '').trim();
+  const names = text.split('/').map(s => s.replace(/\?/g, '').trim()).filter(Boolean);
+  return { names, uncertain: text.includes('?') };
 }
 
-function SetPieceRow({ label, value, ...linkProps }) {
+// Zekerheid van een cel, met dezelfde stippen als de startzekerheid (spec §3.3):
+// één naam = zeker (gevuld groen), meerdere namen = gedeeld (open groen), "?" = onzeker (geel).
+function certaintyOf({ names, uncertain }) {
+  if (uncertain) return 'uncertain';
+  return names.length > 1 ? 'shared' : 'sure';
+}
+
+function NameButton({ name, clubCode, playerDatabase, onOpenPlayer, t, className }) {
+  const fullName = onOpenPlayer ? resolvePlayerName(name, clubCode, playerDatabase) : null;
+  // Een naam wordt enkel een knop als hij écht een speler oplevert: een klik die op een lege kaart
+  // uitkomt is een loze belofte, en de sheet bevat ook vrije tekst.
+  if (!fullName) return <span className={className}>{name}</span>;
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', padding: '4px 0' }}>
-      <CategoryBadge label={label} />
-      <span style={{ color: 'var(--text-1)', fontSize: '13px', fontWeight: 600, lineHeight: 1.45, wordBreak: 'break-word' }}>
-        {value ? formatSetPieceValue(value, linkProps) : <span style={{ color: 'var(--text-4)' }}>—</span>}
-      </span>
-    </div>
+    <button
+      type="button"
+      className={`sp-name-btn ${className ?? ''}`}
+      onClick={() => onOpenPlayer(fullName, clubCode)}
+      aria-label={t('playerSheet.openAria', { name: fullName })}
+    >
+      {name}
+    </button>
   );
 }
 
-function SetPieceCard({ entry, playerDatabase, onOpenPlayer, onOpenClub, t }) {
-  const linkProps = { clubCode: entry.clubCode, playerDatabase, onOpenPlayer, t };
+function SetPieceCell({ value, clubCode, playerDatabase, onOpenPlayer, t }) {
+  const parsed = parseValue(value);
+  if (parsed.names.length === 0) return null;
+  const [first, ...rest] = parsed.names;
+  const certainty = certaintyOf(parsed);
+  const firstFull = resolvePlayerName(first, clubCode, playerDatabase) ?? first;
   return (
-    <div style={{
-      background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-      borderRadius: '12px', padding: '14px 16px',
-    }}>
-      {/* De kaartkop opent de clubkaart — logo en clubnaam samen, want 22px logo alleen is een te
-          klein tikdoel. Zonder onOpenClub blijft het gewoon een kop. */}
-      {React.createElement(
-        onOpenClub && entry.clubCode ? 'button' : 'div',
-        {
-          type: onOpenClub && entry.clubCode ? 'button' : undefined,
-          onClick: onOpenClub && entry.clubCode ? () => onOpenClub(entry.clubCode) : undefined,
-          'aria-label': onOpenClub && entry.clubCode ? t('clubSheet.openAria', { club: entry.clubName }) : undefined,
-          className: onOpenClub && entry.clubCode ? 'fdr-touch-target' : undefined,
-          style: {
-            display: 'flex', alignItems: 'center', gap: '8px', width: '100%',
-            paddingBottom: '10px', marginBottom: '10px',
-            borderBottom: '1px solid rgba(255,255,255,0.08)',
-            background: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none',
-            padding: '0 0 10px', textAlign: 'left', fontFamily: 'inherit',
-            cursor: onOpenClub && entry.clubCode ? 'pointer' : undefined,
-          },
-        },
-        entry.clubCode ? (
-          <img
-            key="logo"
-            src={`/club-logos/${entry.clubCode}.webp`}
-            alt=""
-            style={{ width: '22px', height: '22px', objectFit: 'contain', flexShrink: 0 }}
-            onError={(e) => { e.target.style.display = 'none'; }}
-          />
-        ) : null,
-        <span key="naam" style={{
-          color: 'var(--text-1)', fontWeight: 800, fontSize: '14px', textTransform: 'uppercase', letterSpacing: '0.01em',
-        }}>
-          {entry.clubName}
-        </span>,
-      )}
-      <SetPieceRow label="P" value={entry.penalties} {...linkProps} />
-      <SetPieceRow label="C" value={entry.corners} {...linkProps} />
-      <SetPieceRow label="FK" value={entry.freeKicks} {...linkProps} />
-    </div>
+    <span className="sp-cell">
+      <span className={`sp-dot is-${certainty}`} role="img" aria-label={t(`setpieces.certainty.${certainty}`)} title={t(`setpieces.certainty.${certainty}`)} />
+      <PlayerFaceByName name={firstFull} clubCode={clubCode} size={20} />
+      <span className="sp-cell__text">
+        <NameButton name={first} clubCode={clubCode} playerDatabase={playerDatabase} onOpenPlayer={onOpenPlayer} t={t} className="sp-cell__first" />
+        {rest.length > 0 && (
+          <span className="sp-cell__rest">
+            {rest.map((n, i) => (
+              <span key={n}>
+                {i > 0 && ' / '}
+                <NameButton name={n} clubCode={clubCode} playerDatabase={playerDatabase} onOpenPlayer={onOpenPlayer} t={t} />
+              </span>
+            ))}
+          </span>
+        )}
+      </span>
+    </span>
   );
 }
-
-const CATEGORY_LEGEND = [
-  { label: 'P', textKey: 'setpieces.legend.penalty' },
-  { label: 'C', textKey: 'setpieces.legend.corner' },
-  { label: 'FK', textKey: 'setpieces.legend.freeKick' },
-];
 
 export default function SetPiecesTab({
   t, entries = [], updatedGw = '', loading, error, retry, onOpenPlayer, onOpenClub, playerDatabase = [],
 }) {
+  // Gsm: één kolom tegelijk (spec §7.7). Op desktop staan alle drie de kolommen er en is deze keuze verborgen.
+  const [kind, setKind] = useState('penalties');
+
+  const columns = [
+    {
+      key: 'club', label: t('setpieces.col.club'), sticky: true, stickyEdge: true, rowHeader: true,
+      render: e => (onOpenClub && e.clubCode ? (
+        <button type="button" className="sp-club sp-club--btn" onClick={() => onOpenClub(e.clubCode)} aria-label={t('clubSheet.openAria', { club: e.clubName })}>
+          <ClubLogo code={e.clubCode} size={20} /><span className="sp-club__code">{e.clubCode}</span><span className="sp-club__name">{e.clubName}</span>
+        </button>
+      ) : (
+        <span className="sp-club"><ClubLogo code={e.clubCode} size={20} /><span className="sp-club__code">{e.clubCode ?? e.clubName}</span></span>
+      )),
+    },
+    ...KINDS.map(k => ({
+      key: k.key, label: t(k.labelKey), className: `sp-col sp-col--${k.key}`,
+      render: e => <SetPieceCell value={e[k.key]} clubCode={e.clubCode} playerDatabase={playerDatabase} onOpenPlayer={onOpenPlayer} t={t} />,
+    })),
+  ];
+
+  const meta = updatedGw ? <span className="num">{t('setpieces.updatedMeta', { gw: updatedGw })}</span> : null;
+
   return (
-    <>
-      {/* Legende + laatste update — zelfde stijl als de safety-kleurenlegende op de Predicted
-          Lineups-tab: badge + korte uitleg, zodat de P/C/FK-afkortingen zonder tooltip duidelijk
-          blijven. Bovenaan de tab, want de titel/subtitel/uitleg zijn hier bewust weggelaten. */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px',
-        marginBottom: '18px',
-      }}>
-        <div style={{
-          display: 'flex', gap: '14px', flexWrap: 'wrap', alignItems: 'center',
-          fontSize: '11px', fontWeight: 700, color: 'var(--text-2)',
-        }}>
-          {CATEGORY_LEGEND.map(({ label, textKey }) => (
-            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <CategoryBadge label={label} />
-              {t(textKey)}
-            </div>
-          ))}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ color: 'var(--warning)', fontWeight: 800, fontSize: '13px' }}>?</span>
-            {t('setpieces.legend.uncertain')}
-          </div>
-        </div>
-        {updatedGw && (
-          <span style={{
-            color: 'var(--accent)', fontWeight: 800, fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase',
-            background: 'rgba(51,237,213,0.12)', border: '1px solid rgba(51,237,213,0.3)',
-            borderRadius: '999px', padding: '5px 14px', whiteSpace: 'nowrap',
-          }}>
-            {t('setpieces.updatedLabel', { gw: updatedGw })}
+    <div className="sp">
+      <PageHeader title={t('nav.setpieces')} meta={meta} intro={t('setpieces.introShort')} />
+
+      <div className="sp-legend" role="list" aria-label={t('setpieces.legendAria')}>
+        {['sure', 'shared', 'uncertain'].map(c => (
+          <span key={c} className="sp-legend__item" role="listitem">
+            <span className={`sp-dot is-${c}`} aria-hidden="true" /> {t(`setpieces.certainty.${c}`)}
           </span>
-        )}
+        ))}
       </div>
 
-      {loading && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-2)', fontSize: '13px', marginBottom: '12px' }}>
-          <Loader2 size={16} className="fdr-spin" /> {t('setpieces.loading')}
-        </div>
-      )}
+      <Segmented
+        className="sp-kind"
+        ariaLabel={t('setpieces.kindAria')}
+        value={kind}
+        onChange={setKind}
+        options={KINDS.map(k => ({ value: k.key, label: t(k.labelKey) }))}
+      />
 
-      {!loading && error && (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
-          background: 'rgba(255,90,71,0.12)', border: '1px solid rgba(255,90,71,0.4)',
-          borderRadius: '10px', padding: '12px 14px', marginBottom: '12px',
-        }}>
-          <AlertCircle size={16} color="var(--danger)" style={{ flexShrink: 0 }} />
-          <span style={{ color: 'var(--text-1)', fontSize: '13px', flex: 1 }}>{t(error)}</span>
-          <button onClick={retry} style={retryButtonStyle}>
-            <RotateCcw size={14} /> {t('shared.retry')}
-          </button>
-        </div>
-      )}
+      {!loading && error && <ErrorBanner onRetry={retry} retryLabel={t('shared.retry')}>{t(error)}</ErrorBanner>}
+      {!loading && !error && entries.length === 0 && <EmptyState>{t('setpieces.emptyState')}</EmptyState>}
 
-      {!loading && !error && entries.length === 0 && (
-        <div style={{
-          background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-          borderRadius: '10px', padding: '16px',
-        }}>
-          <p style={{ color: 'var(--text-2)', fontSize: '13px', margin: 0 }}>
-            {t('setpieces.emptyState')}
-          </p>
-        </div>
+      {(loading || (!error && entries.length > 0)) && (
+        <DataTable
+          className={`sp-table is-show-${kind}`}
+          bleed
+          loading={loading}
+          columns={columns}
+          rows={entries}
+          rowKey={(e, i) => e.clubCode ?? `${e.clubName}-${i}`}
+          ariaLabel={t('nav.setpieces')}
+        />
       )}
-
-      {!loading && !error && entries.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(330px, 1fr))', gap: '12px' }}>
-          {entries.map((entry, i) => (
-            <SetPieceCard
-              key={entry.clubCode ?? `${entry.clubName}-${i}`}
-              entry={entry}
-              playerDatabase={playerDatabase}
-              onOpenPlayer={onOpenPlayer}
-              onOpenClub={onOpenClub}
-              t={t}
-            />
-          ))}
-        </div>
-      )}
-    </>
+    </div>
   );
 }

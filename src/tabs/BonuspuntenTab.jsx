@@ -1,335 +1,193 @@
 // Inhoud van de Bonuspunten-tab: rangschikkingen van de vier statistieken die een Fantasy Pro League-
 // bonuspunt kunnen opleveren (meer duels gewonnen dan verloren, >3 verdedigende kopballen, >5 recoveries,
-// >1 grote kans), plus een kleinere algemene "meeste bonuspunten"-rangschikking. Bron van deze
-// statistieken is de gedeelde spelersdatabank (playerDatabase.duelsWon/.../.bonusPoints, zie
-// parsePlayerDatabaseCsv in constants.js) — die is al elders in FDRTool.jsx opgehaald/geparset (zelfde
-// props als WatchlistTab/TeamPlannerTab), dus geen eigen CSV-fetch/parsing meer hier (voorheen een
-// aparte BONUSPUNTEN_CSV_URL-werkblad-fetch).
+// >1 grote kans), plus de algemene "meeste bonuspunten"-rangschikking. Bron is de gedeelde
+// spelersdatabank (playerDatabase.duelsWon/.../.bonusPoints, zie parsePlayerDatabaseCsv in constants.js),
+// die FDRTool.jsx al ophaalt. De berekening zelf staat in src/bonuspunten.js en is ongewijzigd.
+//
+// Sinds de rework (spec §7.5): één tabel i.p.v. vijf inklapbare lijsten met kaartrijen. Bovenaan kies
+// je de statistiek (standaard Totaal = meeste bonuspunten), totaal of per wedstrijd, en de scope.
 import { useCallback, useMemo, useState } from 'react';
 import { resolveStatsUpdatedGw } from '../constants';
-import { Loader2, AlertCircle, RotateCcw, Swords, Shield, RefreshCw, Target, Award } from 'lucide-react';
-import { SectionHeader } from '../components/SectionHeader';
-import { RankingRow, watchProps, clubProps } from '../components/RankingRow';
-import { PlayerSearchInput } from '../components/PlayerSearchInput';
 import ScopeFilter, { ScopeEmptyMessage, makeScopeMatcher } from '../components/ScopeFilter';
+import { RankingIdent, ClubCell } from '../components/RankingCells';
+import PageHeader from '../ui/PageHeader';
+import SearchField from '../ui/SearchField';
+import Segmented from '../ui/Segmented';
+import DataTable from '../ui/DataTable';
+import ErrorBanner, { Notice } from '../ui/ErrorBanner';
+import EmptyState from '../ui/EmptyState';
+import { normalizePlayerName } from '../data/usePlayerIndex';
 import {
   buildBonuspuntenEntries, rankByDuels, rankByDefensiveHeaders, rankByRecoveries, rankByBigChances,
-  rankByBonusPoints, perGameLabel, BONUS_CRITERIA,
-  SORT_MODES, minGamesForPerMatch, TOP_N,
+  rankByBonusPoints, SORT_MODES, minGamesForPerMatch, TOP_N,
 } from '../bonuspunten';
 
-const retryButtonStyle = {
-  display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0,
-  background: 'transparent', color: 'var(--text-1)', border: '1px solid rgba(251,234,231,0.4)',
-  borderRadius: '8px', padding: '6px 12px', fontWeight: 700, fontSize: '12px', cursor: 'pointer',
-};
-
-// De Bonuspunten-kolom (de 5e, algemene "meeste bonuspunten"-rangschikking) is sinds GW6 gevuld — zet
-// terug op false (zelfde tijdelijke-vlag-opzet als SHOW_CLOSEST_TO_SUSPENSION_MODE in KaartenTab.jsx)
-// mocht die kolom ooit weer leeg komen te staan.
-const BONUS_POINTS_DATA_AVAILABLE = true;
-
-// Voor het "Updated: GW.."-badge hieronder. De gedeelde CSV heeft geen eigen "laatst bijgewerkt"-
-// kolom, maar de sheet wordt elke maandagmiddag na een speeldag automatisch bijgewerkt — dus leiden
-// we de GW af uit de deadlines (zie resolveStatsUpdatedGw in constants.js) i.p.v. een handmatige
-// constante die na elke speeldag opnieuw achterliep.
+// De sheet wordt elke maandagmiddag na een speeldag bijgewerkt; de GW volgt uit de deadlines (zie
+// resolveStatsUpdatedGw in constants.js).
 const BONUSPUNTEN_UPDATED_GW = resolveStatsUpdatedGw();
 
-// Twee-knops-schakelaar boven de rangschikkingen: sorteren op seizoenstotaal of op per-wedstrijd-
-// gemiddelde. Zie SORT_MODES in ../bonuspunten voor waarom die tweede modus er is.
-function SortModeToggle({ t, value, onChange }) {
-  const options = [
-    { mode: SORT_MODES.total, label: t('bonuspunten.sortTotal') },
-    { mode: SORT_MODES.perMatch, label: t('bonuspunten.sortPerMatch') },
-  ];
-  return (
-    <div
-      role="group"
-      aria-label={t('bonuspunten.sortLabel')}
-      style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}
-    >
-      <span style={{ color: 'var(--text-3)', fontSize: '12px' }}>{t('bonuspunten.sortLabel')}</span>
-      <div style={{
-        display: 'flex', gap: '2px', background: 'rgba(255,255,255,0.04)',
-        border: '1px solid rgba(255,255,255,0.08)', borderRadius: '999px', padding: '2px',
-      }}>
-        {options.map(o => {
-          const active = value === o.mode;
-          return (
-            <button
-              key={o.mode}
-              type="button"
-              onClick={() => onChange(o.mode)}
-              aria-pressed={active}
-              style={{
-                background: active ? 'var(--accent)' : 'transparent',
-                color: active ? 'var(--accent-ink)' : 'var(--text-2)',
-                border: 'none', borderRadius: '999px', padding: '5px 12px',
-                fontWeight: 700, fontSize: '12px', fontFamily: 'inherit', cursor: 'pointer',
-              }}
-            >
-              {o.label}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
+// De vijf statistieken. `pick` = de waarde waarop gerangschikt wordt; `rank` = de bestaande
+// rangschikkingsfunctie uit bonuspunten.js; `sign` = toon een +-teken (duelsaldo kan negatief zijn).
+const STATS = {
+  duels: { rank: rankByDuels, pick: e => e.duelDiff, sign: true, section: 'duels' },
+  headers: { rank: rankByDefensiveHeaders, pick: e => e.defensiveHeaders, section: 'headers' },
+  recoveries: { rank: rankByRecoveries, pick: e => e.recoveries, section: 'recoveries' },
+  bigChances: { rank: rankByBigChances, pick: e => e.bigChances, section: 'bigChances' },
+  total: { rank: rankByBonusPoints, pick: e => e.bonusPoints, section: 'bonusPoints' },
+};
+const STAT_KEYS = ['duels', 'headers', 'recoveries', 'bigChances', 'total'];
 
-function RankingSection({ icon, title, sectionKey, isOpen, onToggle, children }) {
-  return (
-    <section style={{ marginBottom: '20px' }}>
-      <SectionHeader icon={icon} title={title} sectionKey={sectionKey} isOpen={isOpen} onToggle={onToggle} />
-      {isOpen && <div style={{ display: 'grid', gap: '8px' }}>{children}</div>}
-    </section>
-  );
-}
+const withSign = (v, sign) => `${sign && v > 0 ? '+' : ''}${v}`;
 
 export default function BonuspuntenTab({
   t, playerDatabase, playerDatabaseLoading, playerDatabaseError, fetchPlayerDatabase,
   toggleWatchlistPlayer, isPlayerWatched, isPlayerInMyTeam, hasMyTeam, hasWatchlist,
   onOpenPlayer, onOpenClub,
 }) {
-  const perMatchUnit = t('bonuspunten.perMatchUnit');
-  // Alle vijf de rangschikkingen krijgen dezelfde ster; één helper i.p.v. vijf keer hetzelfde.
-  const starProps = entry => ({
-    ...watchProps({ name: entry.player, teamCode: entry.clubCode }, { isPlayerWatched, toggleWatchlistPlayer, t }),
-    ...clubProps({ clubCode: entry.clubCode, clubName: entry.clubName }, { onOpenClub, t }),
-  });
-  const [openSections, setOpenSections] = useState({
-    duels: true, defensiveHeaders: true, recoveries: true, bigChances: true, bonusPoints: true,
-  });
-  // Sorteermodus van alle vijf de rangschikkingen tegelijk — bewust één schakelaar i.p.v. één per
-  // sectie: de gebruiker stelt één vraag ("wie is de beste?" vs "wie is de beste per match?"), niet vijf.
+  const [stat, setStat] = useState('total');
+  // Eén sorteermodus en één scope voor de hele tabel: je stelt één vraag ("wie is de beste per match?",
+  // "hoe doen mijn spelers het?").
   const [sortMode, setSortMode] = useState(SORT_MODES.total);
-  // Eén scope voor alle vijf de lijsten tegelijk, zelfde redenering als de sorteerschakelaar hierboven:
-  // je stelt één vraag ("hoe doen mijn spelers het?"), niet vijf keer dezelfde.
   const [scope, setScope] = useState('all');
-
-  const toggleSection = useCallback((key) => {
-    setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
-  }, []);
-
-  // Een rij in een top-15-sectie hieronder klikken doet exact hetzelfde als die speler opzoeken via de
-  // zoekbalk: allebei openen ze de speler-sheet. `entry` gebruikt .player/.clubCode
-  // (bonuspunten-veldnamen), de sheet .name/.teamCode (playerDatabase-veldnamen) — vandaar de mapping.
-  const handleSelectFromRanking = useCallback(
-    (entry) => onOpenPlayer?.(entry.player, entry.clubCode),
-    [onOpenPlayer],
-  );
+  const [query, setQuery] = useState('');
 
   const entries = useMemo(() => buildBonuspuntenEntries(playerDatabase), [playerDatabase]);
   const minGames = useMemo(() => minGamesForPerMatch(entries), [entries]);
   const isPerMatch = sortMode === SORT_MODES.perMatch;
-  const duelsRanking = useMemo(() => rankByDuels(entries, sortMode, minGames), [entries, sortMode, minGames]);
-  const headersRanking = useMemo(() => rankByDefensiveHeaders(entries, sortMode, minGames), [entries, sortMode, minGames]);
-  const recoveriesRanking = useMemo(() => rankByRecoveries(entries, sortMode, minGames), [entries, sortMode, minGames]);
-  const bigChancesRanking = useMemo(() => rankByBigChances(entries, sortMode, minGames), [entries, sortMode, minGames]);
-  const bonusRanking = useMemo(() => rankByBonusPoints(entries, sortMode, minGames), [entries, sortMode, minGames]);
+  const def = STATS[stat];
+  const ranking = useMemo(() => def.rank(entries, sortMode, minGames), [def, entries, sortMode, minGames]);
 
-  // In per-wedstrijd-modus wisselen hoofdwaarde en subregel van plaats: de waarde waarop gesorteerd
-  // wordt hoort het grootst te staan, anders lijkt de volgorde willekeurig ("waarom staat 16 boven 17?").
-  const rankingValues = useCallback((value, games, { showSign = false } = {}) => {
-    const perMatch = perGameLabel(value, games, { showSign, unit: perMatchUnit });
-    const total = `${showSign && value > 0 ? '+' : ''}${value}`;
-    return isPerMatch && perMatch
-      ? { value: perMatch, valueSub: total }
-      : { value: total, valueSub: perMatch };
-  }, [isPerMatch, perMatchUnit]);
-
-  // Zonder filter blijft elke sectie een top 15 — dat is waar die lijsten voor dienen. Zodra je op je
-  // eigen ploeg of watchlist filtert valt die grens weg en zie je ál je spelers, ook die op plaats 47.
-  // Anders zou het filter stil de helft van je ploeg verzwijgen: een speler die niet in de top 15
-  // staat is geen speler zonder cijfers, en juist dat lage nummer is dan de informatie.
-  //
-  // De rang komt uit de ranglijst zelf (entry.rank, zie ranking.js) en wordt na het filteren NIET
-  // herberekend: hij blijft de plaats in de volledige competitieranglijst. Opnieuw nummeren zou jouw
-  // speler op 1 zetten — geruststellend, maar onjuist. Valt de lijst leeg, dan komt er uitleg in de
-  // plaats i.p.v. een lege sectie.
+  // Zonder filter en zonder zoekterm blijft het een top 15: daar dient de lijst voor. Filter je op je
+  // eigen ploeg of watchlist, of zoek je een naam, dan zie je álle treffers, ook die op plaats 47: een
+  // speler buiten de top 15 is geen speler zonder cijfers, en juist dat nummer is dan de informatie.
   const matchesScope = makeScopeMatcher(scope, { isPlayerWatched, isPlayerInMyTeam });
-  const renderScoped = (ranking, renderRow) => {
-    const rijen = scope === 'all'
-      ? ranking.slice(0, TOP_N)
-      : ranking.filter(entry => matchesScope(entry.player, entry.clubCode));
-    if (rijen.length === 0) {
-      return <ScopeEmptyMessage t={t} scope={scope} hasAny={scope === 'myTeam' ? hasMyTeam : hasWatchlist} />;
-    }
-    return rijen.map(renderRow);
+  const q = normalizePlayerName(query);
+  const rows = useMemo(() => {
+    if (scope === 'all' && !q) return ranking.slice(0, TOP_N);
+    return ranking.filter(e => matchesScope(e.player, e.clubCode) && (!q || normalizePlayerName(e.player).includes(q)));
+  }, [ranking, scope, q, matchesScope]);
+
+  const onSort = useCallback((key) => setSortMode(key === 'perMatch' ? SORT_MODES.perMatch : SORT_MODES.total), []);
+
+  const perMatchText = (e) => {
+    if (!e.games) return null;
+    const v = def.pick(e) / e.games;
+    return `${def.sign && v > 0 ? '+' : ''}${v.toFixed(2)}`;
   };
 
+  const columns = [
+    {
+      key: 'player', label: t('bonuspunten.col.player'), sticky: true, stickyEdge: true, rowHeader: true,
+      className: 'rk-col-player',
+      render: e => (
+        <RankingIdent
+          t={t} rank={e.rank} name={e.player} clubCode={e.clubCode}
+          isPlayerWatched={isPlayerWatched} toggleWatchlistPlayer={toggleWatchlistPlayer}
+        />
+      ),
+    },
+    {
+      key: 'club', label: t('bonuspunten.col.club'), className: 'rk-col-club',
+      render: e => <ClubCell t={t} clubCode={e.clubCode} clubName={e.clubName} onOpenClub={onOpenClub} />,
+    },
+    ...(stat === 'duels' ? [
+      { key: 'won', label: t('bonuspunten.col.won'), num: true, className: 'rk-col-extra', render: e => e.duelsWon },
+      { key: 'lost', label: t('bonuspunten.col.lost'), num: true, className: 'rk-col-extra', render: e => e.duelsLost },
+    ] : []),
+    {
+      key: 'value', label: t(`bonuspunten.col.value.${stat}`), title: t(`bonuspunten.section.${def.section}`),
+      num: true, sortable: true,
+      render: e => withSign(def.pick(e), def.sign),
+      cellClass: e => ['rk-value', e.rank <= 3 && 'is-top'].filter(Boolean).join(' '),
+    },
+    {
+      key: 'perMatch', label: t('bonuspunten.col.perMatch'), title: t('bonuspunten.sortPerMatch'),
+      num: true, sortable: true,
+      render: perMatchText,
+      cellClass: () => (isPerMatch ? 'is-strong' : 'is-muted'),
+    },
+  ];
+
+  const ready = !playerDatabaseLoading && !playerDatabaseError;
+  const meta = BONUSPUNTEN_UPDATED_GW > 0
+    ? <span className="num">{t('bonuspunten.updatedMeta', { gw: BONUSPUNTEN_UPDATED_GW })}</span>
+    : null;
+
   return (
-    <>
-      {/* Laatste-update-badge op een eigen, rechts uitgelijnde regel — zelfde badge-stijl (teal pil)
-          als de "Updated: GW.."-badge op de Set Pieces-tab. Bewust niet in dezelfde flex-rij als de
-          introtekst: die is te lang om ooit naast een badge te passen zonder toch naar een eigen regel
-          te wrappen, dus dit is voorspelbaarder. Geen badge zolang er nog geen enkele GW verwerkt is. */}
-      {BONUSPUNTEN_UPDATED_GW > 0 && <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
-        <span style={{
-          color: 'var(--accent)', fontWeight: 800, fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase',
-          background: 'rgba(51,237,213,0.12)', border: '1px solid rgba(51,237,213,0.3)',
-          borderRadius: '999px', padding: '5px 14px', whiteSpace: 'nowrap',
-        }}>
-          {t('bonuspunten.updatedLabel', { gw: BONUSPUNTEN_UPDATED_GW })}
-        </span>
-      </div>}
+    <div className="rk">
+      <PageHeader
+        title={t('nav.bonuspunten')}
+        meta={meta}
+        intro={t('bonuspunten.introShort')}
+        more={<p>{t('bonuspunten.intro')}</p>}
+        moreLabel={t('shared.explain')}
+      />
 
-      <p style={{ color: 'var(--text-3)', fontSize: '13px', marginBottom: '18px' }}>
-        {t('bonuspunten.intro')}
-      </p>
+      <div className="rk-toolbar">
+        <SearchField
+          className="rk-toolbar__search"
+          value={query}
+          onChange={v => setQuery(v.slice(0, 40))}
+          placeholder={t('bonuspunten.searchPlaceholder')}
+          clearLabel={t('picker.clear')}
+        />
+      </div>
+      <div className="rk-toolbar">
+        <Segmented
+          ariaLabel={t('bonuspunten.statAria')}
+          value={stat}
+          onChange={setStat}
+          options={STAT_KEYS.map(k => ({ value: k, label: t(`bonuspunten.tab.${k}`) }))}
+        />
+        <Segmented
+          ariaLabel={t('bonuspunten.sortLabel')}
+          value={sortMode}
+          onChange={setSortMode}
+          options={[
+            { value: SORT_MODES.total, label: t('bonuspunten.sortTotal') },
+            { value: SORT_MODES.perMatch, label: t('bonuspunten.sortPerMatch') },
+          ]}
+        />
+        <ScopeFilter t={t} scope={scope} onChange={setScope} />
+      </div>
 
-      {playerDatabaseLoading && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-2)', fontSize: '13px', marginBottom: '12px' }}>
-          <Loader2 size={16} className="fdr-spin" /> {t('bonuspunten.loading')}
-        </div>
-      )}
+      {isPerMatch && <Notice>{t('bonuspunten.sortPerMatchNote', { minGames })}</Notice>}
 
       {!playerDatabaseLoading && playerDatabaseError && (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
-          background: 'rgba(255,90,71,0.12)', border: '1px solid rgba(255,90,71,0.4)',
-          borderRadius: '10px', padding: '12px 14px', marginBottom: '12px',
-        }}>
-          <AlertCircle size={16} color="var(--danger)" style={{ flexShrink: 0 }} />
-          <span style={{ color: 'var(--text-1)', fontSize: '13px', flex: 1 }}>{playerDatabaseError}</span>
-          <button onClick={fetchPlayerDatabase} style={retryButtonStyle}>
-            <RotateCcw size={14} /> {t('shared.retry')}
-          </button>
-        </div>
+        <ErrorBanner onRetry={fetchPlayerDatabase} retryLabel={t('shared.retry')}>{playerDatabaseError}</ErrorBanner>
       )}
 
-      {!playerDatabaseLoading && !playerDatabaseError && entries.length === 0 && (
-        <div style={{
-          background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-          borderRadius: '10px', padding: '16px',
-        }}>
-          <p style={{ color: 'var(--text-2)', fontSize: '13px', margin: 0 }}>
-            {t('bonuspunten.emptyState')}
-          </p>
-        </div>
-      )}
+      {ready && entries.length === 0 && <EmptyState>{t('bonuspunten.emptyState')}</EmptyState>}
 
-      {!playerDatabaseLoading && !playerDatabaseError && entries.length > 0 && (
+      {(playerDatabaseLoading || (ready && entries.length > 0)) && (
         <>
-          <div style={{ marginBottom: '20px' }}>
-            <PlayerSearchInput
-              players={playerDatabase}
-              onSelect={player => onOpenPlayer?.(player.name, player.teamCode)}
-              placeholder={t('bonuspunten.searchPlaceholder')}
-              maxWidth="320px"
+          <h2 className="label rk-caption">
+            {t(`bonuspunten.section.${def.section}`)}
+            {scope === 'all' && !q ? ` · ${t('bonuspunten.topN', { n: TOP_N })}` : ''}
+          </h2>
+          {ready && rows.length === 0 ? (
+            scope !== 'all' && !q
+              ? <ScopeEmptyMessage t={t} scope={scope} hasAny={scope === 'myTeam' ? hasMyTeam : hasWatchlist} />
+              : <EmptyState>{t('bonuspunten.noMatch')}</EmptyState>
+          ) : (
+            <DataTable
+              className="rk-table"
+              bleed
+              loading={playerDatabaseLoading}
+              columns={columns}
+              rows={rows}
+              rowKey={e => `${e.player}|${e.clubCode}`}
+              onRowClick={onOpenPlayer ? (e => onOpenPlayer(e.player, e.clubCode)) : undefined}
+              rowLabel={e => t('playerSheet.openAria', { name: e.player })}
+              sort={{ key: isPerMatch ? 'perMatch' : 'value', dir: 'desc' }}
+              onSort={onSort}
+              ariaLabel={t(`bonuspunten.section.${def.section}`)}
             />
-          </div>
-
-          <ScopeFilter t={t} scope={scope} onChange={setScope} />
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', margin: '4px 0 18px' }}>
-            <SortModeToggle t={t} value={sortMode} onChange={setSortMode} />
-            {isPerMatch && (
-              <p style={{ color: 'var(--text-3)', fontSize: '11px', margin: 0, lineHeight: 1.5 }}>
-                {t('bonuspunten.sortPerMatchNote', { minGames })}
-              </p>
-            )}
-          </div>
-
-          <RankingSection
-            icon={Swords} title={t('bonuspunten.section.duels')} sectionKey="duels"
-            isOpen={openSections.duels} onToggle={toggleSection}
-          >
-            {/* De clubnaam stond hier als enige van de vijf lijsten niet bij: de subregel was volledig
-                opgegaan aan het duelsaldo, waardoor je van de nummer 1 niet kon zien voor wie hij speelt
-                — net wat je nodig hebt om te beoordelen of hij in je ploeg past. */}
-            {renderScoped(duelsRanking, (entry) => (
-              <RankingRow
-                key={entry.player} rank={entry.rank} clubCode={entry.clubCode} player={entry.player}
-                subtitle={[entry.clubName, t('bonuspunten.duelsSubtitle', { won: entry.duelsWon, lost: entry.duelsLost })].filter(Boolean).join(' · ')}
-                {...rankingValues(entry.duelDiff, entry.games, { showSign: true })}
-                qualifies={BONUS_CRITERIA.duels(entry)}
-                onClick={() => handleSelectFromRanking(entry)}
-                {...starProps(entry)}
-              />
-            ))}
-          </RankingSection>
-
-          <RankingSection
-            icon={Shield} title={t('bonuspunten.section.headers')} sectionKey="defensiveHeaders"
-            isOpen={openSections.defensiveHeaders} onToggle={toggleSection}
-          >
-            {renderScoped(headersRanking, (entry) => (
-              <RankingRow
-                key={entry.player} rank={entry.rank} clubCode={entry.clubCode} player={entry.player}
-                subtitle={entry.clubName}
-                {...rankingValues(entry.defensiveHeaders, entry.games)}
-                qualifies={BONUS_CRITERIA.defensiveHeaders(entry)}
-                onClick={() => handleSelectFromRanking(entry)}
-                {...starProps(entry)}
-              />
-            ))}
-          </RankingSection>
-
-          <RankingSection
-            icon={RefreshCw} title={t('bonuspunten.section.recoveries')} sectionKey="recoveries"
-            isOpen={openSections.recoveries} onToggle={toggleSection}
-          >
-            {renderScoped(recoveriesRanking, (entry) => (
-              <RankingRow
-                key={entry.player} rank={entry.rank} clubCode={entry.clubCode} player={entry.player}
-                subtitle={entry.clubName}
-                {...rankingValues(entry.recoveries, entry.games)}
-                qualifies={BONUS_CRITERIA.recoveries(entry)}
-                onClick={() => handleSelectFromRanking(entry)}
-                {...starProps(entry)}
-              />
-            ))}
-          </RankingSection>
-
-          <RankingSection
-            icon={Target} title={t('bonuspunten.section.bigChances')} sectionKey="bigChances"
-            isOpen={openSections.bigChances} onToggle={toggleSection}
-          >
-            {renderScoped(bigChancesRanking, (entry) => (
-              <RankingRow
-                key={entry.player} rank={entry.rank} clubCode={entry.clubCode} player={entry.player}
-                subtitle={entry.clubName}
-                {...rankingValues(entry.bigChances, entry.games)}
-                qualifies={BONUS_CRITERIA.bigChances(entry)}
-                onClick={() => handleSelectFromRanking(entry)}
-                {...starProps(entry)}
-              />
-            ))}
-          </RankingSection>
-
-          <RankingSection
-            icon={Award} title={t('bonuspunten.section.bonusPoints')} sectionKey="bonusPoints"
-            isOpen={openSections.bonusPoints} onToggle={toggleSection}
-          >
-            {BONUS_POINTS_DATA_AVAILABLE ? (
-              renderScoped(bonusRanking, (entry) => (
-                <RankingRow
-                  key={entry.player} rank={entry.rank} clubCode={entry.clubCode} player={entry.player}
-                  subtitle={entry.clubName}
-                  {...rankingValues(entry.bonusPoints, entry.games)}
-                  qualifies
-                  onClick={() => handleSelectFromRanking(entry)}
-                  {...starProps(entry)}
-                />
-              ))
-            ) : (
-              <div style={{
-                background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-                borderRadius: '8px', padding: '12px 14px',
-              }}>
-                <p style={{ color: 'var(--text-3)', fontSize: '12px', margin: 0 }}>
-                  {t('bonuspunten.dataComingSoon')}
-                </p>
-              </div>
-            )}
-          </RankingSection>
+          )}
         </>
       )}
 
-      <p style={{ color: 'var(--text-3)', fontSize: '11px', marginTop: '24px' }}>
-        {t('bonuspunten.sources')}
-      </p>
-    </>
+      <p className="rk-note">{t('bonuspunten.sources')}</p>
+    </div>
   );
 }
