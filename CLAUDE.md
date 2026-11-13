@@ -2,13 +2,14 @@
 
 Website met tools voor **Fantasy Pro League** (fantasy-spel van de Belgische Jupiler Pro League), gemaakt door @fpl_proleague. Live op https://fplproleague.vercel.app, GitHub: `fplproleague/jpl-fdr-tool` (openbaar).
 
-Tabs: FDR (Fixture Difficulty Rating), Team Planner, Verwachte XI's, Spelers, Bonuspunten, Set Pieces, Watchlist, Kaarten, Klassement, Price Changes (`src/tabs/PlayerStatusTab.jsx` bestaat, maar wordt nergens gebruikt). Plus een speler- en clubpagina per speler/club. De site bestaat in het Nederlands (`/fdr`), het Frans (`/fr/fdr`) en het Engels (`/en/fdr`); elke tekst staat in `src/i18n.js` in alle drie de talen.
+Tabs (8): FDR (Fixture Difficulty Rating), Verwachte XI's, Team Planner, Spelers, Bonuspunten, Set pieces, Kaarten, Klassement. De watchlist zit sinds de redesign als filter in Spelers; Watchlist en Price Changes bestaan niet meer als tab (oude links sturen door). Plus een speler- en clubpagina per speler/club. De site bestaat in het Nederlands (`/fdr`), het Frans (`/fr/fdr`) en het Engels (`/en/fdr`); elke tekst staat in `src/i18n.js` in alle drie de talen.
 
 ## Werken met de eigenaar
 
 - De eigenaar is **geen ervaren programmeur**: leg uit in eenvoudig Nederlands, zonder jargon.
 - **Niets pushen naar GitHub en geen bestaande code veranderen zonder het eerst te vragen.**
 - Werk via een aparte branch + pull request naar `main`. Vercel bouwt `main` automatisch naar productie, en elke PR krijgt een preview-link.
+- Lopende rework (november 2026): de redesign (`docs/redesign/DESIGN_SPEC.md`) en de functionaliteitsrework (`docs/functionaliteit/FUNCTIONALITEIT_SPEC.md`). Elke fase van die tweede rework gaat als PR naar de verzamelbranch `functionaliteit/eindresultaat`, niet naar `main`; pas op het einde gaat die verzamelbranch in één PR naar `main`.
 - Commit- en PR-teksten in het Nederlands.
 
 ## Stack
@@ -27,7 +28,8 @@ Tabs: FDR (Fixture Difficulty Rating), Team Planner, Verwachte XI's, Spelers, Bo
 - `src/tabs/*.jsx`: één bestand per tab.
 - `src/constants.js`: teams, de **volledige kalender (`FIXTURES`)**, uitgestelde wedstrijden (`POSTPONED`), deadlines, huidige GW en de CSV-links. Kalenderwijzigingen (afgelastingen, deadlines) gebeuren hier.
 - `src/predictedLineupsData.js`: de verwachte opstellingen. Die worden **elke speeldag bijgewerkt**.
-- `src/routes.js` + `src/i18n.js`: routes en vertalingen (nl/fr). Een nieuwe tab = een entry in `ROUTES` + vertaalsleutels; zie `README.MD`.
+- `src/routes.js` + `src/i18n.js`: routes en vertalingen (nl/fr/en). Een nieuwe tab = een entry in `ROUTES` + vertaalsleutels in de drie talen; zie `README.MD`. Geen zichtbare tekst hard in de code.
+- `src/fdrRatings.js`: de FDR-ratings als afwijkingen van de standaard (`DEFAULT_RATINGS`), met de migratie uit de oude opslag. Pas je `DEFAULT_RATINGS` aan, dan krijgt iedereen die die club niet zelf veranderde de nieuwe waarde.
 - `scripts/build-routes.mjs`: maakt na de Vite-build een HTML-pagina per route/speler/club per taal, plus `sitemap.xml`.
 - `src/predicted-xi/` + `predicted-xi.html`: aparte, niet-gelinkte privétool om opstellingen samen te stellen.
 
@@ -40,6 +42,7 @@ npm ci          # dependencies installeren (exact volgens package-lock.json)
 npm run dev     # dev-server op http://localhost:5173
 npm run build   # productiebuild naar dist/ (inclusief alle route-pagina's)
 npm run preview # de build lokaal bekijken
+npm test        # de tests (Vitest) van de pure functies: migraties, bonusregel, ...
 ```
 
 Let op:
