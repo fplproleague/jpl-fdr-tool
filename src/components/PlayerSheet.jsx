@@ -45,16 +45,18 @@ const SAFETY_LABEL_KEYS = {
 
 const detailCache = new Map();
 
-async function loadDetail(id) {
+// Een keeper krijgt ?pos=GK mee: de wedstrijddata vermeldt de positie niet, en keepers kunnen enkel
+// het duelpunt halen (spec A6). Voor de anderen blijft de URL (en dus de CDN-cache) zoals voorheen.
+async function loadDetail(id, pos) {
   if (detailCache.has(id)) return detailCache.get(id);
-  const response = await fetch(`/api/player/${id}`);
+  const response = await fetch(`/api/player/${id}${pos === 'GK' ? '?pos=GK' : ''}`);
   const body = await response.json().catch(() => null);
   if (!response.ok || !body || !Array.isArray(body.matches)) throw new Error(body?.error || `HTTP ${response.status}`);
   detailCache.set(id, body);
   return body;
 }
 
-function usePlayerDetail(id) {
+function usePlayerDetail(id, pos) {
   const [state, setState] = useState(() => ({ loading: !!id && !detailCache.has(id), error: false, detail: detailCache.get(id) ?? null }));
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
@@ -62,11 +64,11 @@ function usePlayerDetail(id) {
     if (detailCache.has(id)) { setState({ loading: false, error: false, detail: detailCache.get(id) }); return undefined; }
     let cancelled = false;
     setState({ loading: true, error: false, detail: null });
-    loadDetail(id)
+    loadDetail(id, pos)
       .then(detail => { if (!cancelled) setState({ loading: false, error: false, detail }); })
       .catch(() => { if (!cancelled) setState({ loading: false, error: true, detail: null }); });
     return () => { cancelled = true; };
-  }, [id, attempt]);
+  }, [id, pos, attempt]);
   return [state, () => setAttempt(a => a + 1)];
 }
 
@@ -271,7 +273,7 @@ export default function PlayerSheet({
   const apiPlayer = apiPlayerProp ?? index.find(name, teamCode);
   const gw = index.data?.gw ?? 0;
   const season = apiPlayer ? buildRow(apiPlayer, 'season', gw) : null;
-  const [{ loading, error, detail }, retry] = usePlayerDetail(apiPlayer?.id ?? null);
+  const [{ loading, error, detail }, retry] = usePlayerDetail(apiPlayer?.id ?? null, apiPlayer?.pos ?? null);
 
   const dbEntry = playerDatabase.find(p => p.name === name && p.teamCode === teamCode) ?? null;
   const bonusEntry = findPlayerBonusEntry(buildBonuspuntenEntries(playerDatabase), { name, teamCode });
@@ -373,7 +375,12 @@ export default function PlayerSheet({
       key: 'bonus', label: t('bonuspunten.tab.total'), title: t('bonuspunten.stat.bonusPoints'), value: bonusEntry.bonusPoints,
       sub: perGameLabel(bonusEntry.bonusPoints, bonusEntry.games, { unit }),
     },
-  ] : null;
+  ].map(item => (
+    // Keepers kunnen enkel het duelpunt halen (spec A6): de andere drie tellen niet en tonen "—".
+    pos === 'GK' && ['headers', 'recoveries', 'bigChances'].includes(item.key)
+      ? { ...item, value: '—', sub: null, subAccent: false, title: t('bonuspunten.gkNotCounted') }
+      : item
+  )) : null;
 
   return (
     <Sheet titleId={headingId} closeLabel={t('playerSheet.closeAria')} onClose={onClose} header={header} footer={footer} width="520px">

@@ -60,6 +60,14 @@ const add = (arr, idx, value) => { arr[idx] = (arr[idx] ?? 0) + value; };
 export function buildPlayers({ players, clubs, seasonStats, weeks, gw }) {
   // Per speler: speeldag-reeksen + bonuspunten, opgeteld per wedstrijd (een dubbele speeldag telt dus
   // twee wedstrijden in dezelfde GW-cel).
+  // Positie per speler, nodig voor de bonusregel van keepers (zie bonusForMatch).
+  const positionById = new Map();
+  for (const row of seasonStats) {
+    if (row?.playerId != null && row.positionId != null) positionById.set(num(row.playerId), num(row.positionId));
+  }
+  for (const p of players) {
+    if (p?.id != null && p.positionId != null) positionById.set(num(p.id), num(p.positionId));
+  }
   const weekly = new Map();
   for (const [weekId, rows] of weeks) {
     const idx = weekId - 1;
@@ -75,7 +83,7 @@ export function buildPlayers({ players, clubs, seasonStats, weeks, gw }) {
       const bonus = bonusForMatch({
         duelWon: row.statDuelWon, duelLost: row.statDuelLost, headClearance: row.statHeadClearance,
         ballRecovery: row.statBallRecovery, bigChanceCreated: row.statBigChanceCreated,
-      });
+      }, row.positionId ?? positionById.get(id));
       add(entry.w.pts, idx, num(row.total));
       add(entry.w.min, idx, num(row.statTimePlayed));
       add(entry.w.g, idx, num(row.statGoals));

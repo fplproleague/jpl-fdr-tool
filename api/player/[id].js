@@ -11,7 +11,7 @@
 //     seasons: [ { season: '2025-26', club, pts, mp, min, g, a, cs } ] }
 
 import {
-  SEASON_ID, bonusForMatch, fetchClubs, fetchJson, fetchMatches, list, num, seasonLabel, sendJson,
+  SEASON_ID, bonusForMatch, positionIdFrom, fetchClubs, fetchJson, fetchMatches, list, num, seasonLabel, sendJson,
 } from '../_lib/proleague.js';
 
 const CACHE_OK = 'public, s-maxage=3600, stale-while-revalidate=86400';
@@ -30,7 +30,9 @@ function parseValue(raw) {
 // Minuten van goals/assists komen als array van getallen; alles wat geen getal is, valt weg.
 const minutes = value => list(value).map(Number).filter(Number.isFinite);
 
-export function buildMatches(stats, clubs, matchesById) {
+// positionId: de wedstrijddata zelf vermeldt de positie niet, dus de site geeft ze mee als ?pos=
+// (nodig voor de bonusregel van keepers, zie bonusForMatch in _lib/proleague.js).
+export function buildMatches(stats, clubs, matchesById, positionId = null) {
   return list(stats)
     .map(entry => {
       const match = entry?.match ?? {};
@@ -44,7 +46,7 @@ export function buildMatches(stats, clubs, matchesById) {
       const score = full && full.final != null
         ? (home === false ? `${num(full.awayScore)}-${num(full.homeScore)}` : `${num(full.homeScore)}-${num(full.awayScore)}`)
         : null;
-      const bonus = bonusForMatch(v);
+      const bonus = bonusForMatch(v, positionId);
       return {
         gw: num(stat.weekId),
         date: match.date ?? null,
@@ -100,7 +102,7 @@ export default async function handler(req, res) {
     return sendJson(res, 200, {
       id: Number(id),
       season: seasonLabel(SEASON_ID),
-      matches: buildMatches(player?.stats, clubs, matchesById),
+      matches: buildMatches(player?.stats, clubs, matchesById, positionIdFrom(req.query?.pos)),
       seasons: buildSeasons(player?.aggregatedWeekStats, clubs),
     }, CACHE_OK);
   } catch (err) {

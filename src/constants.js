@@ -197,19 +197,22 @@ export const POSTPONED = new Set([
   'KOR-9', // Kortrijk vs KV Mechelen, GW9 — afgelast, verplaatst naar 4 november (GW10)
   'KVM-9', // KV Mechelen vs Kortrijk, GW9 — zelfde wedstrijd, andere kant
 ]);
-// Datum waarnaar uitgestelde wedstrijden verplaatst zijn, per teamcode-onafhankelijke (gesorteerde)
-// paar-key — niet elke POSTPONED-wedstrijd valt op dezelfde datum.
+// Datum waarnaar uitgestelde wedstrijden verplaatst zijn (JJJJ-MM-DD), per teamcode-onafhankelijke
+// (gesorteerde) paar-key — niet elke POSTPONED-wedstrijd valt op dezelfde datum. De zin in de tooltip
+// wordt per taal opgebouwd in src/postponed.js.
 export const POSTPONED_DATES = {
-  'STV-USG': '2 september',
-  'AND-KOR': '3 september',
-  'GNT-OHL': '3 september',
-  'KOR-KVM': '4 november',
+  'STV-USG': '2026-09-02',
+  'AND-KOR': '2026-09-03',
+  'GNT-OHL': '2026-09-03',
+  'KOR-KVM': '2026-11-04',
 };
-// Reden van het uitstel, zelfde paar-key. Ontbreekt een paar, dan vermeldt de tooltip enkel de nieuwe datum.
+// Reden van het uitstel als sleutel (vertaald via 'fixture.reason.<sleutel>' in src/i18n.js), zelfde
+// paar-key. Ontbreekt een paar, dan vermeldt de tooltip enkel de nieuwe datum. Bestaande sleutels:
+// 'europe' (wegens de Europese voorrondes).
 export const POSTPONED_REASONS = {
-  'STV-USG': 'wegens de Europese voorrondes',
-  'AND-KOR': 'wegens de Europese voorrondes',
-  'GNT-OHL': 'wegens de Europese voorrondes',
+  'STV-USG': 'europe',
+  'AND-KOR': 'europe',
+  'GNT-OHL': 'europe',
 };
 
 // Nog niet zeker uitgesteld — kan verschuiven afhankelijk van Europese kwalificatie. Zelfde key-structuur als POSTPONED.
@@ -222,8 +225,10 @@ export const POSSIBLY_POSTPONED = new Set([
 ]);
 
 // Eén reden per wedstrijd, opgezocht via een teamcode-onafhankelijke (gesorteerde) paar-key.
+// reason: 'europeClub' (door de Europese wedstrijd van `club`) of 'europe' (door het Europese
+// programma, ook de standaard als een paar hier ontbreekt). De zin staat in src/i18n.js.
 export const POSSIBLY_POSTPONED_REASONS = {
-  'GNT-STV': 'mogelijk uitgesteld door de Europese wedstrijd van Gent',
+  'GNT-STV': { reason: 'europeClub', club: 'GNT' },
 };
 
 export const DEFAULT_RATINGS = {
@@ -232,6 +237,16 @@ export const DEFAULT_RATINGS = {
   STA: 3, KVM: 2, WES: 3, CHA: 4, ANT: 2, STV: 3,
   GNK: 4, AND: 4, GNT: 4,
   USG: 5, CLU: 5,
+};
+
+// De standaard die live stond vóór de laatste aanpassing (vóór november 2026: ZWA 3, CHA 3). Enkel
+// gebruikt bij de eenmalige migratie van de oude ratings-opslag (src/fdrRatings.js): wie een club
+// bewaarde met de toen geldende standaard, paste die club niet zelf aan en krijgt nu de nieuwe waarde.
+// Pas je DEFAULT_RATINGS later opnieuw aan, dan hoeft hier niets te veranderen: de nieuwe opslag
+// bewaart enkel nog echte afwijkingen.
+export const PREVIOUS_DEFAULT_RATINGS = {
+  ...DEFAULT_RATINGS,
+  ZWA: 3, CHA: 3,
 };
 
 // Thuisvoordeel staat standaard overal uit — per team aan/uit-schakelbaar, los van de sterkte-rating zelf.
@@ -552,20 +567,9 @@ export function splitHomeAway(teamCode, opp, venue) {
   return venue === 'H' ? [team, oppTeam] : [oppTeam, team];
 }
 
-export function buildPostponedTooltipText(teamCode, opp, venue) {
-  const [home, away] = splitHomeAway(teamCode, opp, venue);
-  const pairKey = [teamCode, opp].sort().join('-');
-  const date = POSTPONED_DATES[pairKey];
-  const reason = POSTPONED_REASONS[pairKey];
-  return `${home} - ${away} is uitgesteld naar ${date}${reason ? ` ${reason}` : ''}.`;
-}
-
-export function buildPossiblyPostponedTooltipText(teamCode, opp, venue) {
-  const [home, away] = splitHomeAway(teamCode, opp, venue);
-  const pairKey = [teamCode, opp].sort().join('-');
-  const reason = POSSIBLY_POSTPONED_REASONS[pairKey] ?? 'mogelijk uitgesteld door het Europese programma';
-  return `${home} - ${away} wordt ${reason}.`;
-}
+// De tooltipteksten voor (mogelijk) uitgestelde wedstrijden staan sinds de functionaliteitsrework in
+// src/postponed.js: ze zijn per taal, en dus geen vaste Nederlandse zin meer. getFixtureInfo geeft
+// daarom enkel de gegevens mee (teamCode, opp, venue, isPostponed, ...).
 
 export function getFixtureInfo(teamCode, fixture, gwNumber, ratings, homeAdvantage) {
   const key = `${teamCode}-${gwNumber}`;
@@ -588,9 +592,8 @@ export function getFixtureInfo(teamCode, fixture, gwNumber, ratings, homeAdvanta
       return { opp, venue, rating, style: RATING_STYLE[rating] };
     });
     return {
-      isDoubleGameweek: true, legs,
+      isDoubleGameweek: true, legs, teamCode,
       isPostponed: false, isPossiblyPostponed,
-      postponedText: null, possiblyPostponedText: null,
     };
   }
 
@@ -599,9 +602,7 @@ export function getFixtureInfo(teamCode, fixture, gwNumber, ratings, homeAdvanta
   const [opp, venue] = getFixtureLegs(fixture)[0].split('-');
   const rating = isPostponed ? null : getEffectiveRating(opp, venue, ratings, homeAdvantage);
   const style = rating === null ? null : RATING_STYLE[rating];
-  const postponedText = isPostponed ? buildPostponedTooltipText(teamCode, opp, venue) : null;
-  const possiblyPostponedText = isPossiblyPostponed ? buildPossiblyPostponedTooltipText(teamCode, opp, venue) : null;
-  return { isDoubleGameweek: false, opp, venue, rating, isPostponed, isPossiblyPostponed, style, postponedText, possiblyPostponedText };
+  return { isDoubleGameweek: false, teamCode, opp, venue, rating, isPostponed, isPossiblyPostponed, style };
 }
 
 // --- Team Planner: spelregels voor de 15-koppige selectie (Fase 1, handmatige invoer) ---

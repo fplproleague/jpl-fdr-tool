@@ -3,13 +3,17 @@
 // components/MiniFixtureBadge.jsx, dat dit component gebruikt voor de weergave.
 import { memo } from 'react';
 import { PostponedIndicator, TooltipTrigger } from '../components/Tooltip';
+import { useI18n } from '../i18nContext';
+import { fixtureInfoText } from '../postponed';
 import './FdrCell.css';
 
 const MiniFixture = memo(function MiniFixture({ info, ariaLabel, title }) {
+  const { t, language } = useI18n();
+  const tipText = fixtureInfoText(t, language, info);
   if (!info) return <span className="ui-mini is-blank" aria-label={ariaLabel}>—</span>;
 
   if (info.isPostponed) {
-    return <PostponedIndicator as="span" className="ui-mini is-postponed fdr-postponed-mini" text={info.postponedText} ariaLabel={ariaLabel} />;
+    return <PostponedIndicator as="span" className="ui-mini is-postponed fdr-postponed-mini" text={tipText} ariaLabel={ariaLabel} />;
   }
 
   if (info.isDoubleGameweek) {
@@ -32,7 +36,7 @@ const MiniFixture = memo(function MiniFixture({ info, ariaLabel, title }) {
   );
   if (info.isPossiblyPostponed) {
     return (
-      <TooltipTrigger as="span" className="ui-mini is-tip" text={info.possiblyPostponedText} ariaLabel={ariaLabel} style={style}>
+      <TooltipTrigger as="span" className="ui-mini is-tip" text={tipText} ariaLabel={ariaLabel} style={style}>
         {content}
       </TooltipTrigger>
     );

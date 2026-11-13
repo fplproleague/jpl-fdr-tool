@@ -44,12 +44,30 @@ export function list(value) {
 // ruwe aantallen: de punten-per-categorie-velden van de API kloppen niet altijd met het officiële totaal.
 // Zelfde regels als BONUS_THRESHOLD in src/bonuspunten.js en de bestaande Google Sheet.
 // Gecontroleerd t.e.m. GW11: Vanaken 8, Mechele 16, Schrijvers 13, Abid 8, Smets 13.
-export function bonusForMatch({ duelWon, duelLost, headClearance, ballRecovery, bigChanceCreated }) {
+//
+// Keepers (positionId 1) kunnen enkel het punt voor duels halen; kopballen, recoveries en grote kansen
+// tellen voor hen niet (spelregel bevestigd door de eigenaar, FUNCTIONALITEIT_SPEC A6).
+// Gecontroleerd na GW11: 60/60 keepers gelijk aan de sheet (Sommer 3, Roef 3, Coosemans 5, ...).
+// Zonder die regel weken er 25 af.
+export const GOALKEEPER_POSITION_ID = 1;
+
+export function bonusForMatch({ duelWon, duelLost, headClearance, ballRecovery, bigChanceCreated }, positionId = null) {
   const duels = num(duelWon) > num(duelLost) ? 1 : 0;
+  if (Number(positionId) === GOALKEEPER_POSITION_ID) {
+    return { total: duels, duels, headers: 0, recoveries: 0, bigChances: 0 };
+  }
   const headers = num(headClearance) > 3 ? 1 : 0;
   const recoveries = num(ballRecovery) > 5 ? 1 : 0;
   const bigChances = num(bigChanceCreated) > 1 ? 1 : 0;
   return { total: duels + headers + recoveries + bigChances, duels, headers, recoveries, bigChances };
+}
+
+// De site gebruikt 'GK'/'DEF'/... en de API 1-4. Leest beide, voor ?pos= in /api/player/[id].
+export function positionIdFrom(value) {
+  const n = Number(value);
+  if (POSITIONS[n]) return n;
+  const entry = Object.entries(POSITIONS).find(([, code]) => code === String(value ?? '').toUpperCase());
+  return entry ? Number(entry[0]) : null;
 }
 
 // --- Ophalen --------------------------------------------------------------------------------------
