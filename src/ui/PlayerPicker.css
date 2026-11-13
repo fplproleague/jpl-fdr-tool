@@ -4,6 +4,8 @@
 .ui-picker__select { display: inline-flex; flex-direction: column; gap: var(--s-1); }
 .ui-picker__select .label { color: var(--text-3); }
 
+.ui-picker__progress { margin: 0 0 var(--s-3); color: var(--text-2); font-size: var(--fs-meta); line-height: var(--lh-meta); }
+.ui-picker__added { color: var(--accent); font-weight: 600; }
 .ui-picker__table .ui-table thead th { top: 0; }
 .ui-picker__table .ui-table tbody td, .ui-picker__table .ui-table tbody th { height: 48px; }
 .ui-picker__table tr.is-blocked { cursor: default; }

@@ -15,11 +15,13 @@ import './AppShell.css';
 const PRIMARY_ICONS = { fdr: Grid2x2, predictedlineups: Shirt, teamplanner: Users, spelers: UserSearch };
 
 // "8d 05u" / "4u 07m" / "12m": compact en in vaste breedte (monospace), zodat de topbalk niet verspringt.
-export function formatShellCountdown(remaining) {
+// Uren zijn "u" in het Nederlands, "h" in het Frans en Engels.
+export function formatShellCountdown(remaining, language = 'nl') {
   if (!remaining) return null;
   const pad = (n) => String(n).padStart(2, '0');
-  if (remaining.days > 0) return `${remaining.days}d ${pad(remaining.hours)}u`;
-  if (remaining.hours > 0) return `${remaining.hours}u ${pad(remaining.minutes)}m`;
+  const h = language === 'nl' ? 'u' : 'h';
+  if (remaining.days > 0) return `${remaining.days}d ${pad(remaining.hours)}${h}`;
+  if (remaining.hours > 0) return `${remaining.hours}${h} ${pad(remaining.minutes)}m`;
   return `${remaining.minutes}m`;
 }
 
@@ -59,7 +61,7 @@ export default function AppShell({
   newMarkerTab, lastUpdated, children,
 }) {
   const [moreOpen, setMoreOpen] = useState(false);
-  const countdown = formatShellCountdown(deadlineRemaining);
+  const countdown = formatShellCountdown(deadlineRemaining, language);
   const deadlineText = countdown
     ? <><span className="ui-deadline__gw">{t('shell.deadline', { gw: deadlineGw })}</span> <span className="num">{countdown}</span></>
     : <span>{t('shell.live', { gw: deadlineGw })}</span>;

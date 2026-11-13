@@ -89,6 +89,8 @@ const HOME_ADVANTAGE_INTRO_SEEN_KEY = 'fpl_proleague_ha_intro_seen_v1';
 const TEAM_PLANNER_STORAGE_KEY = 'fpl_proleague_teamplanner_v1';
 // Onthoudt de gekozen taal (NL/FR) tussen bezoeken — zie src/i18n.js.
 const LANGUAGE_STORAGE_KEY = 'fpl_proleague_language_v1';
+// Toont de FDR-tabel de kolom met de gemiddelde moeilijkheid? Standaard niet (feedback eigenaar).
+const FDR_SHOW_AVG_STORAGE_KEY = 'fpl_proleague_fdr_show_avg_v1';
 
 function loadStoredLanguage() {
   try {
@@ -474,7 +476,7 @@ export default function FDRTool() {
     // schuiven ze mee, zodat ze ook na een paar tabwissels nog kloppen.
     document.querySelectorAll('link[rel="alternate"][hreflang]').forEach(link => {
       const hreflang = link.getAttribute('hreflang');
-      const targetLanguage = hreflang === 'fr-BE' ? 'fr' : 'nl';
+      const targetLanguage = { 'fr-BE': 'fr', en: 'en' }[hreflang] ?? 'nl';
       link.setAttribute('href', `${SITE_ORIGIN}${pathForRoute(activeTab, targetLanguage)}`);
     });
   }, [activeTab, language, t]);
@@ -543,6 +545,21 @@ export default function FDRTool() {
   const [highlightedRatings, setHighlightedRatings] = useState([]);
   const toggleSortByAverage = () =>
     setSortBy(prev => (prev.mode === 'avg' ? { mode: 'none', gw: null } : { mode: 'avg', gw: null }));
+
+  // De Σ-kolom (gemiddelde moeilijkheid) staat standaard verborgen; wie ze aanzet, ziet ze ook bij
+  // een volgend bezoek. Verbergen zet een sortering op die kolom terug naar de gewone volgorde.
+  const [showAvgColumn, setShowAvgColumn] = useState(() => {
+    try { return window.localStorage?.getItem(FDR_SHOW_AVG_STORAGE_KEY) === '1'; } catch { return false; }
+  });
+  const toggleAvgColumn = () => {
+    const next = !showAvgColumn;
+    setShowAvgColumn(next);
+    try {
+      if (next) window.localStorage?.setItem(FDR_SHOW_AVG_STORAGE_KEY, '1');
+      else window.localStorage?.removeItem(FDR_SHOW_AVG_STORAGE_KEY);
+    } catch { /* geen opslag: enkel voor dit bezoek */ }
+    if (!next) setSortBy(s => (s.mode === 'avg' ? { mode: 'none', gw: null } : s));
+  };
 
   // Nogmaals op dezelfde kolom klikken zet de sortering weer uit — anders is er geen weg terug naar de
   // gewone volgorde zonder de andere knop te gebruiken.
@@ -803,7 +820,8 @@ export default function FDRTool() {
       const scores = getFixtureScores(team.code, fixtures, ratings, homeAdvantage, start);
       return { ...team, avg: average(scores), fixtures, startGW: start };
     });
-    return results.sort((a, b) => a.avg - b.avg).slice(0, 5);
+    // Alle clubs, makkelijkste eerst; de tab toont er standaard 5 en kan uitklappen naar alle 18.
+    return results.sort((a, b) => a.avg - b.avg || a.code.localeCompare(b.code));
   }, [ratings, homeAdvantage, analysisRange]);
 
   // Horizon van de hoofdtabel, genormaliseerd — zelfde Math.min/max-patroon als bestRuns hierboven,
@@ -1163,6 +1181,7 @@ export default function FDRTool() {
     setShowWatchlistMoved(false);
     const params = new URLSearchParams(searchForTab(window.location.search, 'spelers'));
     params.set('scope', 'watchlist');
+    params.delete('speler');
     const search = `?${params.toString().replace(/%2C/g, ',')}`;
     window.history.pushState({ tab: 'spelers' }, '', urlForRoute('spelers', search, language));
     setActiveTab('spelers');
@@ -1555,6 +1574,8 @@ export default function FDRTool() {
             toggleSection={toggleSection}
             sortBy={sortBy}
             toggleSortByAverage={toggleSortByAverage}
+            showAvgColumn={showAvgColumn}
+            toggleAvgColumn={toggleAvgColumn}
             highlightedRatings={highlightedRatings}
             toggleRatingFilter={toggleRatingFilter}
             clearRatingFilter={clearRatingFilter}
@@ -1780,6 +1801,16 @@ export default function FDRTool() {
           {watchlistNotice.kind === 'removed' && (
             <button type="button" onClick={handleUndoRemoveWatchlistPlayer} className="ui-toast__action">
               {t('undo.action')}
+            </button>
+          )}
+          {/* Na een toevoeging: rechtstreeks naar de watchlist (Spelers, filter "Watchlist"). */}
+          {watchlistNotice.kind !== 'removed' && (
+            <button
+              type="button"
+              className="ui-toast__action"
+              onClick={() => { setWatchlistNotice(null); setSheet(null); setPendingPlayerSlug(null); openWatchlistInSpelers(); }}
+            >
+              {t('watchlist.viewAction')}
             </button>
           )}
           <button type="button" onClick={() => setWatchlistNotice(null)} aria-label={t('undo.closeAria')} className="ui-toast__close">

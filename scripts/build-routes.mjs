@@ -55,7 +55,7 @@ function replaceTagValue(html, pattern, value, label) {
 // x-default. Zonder deze tags weet Google niet dat /fdr en /fr/fdr dezelfde pagina in twee talen zijn en
 // behandelt het ze als concurrerende, bijna-identieke URL's.
 function buildAlternateLinks(pathFor) {
-  const hreflangByLanguage = { nl: 'nl-BE', fr: 'fr-BE' };
+  const hreflangByLanguage = { nl: 'nl-BE', fr: 'fr-BE', en: 'en' };
   const links = SUPPORTED_LANGUAGES.map(language =>
     `    <link rel="alternate" hreflang="${hreflangByLanguage[language]}" href="${SITE_URL}${pathFor(language)}" />`
   );
@@ -72,7 +72,7 @@ async function buildPage({ pathFor, title, description, language, quiet = false 
   let html = await readFile(TEMPLATE_PATH, 'utf8');
   const routePath = pathFor(language);
   const canonicalUrl = `${SITE_URL}${routePath}`;
-  const ogLocale = language === 'fr' ? 'fr_BE' : 'nl_BE';
+  const ogLocale = { fr: 'fr_BE', en: 'en_GB' }[language] ?? 'nl_BE';
 
   html = replaceTagValue(html, /(<html lang=")[^"]*(")/, language, '<html lang>');
   html = replaceTagValue(html, /(<title>)[^<]*(<\/title>)/, title, '<title>');

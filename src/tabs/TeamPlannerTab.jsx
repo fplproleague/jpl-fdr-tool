@@ -435,10 +435,41 @@ export default function TeamPlannerTab({
     updateTeamPlannerPlayer(slotIndex, 'price', '');
   };
 
+  // Een leeg slot invullen zet de kiezer in "vulmodus": na een keuze springt hij naar het volgende
+  // lege slot (eerst dezelfde positie, dan de volgende positie) en blijft hij open, zodat je meerdere
+  // spelers na elkaar kiest. Hij sluit pas als alles gevuld is of je op "Klaar" tikt. Een bezet slot
+  // vervangen sluit de kiezer na één keuze, zoals voorheen.
   const openPicker = (slotIndex) => {
     if (playerDatabaseError) return;
-    setPicker({ index: slotIndex });
+    setPicker({ index: slotIndex, fill: isEmptySlot(rosterRowsData[slotIndex]), added: [] });
   };
+
+  // Eerste lege slot van een positie, het net gekozen slot niet meegerekend (de state is op dat moment
+  // nog niet bijgewerkt).
+  const firstEmptySlot = (pos, skipIndex = -1) => rosterRowsData.findIndex(
+    (p, i) => i !== skipIndex && TEAM_PLANNER_SLOT_POSITIONS[i] === pos && isEmptySlot(p),
+  );
+
+  const handlePick = (selected) => {
+    applyPick(picker.index, selected);
+    if (!picker.fill) { setPicker(null); return; }
+    let next = firstEmptySlot(TEAM_PLANNER_SLOT_POSITIONS[picker.index], picker.index);
+    if (next < 0) next = rosterRowsData.findIndex((p, i) => i !== picker.index && isEmptySlot(p));
+    if (next < 0) { setPicker(null); return; }
+    setPicker({ index: next, fill: true, added: [...picker.added, selected.name] });
+  };
+
+  // In vulmodus mag je van positie wisselen zolang die positie nog een leeg slot heeft.
+  const pickerPositions = picker?.fill
+    ? ['GK', 'DEF', 'MID', 'FWD'].filter(pos => pos === TEAM_PLANNER_SLOT_POSITIONS[picker.index] || firstEmptySlot(pos) >= 0)
+    : null;
+  const switchPickerPosition = (pos) => {
+    const next = firstEmptySlot(pos);
+    if (next >= 0) setPicker(prev => ({ ...prev, index: next }));
+  };
+  const pickerEmptyLeft = picker?.fill
+    ? rosterRowsData.filter((p, i) => TEAM_PLANNER_SLOT_POSITIONS[i] === TEAM_PLANNER_SLOT_POSITIONS[picker.index] && isEmptySlot(p)).length
+    : 0;
 
   const openMenu = (event, items, label) => {
     setMenu({ anchor: event.currentTarget.getBoundingClientRect(), items, label });
@@ -935,10 +966,14 @@ export default function TeamPlannerTab({
         <PlayerPicker
           t={t}
           onClose={() => setPicker(null)}
-          onSelect={(selected) => { applyPick(picker.index, selected); setPicker(null); }}
+          onSelect={handlePick}
           players={playerDatabase}
           loading={playerDatabaseLoading}
           position={TEAM_PLANNER_SLOT_POSITIONS[picker.index]}
+          switchablePositions={pickerPositions}
+          onSwitchPosition={switchPickerPosition}
+          added={picker.fill ? picker.added : null}
+          emptyLeft={pickerEmptyLeft}
           blockedReason={pickerBlocked}
           budgetMax={remainingBudget + (parseFloat(pickerRow?.price) || 0)}
           gw={teamPlannerGw}

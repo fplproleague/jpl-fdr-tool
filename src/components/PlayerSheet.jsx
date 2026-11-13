@@ -12,7 +12,7 @@
 //
 // Het paneel zelf (dialoog, focus, Escape, lade op desktop / bottom sheet op gsm) komt uit Sheet.jsx.
 import { useEffect, useState } from 'react';
-import { GitCompareArrows, Share2, Users } from 'lucide-react';
+import { Scale, Share2, Users } from 'lucide-react';
 import Sheet, { SheetSection as Section } from './Sheet';
 import { FixtureStrip } from './FixtureStrip';
 import { ClubLogo } from './SpelersParts';
@@ -95,6 +95,9 @@ function PointsChart({ matches, gw, t }) {
   const height = 80;
   const range = max - min;
   const zeroY = (max / range) * height;
+  // Ruimte onder de nullijn voor het label van een negatieve score, zodat het nooit over het
+  // speeldagnummer eronder valt.
+  const labelBelow = min < 0 ? 13 : 0;
   return (
     <div
       className="ps-chart" role="img"
@@ -105,7 +108,7 @@ function PointsChart({ matches, gw, t }) {
         const negative = (p.pts ?? 0) < 0;
         return (
           <div key={p.gw} className="ps-chart__col" aria-hidden="true">
-            <div className="ps-chart__area" style={{ height }}>
+            <div className="ps-chart__area" style={{ height: height + labelBelow }}>
               <span
                 className={`ps-chart__val num${p.pts == null ? ' is-none' : ''}`}
                 style={{ top: p.pts == null ? zeroY - 12 : negative ? zeroY + h + 1 : zeroY - h - 12 }}
@@ -122,6 +125,14 @@ function PointsChart({ matches, gw, t }) {
       })}
     </div>
   );
+}
+
+// De API geeft de uitslag met de eigen goals eerst; hier tonen we ze zoals ze echt was: thuisploeg
+// eerst. Bij een uitwedstrijd draaien we "1-2" dus om naar "2-1".
+function homeAwayScore(score, home) {
+  if (!score || home !== false) return score;
+  const [own, opp] = score.split('-');
+  return opp != null ? `${opp}-${own}` : score;
 }
 
 function MatchTable({ matches, t }) {
@@ -149,7 +160,7 @@ function MatchTable({ matches, t }) {
                   <ClubLogo code={m.opp} size={14} />
                   <span>{m.opp ?? '?'}</span>
                   <span className="ps-opp__venue">{m.home === false ? t('spelers.popup.away') : t('spelers.popup.home')}</span>
-                  {m.score && <span className="ps-opp__score num">{m.score}</span>}
+                  {m.score && <span className="ps-opp__score num">{homeAwayScore(m.score, m.home)}</span>}
                   {m.result && <span className={`ps-opp__res is-${m.result}`}>{resultLetter[m.result]}</span>}
                   {m.yc > 0 && <span className="ps-card is-yellow" role="img" aria-label={t('spelers.col.yc')} />}
                   {m.rc > 0 && <span className="ps-card is-red" role="img" aria-label={t('spelers.col.rc')} />}
@@ -317,7 +328,7 @@ export default function PlayerSheet({
       {onGoToTeamPlanner && <Button icon={Users} onClick={onGoToTeamPlanner}>{t('playerSheet.toTeamPlanner')}</Button>}
       {onToggleCompare && (
         <Button
-          icon={GitCompareArrows} onClick={onToggleCompare} aria-pressed={Boolean(inCompare)}
+          icon={Scale} onClick={onToggleCompare} aria-pressed={Boolean(inCompare)}
           disabled={!inCompare && compareFull}
         >
           {inCompare ? t('spelers.popup.inCompare') : t('spelers.popup.addCompare')}

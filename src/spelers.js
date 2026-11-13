@@ -15,7 +15,7 @@ export const MIN_MINUTES_OPTIONS = [0, 90, 180, 450, 900];
 
 // Hoeveel speeldagen de vorm-sparkline en de "vorm"-kolom bestrijken.
 export const FORM_GWS = 5;
-export const SPARK_GWS = 8;
+export const SPARK_GWS = 5;
 
 // --- Kolommen ------------------------------------------------------------------------------------
 //
@@ -70,7 +70,7 @@ export const PRESET_KEYS = Object.keys(PRESETS);
 export const PRESET_SORT = { ownership: { sort: 'sel', dir: 'desc' } };
 
 // "Differentials": spelers met een ownership onder deze grens (in %).
-export const DIFFERENTIAL_MAX_SEL = 10;
+export const DIFFERENTIAL_MAX_SEL = 5;
 
 // Rijen in Vergelijken.
 export const COMPARE_ROWS = ['price', 'pts', 'ppm', 'ppg', 'form', 'mp', 'min', 'g', 'a', 'bp', 'cs', 'bc', 'br', 'sel'];

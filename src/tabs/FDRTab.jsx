@@ -1,5 +1,5 @@
 // Inhoud van de FDR-tab (spec §7.1): paginakop met de ratingstatus, een toolbar (GW-bereik, legende
-// die ook filtert, knoppen), de hoofdtabel met een sorteerbare Σ-kolom, "Beste fixture runs" en
+// die ook filtert, knoppen), de hoofdtabel (de Σ-kolom met het gemiddelde is optioneel), "Beste fixture runs" en
 // "Vergelijk teams". De team-sterktes pas je aan in een lade ("Ratings aanpassen").
 //
 // Alle data-state en handlers komen als props uit FDRTool.jsx: de tab wordt bij elke tabwissel
@@ -7,10 +7,9 @@
 // ratings-lade open" is hier lokaal; die mag gerust dicht zijn als je terugkomt.
 
 import { useState } from 'react';
-import { RotateCcw, Link2, Download, Check, SlidersHorizontal, Info } from 'lucide-react';
+import { RotateCcw, Link2, Download, Check, SlidersHorizontal, Info, Sigma } from 'lucide-react';
 import { TEAMS, TEAMS_ALPHA, FIXTURES, RATING_STYLE, GW_COUNT, GW_INDEXES, getFixtureInfo } from '../constants';
 import { SectionHeader } from '../components/SectionHeader';
-import { FixtureStrip } from '../components/FixtureStrip';
 import Sheet from '../components/Sheet';
 import PageHeader from '../ui/PageHeader';
 import Button from '../ui/Button';
@@ -203,7 +202,7 @@ export default function FDRTab({
   isCustom, linkCopied, downloading,
   handleCopyLink, handleDownloadImage, handleReset, setShowInfo,
   openSections, toggleSection,
-  sortBy, toggleSortByAverage,
+  sortBy, toggleSortByAverage, showAvgColumn, toggleAvgColumn,
   highlightedRatings, toggleRatingFilter, clearRatingFilter,
   gwHorizonStart, setGwHorizonStart, gwHorizonEnd, setGwHorizonEnd, gwHorizonRange,
   visibleGwHeaderCells, compareGwHeaderCells, compareGwStart, compareGwEnd,
@@ -214,18 +213,23 @@ export default function FDRTab({
   onOpenClub,
 }) {
   const [ratingsOpen, setRatingsOpen] = useState(false);
+  // Beste runs: standaard de top 5, uitklapbaar naar alle clubs.
+  const [showAllRuns, setShowAllRuns] = useState(false);
   const gwCount = visibleGwHeaderCells.length;
   const mainScroll = useOverflow(`${gwCount}-${displayedTeams.length}`);
   const compareScroll = useOverflow(`${compareGwHeaderCells.length}-${compareTeams.length}`);
+  const visibleRuns = showAllRuns ? bestRuns : bestRuns.slice(0, 5);
+  const runsScroll = useOverflow(`${compareGwHeaderCells.length}-${visibleRuns.length}-${openSections.runs}`);
   const sortedByAvg = sortBy.mode === 'avg';
 
   const legendProps = { t, highlightedRatings, toggleRatingFilter, clearRatingFilter };
 
   const meta = (
     <>
-      {isCustom
-        ? <span className="fdr-meta-custom">{t('fdr.metaCustom')}</span>
-        : <span>{t('fdr.metaDefault')}</span>}
+      {/* Het ratings-label is ook de weg naar de ratings-lade. */}
+      <button type="button" className={`fdr-meta-link${isCustom ? ' is-custom' : ''}`} onClick={() => setRatingsOpen(true)} aria-haspopup="dialog">
+        {t(isCustom ? 'fdr.metaCustom' : 'fdr.metaDefault')}
+      </button>
       <span aria-hidden="true"> · </span>
       <span className="num">{t('fdr.metaRange', { from: gwHorizonRange.start, to: gwHorizonRange.end })}</span>
     </>
@@ -234,6 +238,9 @@ export default function FDRTab({
   const intro = (
     <>
       {t('fdr.intro')}{' '}
+      <button type="button" className="fdr-intro-link" onClick={() => setRatingsOpen(true)} aria-haspopup="dialog">
+        {t('fdr.introLink')}
+      </button>{' '}
       <button type="button" className="ui-disclosure-btn" onClick={() => setShowInfo(true)} aria-haspopup="dialog">
         <Info aria-hidden="true" strokeWidth={1.75} /> {t('fdr.infoAria')}
       </button>
@@ -265,6 +272,9 @@ export default function FDRTab({
           <Button icon={Download} className="fdr-tool-btn" onClick={handleDownloadImage} disabled={downloading} aria-label={downloadLabel}>
             <span className="fdr-tool-btn__text">{downloadLabel}</span>
           </Button>
+          <Button icon={Sigma} className="fdr-tool-btn" onClick={toggleAvgColumn} aria-pressed={showAvgColumn} aria-label={t('fdr.avgToggle')} title={t('fdr.avgColumnTitle')}>
+            <span className="fdr-tool-btn__text">{t('fdr.avgToggleShort')}</span>
+          </Button>
           {isCustom && (
             <Button icon={RotateCcw} className="fdr-tool-btn" onClick={handleReset} aria-label={t('fdr.reset')}>
               <span className="fdr-tool-btn__text">{t('fdr.resetShort')}</span>
@@ -283,22 +293,24 @@ export default function FDRTab({
           onScroll={mainScroll.onScroll}
           className={`fdr-table-scroll ui-table-scroll${mainScroll.className}`}
         >
-          <table className="fdr-grid" style={{ '--fdr-gws': gwCount }}>
+          <table className={`fdr-grid${showAvgColumn ? '' : ' fdr-grid--no-avg'}`} style={{ '--fdr-gws': gwCount }}>
             <thead>
               <tr>
                 <th scope="col" className="fdr-grid__team fdr-grid__corner">{t('fdr.teamColumn')}</th>
-                <th scope="col" className="fdr-grid__avg" aria-sort={sortedByAvg ? 'ascending' : 'none'}>
-                  <button
-                    type="button"
-                    onClick={toggleSortByAverage}
-                    aria-pressed={sortedByAvg}
-                    aria-label={t('fdr.sortByAvgAria')}
-                    title={t('fdr.avgColumnTitle')}
-                    className={`fdr-grid__sort${sortedByAvg ? ' is-sorted' : ''}`}
-                  >
-                    {t('fdr.avgColumn')}
-                  </button>
-                </th>
+                {showAvgColumn && (
+                  <th scope="col" className="fdr-grid__avg" aria-sort={sortedByAvg ? 'ascending' : 'none'}>
+                    <button
+                      type="button"
+                      onClick={toggleSortByAverage}
+                      aria-pressed={sortedByAvg}
+                      aria-label={t('fdr.sortByAvgAria')}
+                      title={t('fdr.avgColumnTitle')}
+                      className={`fdr-grid__sort${sortedByAvg ? ' is-sorted' : ''}`}
+                    >
+                      {t('fdr.avgColumn')}
+                    </button>
+                  </th>
+                )}
                 {visibleGwHeaderCells}
               </tr>
             </thead>
@@ -308,9 +320,11 @@ export default function FDRTab({
                 return (
                   <tr key={team.code}>
                     <TeamCell t={t} team={team} teamForm={teamForm} onOpenClub={onOpenClub} />
-                    <td className="fdr-grid__avg num" aria-label={avg != null ? t('fdr.avgCellAria', { value: avg.toFixed(1) }) : undefined}>
-                      {avg != null ? avg.toFixed(1) : '—'}
-                    </td>
+                    {showAvgColumn && (
+                      <td className="fdr-grid__avg num" aria-label={avg != null ? t('fdr.avgCellAria', { value: avg.toFixed(1) }) : undefined}>
+                        {avg != null ? avg.toFixed(1) : '—'}
+                      </td>
+                    )}
                     {FIXTURES[team.code].slice(gwHorizonRange.start - 1, gwHorizonRange.end).map((f, i) => {
                       const gwNumber = gwHorizonRange.start + i;
                       const info = getFixtureInfo(team.code, f, gwNumber, ratings, homeAdvantage);
@@ -345,31 +359,47 @@ export default function FDRTab({
               fromAria={t('fdr.runsRangeFromAria')} toAria={t('fdr.runsRangeToAria')}
             />
             <p className="fdr-hint">{t('fdr.sharedRangeHint')}</p>
-            <ol className="fdr-runs">
-              {bestRuns.map((team, idx) => (
-                <li key={team.code} className="fdr-runs__row">
-                  <span className={`fdr-runs__rank num${idx === 0 ? ' is-first' : ''}`}>{idx + 1}</span>
-                  <ClubLogo code={team.code} size={20} />
-                  <span className="fdr-runs__name">
-                    {team.name}
-                    <span className="fdr-runs__avg">
-                      <span aria-hidden="true">{t('fdr.runsAvg')} </span>
-                      <span className="num" aria-label={t('fdr.avgDifficulty', { value: team.avg.toFixed(1) })}>{team.avg.toFixed(1)}</span>
-                    </span>
-                  </span>
-                  <FixtureStrip
-                    scrollable
-                    teamCode={team.code}
-                    fixtures={team.fixtures}
-                    startGw={team.startGW}
-                    ratings={ratings}
-                    homeAdvantage={homeAdvantage}
-                    gwLabel={t('fdr.gwLabel')}
-                    style={{ minWidth: 0 }}
-                  />
-                </li>
-              ))}
-            </ol>
+            {/* Zelfde tabelvorm als de hoofdtabel: rang + club, het gemiddelde (daar draait de ranglijst
+                om) en per speeldag een volle FDR-cel met tegenstander en thuis/uit. */}
+            <div ref={runsScroll.ref} onScroll={runsScroll.onScroll} className={`ui-table-scroll${runsScroll.className}`}>
+              <table className="fdr-grid fdr-grid--runs" style={{ '--fdr-gws': compareGwHeaderCells.length }}>
+                <thead>
+                  <tr>
+                    <th scope="col" className="fdr-grid__team fdr-grid__corner">{t('fdr.teamColumn')}</th>
+                    <th scope="col" className="fdr-grid__avg" title={t('fdr.avgColumnTitle')}>{t('fdr.runsAvg')}</th>
+                    {compareGwHeaderCells}
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleRuns.map((team, idx) => (
+                    <tr key={team.code}>
+                      <th scope="row" className="fdr-grid__team">
+                        <button
+                          type="button" className="fdr-team"
+                          onClick={() => onOpenClub?.(team.code)} disabled={!onOpenClub}
+                          aria-label={t('clubSheet.openAria', { club: team.name })}
+                        >
+                          <span className={`fdr-runs__rank num${idx === 0 ? ' is-first' : ''}`}>{idx + 1}</span>
+                          <ClubLogo code={team.code} />
+                          <span className="fdr-team__code">{team.code}</span>
+                        </button>
+                      </th>
+                      <td className="fdr-grid__avg num" aria-label={t('fdr.avgDifficulty', { value: team.avg.toFixed(1) })}>
+                        {team.avg.toFixed(1)}
+                      </td>
+                      {team.fixtures.map((f, i) => {
+                        const gwNumber = team.startGW + i;
+                        const info = getFixtureInfo(team.code, f, gwNumber, ratings, homeAdvantage);
+                        return <FdrCell key={gwNumber} info={info} ariaLabel={buildFixtureCellAriaLabel(t, info)} />;
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Button variant="ghost" size="sm" className="fdr-runs__more" onClick={() => setShowAllRuns(v => !v)} aria-expanded={showAllRuns}>
+              {showAllRuns ? t('fdr.runsShowTop') : t('fdr.runsShowAll', { count: bestRuns.length })}
+            </Button>
           </div>
         )}
       </section>

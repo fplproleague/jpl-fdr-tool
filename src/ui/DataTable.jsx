@@ -9,7 +9,7 @@
 // tabel horizontaal binnen zijn eigen zone (met een rand-fade rechts) en plakt de kop binnen die zone.
 // Een element met overflow-x: auto wordt namelijk zelf de sticky-container; daarom schakelen we het
 // scrollen pas in wanneer het echt nodig is (gemeten met een ResizeObserver).
-import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useLayoutEffect, useRef, useState } from 'react';
 import SkeletonRows from './Skeleton';
 import './DataTable.css';
 
@@ -25,7 +25,9 @@ export function useOverflow(dep) {
     const scrolled = over && el.scrollLeft > 0;
     setState(prev => (prev.over === over && prev.end === end && prev.scrolled === scrolled ? prev : { over, end, scrolled }));
   }, []);
-  useEffect(() => {
+  // useLayoutEffect: meten vóór de browser tekent, zodat een nieuwe tabel meteen de juiste klassen
+  // heeft (zie ook overflow-x: clip in DataTable.css).
+  useLayoutEffect(() => {
     measure();
     if (typeof ResizeObserver === 'undefined') return undefined;
     const ro = new ResizeObserver(measure);
@@ -36,7 +38,7 @@ export function useOverflow(dep) {
     return () => ro.disconnect();
   }, [measure, dep]);
   const className = `${state.over ? ' is-overflowing' : ''}${state.end ? ' is-end' : ''}${state.scrolled ? ' is-scrolled' : ''}`;
-  return { ref, onScroll: measure, className };
+  return { ref, onScroll: measure, className, over: state.over, scrolled: state.scrolled };
 }
 
 function cellClasses(col, extra) {
@@ -48,7 +50,7 @@ function cellClasses(col, extra) {
 
 export default function DataTable({
   columns, rows, rowKey, onRowClick, rowLabel, rowClassName, sort, onSort, loading, skeletonRows = 8,
-  empty, caption, footer, bleed = false, groupBy, renderGroup, ariaLabel, className = '',
+  empty, caption, footer, bleed = false, groupBy, renderGroup, ariaLabel, className = '', scrollHint,
 }) {
   const overflow = useOverflow(`${rows?.length ?? 0}-${columns.length}-${loading ? 1 : 0}`);
 
@@ -110,6 +112,13 @@ export default function DataTable({
 
   return (
     <>
+      {/* Zichtbaar zolang er opzij meer kolommen zijn en je nog niet scrolde; daarna onzichtbaar maar
+          blijft de ruimte staan, zodat de tabel niet verspringt. */}
+      {scrollHint && overflow.over && (
+        <p className={`ui-table-hint${overflow.scrolled ? ' is-done' : ''}`} aria-hidden="true">
+          {scrollHint} <span className="ui-table-hint__arrow">→</span>
+        </p>
+      )}
       <div
         ref={overflow.ref}
         onScroll={overflow.onScroll}

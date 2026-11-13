@@ -88,6 +88,18 @@ function orderedSlots(lineup) {
     .sort((a, b) => (b.yPercent - a.yPercent) || (a.xPercent - b.xPercent));
 }
 
+// Spelers per linie (keeper, verdediging, middenveld, aanval), volgens de formatie: "4-3-3" geeft
+// groepen van 1, 4, 3 en 3 in de volgorde van orderedSlots. Klopt het aantal niet (een onvolledige
+// opstelling), dan één groep.
+function groupByLine(lineup, players) {
+  const sizes = [1, ...String(lineup.formationKey ?? '').split('-').map(Number)];
+  if (sizes.some(n => !Number.isFinite(n) || n <= 0) || sizes.reduce((a, b) => a + b, 0) !== players.length) return [players];
+  const groups = [];
+  let at = 0;
+  for (const n of sizes) { groups.push(players.slice(at, at + n)); at += n; }
+  return groups;
+}
+
 // --- URL-state: ?match=CLU-AND&team=CLU&view=overzicht&twijfel=1 ---------------------------------
 function readUrlState(matches) {
   const p = new URLSearchParams(typeof window === 'undefined' ? '' : window.location.search);
@@ -134,7 +146,7 @@ function remainingParts(ms) {
 }
 
 function formatRelease(date, language, t) {
-  const locale = language === 'fr' ? 'fr-BE' : 'nl-BE';
+  const locale = { fr: 'fr-BE', en: 'en-GB' }[language] ?? 'nl-BE';
   const day = new Intl.DateTimeFormat(locale, { timeZone: 'Europe/Brussels', weekday: 'long', day: 'numeric', month: 'short' }).format(date).replace(/\.$/, '');
   const time = new Intl.DateTimeFormat(locale, { timeZone: 'Europe/Brussels', hour: '2-digit', minute: '2-digit', hour12: false }).format(date);
   return `${day} ${t('predictedLineups.releaseAt')} ${time}`;
@@ -243,8 +255,11 @@ function Overview({ t, onlyDoubts, onOpenPlayer, onOpenClub }) {
     const entries = fixtureEntries(team.code, SHOWN_GW);
     const postponed = POSTPONED.has(`${team.code}-${SHOWN_GW}`);
     const players = lineup ? orderedSlots(lineup) : [];
-    const shown = onlyDoubts ? players.filter(s => DOUBT_LEVELS.has(s.safety)) : players;
-    return { team, lineup, entries, postponed, shown };
+    const groups = lineup ? groupByLine(lineup, players)
+      .map(g => (onlyDoubts ? g.filter(s => DOUBT_LEVELS.has(s.safety)) : g))
+      .filter(g => g.length > 0) : [];
+    const shown = groups.flat();
+    return { team, lineup, entries, postponed, shown, groups };
   }).filter(r => !onlyDoubts || r.shown.length > 0);
 
   if (onlyDoubts && rows.length === 0) return <EmptyState>{t('predictedLineups.noDoubts')}</EmptyState>;
@@ -261,7 +276,7 @@ function Overview({ t, onlyDoubts, onOpenPlayer, onOpenClub }) {
           </tr>
         </thead>
         <tbody>
-          {rows.map(({ team, lineup, entries, postponed, shown }) => (
+          {rows.map(({ team, lineup, entries, postponed, groups }) => (
             <tr key={team.code}>
               <th scope="row" className="pxl-overview__club">
                 <button type="button" onClick={() => onOpenClub?.(team.code)} aria-label={t('clubSheet.openAria', { club: team.name })}>
@@ -280,16 +295,22 @@ function Overview({ t, onlyDoubts, onOpenPlayer, onOpenClub }) {
               <td className="pxl-overview__formation num">{lineup ? lineup.formationKey : '—'}</td>
               <td className="pxl-overview__players">
                 {lineup ? (
-                  <ul className="pxl-names">
-                    {shown.map((slot, i) => (
-                      <li key={`${slot.playerName}-${i}`}>
-                        <button type="button" className="pxl-name" onClick={() => onOpenPlayer?.(slot.playerName, slot.playerTeamCode || team.code)}>
-                          <SafetyDot level={slot.safety} t={t} />
-                          {slot.playerName}
-                        </button>
-                      </li>
+                  // Eén lijstje per linie: op gsm elk op een eigen regel, op desktop naast elkaar met een
+                  // scheidingslijn. Zo lees je de opstelling als opstelling i.p.v. als één lange rij.
+                  <div className="pxl-lines">
+                    {groups.map((group, gi) => (
+                      <ul key={gi} className="pxl-names">
+                        {group.map((slot, i) => (
+                          <li key={`${slot.playerName}-${i}`}>
+                            <button type="button" className="pxl-name" onClick={() => onOpenPlayer?.(slot.playerName, slot.playerTeamCode || team.code)}>
+                              <SafetyDot level={slot.safety} t={t} />
+                              {slot.playerName}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
                     ))}
-                  </ul>
+                  </div>
                 ) : <span className="pxl-muted">{t('predictedLineups.noLineup', { club: team.name })}</span>}
               </td>
             </tr>
@@ -366,7 +387,7 @@ export default function PredictedLineupsTab({ t, language = 'nl', onOpenPlayer, 
       {!PUBLISHED && release && (
         <p className="pxl-status" role="status">
           <strong>{t('predictedLineups.releaseLine', { gw: CURRENT_GW, when: formatRelease(release, language, t) })}</strong>
-          {remaining && <> <span className="pxl-status__in">({t('predictedLineups.releaseIn', { time: '' })}<span className="num">{formatShellCountdown(remaining)}</span>)</span></>}
+          {remaining && <> <span className="pxl-status__in">({t('predictedLineups.releaseIn', { time: '' })}<span className="num">{formatShellCountdown(remaining, language)}</span>)</span></>}
         </p>
       )}
 

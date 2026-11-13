@@ -228,8 +228,8 @@ export const POSSIBLY_POSTPONED_REASONS = {
 
 export const DEFAULT_RATINGS = {
   LOM: 2, KOR: 1, BEV: 1,
-  ZWA: 3, OHL: 2, CER: 2, LLV: 1,
-  STA: 3, KVM: 2, WES: 3, CHA: 3, ANT: 2, STV: 3,
+  ZWA: 2, OHL: 2, CER: 2, LLV: 1,
+  STA: 3, KVM: 2, WES: 3, CHA: 4, ANT: 2, STV: 3,
   GNK: 4, AND: 4, GNT: 4,
   USG: 5, CLU: 5,
 };
@@ -353,6 +353,7 @@ export function formatGwDeadline(gw) {
 const LAST_UPDATED_FORMATTERS = {
   nl: new Intl.DateTimeFormat('nl-BE', { timeZone: BELGIAN_TIME_ZONE, day: 'numeric', month: 'long', year: 'numeric' }),
   fr: new Intl.DateTimeFormat('fr-BE', { timeZone: BELGIAN_TIME_ZONE, day: 'numeric', month: 'long', year: 'numeric' }),
+  en: new Intl.DateTimeFormat('en-GB', { timeZone: BELGIAN_TIME_ZONE, day: 'numeric', month: 'long', year: 'numeric' }),
 };
 
 // Losse functie i.p.v. een module-constante, zodat een ongeldige/ontbrekende __BUILD_DATE__ nooit een

@@ -114,10 +114,11 @@ export const DEFAULT_ROUTE_KEY = 'fdr';
 // het grootste stuk publiek dat deze site onbenut laat.
 //
 // Nederlands blijft op de kale paden (/fdr, /team-planner, ...) — geen enkele bestaande link verandert.
-// Frans krijgt hetzelfde pad met een /fr-voorvoegsel (/fr/fdr, /fr/team-planner, ...).
-export const SUPPORTED_LANGUAGES = ['nl', 'fr'];
+// Frans krijgt hetzelfde pad met een /fr-voorvoegsel (/fr/fdr, /fr/team-planner, ...), Engels een
+// /en-voorvoegsel (/en/fdr, ...).
+export const SUPPORTED_LANGUAGES = ['nl', 'fr', 'en'];
 export const DEFAULT_ROUTE_LANGUAGE = 'nl';
-const LANGUAGE_PREFIX = { nl: '', fr: '/fr' };
+const LANGUAGE_PREFIX = { nl: '', fr: '/fr', en: '/en' };
 
 export function prefixForLanguage(language) {
   return LANGUAGE_PREFIX[language] ?? '';
@@ -131,8 +132,11 @@ function normalizePath(pathname) {
 // vallen dus door naar de bestaande Nederlandse afhandeling.
 export function splitLanguageFromPath(pathname) {
   const normalized = normalizePath(pathname);
-  if (normalized === '/fr' || normalized.startsWith('/fr/')) {
-    return { language: 'fr', path: normalized.slice(3) || '/' };
+  for (const language of SUPPORTED_LANGUAGES) {
+    const prefix = LANGUAGE_PREFIX[language];
+    if (prefix && (normalized === prefix || normalized.startsWith(`${prefix}/`))) {
+      return { language, path: normalized.slice(prefix.length) || '/' };
+    }
   }
   return { language: DEFAULT_ROUTE_LANGUAGE, path: normalized };
 }
@@ -140,7 +144,8 @@ export function splitLanguageFromPath(pathname) {
 // De taal die bij een URL hoort. Geeft null terug als de URL er niets over zegt (alle Nederlandse
 // paden) — de aanroeper mag dan zelf beslissen, bv. op basis van een eerder opgeslagen voorkeur.
 export function languageFromPath(pathname) {
-  return splitLanguageFromPath(pathname).language === 'fr' ? 'fr' : null;
+  const { language } = splitLanguageFromPath(pathname);
+  return language === DEFAULT_ROUTE_LANGUAGE ? null : language;
 }
 
 // Pad -> tabsleutel. "/" (en "/fr") vallen terug op de FDR-tab, zodat de bestaande homepage-URL (en

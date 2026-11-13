@@ -23,6 +23,16 @@
       "source": "/fr/watchlist",
       "destination": "/fr/spelers?scope=watchlist",
       "permanent": true
+    },
+    {
+      "source": "/en/price-changes",
+      "destination": "/en/spelers",
+      "permanent": true
+    },
+    {
+      "source": "/en/watchlist",
+      "destination": "/en/spelers?scope=watchlist",
+      "permanent": true
     }
   ],
   "rewrites": [
@@ -81,6 +91,22 @@
     {
       "source": "/fr/:tool",
       "destination": "/fr/:tool.html"
+    },
+    {
+      "source": "/en/speler/:slug",
+      "destination": "/en/speler/:slug.html"
+    },
+    {
+      "source": "/en/club/:code",
+      "destination": "/en/club/:code.html"
+    },
+    {
+      "source": "/en",
+      "destination": "/en/fdr.html"
+    },
+    {
+      "source": "/en/:tool",
+      "destination": "/en/:tool.html"
     }
   ]
 }
