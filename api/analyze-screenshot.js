@@ -5,10 +5,39 @@
 // enkel een VOORSTEL terug — nooit een definitieve/stille wijziging, dat gebeurt pas client-side na
 // expliciete bevestiging door de gebruiker.
 //
-// Response-contract: succes/gedeeltelijk succes -> altijd HTTP 200 met { players, warning }, warning
-// is gezet zodra niet alle spelers herkend zijn (nooit een stil onvolledig "succes"). Een echte
-// infrastructuurfout (ontbrekende key, Anthropic-fout, netwerkfout, onparseerbaar antwoord) -> HTTP
-// 4xx/5xx met { error }, zodat de client dit kan onderscheiden van "model kon de foto niet goed lezen".
+// Response-contract: succes/gedeeltelijk succes -> altijd HTTP 200 met { players, warning }. warning is
+// null of { code, count? } zodra niet alle spelers herkend zijn (nooit een stil onvolledig "succes").
+// Een echte fout -> HTTP 4xx/5xx met { code }. Er staan bewust geen zinnen in de antwoorden: de site
+// bestaat in drie talen, dus TeamScreenshotUpload.jsx vertaalt de codes (FUNCTIONALITEIT_SPEC A3).
+// Codes: method_not_allowed, forbidden_origin, not_configured, no_image, image_too_large,
+// service_unreachable, service_error, rate_limited; warnings: not_recognized, partial (+ count).
+//
+// Beveiliging (spec A5): dit endpoint gebruikt de API-sleutel van de eigenaar en kost dus geld per
+// oproep. Daarom enkel verzoeken vanaf de eigen site (productie of een Vercel-preview van dit
+// project) en geen afbeeldingen boven ~4 MB. Let op: een Origin-header kan buiten een browser
+// vervalst worden, dus dit houdt enkel misbruik vanaf andere websites tegen. De echte rem is de
+// rate limit in Vercel → Firewall en een maandlimiet op de sleutel in de Anthropic Console (werk
+// voor de eigenaar, zie de PR van fase A).
+
+const ALLOWED_HOSTS = new Set(['fplproleague.vercel.app']);
+// Previews van dit Vercel-project: fdr-jpl-tool-git-<branch>-fpl-proleague.vercel.app of
+// fdr-jpl-tool-<id>-fpl-proleague.vercel.app.
+const PREVIEW_HOST = /^fdr-jpl-tool-[a-z0-9-]+-fpl-proleague\.vercel\.app$/;
+const MAX_BASE64_LENGTH = 4 * 1024 * 1024;
+
+function hostFromHeader(value) {
+  if (!value || typeof value !== 'string') return null;
+  try { return new URL(value).hostname.toLowerCase(); } catch { return null; }
+}
+
+export function isAllowedOrigin(headers, env = process.env) {
+  const host = hostFromHeader(headers?.origin) ?? hostFromHeader(headers?.referer);
+  if (!host) return false;
+  if (ALLOWED_HOSTS.has(host) || PREVIEW_HOST.test(host)) return true;
+  // Lokaal testen (npx vercel dev) mag, maar nooit op productie.
+  const isLocal = host === 'localhost' || host === '127.0.0.1';
+  return isLocal && env.VERCEL_ENV !== 'production';
+}
 
 const PLAYERS_SCHEMA = {
   type: 'object',
@@ -45,22 +74,30 @@ Herken ELKE speler die zichtbaar is. Geef voor elk:
 
 Als een naam onduidelijk, afgesneden of onleesbaar is, geef toch je beste gok — de gebruiker corrigeert dit zelf nadien. Sla geen enkele zichtbare speler over.`;
 
-export const config = { api: { bodyParser: { sizeLimit: '8mb' } } };
+// Iets ruimer dan MAX_BASE64_LENGTH, zodat een te grote afbeelding de nette code image_too_large krijgt.
+export const config = { api: { bodyParser: { sizeLimit: '5mb' } } };
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ code: 'method_not_allowed' });
+  }
+
+  if (!isAllowedOrigin(req.headers)) {
+    return res.status(403).json({ code: 'forbidden_origin' });
   }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    return res.status(500).json({ error: 'Server niet correct geconfigureerd (ontbrekende API-key).' });
+    return res.status(500).json({ code: 'not_configured' });
   }
 
   const { imageBase64, mediaType } = req.body ?? {};
   const allowedMediaTypes = ['image/jpeg', 'image/png', 'image/webp'];
   if (!imageBase64 || typeof imageBase64 !== 'string' || !allowedMediaTypes.includes(mediaType)) {
-    return res.status(400).json({ error: 'Geen geldige afbeelding ontvangen.' });
+    return res.status(400).json({ code: 'no_image' });
+  }
+  if (imageBase64.length > MAX_BASE64_LENGTH) {
+    return res.status(413).json({ code: 'image_too_large' });
   }
 
   let anthropicResponse;
@@ -86,17 +123,17 @@ export default async function handler(req, res) {
       }),
     });
   } catch {
-    return res.status(502).json({ error: 'Kon geen verbinding maken met de analyse-service.' });
+    return res.status(502).json({ code: 'service_unreachable' });
   }
 
   if (!anthropicResponse.ok) {
     const status = anthropicResponse.status === 429 ? 429 : 502;
-    return res.status(status).json({ error: 'Analyse-service gaf een fout terug, probeer later opnieuw.' });
+    return res.status(status).json({ code: status === 429 ? 'rate_limited' : 'service_error' });
   }
 
   const data = await anthropicResponse.json().catch(() => null);
   if (!data || data.stop_reason === 'refusal') {
-    return res.status(200).json({ players: [], warning: 'Kon het team niet herkennen op deze screenshot. Vul je team handmatig in.' });
+    return res.status(200).json({ players: [], warning: { code: 'not_recognized' } });
   }
 
   const textBlock = Array.isArray(data.content) ? data.content.find(b => b.type === 'text') : null;
@@ -108,7 +145,7 @@ export default async function handler(req, res) {
   }
 
   if (!parsed || !Array.isArray(parsed.players)) {
-    return res.status(200).json({ players: [], warning: 'Kon het team niet herkennen op deze screenshot. Vul je team handmatig in.' });
+    return res.status(200).json({ players: [], warning: { code: 'not_recognized' } });
   }
 
   const players = parsed.players
@@ -122,9 +159,9 @@ export default async function handler(req, res) {
     }));
 
   const warning = players.length === 0
-    ? 'Geen spelers herkend op deze screenshot. Vul je team handmatig in.'
+    ? { code: 'not_recognized' }
     : players.length < 15
-      ? `Slechts ${players.length} van de 15 spelers herkend — vul de rest handmatig aan.`
+      ? { code: 'partial', count: players.length }
       : null;
 
   return res.status(200).json({ players, warning });

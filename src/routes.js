@@ -171,9 +171,11 @@ export function pathForRoute(key, language = DEFAULT_ROUTE_LANGUAGE) {
 }
 
 // Query-parameters die bij één tab horen. Die worden bij het wisselen naar een ándere tab weggelaten,
-// zodat bv. de filters van de Spelers-tab niet blijven plakken aan de FDR-URL. Parameters die hier
-// niet staan (zoals ?r= en ?ha= van de FDR-ratings) gaan gewoon mee, zoals voorheen.
+// zodat bv. de filters van de Spelers-tab niet blijven plakken aan de FDR-URL. Ook ?r= en ?ha= (de
+// ratings uit een gedeelde FDR-link) horen enkel bij de FDR-tab: wie van tab wisselt, ziet daarna weer
+// zijn eigen ratings (FUNCTIONALITEIT_SPEC A1).
 export const TAB_QUERY_PARAMS = {
+  fdr: ['r', 'ha'],
   spelers: ['q', 'pos', 'club', 'pmin', 'pmax', 'mins', 'scope', 'per', 'mode', 'cols', 'sort', 'dir', 'compare', 'speler', 'diff'],
   predictedlineups: ['match', 'team', 'view', 'twijfel'],
   klassement: ['team', 'rgw'],
@@ -190,9 +192,7 @@ export function searchForTab(search, key) {
   return s ? `?${s}` : '';
 }
 
-// Bouwt de volledige URL voor een tab, mét behoud van de bestaande query-parameters. Dat laatste is
-// essentieel: de FDR-tab codeert aangepaste ratings in ?r= en thuisvoordeel in ?ha=, en die mogen
-// niet verloren gaan wanneer iemand van tab wisselt.
+// Bouwt de volledige URL voor een tab. De query-string komt al gefilterd binnen (zie searchForTab).
 export function urlForRoute(key, search = '', language = DEFAULT_ROUTE_LANGUAGE) {
   return `${pathForRoute(key, language)}${search || ''}`;
 }

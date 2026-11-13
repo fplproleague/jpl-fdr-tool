@@ -8,7 +8,7 @@
 
 import { useState } from 'react';
 import { RotateCcw, Link2, Download, Check, SlidersHorizontal, Info, Sigma } from 'lucide-react';
-import { TEAMS, TEAMS_ALPHA, FIXTURES, RATING_STYLE, GW_COUNT, GW_INDEXES, getFixtureInfo } from '../constants';
+import { TEAMS, TEAMS_ALPHA, FIXTURES, RATING_STYLE, GW_COUNT, GW_INDEXES, DEFAULT_RATINGS, getFixtureInfo } from '../constants';
 import { SectionHeader } from '../components/SectionHeader';
 import Sheet from '../components/Sheet';
 import PageHeader from '../ui/PageHeader';
@@ -16,8 +16,11 @@ import Button from '../ui/Button';
 import Select from '../ui/Select';
 import Segmented from '../ui/Segmented';
 import FdrCell from '../ui/FdrCell';
+import Badge from '../ui/Badge';
+import { possiblyPostponedText } from '../postponed';
 import { useOverflow } from '../ui/DataTable';
 import '../ui/DataTable.css';
+import '../ui/States.css';
 import './FDRTab.css';
 
 // Opties voor een GW-kiezer, begrensd tot wat een geldige keuze oplevert: de "vanaf"-kiezer loopt
@@ -59,9 +62,8 @@ function buildFixtureCellAriaLabel(t, info) {
   const base = t('fdr.cellAria', { opp: info.opp, venue: venueLabel(info.venue), rating: info.rating });
   // Bij een mogelijk uitgestelde wedstrijd blijft de uitleg deel van de naam, anders verdwijnt de
   // betekenis van het "*" voor wie de tabel niet ziet.
-  return info.isPossiblyPostponed && info.possiblyPostponedText
-    ? `${base}. ${info.possiblyPostponedText}`
-    : base;
+  const maybeText = info.isPossiblyPostponed ? possiblyPostponedText(t, info.teamCode, info.opp, info.venue) : null;
+  return maybeText ? `${base}. ${maybeText}` : base;
 }
 
 // Hoort deze cel bij de aangevinkte moeilijkheidsgraden? Leeg filter = alles. Een DGW telt mee zodra
@@ -131,27 +133,58 @@ function ClubLogo({ code, size = 16 }) {
   );
 }
 
+// Balk boven de tabel (en bovenaan de lade) zolang de ratings uit een gedeelde link komen (spec A1).
+// Pas "Overnemen" bewaart iets; "Terug" toont weer je eigen ratings.
+function SharedRatingsBanner({ t, onAdopt, onLeave }) {
+  return (
+    <div className="ui-banner fdr-shared" role="status">
+      <Link2 aria-hidden="true" strokeWidth={1.75} />
+      <span className="ui-banner__text">{t('fdr.shared.text')}</span>
+      <span className="ui-banner__actions">
+        <Button variant="primary" size="sm" onClick={onAdopt}>{t('fdr.shared.adopt')}</Button>
+        <Button variant="secondary" size="sm" onClick={onLeave}>{t('fdr.shared.leave')}</Button>
+      </span>
+    </div>
+  );
+}
+
 // De ratings-lade: 18 rijen met logo + club, een Segmented 1-5 en de thuisvoordeel-schakelaar.
-// Zelfde state en handlers als de vroegere sliders; de tabel ernaast verandert live mee.
-function RatingsSheet({ t, ratings, homeAdvantage, updateRating, toggleHomeAdvantage, onClose }) {
-  const options = [1, 2, 3, 4, 5].map(n => ({ value: n, label: String(n) }));
+// Zelfde state en handlers als de vroegere sliders; de tabel ernaast verandert live mee. Een club die
+// je zelf aanpaste, krijgt een label "aangepast" en een knop om enkel die club terug te zetten. Bij
+// een gedeelde link is de lade alleen-lezen: eerst overnemen of terug naar je eigen ratings.
+function RatingsSheet({
+  t, ratings, homeAdvantage, updateRating, toggleHomeAdvantage, ratingOverrides, homeOverrides,
+  resetRating, readOnly, onAdopt, onLeave, onClose,
+}) {
+  const options = [1, 2, 3, 4, 5].map(n => ({ value: n, label: String(n), disabled: readOnly }));
   return (
     <Sheet titleId="fdr-ratings-title" title={t('fdr.ratingsSheetTitle')} closeLabel={t('infoModal.close')} onClose={onClose}>
+      {readOnly && <SharedRatingsBanner t={t} onAdopt={onAdopt} onLeave={onLeave} />}
       <p className="fdr-sheet-intro">{t('fdr.ratingsSheetIntro')}</p>
       <ul className="fdr-rating-list">
         {TEAMS_ALPHA.map(team => {
           const on = !!homeAdvantage[team.code];
+          const changed = !readOnly && (team.code in ratingOverrides || team.code in homeOverrides);
+          const resetLabel = t('fdr.ratingResetOneAria', { team: team.name, value: DEFAULT_RATINGS[team.code] });
           return (
             <li key={team.code} className="fdr-rating-row">
               <span className="fdr-rating-row__club">
                 <ClubLogo code={team.code} />
                 <span className="fdr-rating-row__name">{team.name}</span>
+                {changed && (
+                  <>
+                    <Badge tone="outline" className="fdr-rating-row__changed">{t('fdr.ratingChanged')}</Badge>
+                    <button type="button" className="fdr-rating-row__reset" onClick={() => resetRating(team.code)} aria-label={resetLabel} title={resetLabel}>
+                      <RotateCcw aria-hidden="true" strokeWidth={1.75} />
+                    </button>
+                  </>
+                )}
               </span>
               <Segmented
                 className="fdr-rating-row__seg"
                 options={options}
                 value={ratings[team.code]}
-                onChange={v => updateRating(team.code, Number(v))}
+                onChange={v => { if (!readOnly) updateRating(team.code, Number(v)); }}
                 ariaLabel={t('fdr.strengthGroupAria', { team: team.name })}
               />
               {/* Thuisvoordeel: los van de sterkte, zie getEffectiveRating. De hele rij met tekst is
@@ -161,6 +194,7 @@ function RatingsSheet({ t, ratings, homeAdvantage, updateRating, toggleHomeAdvan
                 role="switch"
                 aria-checked={on}
                 aria-label={t('fdr.homeAdvantageAria', { team: team.name })}
+                disabled={readOnly}
                 onClick={() => toggleHomeAdvantage(team.code)}
                 className="fdr-switch"
               >
@@ -199,7 +233,9 @@ function TeamCell({ t, team, teamForm, onOpenClub }) {
 export default function FDRTab({
   t,
   ratings, homeAdvantage, updateRating, toggleHomeAdvantage,
-  isCustom, linkCopied, downloading,
+  isCustom, ratingOverrides, homeOverrides, resetRating,
+  isViewingShared, adoptSharedRatings, leaveSharedRatings,
+  linkCopied, downloading,
   handleCopyLink, handleDownloadImage, handleReset, setShowInfo,
   openSections, toggleSection,
   sortBy, toggleSortByAverage, showAvgColumn, toggleAvgColumn,
@@ -227,8 +263,8 @@ export default function FDRTab({
   const meta = (
     <>
       {/* Het ratings-label is ook de weg naar de ratings-lade. */}
-      <button type="button" className={`fdr-meta-link${isCustom ? ' is-custom' : ''}`} onClick={() => setRatingsOpen(true)} aria-haspopup="dialog">
-        {t(isCustom ? 'fdr.metaCustom' : 'fdr.metaDefault')}
+      <button type="button" className={`fdr-meta-link${isCustom || isViewingShared ? ' is-custom' : ''}`} onClick={() => setRatingsOpen(true)} aria-haspopup="dialog">
+        {t(isViewingShared ? 'fdr.metaShared' : isCustom ? 'fdr.metaCustom' : 'fdr.metaDefault')}
       </button>
       <span aria-hidden="true"> · </span>
       <span className="num">{t('fdr.metaRange', { from: gwHorizonRange.start, to: gwHorizonRange.end })}</span>
@@ -275,7 +311,7 @@ export default function FDRTab({
           <Button icon={Sigma} className="fdr-tool-btn" onClick={toggleAvgColumn} aria-pressed={showAvgColumn} aria-label={t('fdr.avgToggle')} title={t('fdr.avgColumnTitle')}>
             <span className="fdr-tool-btn__text">{t('fdr.avgToggleShort')}</span>
           </Button>
-          {isCustom && (
+          {isCustom && !isViewingShared && (
             <Button icon={RotateCcw} className="fdr-tool-btn" onClick={handleReset} aria-label={t('fdr.reset')}>
               <span className="fdr-tool-btn__text">{t('fdr.resetShort')}</span>
             </Button>
@@ -284,6 +320,8 @@ export default function FDRTab({
         {/* Live bevestiging voor schermlezers wanneer de ratings afwijken (en dus bewaard zijn). */}
         <span className="ui-sr-only" role="status">{isCustom ? t('fdr.autoSaved') : ''}</span>
       </div>
+
+      {isViewingShared && <SharedRatingsBanner t={t} onAdopt={adoptSharedRatings} onLeave={leaveSharedRatings} />}
 
       {/* tableRef + .fdr-table-scroll: hierop werkt de afbeelding-export in FDRTool.jsx. */}
       <div ref={tableRef} id="fdr-capture-wrapper">
@@ -469,6 +507,12 @@ export default function FDRTab({
           homeAdvantage={homeAdvantage}
           updateRating={updateRating}
           toggleHomeAdvantage={toggleHomeAdvantage}
+          ratingOverrides={ratingOverrides}
+          homeOverrides={homeOverrides}
+          resetRating={resetRating}
+          readOnly={isViewingShared}
+          onAdopt={adoptSharedRatings}
+          onLeave={leaveSharedRatings}
           onClose={() => setRatingsOpen(false)}
         />
       )}

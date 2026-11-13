@@ -8,7 +8,7 @@ import { useState, useMemo, useRef, useCallback, useEffect, lazy, Suspense } fro
 import { Info, X, Loader2 } from 'lucide-react';
 import {
   TEAMS, FIXTURES, GW_COUNT, CURRENT_GW, DEFAULT_GW_HORIZON_END,
-  MINILEAGUE_CODE, formatLastUpdatedLong, GW_INDEXES, DEFAULT_RATINGS, DEFAULT_HOME_ADVANTAGE,
+  MINILEAGUE_CODE, formatLastUpdatedLong, GW_INDEXES, DEFAULT_RATINGS, DEFAULT_HOME_ADVANTAGE, PREVIOUS_DEFAULT_RATINGS,
   TEAM_PLANNER_SQUAD_SIZE, TEAM_PLANNER_BENCH_SIZE, TEAM_PLANNER_SLOT_POSITIONS, VALID_FORMATIONS,
   resolveSlotPlayerAtGw, PLAYER_DATABASE_CSV_URL, parsePlayerDatabaseCsv, getFixtureScores, average,
   POSTPONED, computeTeamPlannerTransferBudget, getGwDeadlineDate, AUTO_RECHARGE_GWS, PREDICTED_LINEUPS_GW,
@@ -22,6 +22,11 @@ import {
 } from './routes';
 import { t as translate, LANGUAGES, DEFAULT_LANGUAGE } from './i18n';
 import { PREDICTED_LINEUPS } from './predictedLineupsData';
+import { I18nContext } from './i18nContext';
+import {
+  applyOverrides, diffFromDefaults, setOverride, removeOverride, loadOverrides, saveOverrides,
+  encodeRatingsParam, decodeRatingsParam, encodeHomeParam, decodeHomeParam,
+} from './fdrRatings';
 import FDRTab from './tabs/FDRTab';
 import AppShell from './ui/AppShell';
 import Sheet from './components/Sheet';
@@ -77,8 +82,10 @@ function TabLoading({ text }) {
   );
 }
 
-const STORAGE_KEY = 'fpl_proleague_fdr_ratings_v1';
-const HOME_ADVANTAGE_STORAGE_KEY = 'fpl_proleague_fdr_home_advantage_v1';
+// De FDR-ratings staan sinds de functionaliteitsrework als afwijkingen onder eigen v2-sleutels; de
+// v1-sleutels (fpl_proleague_fdr_ratings_v1 / _home_advantage_v1) blijven als back-up staan. Zie
+// src/fdrRatings.js.
+const TEAM_CODES = TEAMS.map(team => team.code);
 // Eigen storage key voor de watch list — los van de FDR-ratings hierboven, zodat ze elkaar niet raken.
 const WATCHLIST_STORAGE_KEY = 'fpl_proleague_watchlist_v1';
 // Onthoudt of de eenmalige melding "je watchlist zit nu in Spelers" al getoond is (spec §8.6).
@@ -168,52 +175,29 @@ function buildGwHeaderCells(t, { sortedGw = null, onSortGw = null } = {}) {
   });
 }
 
-function loadStoredRatings() {
-  try {
-    const raw = window.localStorage?.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (parsed && typeof parsed === 'object') return parsed;
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-function encodeRatingsToParam(ratings) {
-  return TEAMS.map(t => `${t.code}${ratings[t.code]}`).join('-');
-}
-
-function loadRatingsFromURL() {
+// Ratings uit een gedeelde link (?r= / ?ha=). Die tonen we enkel om te bekijken (spec A1): ze komen
+// nooit vanzelf in de eigen opslag terecht. Geeft null zonder geldige link-ratings. Een link met
+// enkel ?ha= (of enkel ?r=) vult het andere deel aan met de eigen waarden.
+function loadSharedRatingsFromURL(ownRatings, ownHome) {
   try {
     const params = new URLSearchParams(window.location.search);
-    const raw = params.get('r');
-    if (!raw) return null;
-    const parts = raw.split('-');
-    const result = {};
-    for (const part of parts) {
-      const code = part.slice(0, 3);
-      const value = Number(part.slice(3));
-      if (TEAMS.some(t => t.code === code) && value >= 1 && value <= 5) {
-        result[code] = value;
-      }
-    }
-    if (TEAMS.every(t => result[t.code])) return result;
-    return null;
+    const ratings = decodeRatingsParam(params.get('r'), TEAM_CODES);
+    const home = decodeHomeParam(params.get('ha'), TEAM_CODES);
+    if (!ratings && !home) return null;
+    return { ratings: ratings ?? ownRatings, homeAdvantage: home ?? ownHome };
   } catch {
     return null;
   }
 }
 
-function loadStoredHomeAdvantage() {
+function removeSharedRatingsFromURL() {
   try {
-    const raw = window.localStorage?.getItem(HOME_ADVANTAGE_STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (parsed && typeof parsed === 'object') return parsed;
-    return null;
+    const url = new URL(window.location.href);
+    url.searchParams.delete('r');
+    url.searchParams.delete('ha');
+    window.history.replaceState(window.history.state, '', url.toString());
   } catch {
-    return null;
+    // ignore
   }
 }
 
@@ -222,24 +206,6 @@ function hasSeenHomeAdvantageIntro() {
     return window.localStorage?.getItem(HOME_ADVANTAGE_INTRO_SEEN_KEY) === '1';
   } catch {
     return false;
-  }
-}
-
-// Compacte encoding: één '0'/'1' per team, in TEAMS-volgorde (geen teamcodes nodig, vaste lengte/positie).
-function encodeHomeAdvantageToParam(homeAdvantage) {
-  return TEAMS.map(t => (homeAdvantage[t.code] ? '1' : '0')).join('');
-}
-
-function loadHomeAdvantageFromURL() {
-  try {
-    const params = new URLSearchParams(window.location.search);
-    const raw = params.get('ha');
-    if (!raw || raw.length !== TEAMS.length || !/^[01]+$/.test(raw)) return null;
-    const result = {};
-    TEAMS.forEach((t, i) => { result[t.code] = raw[i] === '1'; });
-    return result;
-  } catch {
-    return null;
   }
 }
 
@@ -389,6 +355,8 @@ export default function FDRTool() {
     return languageFromPath(window.location.pathname) ?? loadStoredLanguage() ?? DEFAULT_LANGUAGE;
   });
   const t = useCallback((key, vars) => translate(language, key, vars), [language]);
+  // Voor kleine bouwstenen zonder `t`-prop (FDR-cel, mini-fixture): zie src/i18nContext.js.
+  const i18nValue = useMemo(() => ({ t, language }), [t, language]);
 
   // Van taal wisselen is nu een echte navigatie: /fdr <-> /fr/fdr. Dat is het hele punt van de
   // taal-URL's — zonder pushState blijft de adresbalk hetzelfde en valt er nog altijd geen Franse
@@ -491,6 +459,9 @@ export default function FDRTool() {
   }, []);
   const currentDeadline = useMemo(() => getGwDeadlineDate(CURRENT_GW), []);
   const deadlineRemaining = useMemo(() => getTimeRemaining(currentDeadline, now), [currentDeadline, now]);
+  // CURRENT_GW wordt één keer berekend bij het laden. Blijft de pagina open over de deadline heen, dan
+  // staat de rest van de site nog op de oude GW: de topbalk vraagt dan om te herladen (spec A7).
+  const deadlinePassed = !!currentDeadline && now.getTime() >= currentDeadline.getTime();
 
   // Laatste watch-list-wijziging, als één melding onderaan het scherm. Bij het verwijderen bewaart
   // dit ook de oorspronkelijke positie, zodat "ongedaan maken" de speler terugzet waar hij stond
@@ -499,8 +470,35 @@ export default function FDRTool() {
   // Vorm: { kind: 'removed', player, index } of { kind: 'added', player }. null = geen melding.
   const [watchlistNotice, setWatchlistNotice] = useState(null);
 
-  const [ratings, setRatings] = useState(() => loadRatingsFromURL() || loadStoredRatings() || DEFAULT_RATINGS);
-  const [homeAdvantage, setHomeAdvantage] = useState(() => loadHomeAdvantageFromURL() || loadStoredHomeAdvantage() || DEFAULT_HOME_ADVANTAGE);
+  // Eigen ratings = de standaard + de clubs die de bezoeker zelf aanpaste (spec A2). Enkel die
+  // afwijkingen worden bewaard, zodat een nieuwe standaard (bv. Charleroi naar 4) iedereen bereikt die
+  // die club niet zelf veranderde.
+  const [storedOverrides] = useState(() => {
+    let storage = null;
+    try { storage = window.localStorage ?? null; } catch { storage = null; }
+    return loadOverrides(storage, {
+      defaultRatings: DEFAULT_RATINGS,
+      defaultHome: DEFAULT_HOME_ADVANTAGE,
+      previousDefaultRatings: PREVIOUS_DEFAULT_RATINGS,
+    });
+  });
+  const [ratingOverrides, setRatingOverrides] = useState(storedOverrides.ratings);
+  const [homeOverrides, setHomeOverrides] = useState(storedOverrides.home);
+  const ownRatings = useMemo(() => applyOverrides(DEFAULT_RATINGS, ratingOverrides), [ratingOverrides]);
+  const ownHomeAdvantage = useMemo(() => applyOverrides(DEFAULT_HOME_ADVANTAGE, homeOverrides), [homeOverrides]);
+  // Ratings uit een gedeelde link: enkel om te bekijken, tot de bezoeker ze zelf overneemt (spec A1).
+  const [sharedRatings, setSharedRatings] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    const shared = loadSharedRatingsFromURL(ownRatings, ownHomeAdvantage);
+    if (!shared) return null;
+    // Een link met exact je eigen ratings hoeft geen keuze: gewoon je eigen ratings tonen.
+    const same = TEAM_CODES.every(code => shared.ratings[code] === ownRatings[code]
+      && !!shared.homeAdvantage[code] === !!ownHomeAdvantage[code]);
+    if (same) { removeSharedRatingsFromURL(); return null; }
+    return shared;
+  });
+  const ratings = sharedRatings?.ratings ?? ownRatings;
+  const homeAdvantage = sharedRatings?.homeAdvantage ?? ownHomeAdvantage;
   // rangeStart start standaard op CURRENT_GW (i.p.v. hardcoded GW1) zodat de default range vanzelf
   // meeschuift bij het wekelijks bijwerken van CURRENT_GW in constants.js — geen aparte aanpassing
   // hier nodig. Deze twee sturen de gedeelde analyse-periode van "Beste fixture runs" en "Vergelijk
@@ -636,17 +634,25 @@ export default function FDRTool() {
     return fromUrl?.kind === 'player' ? fromUrl.slug : null;
   });
 
-  // isCustom volgt exact of ratings/homeAdvantage hun gedeelde DEFAULT-referentie zijn
-  // (zie updateRating/toggleHomeAdvantage/handleReset).
-  const isCustom = ratings !== DEFAULT_RATINGS || homeAdvantage !== DEFAULT_HOME_ADVANTAGE;
+  // Aangepast = er is minstens één eigen afwijking. Vroeger vergeleek dit objectreferenties, waardoor
+  // wie alles handmatig terugzette toch "eigen (aangepast)" bleef zien.
+  const isCustom = Object.keys(ratingOverrides).length > 0 || Object.keys(homeOverrides).length > 0;
+  const isViewingShared = sharedRatings !== null;
 
+  // Aanpassen gebeurt altijd op de eigen ratings. Zolang een gedeelde link getoond wordt, is de lade
+  // alleen-lezen (zie RatingsSheet in tabs/FDRTab.jsx), dus hier komt geen gedeelde waarde binnen.
   const updateRating = (code, value) => {
-    setRatings(prev => ({ ...prev, [code]: value }));
+    setRatingOverrides(prev => setOverride(prev, DEFAULT_RATINGS, code, value));
+  };
+
+  const resetRating = (code) => {
+    setRatingOverrides(prev => removeOverride(prev, code));
+    setHomeOverrides(prev => removeOverride(prev, code));
   };
 
   // Thuisvoordeel is losstaand van de sterkte-rating: een aparte aan/uit-toggle per team.
   const toggleHomeAdvantage = (code) => {
-    setHomeAdvantage(prev => ({ ...prev, [code]: !prev[code] }));
+    setHomeOverrides(prev => setOverride(prev, DEFAULT_HOME_ADVANTAGE, code, !ownHomeAdvantage[code]));
     // First-time-uitleg: verschijnt enkel bij de allereerste toggle-klik ooit, daarna nooit meer.
     if (!hasSeenHomeAdvantageIntro()) {
       setShowHomeAdvantageIntro(true);
@@ -658,50 +664,48 @@ export default function FDRTool() {
     }
   };
 
-  // De FDR-ratings waren het enige wat NIET automatisch opsloeg: de watch list en de Team Planner deden
-  // dat al, maar hier was "Bewaar in browser" de enige manier waarop een aangepaste rating een
-  // herlaadbeurt overleefde. Dat is precies het soort werk dat je stil verliest. Zelfde patroon als de
-  // twee effects hierboven, en bewust vóór het weghalen van die knop toegevoegd — andersom zou elke
-  // aanpassing tussen beide wijzigingen in verdwijnen.
-  //
-  // isCustom als voorwaarde: zolang de ratings nog exact de gedeelde DEFAULT-referentie zijn valt er
-  // niets te bewaren, en zou dit bij het eerste bezoek meteen een standaardwaarde wegschrijven die
-  // handleReset net weer opruimt.
+  // Elke wijziging van de eigen afwijkingen meteen bewaren. Een gedeelde link raakt deze state niet,
+  // dus die kan de eigen ratings ook niet meer overschrijven (spec A1).
+  const overridesInitialized = useRef(false);
   useEffect(() => {
-    if (!isCustom) return;
-    try {
-      window.localStorage?.setItem(STORAGE_KEY, JSON.stringify(ratings));
-      window.localStorage?.setItem(HOME_ADVANTAGE_STORAGE_KEY, JSON.stringify(homeAdvantage));
-    } catch {
-      // storage niet beschikbaar (privénavigatie e.d.) — de ratings werken deze sessie gewoon door
-    }
-  }, [ratings, homeAdvantage, isCustom]);
+    if (!overridesInitialized.current) { overridesInitialized.current = true; return; }
+    let storage = null;
+    try { storage = window.localStorage ?? null; } catch { storage = null; }
+    saveOverrides(storage, ratingOverrides, homeOverrides);
+  }, [ratingOverrides, homeOverrides]);
 
   const handleReset = () => {
-    setRatings(DEFAULT_RATINGS);
-    setHomeAdvantage(DEFAULT_HOME_ADVANTAGE);
-    try {
-      window.localStorage?.removeItem(STORAGE_KEY);
-      window.localStorage?.removeItem(HOME_ADVANTAGE_STORAGE_KEY);
-    } catch {
-      // ignore
-    }
-    try {
-      const url = new URL(window.location.href);
-      url.searchParams.delete('r');
-      url.searchParams.delete('ha');
-      window.history.replaceState({}, '', url.toString());
-    } catch {
-      // ignore
-    }
+    setRatingOverrides({});
+    setHomeOverrides({});
   };
+
+  // Gedeelde link: overnemen als eigen ratings, of terug naar de eigen ratings. In beide gevallen
+  // verdwijnen ?r= en ?ha= uit de adresbalk.
+  const adoptSharedRatings = () => {
+    if (!sharedRatings) return;
+    setRatingOverrides(diffFromDefaults(sharedRatings.ratings, DEFAULT_RATINGS));
+    setHomeOverrides(diffFromDefaults(sharedRatings.homeAdvantage, DEFAULT_HOME_ADVANTAGE));
+    setSharedRatings(null);
+    removeSharedRatingsFromURL();
+  };
+  const leaveSharedRatings = () => {
+    setSharedRatings(null);
+    removeSharedRatingsFromURL();
+  };
+
+  // De gedeelde ratings horen enkel bij de FDR-tab: wie van tab wisselt, verliest ?r=/?ha= (zie
+  // TAB_QUERY_PARAMS.fdr in routes.js) en ziet bij terugkeer zijn eigen ratings.
+  useEffect(() => {
+    if (activeTab !== 'fdr' && sharedRatings) setSharedRatings(null);
+  }, [activeTab, sharedRatings]);
 
   const handleCopyLink = async () => {
     try {
+      // De link gaat naar het klembord, niet in de eigen adresbalk: anders zou een herlaadbeurt je eigen
+      // ratings als "gedeelde link" tonen.
       const url = new URL(window.location.href);
-      url.searchParams.set('r', encodeRatingsToParam(ratings));
-      url.searchParams.set('ha', encodeHomeAdvantageToParam(homeAdvantage));
-      window.history.replaceState({}, '', url.toString());
+      url.searchParams.set('r', encodeRatingsParam(TEAM_CODES, ratings));
+      url.searchParams.set('ha', encodeHomeParam(TEAM_CODES, homeAdvantage));
       await navigator.clipboard.writeText(url.toString());
       setLinkCopied(true);
       setTimeout(() => setLinkCopied(false), 2000);
@@ -1059,7 +1063,8 @@ export default function FDRTool() {
       if (/^\s*<(!doctype|html)/i.test(text)) throw new Error('Onverwacht antwoord');
       setPlayerDatabase(parsePlayerDatabaseCsv(text));
     } catch {
-      setPlayerDatabaseError('Kon spelersdatabank niet laden, probeer opnieuw.');
+      // Een i18n-sleutel, geen zin: de tabs vertalen hem bij het tonen (spec A3).
+      setPlayerDatabaseError('shared.loadError');
     } finally {
       setPlayerDatabaseLoading(false);
     }
@@ -1494,12 +1499,33 @@ export default function FDRTool() {
     });
   };
 
+  // Wissen in de planner gebeurt meteen, met "Ongedaan maken" in een melding (8 s) in plaats van een
+  // bevestigingsvenster (spec A3): window.confirm toonde altijd Nederlands, ook op de Franse en Engelse
+  // site, en een melding met undo is sneller en even veilig. De melding bewaart een kopie van wat er
+  // stond, zodat ongedaan maken alles exact terugzet.
+  const [plannerNotice, setPlannerNotice] = useState(null);
+  const plannerNoticeTimerRef = useRef(null);
+  const showPlannerNotice = (notice) => {
+    setPlannerNotice(notice);
+    if (plannerNoticeTimerRef.current) clearTimeout(plannerNoticeTimerRef.current);
+    plannerNoticeTimerRef.current = setTimeout(() => setPlannerNotice(null), 8000);
+  };
+  useEffect(() => () => { if (plannerNoticeTimerRef.current) clearTimeout(plannerNoticeTimerRef.current); }, []);
+
   // Wist de volledige 15-koppige selectie EN alle daaraan gekoppelde state (bank/kapitein per GW,
   // transfer-tijdlijn, boosters) — anders zou die achterblijven en verwijzen naar nu-lege slots (bv.
-  // "GW3 kapitein = slot 5" terwijl slot 5 leeg is). Bevestiging via window.confirm, want dit is niet
-  // ongedaan te maken.
+  // "GW3 kapitein = slot 5" terwijl slot 5 leeg is).
   const handleClearTeamPlanner = () => {
-    if (!window.confirm("Weet je zeker dat je je volledige team wilt wissen? Bank, kapitein, transfers en boosters voor alle GW's worden ook gereset.")) return;
+    showPlannerNotice({
+      kind: 'teamCleared',
+      snapshot: {
+        players: teamPlannerPlayers,
+        benchByGw: teamPlannerBenchByGw,
+        captainByGw: teamPlannerCaptainByGw,
+        transfersBySlot: teamPlannerTransfersBySlot,
+        boosters: teamPlannerBoosters,
+      },
+    });
     setTeamPlannerPlayers(createEmptyTeamPlannerPlayers());
     setTeamPlannerBenchByGw({});
     setTeamPlannerCaptainByGw({});
@@ -1511,10 +1537,22 @@ export default function FDRTool() {
   // sectiekop in TeamPlannerTab.jsx. Bank/kapitein/boosters blijven ongemoeid (in tegenstelling tot
   // handleClearTeamPlanner hierboven, dat de volledige selectie wist); teamPlannerTransferBudget
   // herberekent vanzelf naar de lege staat via zijn bestaande useMemo-afhankelijkheid op
-  // teamPlannerTransferHistory. Bevestiging via window.confirm, want dit is niet ongedaan te maken.
+  // teamPlannerTransferHistory.
   const handleClearTeamPlannerTransfers = () => {
-    if (!window.confirm('Weet je zeker dat je alle geplande transfers wilt wissen? Dit kan niet ongedaan gemaakt worden.')) return;
+    showPlannerNotice({ kind: 'transfersCleared', snapshot: { transfersBySlot: teamPlannerTransfersBySlot } });
     setTeamPlannerTransfersBySlot({});
+  };
+
+  const handleUndoPlannerNotice = () => {
+    const snapshot = plannerNotice?.snapshot;
+    if (!snapshot) return;
+    if (snapshot.players) setTeamPlannerPlayers(snapshot.players);
+    if (snapshot.benchByGw) setTeamPlannerBenchByGw(snapshot.benchByGw);
+    if (snapshot.captainByGw) setTeamPlannerCaptainByGw(snapshot.captainByGw);
+    if (snapshot.transfersBySlot) setTeamPlannerTransfersBySlot(snapshot.transfersBySlot);
+    if (snapshot.boosters) setTeamPlannerBoosters(snapshot.boosters);
+    setPlannerNotice(null);
+    if (plannerNoticeTimerRef.current) clearTimeout(plannerNoticeTimerRef.current);
   };
 
   // Herschikt de bank-volgorde voor de bekeken GW: wisselt de array-posities van de twee gegeven
@@ -1537,6 +1575,7 @@ export default function FDRTool() {
   };
 
   return (
+    <I18nContext.Provider value={i18nValue}>
     <div style={{ minHeight: '100vh', background: 'var(--ink-0)', fontFamily: 'var(--font-ui)', position: 'relative' }}>
 
       <AppShell
@@ -1549,6 +1588,8 @@ export default function FDRTool() {
         hrefFor={(key) => pathForRoute(key, language)}
         deadlineGw={CURRENT_GW}
         deadlineRemaining={deadlineRemaining}
+        deadlinePassed={deadlinePassed}
+        nextGw={CURRENT_GW < GW_COUNT ? CURRENT_GW + 1 : null}
         minileagueCode={MINILEAGUE_CODE}
         onCopyMinileague={handleCopyMinileagueCode}
         minileagueCopied={minileagueCodeCopied}
@@ -1564,6 +1605,13 @@ export default function FDRTool() {
             updateRating={updateRating}
             toggleHomeAdvantage={toggleHomeAdvantage}
             isCustom={isCustom}
+            ownRatings={ownRatings}
+            ratingOverrides={ratingOverrides}
+            homeOverrides={homeOverrides}
+            resetRating={resetRating}
+            isViewingShared={isViewingShared}
+            adoptSharedRatings={adoptSharedRatings}
+            leaveSharedRatings={leaveSharedRatings}
             linkCopied={linkCopied}
             downloading={downloading}
             handleCopyLink={handleCopyLink}
@@ -1792,7 +1840,18 @@ export default function FDRTool() {
       {/* Melding na een watch-list-wijziging (spec §5.10: omgekeerde toast, boven de onderbalk op gsm).
           Verdwijnt vanzelf na 8 seconden. "Ongedaan maken" hoort enkel bij een verwijdering: een
           toevoeging draai je terug door de ster nog eens aan te tikken. */}
-      {watchlistNotice && (
+      {plannerNotice && (
+        <div role="status" aria-live="polite" className="ui-toast">
+          <p className="ui-toast__text">{t(`teamPlanner.notice.${plannerNotice.kind}`)}</p>
+          <button type="button" onClick={handleUndoPlannerNotice} className="ui-toast__action">
+            {t('undo.action')}
+          </button>
+          <button type="button" onClick={() => setPlannerNotice(null)} aria-label={t('undo.closeAria')} className="ui-toast__close">
+            <X aria-hidden="true" strokeWidth={2} />
+          </button>
+        </div>
+      )}
+      {watchlistNotice && !plannerNotice && (
         <div role="status" aria-live="polite" className="ui-toast">
           <p className="ui-toast__text">
             <strong>{watchlistNotice.player.name}</strong>{' '}
@@ -1844,5 +1903,6 @@ export default function FDRTool() {
         </div>
       )}
     </div>
+    </I18nContext.Provider>
   );
 }

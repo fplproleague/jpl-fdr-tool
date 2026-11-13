@@ -122,7 +122,7 @@ export default function KaartenTab({
       </div>
 
       {!playerDatabaseLoading && playerDatabaseError && (
-        <ErrorBanner onRetry={fetchPlayerDatabase} retryLabel={t('shared.retry')}>{playerDatabaseError}</ErrorBanner>
+        <ErrorBanner onRetry={fetchPlayerDatabase} retryLabel={t('shared.retry')}>{t(playerDatabaseError)}</ErrorBanner>
       )}
 
       {/* Drie lege toestanden: geen databank; wel een databank maar (zonder filter) niemand met 2+
