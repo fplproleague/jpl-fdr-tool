@@ -9,6 +9,7 @@
 .ui-badge--accent { background: var(--accent); color: var(--accent-ink); }
 .ui-badge--danger { background: var(--danger); color: #FFF; }
 .ui-badge--warning { background: var(--warning); color: var(--accent-ink); }
+.ui-badge--vice { background: var(--text-2); color: var(--accent-ink); }
 .ui-badge--outline { background: transparent; border: 1px solid var(--line-strong); color: var(--text-2); }
 
 /* Beschikbaarheid in compacte vorm (spec B3): een kaartje (geschorst, 1 kaart) of een "?" (twijfel). */

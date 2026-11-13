@@ -9,9 +9,8 @@ import { Info, X, Loader2 } from 'lucide-react';
 import {
   TEAMS, FIXTURES, GW_COUNT, CURRENT_GW, DEFAULT_GW_HORIZON_END,
   MINILEAGUE_CODE, formatLastUpdatedLong, GW_INDEXES, DEFAULT_RATINGS, DEFAULT_HOME_ADVANTAGE, PREVIOUS_DEFAULT_RATINGS,
-  TEAM_PLANNER_SQUAD_SIZE, TEAM_PLANNER_BENCH_SIZE, TEAM_PLANNER_SLOT_POSITIONS, VALID_FORMATIONS,
-  resolveSlotPlayerAtGw, PLAYER_DATABASE_CSV_URL, parsePlayerDatabaseCsv, getFixtureScores, average,
-  POSTPONED, computeTeamPlannerTransferBudget, getGwDeadlineDate, AUTO_RECHARGE_GWS, PREDICTED_LINEUPS_GW,
+  PLAYER_DATABASE_CSV_URL, parsePlayerDatabaseCsv, getFixtureScores, average,
+  getGwDeadlineDate, PREDICTED_LINEUPS_GW,
 } from './constants';
 import { SET_PIECES_CSV_URL } from './constants';
 import { parseSetPiecesCsv } from './setPieces';
@@ -32,6 +31,7 @@ import {
   encodeRatingsParam, decodeRatingsParam, encodeHomeParam, decodeHomeParam,
 } from './fdrRatings';
 import FDRTab from './tabs/FDRTab';
+import useTeamPlanner from './useTeamPlanner';
 import AppShell from './ui/AppShell';
 import Sheet from './components/Sheet';
 import './ui/Toast.css';
@@ -97,7 +97,6 @@ const WATCHLIST_MOVED_SEEN_KEY = 'fpl_proleague_watchlist_moved_seen_v1';
 // Onthoudt of de first-time-uitleg over Thuisvoordeel al getoond is, zodat die maar één keer ooit verschijnt.
 const HOME_ADVANTAGE_INTRO_SEEN_KEY = 'fpl_proleague_ha_intro_seen_v1';
 // Eigen storage key voor de Team Planner — los van de watch list hierboven.
-const TEAM_PLANNER_STORAGE_KEY = 'fpl_proleague_teamplanner_v1';
 // Onthoudt de gekozen taal (NL/FR) tussen bezoeken — zie src/i18n.js.
 const LANGUAGE_STORAGE_KEY = 'fpl_proleague_language_v1';
 // Toont de FDR-tabel de kolom met de gemiddelde moeilijkheid? Standaard niet (feedback eigenaar).
@@ -233,91 +232,6 @@ function loadStoredWatchlist() {
 function createUniqueId() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
-
-// Team Planner: vast array van TEAM_PLANNER_SQUAD_SIZE (15) "slots" i.p.v. een open add/remove-lijst
-// zoals de watch list — elk slot is altijd aanwezig (leeg of ingevuld), want de positie-/budget-/
-// club-validaties en de veld-weergave veronderstellen een compleet, adresseerbaar array van vaste
-// lengte. Array.from-callback i.p.v. Array(15).fill({...}): anders zouden alle 15 slots dezelfde
-// objectreferentie delen en zou het wijzigen van slot 1 per ongeluk alle andere slots meewijzigen.
-// Bank- en kapiteinskeuze zijn GEEN veld op de speler zelf: die zijn per GW instelbaar (zie
-// teamPlannerBenchByGw/teamPlannerCaptainByGw hieronder), dus een speler kan in GW1 basis zijn en in
-// GW2 op de bank staan. Positie ligt wél vast per slot-index (TEAM_PLANNER_SLOT_POSITIONS) — de
-// gebruiker kiest 'm niet meer zelf, dus de positie-aantallen (2 GK/5 DEF/5 MID/3 FWD) kloppen altijd.
-function createEmptyTeamPlannerPlayers() {
-  return Array.from({ length: TEAM_PLANNER_SQUAD_SIZE }, (_, index) => ({
-    name: '', teamCode: '', position: TEAM_PLANNER_SLOT_POSITIONS[index], price: '',
-  }));
-}
-
-// Eén geplande transfer, zoals opgeslagen: { id, gw, player }. `player` is de INKOMENDE speler
-// ({ name, teamCode, position, price } — de echte positie uit de databank, niet per se gelijk aan de
-// vaste slot-positie, want een transfer met een andere positie mag, met waarschuwing). Defensief
-// gevalideerd zodat corrupte/handmatig aangepaste localStorage-data nooit crasht, enkel genegeerd wordt.
-function sanitizeTransfer(raw) {
-  if (!raw || typeof raw !== 'object') return null;
-  const gw = Number(raw.gw);
-  if (!Number.isFinite(gw) || gw < 1) return null;
-  const player = raw.player;
-  if (!player || typeof player !== 'object' || !player.name) return null;
-  return {
-    id: typeof raw.id === 'string' ? raw.id : createUniqueId(),
-    gw,
-    player: {
-      name: player.name ?? '', teamCode: player.teamCode ?? '',
-      position: player.position ?? '', price: player.price ?? null,
-    },
-  };
-}
-
-// Booster-gebruik: een geheel getal 1-7 (de GW waarop 'm gebruikt is) of null (nog niet gebruikt).
-// Boosters gelden enkel binnen GW1-7 (nooit GW8), zie toggleTeamPlannerBooster hieronder.
-function sanitizeBoosterGw(raw) {
-  const gw = Number(raw);
-  return Number.isFinite(gw) && gw >= 1 && gw <= 7 ? gw : null;
-}
-
-// Leest het volledige, opgeslagen Team Planner-blok (spelers + per-GW bank/kapitein + transfer-
-// tijdlijn + boosters) in één keer in, zodat de useState-initializers hieronder er stuk voor stuk uit
-// kunnen putten.
-function loadStoredTeamPlanner() {
-  const empty = {
-    players: createEmptyTeamPlannerPlayers(), benchByGw: {}, captainByGw: {}, transfersBySlot: {},
-    boosters: { benchBoost: null, tripleCaptain: null, recharge: null },
-  };
-  try {
-    const raw = window.localStorage?.getItem(TEAM_PLANNER_STORAGE_KEY);
-    if (!raw) return empty;
-    const parsed = JSON.parse(raw);
-    // Oudere opslag (vóór per-GW bank/kapitein, en vóór de vaste positie per slot) was gewoon het
-    // spelers-array zelf, met een "isBench"-veld per speler dat nu vervallen is — dat veld wordt hier
-    // stilzwijgend genegeerd. Positie wordt altijd herberekend uit de slot-index, ongeacht wat er
-    // eventueel nog aan oude, handmatig gekozen positie in de opslag stond.
-    const rawPlayers = Array.isArray(parsed) ? parsed : parsed?.players;
-    const players = Array.isArray(rawPlayers) && rawPlayers.length === TEAM_PLANNER_SQUAD_SIZE
-      ? rawPlayers.map((p, index) => ({
-          name: p?.name ?? '', teamCode: p?.teamCode ?? '', position: TEAM_PLANNER_SLOT_POSITIONS[index], price: p?.price ?? '',
-        }))
-      : empty.players;
-    const benchByGw = (!Array.isArray(parsed) && parsed?.benchByGw && typeof parsed.benchByGw === 'object') ? parsed.benchByGw : {};
-    const captainByGw = (!Array.isArray(parsed) && parsed?.captainByGw && typeof parsed.captainByGw === 'object') ? parsed.captainByGw : {};
-    const rawTransfersBySlot = (!Array.isArray(parsed) && parsed?.transfersBySlot && typeof parsed.transfersBySlot === 'object') ? parsed.transfersBySlot : {};
-    const transfersBySlot = {};
-    Object.entries(rawTransfersBySlot).forEach(([slotIndex, transfers]) => {
-      if (!Array.isArray(transfers)) return;
-      const sanitized = transfers.map(sanitizeTransfer).filter(Boolean);
-      if (sanitized.length > 0) transfersBySlot[slotIndex] = sanitized;
-    });
-    const rawBoosters = (!Array.isArray(parsed) && parsed?.boosters && typeof parsed.boosters === 'object') ? parsed.boosters : {};
-    const boosters = {
-      benchBoost: sanitizeBoosterGw(rawBoosters.benchBoost),
-      tripleCaptain: sanitizeBoosterGw(rawBoosters.tripleCaptain),
-      recharge: sanitizeBoosterGw(rawBoosters.recharge),
-    };
-    return { players, benchByGw, captainByGw, transfersBySlot, boosters };
-  } catch {
-    return empty;
-  }
 }
 
 // Rekent de resterende tijd tot een deadline om naar losse eenheden. null zodra de deadline voorbij
@@ -524,9 +438,6 @@ export default function FDRTool() {
   const [gwHorizonStart, setGwHorizonStart] = useState(CURRENT_GW);
   const [gwHorizonEnd, setGwHorizonEnd] = useState(DEFAULT_GW_HORIZON_END);
   const [linkCopied, setLinkCopied] = useState(false);
-  // Transiënte succes-melding na "Optimaliseer opstelling" in Team Planner — zelfde patroon als
-  // linkCopied hierboven (verdwijnt vanzelf na 2s).
-  const [teamPlannerOptimized, setTeamPlannerOptimized] = useState(false);
   const [minileagueCodeCopied, setMinileagueCodeCopied] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
@@ -536,8 +447,7 @@ export default function FDRTool() {
     table: true,
     runs: false,
     compare: false,
-    teamPlannerRoster: true,
-    teamPlannerTransfers: false,
+    teamPlannerTransfers: true,
   });
   // Sortering van de hoofdtabel. Vroeger een simpele boolean ("op gemiddelde run of niet"); nu kan er
   // ook op één kolom gesorteerd worden, wat een derde toestand vereist i.p.v. aan/uit.
@@ -585,35 +495,16 @@ export default function FDRTool() {
   // Verhogen = de Spelers-tab opnieuw opbouwen, zodat die zijn filters opnieuw uit de URL leest.
   const [spelersMountKey, setSpelersMountKey] = useState(0);
 
-  // --- Team Planner (Team Planner-tab), los van de FDR-/watch-list-state hierboven ---
-  const [teamPlannerPlayers, setTeamPlannerPlayers] = useState(() => loadStoredTeamPlanner().players);
-  // Bank- en kapiteinskeuze zijn per GW ({ [gw]: [slot-indices] } resp. { [gw]: slot-index }), zodat
-  // dezelfde 15-koppige selectie elke GW een andere bank/kapitein kan hebben — zie toggleTeamPlannerBench/
-  // setTeamPlannerCaptain hieronder. Wél opgeslagen (localStorage), in tegenstelling tot teamPlannerGw.
-  const [teamPlannerBenchByGw, setTeamPlannerBenchByGw] = useState(() => loadStoredTeamPlanner().benchByGw);
-  const [teamPlannerCaptainByGw, setTeamPlannerCaptainByGw] = useState(() => loadStoredTeamPlanner().captainByGw);
-  // Transfer-tijdlijn: { [slotIndex]: [{ id, gw, player }, ...] } — per slot een lijst van geplande
-  // transfers, elk vanaf zijn GW geldig tot een latere transfer op datzelfde slot. Zie
-  // resolveSlotPlayerAtGw (constants.js) voor hoe dit naar "team op GW X" herleid wordt, en
-  // planTeamPlannerTransfer/removeTeamPlannerTransfer hieronder voor het aanmaken/verwijderen.
-  const [teamPlannerTransfersBySlot, setTeamPlannerTransfersBySlot] = useState(() => loadStoredTeamPlanner().transfersBySlot);
-  // Boosters: { benchBoost, tripleCaptain, recharge }, elk null (nog niet gebruikt) of de GW (1-7)
-  // waarop 'm gebruikt is — zie toggleTeamPlannerBooster hieronder voor de vergrendel-/vervang-logica.
-  const [teamPlannerBoosters, setTeamPlannerBoosters] = useState(() => loadStoredTeamPlanner().boosters);
-  // Geselecteerde gameweek voor de veld-weergave — bewust NIET opgeslagen (localStorage), start
-  // altijd op CURRENT_GW bij het (her)laden van de pagina (schuift vanzelf mee met CURRENT_GW, zelfde
-  // patroon als gwHorizonStart/End in de FDR-tab). Boosters/transfers uit eerdere GW's blijven gewoon
-  // meetellen: resolveSlotPlayerAtGw/computeTeamPlannerTransferBudget herleiden de weergave altijd
-  // cumulatief vanaf GW1, ongeacht welke GW hier als startwaarde gekozen is.
-  const [teamPlannerGw, setTeamPlannerGw] = useState(CURRENT_GW);
-
   // Spelersdatabank (Google Sheet CSV) voor de zoek/autocomplete bij teaminvoer — en straks transfers
-  // — in Team Planner. Los van teamPlannerPlayers hierboven: dit is de externe, gedeelde spelerslijst
+  // — in Team Planner. Los van de selectie in de planner: dit is de externe, gedeelde spelerslijst
   // om UIT te kiezen, niet de 15-koppige selectie zelf. Niet in localStorage: elke sessie haalt de
   // meest actuele sheet-inhoud op (zie fetchPlayerDatabase hieronder).
   const [playerDatabase, setPlayerDatabase] = useState([]);
   const [playerDatabaseLoading, setPlayerDatabaseLoading] = useState(true);
   const [playerDatabaseError, setPlayerDatabaseError] = useState(null);
+
+  // --- Team Planner (fase C): alle state, opslag (v2) en meldingen zitten in useTeamPlanner.js. ---
+  const planner = useTeamPlanner({ playerDatabase, ratings, homeAdvantage, t });
 
   // Set-pieces-sheet, hier i.p.v. in SetPiecesTab: de speler-sheet toont de nemer-rol ook wanneer hij
   // vanuit een andere tab opent, en die data moet dan al binnen zijn (zie fetchSetPieces hieronder).
@@ -936,90 +827,6 @@ export default function FDRTool() {
     });
   };
 
-  // Som van alle ingevulde prijzen — lege/ongeldige velden tellen niet mee, zodat je tijdens het
-  // invullen nooit een NaN of onverwacht sprongetje in het budget ziet.
-  const teamPlannerTotalPrice = useMemo(() => {
-    return teamPlannerPlayers.reduce((sum, p) => {
-      const price = parseFloat(p.price);
-      return Number.isFinite(price) ? sum + price : sum;
-    }, 0);
-  }, [teamPlannerPlayers]);
-
-  // Telt hoeveel spelers per club gekozen zijn, voor de "max 3 per club"-waarschuwing in de tab.
-  const teamPlannerClubCounts = useMemo(() => {
-    const counts = {};
-    teamPlannerPlayers.forEach(p => {
-      if (p.teamCode) counts[p.teamCode] = (counts[p.teamCode] ?? 0) + 1;
-    });
-    return counts;
-  }, [teamPlannerPlayers]);
-
-  // Positie-tellingen van de BASISPLOEG (niet-bank) voor de op dit moment bekeken GW — dit voedt
-  // zowel de bank-teller ("Bank: x/4") als de formatie-validatie (3-4-3, 4-4-2, ...) in de tab. Een
-  // reduce over het volledige spelers-array, dus hier i.p.v. lokaal in TeamPlannerTab.jsx, net als
-  // teamPlannerClubCounts hierboven.
-  //
-  // Telt enkel slots waar effectief iemand in staat. Vroeger telde dit élk niet-gebankt slot, en omdat
-  // de 15 slots een vaste positie hebben (2 GK, 5 DEF, 5 MID, 3 FWD) toonde een gloednieuwe, volledig
-  // lege planner meteen "Formatie: 5-5-3" — een formatie die de gebruiker nooit gekozen heeft, bij een
-  // ploeg die nog geen enkele speler bevat. Nu groeit de telling mee met wat er ingevuld is.
-  const teamPlannerFormationCounts = useMemo(() => {
-    const bench = teamPlannerBenchByGw[teamPlannerGw] ?? [];
-    const counts = { GK: 0, DEF: 0, MID: 0, FWD: 0 };
-    teamPlannerPlayers.forEach((p, index) => {
-      if (!p.position || bench.includes(index)) return;
-      if (!p.name && !p.teamCode) return;
-      counts[p.position] += 1;
-    });
-    return counts;
-  }, [teamPlannerPlayers, teamPlannerBenchByGw, teamPlannerGw]);
-
-  // Het team ZOALS HET ERUIT ZIET op de bekeken GW: voor elk slot wordt via resolveSlotPlayerAtGw
-  // (constants.js) bepaald wie er op dat moment speelt — de oorspronkelijke speler, of de meest
-  // recente transfer op of vóór teamPlannerGw. Dit (en niet de statische teamPlannerPlayers) is wat de
-  // veld-weergave en de "OUT"-keuze in de transfer-UI tonen; de spelerslijst/budget-validatie bovenaan
-  // blijft bewust op de statische GW1-basisploeg werken (zie teamPlannerTotalPrice/ClubCounts hierboven
-  // — die zijn niet gewijzigd). Positie blijft altijd de vaste slot-positie (TEAM_PLANNER_SLOT_POSITIONS),
-  // ook als een transfer een speler met een andere echte positie inbracht (dat mag, met waarschuwing in
-  // de transfer-UI) — anders zou de veld-indeling/formatie-telling hierboven door de war raken.
-  const teamPlannerResolvedPlayers = useMemo(() => {
-    return teamPlannerPlayers.map((basePlayer, index) => {
-      const transfersForSlot = teamPlannerTransfersBySlot[index] ?? [];
-      const resolved = resolveSlotPlayerAtGw(basePlayer, transfersForSlot, teamPlannerGw);
-      return { ...resolved, position: basePlayer.position };
-    });
-  }, [teamPlannerPlayers, teamPlannerTransfersBySlot, teamPlannerGw]);
-
-  // Platte, gesorteerde lijst van ALLE geplande transfers (over alle slots en GW's heen), elk verrijkt
-  // met de uitgaande speler — voor de transfer-tijdlijn in TeamPlannerTab.jsx (die ze zelf per GW
-  // groepeert). Transfers per slot staan al gesorteerd op GW (zie planTeamPlannerTransfer), dus de
-  // "outPlayer" van transfer i is gewoon de inPlayer van transfer i-1 op datzelfde slot (of de
-  // oorspronkelijke basisspeler voor de allereerste transfer van dat slot) — geen aparte
-  // resolveSlotPlayerAtGw-aanroep per entry nodig.
-  const teamPlannerTransferHistory = useMemo(() => {
-    const entries = [];
-    Object.entries(teamPlannerTransfersBySlot).forEach(([slotIndexStr, transfers]) => {
-      const slotIndex = Number(slotIndexStr);
-      const basePlayer = teamPlannerPlayers[slotIndex];
-      if (!basePlayer) return; // defensief: een corrupte/verouderde slot-index in de opslag negeren
-      transfers.forEach((transfer, i) => {
-        const outPlayer = i === 0 ? basePlayer : transfers[i - 1].player;
-        entries.push({ id: transfer.id, gw: transfer.gw, slotIndex, outPlayer, inPlayer: transfer.player });
-      });
-    });
-    entries.sort((a, b) => a.gw - b.gw || a.slotIndex - b.slotIndex);
-    return entries;
-  }, [teamPlannerPlayers, teamPlannerTransfersBySlot]);
-
-  // Gratis-transfersaldo + puntenkost per GW — zie computeTeamPlannerTransferBudget (constants.js) voor
-  // de volledige regeltoelichting (opbouw met plafond, Recharge-uitzondering). Puur afgeleid van
-  // teamPlannerTransferHistory/teamPlannerBoosters hierboven, dus herberekent vanzelf zodra de
-  // gebruiker een transfer toevoegt/verwijdert (in eender welke GW) of een booster aan-/uitzet.
-  const teamPlannerTransferBudget = useMemo(
-    () => computeTeamPlannerTransferBudget(teamPlannerTransferHistory, teamPlannerBoosters),
-    [teamPlannerTransferHistory, teamPlannerBoosters],
-  );
-
   // De first-time-uitleg over Thuisvoordeel verdwijnt vanzelf na een paar seconden.
   useEffect(() => {
     if (!showHomeAdvantageIntro) return;
@@ -1036,20 +843,6 @@ export default function FDRTool() {
       // storage unavailable — silently ignore, watch list still works this session
     }
   }, [watchlist]);
-
-  // Team Planner slaat zichzelf ook automatisch op — zelfde patroon als de watch list hierboven.
-  // Spelers + per-GW bank/kapitein + transfer-tijdlijn worden samen als één blok opgeslagen (zie
-  // loadStoredTeamPlanner).
-  useEffect(() => {
-    try {
-      window.localStorage?.setItem(TEAM_PLANNER_STORAGE_KEY, JSON.stringify({
-        players: teamPlannerPlayers, benchByGw: teamPlannerBenchByGw, captainByGw: teamPlannerCaptainByGw,
-        transfersBySlot: teamPlannerTransfersBySlot, boosters: teamPlannerBoosters,
-      }));
-    } catch {
-      // storage unavailable — silently ignore, team planner still works this session
-    }
-  }, [teamPlannerPlayers, teamPlannerBenchByGw, teamPlannerCaptainByGw, teamPlannerTransfersBySlot, teamPlannerBoosters]);
 
   // Haalt de spelersdatabank op (spec B1). Losse useCallback (i.p.v. rechtstreeks in de useEffect
   // hieronder) zodat zowel de automatische fetch bij het laden als de "opnieuw proberen"-knop in
@@ -1268,7 +1061,7 @@ export default function FDRTool() {
     watchlist.some(p => p.name === name && p.teamCode === teamCode);
 
   // "Zit deze speler in mijn ploeg?" — voor het scope-filter op Bonuspunten en Kaarten (zie
-  // ScopeFilter.jsx). Bewust op CURRENT_GW herleid en niet op teamPlannerGw: die laatste is puur
+  // ScopeFilter.jsx). Bewust de ploeg van nu (planner.currentTeam) en niet de bekeken GW: die laatste is puur
   // weergave-state van de planner-tab, en het zou raar zijn als een filter op een ándere tab stil
   // verandert omdat je in de planner naar GW22 hebt gebladerd. Ook niet de statische GW1-ploeg: dan
   // zouden al je transfers genegeerd worden.
@@ -1280,12 +1073,9 @@ export default function FDRTool() {
   const myTeamPlayerKeys = useMemo(() => {
     const normaliseer = (name, teamCode) => `${(name ?? '').trim().toLowerCase()}|${(teamCode ?? '').toUpperCase()}`;
     const keys = new Set();
-    teamPlannerPlayers.forEach((basePlayer, index) => {
-      const resolved = resolveSlotPlayerAtGw(basePlayer, teamPlannerTransfersBySlot[index] ?? [], CURRENT_GW);
-      if (resolved?.name) keys.add(normaliseer(resolved.name, resolved.teamCode));
-    });
+    planner.currentTeam.forEach(p => { if (p?.name) keys.add(normaliseer(p.name, p.teamCode)); });
     return keys;
-  }, [teamPlannerPlayers, teamPlannerTransfersBySlot]);
+  }, [planner.currentTeam]);
 
   const isPlayerInMyTeam = (name, teamCode) =>
     myTeamPlayerKeys.has(`${(name ?? '').trim().toLowerCase()}|${(teamCode ?? '').toUpperCase()}`);
@@ -1353,258 +1143,6 @@ export default function FDRTool() {
   };
 
   useEffect(() => () => { if (undoTimerRef.current) clearTimeout(undoTimerRef.current); }, []);
-
-  // --- Team Planner-handlers: updaten van één speler/veld, bank/kapitein per GW, en GW-navigatie ---
-  const updateTeamPlannerPlayer = (index, field, value) => {
-    setTeamPlannerPlayers(prev => prev.map((p, i) => i === index ? { ...p, [field]: value } : p));
-  };
-
-  // Bank is per GW: togglet slot `index` in/uit de bank van de GEZIEN GW (teamPlannerGw). Toevoegen
-  // wordt genegeerd zodra die GW al TEAM_PLANNER_BENCH_SIZE (4) bankspelers heeft — de bank kan dus
-  // nooit groter dan 4 worden (wel tijdelijk kleiner, tot de gebruiker een andere speler bankt).
-  const toggleTeamPlannerBench = (index) => {
-    const currentBench = teamPlannerBenchByGw[teamPlannerGw] ?? [];
-    const wasBenched = currentBench.includes(index);
-    setTeamPlannerBenchByGw(prev => {
-      const current = prev[teamPlannerGw] ?? [];
-      if (wasBenched) {
-        return { ...prev, [teamPlannerGw]: current.filter(i => i !== index) };
-      }
-      if (current.length >= TEAM_PLANNER_BENCH_SIZE) return prev; // bank is al vol voor deze GW
-      return { ...prev, [teamPlannerGw]: [...current, index] };
-    });
-    // Een kapitein moet basisspeler zijn — als deze speler net gebankt wordt terwijl hij kapitein
-    // was voor deze GW, vervalt de band (geen vice-kapitein-concept in Fase 1).
-    if (!wasBenched && teamPlannerCaptainByGw[teamPlannerGw] === index) {
-      setTeamPlannerCaptainByGw(prev => {
-        const updated = { ...prev };
-        delete updated[teamPlannerGw];
-        return updated;
-      });
-    }
-  };
-
-  // Kapitein is per GW: `index` is de slot-index van de nieuwe kapitein, of null om de band voor deze
-  // GW te wissen (zie de kapitein-dropdown in TeamPlannerTab.jsx, die expliciet één keuze doorgeeft
-  // i.p.v. te togglen). De dropdown biedt enkel niet-gebankte spelers aan, dus een bankspeler kan
-  // hier sowieso niet als kapitein binnenkomen.
-  const setTeamPlannerCaptain = (index) => {
-    setTeamPlannerCaptainByGw(prev => {
-      const updated = { ...prev };
-      if (index === null) {
-        delete updated[teamPlannerGw];
-      } else {
-        updated[teamPlannerGw] = index;
-      }
-      return updated;
-    });
-  };
-
-  const handleTeamPlannerGwPrev = () => {
-    setTeamPlannerGw(gw => Math.max(1, gw - 1));
-  };
-
-  const handleTeamPlannerGwNext = () => {
-    setTeamPlannerGw(gw => Math.min(GW_COUNT, gw + 1));
-  };
-
-  // Plant een transfer op `slotIndex`, geldig vanaf `gw`: `inPlayer` ({name,teamCode,position,price})
-  // vervangt vanaf die GW wie er ook in dat slot zat, tot een latere transfer op hetzelfde slot. Als
-  // er al een transfer op precies diezelfde (slotIndex, gw) bestaat, wordt die vervangen i.p.v.
-  // gedupliceerd — zo werkt "een eerdere transfer aanpassen" gewoon door 'm opnieuw te plannen.
-  const planTeamPlannerTransfer = (slotIndex, gw, inPlayer) => {
-    setTeamPlannerTransfersBySlot(prev => {
-      const existing = prev[slotIndex] ?? [];
-      const withoutSameGw = existing.filter(t => t.gw !== gw);
-      const newTransfer = { id: createUniqueId(), gw, player: inPlayer };
-      return { ...prev, [slotIndex]: [...withoutSameGw, newTransfer].sort((a, b) => a.gw - b.gw) };
-    });
-  };
-
-  const removeTeamPlannerTransfer = (slotIndex, transferId) => {
-    setTeamPlannerTransfersBySlot(prev => {
-      const existing = prev[slotIndex] ?? [];
-      return { ...prev, [slotIndex]: existing.filter(t => t.id !== transferId) };
-    });
-  };
-
-  // Optimaliseert de bank voor de bekeken GW in twee fases: EERST spelers zonder match (leeg slot, of
-  // een uitgestelde wedstrijd — POSTPONED) naar de bank, en pas DAARNA, onder de spelers die wél
-  // spelen, de moeilijkste fixture. Behoudt een geldige formatie (VALID_FORMATIONS) en exact 1 keeper
-  // in de basisploeg. Werkt op teamPlannerResolvedPlayers (het team zoals het eruit ziet op déze GW,
-  // dus ná transfers) — niet op de statische teamPlannerPlayers. Schrijft alleen naar
-  // teamPlannerBenchByGw[teamPlannerGw], en wist de kapitein voor deze GW als die toevallig in de
-  // nieuwe bank terechtkomt (zelfde gedrag als toggleTeamPlannerBench hierboven).
-  const optimizeTeamPlannerLineup = () => {
-    const hasNoMatch = (player) => {
-      if (!player.teamCode) return true; // leeg slot = geen match
-      const fixture = FIXTURES[player.teamCode]?.[teamPlannerGw - 1];
-      if (!fixture) return true;
-      return POSTPONED.has(`${player.teamCode}-${teamPlannerGw}`);
-    };
-    const scoreForSlot = (player) => {
-      if (!player.teamCode) return 5; // geen team gekozen = worst-case, net als POSTPONED
-      const fixture = FIXTURES[player.teamCode]?.[teamPlannerGw - 1];
-      if (!fixture) return 5;
-      return getFixtureScores(player.teamCode, [fixture], ratings, homeAdvantage, teamPlannerGw)[0];
-    };
-    // Fase 1: geen-match weegt zwaarder dan fixture difficulty — een speler zonder match komt altijd
-    // ná spelers mét match, ongeacht hoe moeilijk hun fixture is. Fase 2 (score) is enkel de tie-
-    // breaker onder spelers die wél spelen.
-    const compareForBench = (a, b) => {
-      if (a.noMatch !== b.noMatch) return a.noMatch ? 1 : -1;
-      return a.score - b.score;
-    };
-
-    const indexed = teamPlannerResolvedPlayers.map((p, index) => (
-      { ...p, index, score: scoreForSlot(p), noMatch: hasNoMatch(p) }
-    ));
-
-    // 2 GK-slots liggen vast — hou de "beste" (eerst: heeft een match, dan: laagste score), bank de andere.
-    const gkSlots = indexed.filter(p => p.position === 'GK').sort((a, b) => compareForBench(a, b) || a.index - b.index);
-    const gkBenched = gkSlots.slice(1);
-
-    // Outfield: elke positie eerst gesorteerd volgens dezelfde twee fases, dan voor elke geldige
-    // formatie (VALID_FORMATIONS) de top-d/m/f nemen. Kies de combinatie met (1) zo min mogelijk
-    // "geen match"-spelers in de basis, en pas als tie-breaker (2) de laagste totaalscore.
-    const byPos = {
-      DEF: indexed.filter(p => p.position === 'DEF').sort(compareForBench),
-      MID: indexed.filter(p => p.position === 'MID').sort(compareForBench),
-      FWD: indexed.filter(p => p.position === 'FWD').sort(compareForBench),
-    };
-    let best = null;
-    VALID_FORMATIONS.forEach(([d, m, f]) => {
-      const starters = [...byPos.DEF.slice(0, d), ...byPos.MID.slice(0, m), ...byPos.FWD.slice(0, f)];
-      const noMatchCount = starters.filter(p => p.noMatch).length;
-      const total = starters.reduce((sum, p) => sum + p.score, 0);
-      if (!best || noMatchCount < best.noMatchCount || (noMatchCount === best.noMatchCount && total < best.total)) {
-        best = { noMatchCount, total, starters };
-      }
-    });
-    const starterIndexes = new Set(best.starters.map(p => p.index));
-    const outfieldBenched = [...byPos.DEF, ...byPos.MID, ...byPos.FWD].filter(p => !starterIndexes.has(p.index));
-
-    const newBench = [...gkBenched, ...outfieldBenched].map(p => p.index);
-    setTeamPlannerBenchByGw(prev => ({ ...prev, [teamPlannerGw]: newBench }));
-    if (newBench.includes(teamPlannerCaptainByGw[teamPlannerGw])) {
-      setTeamPlannerCaptainByGw(prev => {
-        const updated = { ...prev };
-        delete updated[teamPlannerGw];
-        return updated;
-      });
-    }
-  };
-
-  const handleOptimizeTeamPlannerLineup = () => {
-    optimizeTeamPlannerLineup();
-    setTeamPlannerOptimized(true);
-    setTimeout(() => setTeamPlannerOptimized(false), 2000);
-  };
-
-  // Boosters: exact 1x per booster-type te gebruiken over het hele seizoen, en max 1 zelfgekozen
-  // booster per GW. Eenmaal geactiveerd op GW X, is de booster VERGRENDELD op GW X — pas als hij op
-  // die exacte GW opnieuw aangeklikt wordt (annuleren) komt hij weer vrij. Op een andere GW aanklikken
-  // terwijl hij al elders actief is, doet niets (de UI toont 'm daar disabled, zie TeamPlannerTab.jsx).
-  //
-  // De bovengrens stond op GW7, uit de tijd dat het seizoen in dit bestand niet verder liep. Nu de
-  // volledige kalender erin zit, mag je een booster op elke speeldag plaatsen.
-  //
-  // Op een automatische Recharge-GW (AUTO_RECHARGE_GWS: GW8, GW20, GW27) loopt de Recharge sowieso al
-  // voor iedereen. Je eigen Recharge-booster daar verbruiken zou die dus weggooien, vandaar geblokkeerd
-  // — de twee andere boosters mogen er wél bovenop, dat is precies het voordeel van zo'n speeldag.
-  const toggleTeamPlannerBooster = (boosterKey, gw) => {
-    if (gw < 1 || gw > GW_COUNT) return;
-    if (boosterKey === 'recharge' && AUTO_RECHARGE_GWS.has(gw)) return;
-    setTeamPlannerBoosters(prev => {
-      if (prev[boosterKey] === gw) {
-        return { ...prev, [boosterKey]: null }; // annuleren, enkel mogelijk op de GW waar hij actief is
-      }
-      if (prev[boosterKey] != null) return prev; // al verbruikt op een andere GW — geblokkeerd
-      const updated = { ...prev, [boosterKey]: gw };
-      // Max 1 zelfgekozen booster per GW: een andere booster die toevallig al op déze GW actief stond,
-      // wordt vervangen (niet gestapeld) — user-bevestigd gedrag. De automatische Recharge telt hier
-      // niet in mee; die staat niet in deze state.
-      Object.keys(updated).forEach(key => {
-        if (key !== boosterKey && updated[key] === gw) updated[key] = null;
-      });
-      return updated;
-    });
-  };
-
-  // Wissen in de planner gebeurt meteen, met "Ongedaan maken" in een melding (8 s) in plaats van een
-  // bevestigingsvenster (spec A3): window.confirm toonde altijd Nederlands, ook op de Franse en Engelse
-  // site, en een melding met undo is sneller en even veilig. De melding bewaart een kopie van wat er
-  // stond, zodat ongedaan maken alles exact terugzet.
-  const [plannerNotice, setPlannerNotice] = useState(null);
-  const plannerNoticeTimerRef = useRef(null);
-  const showPlannerNotice = (notice) => {
-    setPlannerNotice(notice);
-    if (plannerNoticeTimerRef.current) clearTimeout(plannerNoticeTimerRef.current);
-    plannerNoticeTimerRef.current = setTimeout(() => setPlannerNotice(null), 8000);
-  };
-  useEffect(() => () => { if (plannerNoticeTimerRef.current) clearTimeout(plannerNoticeTimerRef.current); }, []);
-
-  // Wist de volledige 15-koppige selectie EN alle daaraan gekoppelde state (bank/kapitein per GW,
-  // transfer-tijdlijn, boosters) — anders zou die achterblijven en verwijzen naar nu-lege slots (bv.
-  // "GW3 kapitein = slot 5" terwijl slot 5 leeg is).
-  const handleClearTeamPlanner = () => {
-    showPlannerNotice({
-      kind: 'teamCleared',
-      snapshot: {
-        players: teamPlannerPlayers,
-        benchByGw: teamPlannerBenchByGw,
-        captainByGw: teamPlannerCaptainByGw,
-        transfersBySlot: teamPlannerTransfersBySlot,
-        boosters: teamPlannerBoosters,
-      },
-    });
-    setTeamPlannerPlayers(createEmptyTeamPlannerPlayers());
-    setTeamPlannerBenchByGw({});
-    setTeamPlannerCaptainByGw({});
-    setTeamPlannerTransfersBySlot({});
-    setTeamPlannerBoosters({ benchBoost: null, tripleCaptain: null, recharge: null });
-  };
-
-  // Wist enkel de transfer-tijdlijn (alle GW's) — voor de "Wis alle transfers"-knop naast de Transfers-
-  // sectiekop in TeamPlannerTab.jsx. Bank/kapitein/boosters blijven ongemoeid (in tegenstelling tot
-  // handleClearTeamPlanner hierboven, dat de volledige selectie wist); teamPlannerTransferBudget
-  // herberekent vanzelf naar de lege staat via zijn bestaande useMemo-afhankelijkheid op
-  // teamPlannerTransferHistory.
-  const handleClearTeamPlannerTransfers = () => {
-    showPlannerNotice({ kind: 'transfersCleared', snapshot: { transfersBySlot: teamPlannerTransfersBySlot } });
-    setTeamPlannerTransfersBySlot({});
-  };
-
-  const handleUndoPlannerNotice = () => {
-    const snapshot = plannerNotice?.snapshot;
-    if (!snapshot) return;
-    if (snapshot.players) setTeamPlannerPlayers(snapshot.players);
-    if (snapshot.benchByGw) setTeamPlannerBenchByGw(snapshot.benchByGw);
-    if (snapshot.captainByGw) setTeamPlannerCaptainByGw(snapshot.captainByGw);
-    if (snapshot.transfersBySlot) setTeamPlannerTransfersBySlot(snapshot.transfersBySlot);
-    if (snapshot.boosters) setTeamPlannerBoosters(snapshot.boosters);
-    setPlannerNotice(null);
-    if (plannerNoticeTimerRef.current) clearTimeout(plannerNoticeTimerRef.current);
-  };
-
-  // Herschikt de bank-volgorde voor de bekeken GW: wisselt de array-posities van de twee gegeven
-  // slots — bedoeld voor "klik 2 bankspelers om te wisselen" in TeamPlannerTab.jsx (handleSelectForSwap).
-  // Een gebankte keeper telt niet mee in deze volgorde en blijft altijd vooraan staan (zie de bench-
-  // weergave in TeamPlannerTab.jsx, die GK-slots altijd eerst toont, ongeacht hun positie in dit
-  // array) — de UI laat een keeper-slot dan ook nooit als swap-kandidaat selecteren, maar deze functie
-  // no-opt defensief als een van beide slots toch niet (meer) gebankt is (bv. een verouderde/dubbel
-  // verwerkte klik).
-  const swapTeamPlannerBenchPlayers = (slotA, slotB) => {
-    setTeamPlannerBenchByGw(prev => {
-      const current = prev[teamPlannerGw] ?? [];
-      const idxA = current.indexOf(slotA);
-      const idxB = current.indexOf(slotB);
-      if (idxA === -1 || idxB === -1) return prev;
-      const updated = [...current];
-      [updated[idxA], updated[idxB]] = [updated[idxB], updated[idxA]];
-      return { ...prev, [teamPlannerGw]: updated };
-    });
-  };
 
   return (
     <I18nContext.Provider value={i18nValue}>
@@ -1695,34 +1233,11 @@ export default function FDRTool() {
             homeAdvantage={homeAdvantage}
             openSections={openSections}
             toggleSection={toggleSection}
-            teamPlannerPlayers={teamPlannerPlayers}
-            updateTeamPlannerPlayer={updateTeamPlannerPlayer}
-            toggleTeamPlannerBench={toggleTeamPlannerBench}
-            teamPlannerBenchByGw={teamPlannerBenchByGw}
-            teamPlannerCaptainByGw={teamPlannerCaptainByGw}
-            setTeamPlannerCaptain={setTeamPlannerCaptain}
-            teamPlannerGw={teamPlannerGw}
-            handleTeamPlannerGwPrev={handleTeamPlannerGwPrev}
-            handleTeamPlannerGwNext={handleTeamPlannerGwNext}
-            teamPlannerTotalPrice={teamPlannerTotalPrice}
-            teamPlannerClubCounts={teamPlannerClubCounts}
-            teamPlannerFormationCounts={teamPlannerFormationCounts}
+            planner={planner}
             playerDatabase={playerDatabase}
             playerDatabaseLoading={playerDatabaseLoading}
             playerDatabaseError={playerDatabaseError}
             fetchPlayerDatabase={fetchPlayerDatabase}
-            teamPlannerResolvedPlayers={teamPlannerResolvedPlayers}
-            teamPlannerTransferHistory={teamPlannerTransferHistory}
-            teamPlannerTransferBudget={teamPlannerTransferBudget}
-            planTeamPlannerTransfer={planTeamPlannerTransfer}
-            removeTeamPlannerTransfer={removeTeamPlannerTransfer}
-            handleOptimizeTeamPlannerLineup={handleOptimizeTeamPlannerLineup}
-            teamPlannerOptimized={teamPlannerOptimized}
-            teamPlannerBoosters={teamPlannerBoosters}
-            toggleTeamPlannerBooster={toggleTeamPlannerBooster}
-            handleClearTeamPlanner={handleClearTeamPlanner}
-            handleClearTeamPlannerTransfers={handleClearTeamPlannerTransfers}
-            swapTeamPlannerBenchPlayers={swapTeamPlannerBenchPlayers}
             isPlayerWatched={isPlayerWatched}
             toggleWatchlistPlayer={toggleWatchlistPlayer}
           />
@@ -1873,18 +1388,20 @@ export default function FDRTool() {
       {/* Melding na een watch-list-wijziging (spec §5.10: omgekeerde toast, boven de onderbalk op gsm).
           Verdwijnt vanzelf na 8 seconden. "Ongedaan maken" hoort enkel bij een verwijdering: een
           toevoeging draai je terug door de ster nog eens aan te tikken. */}
-      {plannerNotice && (
+      {planner.notice && (
         <div role="status" aria-live="polite" className="ui-toast">
-          <p className="ui-toast__text">{t(`teamPlanner.notice.${plannerNotice.kind}`)}</p>
-          <button type="button" onClick={handleUndoPlannerNotice} className="ui-toast__action">
-            {t('undo.action')}
-          </button>
-          <button type="button" onClick={() => setPlannerNotice(null)} aria-label={t('undo.closeAria')} className="ui-toast__close">
+          <p className="ui-toast__text">{t(`teamPlanner.notice.${planner.notice.key}`, planner.notice.vars)}</p>
+          {planner.notice.snapshot && (
+            <button type="button" onClick={planner.undoNotice} className="ui-toast__action">
+              {t('undo.action')}
+            </button>
+          )}
+          <button type="button" onClick={planner.dismissNotice} aria-label={t('undo.closeAria')} className="ui-toast__close">
             <X aria-hidden="true" strokeWidth={2} />
           </button>
         </div>
       )}
-      {watchlistNotice && !plannerNotice && (
+      {watchlistNotice && !planner.notice && (
         <div role="status" aria-live="polite" className="ui-toast">
           <p className="ui-toast__text">
             <strong>{watchlistNotice.player.name}</strong>{' '}

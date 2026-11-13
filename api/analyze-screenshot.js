@@ -57,10 +57,25 @@ const PLAYERS_SCHEMA = {
         additionalProperties: false,
       },
     },
+    // Budget en gratis transfers staan vaak op dezelfde screenshot (spec C8). null = niet zichtbaar.
+    // Verplicht in het schema maar nullable: zo antwoordt het model altijd expliciet.
+    bank: { anyOf: [{ type: 'number' }, { type: 'null' }] },
+    freeTransfers: { anyOf: [{ type: 'integer' }, { type: 'null' }] },
   },
-  required: ['players'],
+  required: ['players', 'bank', 'freeTransfers'],
   additionalProperties: false,
 };
+
+// Budget (€M, 0–100, op 0,1 afgerond) en gratis transfers (0–3, het plafond van het spel) uit het
+// antwoord van het model. Alles wat daar niet in past, wordt null: de bezoeker vult het dan zelf in.
+export function readSquadExtras(parsed) {
+  const bank = Number(parsed?.bank);
+  const free = Number(parsed?.freeTransfers);
+  return {
+    bank: parsed?.bank !== null && Number.isFinite(bank) && bank >= 0 && bank <= 100 ? Math.round(bank * 10) / 10 : null,
+    freeTransfers: parsed?.freeTransfers !== null && Number.isInteger(free) && free >= 0 ? Math.min(3, free) : null,
+  };
+}
 
 const PROMPT_TEXT = `Dit is een screenshot van de "Transfers"-pagina van een Fantasy Premier League-achtige app voor de Belgische Jupiler Pro League. Spelers staan in rijen gegroepeerd per positie (doelmannen, verdedigers, middenvelders, aanvallers — mogelijk met een aparte bankrij onderaan). Elke speler heeft een foto, een apart, egaal gekleurd tekstlabel met de achternaam eronder (bv. "ROEF"), en een prijs (bv. "€7M"). Eén speler kan een "C"-badge (kapitein) hebben, één een "V"-badge (vice-kapitein).
 
@@ -71,6 +86,11 @@ Herken ELKE speler die zichtbaar is. Geef voor elk:
 - position: je beste inschatting van de voetbalpositie (GK/DEF/MID/FWD) op basis van visuele context zoals rij-groepering en shirtstijl — niet enkel de rij-index, want de indeling kan per screenshot-bron verschillen.
 - rowLabel: een vrije, korte beschrijving van de rij/sectie waarin je deze speler visueel waarnam (bv. "GK", "Bank", of gewoon de rij-positie van boven naar onder).
 - isCaptain / isViceCaptain: of deze speler de C- resp. V-badge draagt.
+
+Lees daarnaast, als ze zichtbaar zijn:
+- bank: het resterende budget in miljoen euro (bv. "€2.5M" of "Budget 2,5" → 2.5). Niet zichtbaar = null.
+- freeTransfers: het aantal gratis transfers (bv. "1 Free Transfer" of "2 gratis transfers" → 1 of 2). Niet zichtbaar = null.
+Verzin deze twee getallen nooit: twijfel je, geef dan null.
 
 Als een naam onduidelijk, afgesneden of onleesbaar is, geef toch je beste gok — de gebruiker corrigeert dit zelf nadien. Sla geen enkele zichtbare speler over.`;
 
@@ -164,5 +184,5 @@ export default async function handler(req, res) {
       ? { code: 'partial', count: players.length }
       : null;
 
-  return res.status(200).json({ players, warning });
+  return res.status(200).json({ players, warning, ...readSquadExtras(parsed) });
 }
