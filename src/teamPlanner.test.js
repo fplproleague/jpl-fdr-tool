@@ -6,7 +6,8 @@ import {
 import {
   TEAM_PLANNER_V1_KEY, TEAM_PLANNER_V2_KEY, migrateTeamPlannerV1, loadTeamPlanner, sanitizeV2,
   buildTransferHistory, computeBankByGw, isValidBench, canSwap, swapInBench, bestLineup, lineupForGw,
-  createEmptyPlanner, teamAtGw,
+  createEmptyPlanner, teamAtGw, applyTransfer, removeTransferCascade, setRoleAt, setCalibrationAt,
+  clearCalibrationAt, withStartLineup, suggestCaptains, isPlannerComplete,
 } from './teamPlanner';
 import { basisScore, fixtureFactorFor, startFactorFor } from './lineupScore';
 
@@ -242,5 +243,98 @@ describe('opstellingsscore', () => {
     const f = fixtureFactorFor('CLU', 12, ratings, {});
     expect([0, 1.2, 2.4]).toContain(Math.round(f * 10) / 10);
     expect(fixtureFactorFor('', 12, ratings, {})).toBe(0);
+  });
+});
+
+// Het planner-state zoals de site het bewaart, met het testteam als startteam.
+const plannerWith = (overrides = {}) => ({ ...createEmptyPlanner(13), players: team(), ...overrides });
+const budgetOf = (p) => {
+  const history = buildTransferHistory(p.players, p.transfersBySlot);
+  return {
+    free: computeTeamPlannerTransferBudget(history, p.boosters, { startGw: p.startGw, startFreeTransfers: p.startFreeTransfers, checkpoints: p.checkpoints }),
+    bank: computeBankByGw(history, { startGw: p.startGw, startBank: p.startBank, players: p.players, checkpoints: p.checkpoints }),
+  };
+};
+
+describe('wijzigingen in de planner', () => {
+  it('"Klaar als" uit de spec: €1.5M en 1 vrije transfer, dan €6.0 → €7.0 in GW13', () => {
+    let p = setCalibrationAt(plannerWith({ startGw: 13 }), 13, { bank: 1.5, freeTransfers: 1 });
+    // Slot 4 (Ordonez) kost 6.0 in het testteam.
+    p = applyTransfer(p, 4, 13, { name: 'Patris', teamCode: 'USG', position: 'DEF', price: 7 }).planner;
+    let b = budgetOf(p);
+    expect(b.bank[13].end).toBe(0.5);
+    expect(b.free[13].freeAvailable - b.free[13].used).toBe(0);
+    expect(b.free[13].pointsCost).toBe(0);
+    // Tweede transfer in GW13: −4. Slot 8 (Onyedika) kost 6.0, de nieuwe speler ook.
+    p = applyTransfer(p, 8, 13, { name: 'Ait El Hadj', teamCode: 'AND', position: 'MID', price: 6 }).planner;
+    b = budgetOf(p);
+    expect(b.free[13].pointsCost).toBe(4);
+    expect(b.free[14].freeAvailable).toBe(1);
+  });
+
+  it('een ijkpunt verandert enkel die speeldag en later', () => {
+    const base = plannerWith({ startGw: 1, transfersBySlot: { 2: [tr('a', 5, 'X1', 7)], 3: [tr('b', 14, 'X2', 8)] } });
+    const before = budgetOf(base);
+    const after = budgetOf(setCalibrationAt(base, 12, { bank: 0.5, freeTransfers: 1 }));
+    for (let gw = 1; gw < 12; gw++) expect(after.bank[gw]).toEqual(before.bank[gw]);
+    for (let gw = 2; gw < 12; gw++) expect(after.free[gw]).toEqual(before.free[gw]);
+    expect(after.bank[12].start).toBe(0.5);
+    expect(after.free[12].freeAvailable).toBe(1);
+    // Wissen zet alles terug.
+    expect(budgetOf(clearCalibrationAt(setCalibrationAt(base, 12, { bank: 0.5 }), 12))).toEqual(before);
+  });
+
+  it('transfer: dezelfde speeldag vervangt, de vorige speler terugkiezen draait de transfer terug', () => {
+    let { planner: p, kind, out } = applyTransfer(plannerWith(), 2, 14, { name: 'A', teamCode: 'USG', price: 6 });
+    expect(kind).toBe('done');
+    expect(out.name).toBe('Seys');
+    p = applyTransfer(p, 2, 14, { name: 'B', teamCode: 'USG', price: 6 }).planner;
+    expect(p.transfersBySlot[2]).toHaveLength(1);
+    expect(p.transfersBySlot[2][0].player.name).toBe('B');
+    const back = applyTransfer(p, 2, 14, { name: 'Seys', teamCode: 'CLU', price: 6 });
+    expect(back.kind).toBe('reverted');
+    expect(back.planner.transfersBySlot[2]).toBeUndefined();
+  });
+
+  it('een transfer verwijderen, verwijdert ook de latere op hetzelfde slot', () => {
+    const p = plannerWith({ transfersBySlot: { 2: [tr('a', 14, 'A', 6), tr('b', 16, 'B', 6)], 3: [tr('c', 15, 'C', 6)] } });
+    const result = removeTransferCascade(p, 2, 'a');
+    expect(result.removed).toBe(2);
+    expect(result.planner.transfersBySlot[2]).toBeUndefined();
+    expect(result.planner.transfersBySlot[3]).toHaveLength(1);
+    expect(removeTransferCascade(p, 2, 'b').removed).toBe(1);
+  });
+
+  it('kapitein en vice zijn nooit dezelfde speler en nemen over', () => {
+    let p = setRoleAt(plannerWith(), 13, 'captain', 7);
+    p = setRoleAt(p, 13, 'vice', 9);
+    expect(resolveForGw(p.captainByGw, 20, 13)).toBe(7);
+    p = setRoleAt(p, 15, 'captain', 9); // de vice wordt kapitein: de vice-plek wordt leeg
+    expect(resolveForGw(p.captainByGw, 15, 13)).toBe(9);
+    expect(resolveForGw(p.viceByGw, 15, 13)).toBeNull();
+    expect(resolveForGw(p.viceByGw, 14, 13)).toBe(9);
+  });
+
+  it('een team dat net compleet wordt, krijgt meteen een opstelling met kapitein en vice', () => {
+    const full = plannerWith();
+    const prev = { ...full, players: full.players.map((pl, i) => (i === 14 ? { ...pl, name: '', teamCode: '' } : pl)) };
+    expect(isPlannerComplete(prev.players)).toBe(false);
+    const score = () => (slot) => (slot === 9 ? 10 : slot === 7 ? 8 : 1);
+    const next = withStartLineup(prev, full, score);
+    expect(isValidBench(next.benchByGw[13], next.players)).toBe(true);
+    expect(next.captainByGw[13]).toBe(9);
+    expect(next.viceByGw[13]).toBe(7);
+    // Een eigen keuze blijft staan, en een team dat al compleet was, verandert niet.
+    const own = withStartLineup(prev, { ...full, captainByGw: { 13: 3 } }, score);
+    expect(own.captainByGw[13]).toBe(3);
+    expect(withStartLineup(full, full, score)).toBe(full);
+  });
+
+  it('suggestCaptains kiest de twee beste basisspelers', () => {
+    expect(suggestCaptains([1, 6, 11, 14], (s) => (s === 11 ? 9 : s === 5 ? 5 : 1))).toEqual({ captain: 5, vice: 2 });
+  });
+
+  it('suggestCaptains stelt geen keeper voor zolang er een veldspeler is', () => {
+    expect(suggestCaptains([1, 6, 11, 14], (s) => (s === 0 ? 20 : s === 12 ? 8 : s === 3 ? 6 : 1))).toEqual({ captain: 12, vice: 3 });
   });
 });

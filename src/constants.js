@@ -712,6 +712,17 @@ export function computeTeamPlannerTransferBudget(transferHistory, boosters, opti
   return budgetByGw;
 }
 
+// Bank, kapitein en vice per GW nemen over (FUNCTIONALITEIT_SPEC C2): een GW zonder eigen keuze krijgt
+// die van de dichtstbijzijnde vorige GW, startGw inbegrepen. `byGw` = { [gw]: waarde }; een waarde null
+// telt als keuze ("bewust leeg vanaf hier"). undefined = nergens een keuze.
+export function resolveForGw(byGw, gw, startGw = 1) {
+  if (!byGw) return undefined;
+  for (let g = gw; g >= startGw; g--) {
+    if (Object.prototype.hasOwnProperty.call(byGw, g)) return byGw[g];
+  }
+  return undefined;
+}
+
 // --- Team Planner: transfers zijn tijdgebonden ---
 // Een transfer op een slot geldt vanaf zijn geplande GW en blijft van kracht voor alle latere GW's,
 // tot een nieuwe transfer op datzelfde slot het opnieuw wijzigt. Het team is dus geen vaste lijst
@@ -724,17 +735,6 @@ export function computeTeamPlannerTransferBudget(transferHistory, boosters, opti
 // (player = de speler die vanaf die GW instroomt). Retourneert wie het slot bezet op GW `atGw`: de
 // meest recente transfer met transfer.gw <= atGw, of `basePlayer` (de oorspronkelijke, in GW1
 // ingevulde speler) als er nog geen enkele transfer op of vóór atGw gepland is.
-// Bank, kapitein en vice per GW nemen over (FUNCTIONALITEIT_SPEC C2): een GW zonder eigen keuze krijgt
-// die van de dichtstbijzijnde vorige GW, startGw inbegrepen. `byGw` = { [gw]: waarde }; een waarde null
-// telt als keuze ("bewust leeg vanaf hier"). undefined = nergens een keuze.
-export function resolveForGw(byGw, gw, startGw = 1) {
-  if (!byGw) return undefined;
-  for (let g = gw; g >= startGw; g--) {
-    if (Object.prototype.hasOwnProperty.call(byGw, g)) return byGw[g];
-  }
-  return undefined;
-}
-
 export function resolveSlotPlayerAtGw(basePlayer, transfersForSlot, atGw) {
   let current = basePlayer;
   let currentGw = -Infinity; // basePlayer geldt "vanaf het prille begin", dus altijd eerst overschreven

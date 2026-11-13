@@ -1,31 +1,28 @@
-// Inhoud van de Team Planner-tab (spec §7.3): het veld eerst, de lijst tweede. Een 15-koppige
-// selectie met live budget-/clubvalidatie, een veld per GW met fixtures/bank/kapitein, en een
-// transfer-laag erbovenop (spelers vervangen vanaf een gekozen GW, tijdgebonden — zie TransferPanel en
-// resolvedIndexedPlayers hieronder).
+// Inhoud van de Team Planner-tab (spec §7.3, FUNCTIONALITEIT_SPEC fase C): het veld eerst, de lijst
+// tweede. Alle state en regels zitten in useTeamPlanner.js (via de prop `planner`); hier staat enkel
+// voorbijgaande UI-state: de weergave op gsm, het open "⋯"-menu, de open spelerskiezer, de
+// wisselmodus, de modus "Startteam bewerken" en het open venster voor budget en gratis transfers.
 //
-// Ontvangt alle domein-state en handlers als props vanuit FDRTool.jsx; die blijven ongewijzigd. De tab
-// wordt bij elk tabwissel opnieuw gemount, dus lokale state reset dan — enkel voorbijgaande UI-state
-// staat hier: de transfer-draft (TransferPanel), de Recharge-draft, de herschik-modus van de bank, de
-// gekozen weergave op gsm (Veld/Lijst/Transfers), het open "⋯"-menu en de open spelerskiezer.
+// Twee toestanden:
+// - Starttoestand (team nog niet compleet, of "Startteam bewerken"): je vult het startteam in. Geen
+//   transfers, boosters of speeldagpijlen (C8).
+// - Planner: het team van de bekeken speeldag. Tik op een speler voor Wissel, Transfer, Kapitein,
+//   Vice-kapitein of de spelerskaart. Elke wijziging neemt over naar de volgende speeldagen (C2).
 //
-// Opbouw: desktop (≥1100px) twee kolommen (60/40): links GW-kiezer, boosters, transfer plannen, het
-// veld en de bank; rechts de selectielijst en de transfers. Gsm: een sticky statusregel en een
-// Segmented Veld | Lijst | Transfers.
+// Opbouw: desktop (≥1100px) twee kolommen (60/40): links speeldag, boosters, veld en bank; rechts de
+// selectielijst en de transfers. Gsm: een sticky statusregel en Veld | Lijst | Transfers.
 
-import { useState, useRef, useEffect, useCallback } from 'react';
-import {
-  ChevronLeft, ChevronRight, Loader2, ArrowLeftRight, X, Wand2, Trash2, ArrowUpDown, MoreHorizontal,
-} from 'lucide-react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { ChevronLeft, ChevronRight, Loader2, X, Wand2, Trash2, MoreHorizontal, Pencil } from 'lucide-react';
 import {
   TEAMS, FIXTURES, GW_COUNT, GW_DEADLINES, CURRENT_GW,
-  TEAM_PLANNER_BUDGET, TEAM_PLANNER_MAX_PER_CLUB, TEAM_PLANNER_BENCH_SIZE, TEAM_PLANNER_SQUAD_SIZE,
-  VALID_FORMATIONS, TEAM_PLANNER_SLOT_POSITIONS,
-  isRechargeActiveForGw as isRechargeActiveForGwRule, AUTO_RECHARGE_GWS,
+  TEAM_PLANNER_BUDGET, TEAM_PLANNER_MAX_PER_CLUB, TEAM_PLANNER_SQUAD_SIZE, TEAM_PLANNER_SLOT_POSITIONS,
+  TEAM_PLANNER_FREE_TRANSFER_CAP, isRechargeActiveForGw, AUTO_RECHARGE_GWS,
 } from '../constants';
 import { MiniFixtureBadge } from '../components/MiniFixtureBadge';
 import { TooltipTrigger } from '../components/Tooltip';
 import { SectionHeader } from '../components/SectionHeader';
-import { PlayerSearchInput } from '../components/PlayerSearchInput';
+import { UpcomingFixtures } from '../components/SpelersParts';
 import { TeamScreenshotUpload } from './TeamScreenshotUpload';
 import PageHeader from '../ui/PageHeader';
 import Button from '../ui/Button';
@@ -36,16 +33,18 @@ import DataTable from '../ui/DataTable';
 import PlayerCell from '../ui/PlayerCell';
 import ActionMenu from '../ui/ActionMenu';
 import PlayerPicker from '../ui/PlayerPicker';
-import ErrorBanner from '../ui/ErrorBanner';
+import ErrorBanner, { Notice } from '../ui/ErrorBanner';
 import EmptyState from '../ui/EmptyState';
 import usePlayerIndex from '../data/usePlayerIndex';
 import { findInDatabase } from '../data/playerDatabase';
 import { AvailabilityMini } from '../ui/AvailabilityMark';
 import { useAvailabilityLookup } from '../availabilityContext';
+import { isEmptySlot } from '../teamPlanner';
 import './TeamPlannerTab.css';
 
 // Veldvolgorde: GK bovenaan, FWD onderaan, zoals de echte FPL-app.
 const PITCH_ROW_ORDER = ['GK', 'DEF', 'MID', 'FWD'];
+const FORM_GWS = 5; // zelfde venster als de spelerskiezer en de Spelers-tab
 
 function hasPrice(price) {
   return price != null && price !== '' && Number.isFinite(Number(price));
@@ -55,29 +54,22 @@ function formatPrice(price) {
   return hasPrice(price) ? `€${Number(price).toFixed(1)}` : '—';
 }
 
+const formatMoney = (value) => `${value < 0 ? '−' : ''}€${Math.abs(value).toFixed(1)}M`;
+
 function teamNameFor(teamCode) {
   return TEAMS.find(t => t.code === teamCode)?.name ?? teamCode;
 }
 
-// Twee spelers zijn "dezelfde speler" bij gelijke naam + club — dat combo is uniek per rij in de
-// spelersdatabank-CSV. Gebruikt om te verhinderen dat eenzelfde speler twee keer in de 15-koppige
-// selectie terechtkomt (zowel bij de initiële teaminvoer als bij een transfer).
-function isSamePlayer(a, b) {
-  return a.name === b.name && a.teamCode === b.teamCode;
+function sumLast(arr, gw, n) {
+  if (!Array.isArray(arr)) return null;
+  let total = 0;
+  for (let i = Math.max(0, gw - n); i < gw; i++) total += arr[i] ?? 0;
+  return total;
 }
-
-// Filtert databank-kandidaten die al ergens anders in `usedPlayers` zitten weg — enkel ingevulde
-// spelers (met een naam) tellen als "in gebruik", lege slots blokkeren niets.
-function excludeUsedPlayers(candidates, usedPlayers) {
-  const used = usedPlayers.filter(p => p.name);
-  return candidates.filter(candidate => !used.some(u => isSamePlayer(u, candidate)));
-}
-
-const isEmptySlot = (player) => !player?.name && !player?.teamCode;
 
 // Booster als secondary-knop (spec §7.3). Actief in deze GW = omgekeerd (aria-pressed). Al gebruikt in
-// een andere GW = uitgeschakeld (--text-4) met "gebruikt in GW9". 'automatic' = de gratis Recharge op
-// AUTO_RECHARGE_GWS: opgelicht maar niet klikbaar. De logica is dezelfde als vroeger (boosterState).
+// een andere GW = uitgeschakeld met "gebruikt in GW9". 'automatic' = de gratis Recharge op
+// AUTO_RECHARGE_GWS: opgelicht maar niet klikbaar.
 function BoosterButton({ t, label, description, state, usedGw, gw, onClick }) {
   const isAutomatic = state === 'automatic';
   const isActive = state === 'active' || isAutomatic;
@@ -102,14 +94,13 @@ function BoosterButton({ t, label, description, state, usedGw, gw, onClick }) {
   );
 }
 
-// Eén slot op het veld of de bank (spec §5.13): shirt, naamlabel, MiniFixture voor de bekeken GW. Een
-// leeg slot is een gestippeld kader met het positielabel. Tik = het slot-menu (of de spelerskiezer bij
-// een leeg slot, of selecteren om te wisselen in de herschik-modus van de bank).
 // Een speler die niet (meer) in de spelersdatabank staat, krijgt een klein label in plaats van te
 // verdwijnen (spec B1). Zelfde vorm als een beschikbaarheidsstatus, zodat AvailabilityMini hem toont.
 const NOT_FOUND_STATUS = { kind: 'notFound', tone: 'outline', labelKey: 'teamPlanner.notFound', titleKey: 'teamPlanner.notFoundTitle', vars: {} };
 
-function PitchSlot({ player, label, gw, ratings, homeAdvantage, captainGlyph, status = null, onClick, ariaLabel, className = '', disabled, title }) {
+// Eén slot op het veld of de bank (spec §5.13): shirt, naamlabel, MiniFixture voor de bekeken GW. Een
+// leeg slot is een gestippeld kader met het positielabel.
+function PitchSlot({ player, label, gw, ratings, homeAdvantage, roleGlyph = null, roleTone = 'accent', status = null, onClick, ariaLabel, className = '', disabled }) {
   if (isEmptySlot(player)) {
     return (
       <button type="button" className={`tp-slot is-empty ${className}`} onClick={onClick} aria-label={ariaLabel} disabled={disabled}>
@@ -119,12 +110,12 @@ function PitchSlot({ player, label, gw, ratings, homeAdvantage, captainGlyph, st
   }
   const fixture = player.teamCode ? FIXTURES[player.teamCode]?.[gw - 1] : null;
   return (
-    <button type="button" className={`tp-slot ${className}`} onClick={onClick} aria-label={ariaLabel} disabled={disabled} title={title}>
+    <button type="button" className={`tp-slot ${className}`} onClick={onClick} aria-label={ariaLabel} disabled={disabled}>
       <span className="tp-slot__shirt">
         {player.teamCode && (
           <img src={`/club-shirts/${player.teamCode}.webp`} alt="" width="40" height="40" loading="lazy" decoding="async" onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }} />
         )}
-        {captainGlyph && <Badge tone="accent" className="tp-slot__cap">{captainGlyph}</Badge>}
+        {roleGlyph && <Badge tone={roleTone} className="tp-slot__cap">{roleGlyph}</Badge>}
         <AvailabilityMini status={status} className="tp-slot__avail" />
       </span>
       <span className="tp-slot__name">{label || player.name || '—'}</span>
@@ -135,360 +126,102 @@ function PitchSlot({ player, label, gw, ratings, homeAdvantage, captainGlyph, st
   );
 }
 
-// Transfer plannen voor de bekeken GW `gw`: OUT komt uit resolvedIndexedPlayers (het HUIDIGE team op
-// dit punt in de tijd, dus al rekening houdend met eerder geplande transfers — niet per se het
-// oorspronkelijke GW1-team), IN komt uit de spelersdatabank via PlayerSearchInput (zonder positie-
-// filter: een andere positie mag, met waarschuwing). Alle validaties hieronder zijn waarschuwingen —
-// "Bevestig transfer" blijft altijd klikbaar. De OUT/IN-keuze zelf is lokale draft-state: pas bij
-// "Bevestig transfer" wordt het via onConfirm naar FDRTool.jsx doorgegeven en permanent (localStorage).
-function TransferPanel({ t, gw, resolvedIndexedPlayers, playerDatabase, playerDatabaseLoading, playerDatabaseError, onConfirm, externalOutIndex, onExternalOutIndexConsumed, onOpenChange, panelRef }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [outIndex, setOutIndex] = useState('');
-  const [inPlayer, setInPlayer] = useState(null);
+// "Klopt niet? Pas aan" (C1): budget en gratis transfers aan het begin van een speeldag. Enkel wat de
+// bezoeker wijzigt (of al eerder zelf invulde), wordt bewaard; de rest blijft berekend.
+function CalibrationPanel({ t, gw, values, ownFields, onSave, onReset, onCancel }) {
+  const [bank, setBank] = useState(values.bank != null ? values.bank.toFixed(1) : '');
+  const [free, setFree] = useState(values.freeTransfers != null ? String(values.freeTransfers) : '1');
+  const bankNumber = Number(String(bank).replace(',', '.'));
+  const bankValid = bank !== '' && Number.isFinite(bankNumber) && bankNumber >= 0 && bankNumber <= TEAM_PLANNER_BUDGET;
 
-  // Enkel gevulde slots kunnen "uit" — een leeg slot heeft niets om te vervangen.
-  const outOptions = resolvedIndexedPlayers.filter(p => p.name || p.teamCode);
-  const outPlayer = outIndex !== '' ? resolvedIndexedPlayers[Number(outIndex)] : null;
-
-  const resetDraft = () => { setOutIndex(''); setInPlayer(null); };
-  const handleToggle = () => { setIsOpen(o => !o); resetDraft(); };
-
-  useEffect(() => {
-    onOpenChange?.(isOpen);
-  }, [isOpen, onOpenChange]);
-
-  // "Transfer: deze speler eruit" in het slot-menu opent dit paneel meteen met die speler als OUT —
-  // externalOutIndex is enkel een "signaal", vandaar dat de ouder 'm meteen weer op null zet.
-  useEffect(() => {
-    if (externalOutIndex === null || externalOutIndex === undefined) return;
-    setOutIndex(String(externalOutIndex));
-    setInPlayer(null);
-    setIsOpen(true);
-    onExternalOutIndexConsumed?.();
-  }, [externalOutIndex, onExternalOutIndexConsumed]);
-
-  const handleConfirm = () => {
-    if (!outPlayer || !inPlayer) return;
-    onConfirm(outPlayer.index, gw, {
-      name: inPlayer.name, teamCode: inPlayer.teamCode, position: inPlayer.position, price: inPlayer.price,
-    });
-    resetDraft();
-    setIsOpen(false);
+  const handleSave = (e) => {
+    e.preventDefault();
+    if (!bankValid) return;
+    const next = {};
+    const roundedBank = Math.round(bankNumber * 10) / 10;
+    if (ownFields.bank || roundedBank !== values.bank) next.bank = roundedBank;
+    if (values.hasFreeTransfers && (ownFields.freeTransfers || Number(free) !== values.freeTransfers)) next.freeTransfers = Number(free);
+    onSave(next);
   };
 
-  // Budget/club-impact van de (nog niet bevestigde) transfer, berekend op het HUIDIGE team op deze GW.
-  const currentTotal = resolvedIndexedPlayers.reduce((sum, p) => {
-    const price = parseFloat(p.price);
-    return Number.isFinite(price) ? sum + price : sum;
-  }, 0);
-  const newTotal = outPlayer && inPlayer
-    ? currentTotal - (parseFloat(outPlayer.price) || 0) + (parseFloat(inPlayer.price) || 0)
-    : currentTotal;
-  const isOverBudgetAfter = outPlayer && inPlayer && newTotal > TEAM_PLANNER_BUDGET;
-
-  let clubCountAfter = null;
-  if (outPlayer && inPlayer && inPlayer.teamCode) {
-    const currentInClub = resolvedIndexedPlayers.filter(p => p.teamCode === inPlayer.teamCode).length;
-    clubCountAfter = outPlayer.teamCode === inPlayer.teamCode ? currentInClub : currentInClub + 1;
-  }
-  const isClubOverCapAfter = clubCountAfter !== null && clubCountAfter > TEAM_PLANNER_MAX_PER_CLUB;
-  const isPositionMismatch = outPlayer && inPlayer && outPlayer.position !== inPlayer.position;
-
   return (
-    <div className="tp-transfer" ref={panelRef}>
-      <Button variant="secondary" icon={ArrowLeftRight} aria-pressed={isOpen} aria-expanded={isOpen} onClick={handleToggle}>
-        {isOpen ? t('teamPlanner.cancelTransfer') : t('teamPlanner.planTransfer', { gw })}
-      </Button>
-
-      {isOpen && (
-        <div className="tp-transfer__panel">
-          <div className="tp-transfer__fields">
-            <label className="tp-field">
-              <span className="label">{t('teamPlanner.out')}</span>
-              <Select value={outIndex} onChange={v => { setOutIndex(v); setInPlayer(null); }}>
-                <option value="">{t('teamPlanner.choosePlayer')}</option>
-                {outOptions.map(p => (
-                  <option key={p.index} value={p.index}>
-                    {p.position} — {p.name || t('teamPlanner.playerFallback', { number: p.index + 1 })} ({formatPrice(p.price)})
-                  </option>
-                ))}
-              </Select>
-            </label>
-            <div className="tp-field">
-              <span className="label">{t('teamPlanner.in')}</span>
-              {/* excludeUsedPlayers sluit spelers uit die al ergens in het huidige team zitten (ook de
-                  OUT-speler zelf) — zo kan een transfer nooit een speler binnenhalen die al in de 15 staat. */}
-              <PlayerSearchInput
-                value={inPlayer?.name ?? ''}
-                players={excludeUsedPlayers(playerDatabase, resolvedIndexedPlayers)}
-                disabled={outIndex === '' || playerDatabaseLoading || !!playerDatabaseError}
-                placeholder={
-                  outIndex === '' ? t('teamPlanner.chooseOutFirst')
-                    : playerDatabaseLoading ? t('teamPlanner.searchLoadingPlaceholder') : t('teamPlanner.searchIncoming')
-                }
-                maxWidth="none"
-                onSelect={setInPlayer}
-                noResultsText={t('shared.noPlayersFound')}
-              />
-            </div>
-          </div>
-
-          {outPlayer && inPlayer && (
-            <>
-              <p className="tp-transfer__preview">
-                {outPlayer.name || '—'} <span className="num">{formatPrice(outPlayer.price)}</span>
-                <span className="tp-transfer__arrow" aria-hidden="true"> → </span>
-                <strong>{inPlayer.name}</strong> <span className="num">{formatPrice(inPlayer.price)}</span>
-                <span className="tp-transfer__club"> · {teamNameFor(inPlayer.teamCode)} · {inPlayer.position}</span>
-              </p>
-              {isPositionMismatch && (
-                <p className="tp-warn">
-                  {t('teamPlanner.positionMismatch', { inName: inPlayer.name, inPosition: inPlayer.position, outName: outPlayer.name, outPosition: outPlayer.position })}
-                </p>
-              )}
-              {isOverBudgetAfter && (
-                <p className="tp-warn">
-                  {t('teamPlanner.overBudgetAfter', { newTotal: newTotal.toFixed(1), budget: TEAM_PLANNER_BUDGET, over: (newTotal - TEAM_PLANNER_BUDGET).toFixed(1) })}
-                </p>
-              )}
-              {isClubOverCapAfter && (
-                <p className="tp-warn">
-                  {t('teamPlanner.overCapAfter', { max: TEAM_PLANNER_MAX_PER_CLUB, club: teamNameFor(inPlayer.teamCode) })}
-                </p>
-              )}
-              {!isPositionMismatch && !isOverBudgetAfter && !isClubOverCapAfter && (
-                <p className="tp-hint">
-                  {t('teamPlanner.newBudgetAfter', { newTotal: newTotal.toFixed(1), budget: TEAM_PLANNER_BUDGET })}
-                </p>
-              )}
-              <div>
-                <Button variant="secondary" onClick={handleConfirm}>{t('teamPlanner.confirmTransfer')}</Button>
-              </div>
-            </>
-          )}
-        </div>
-      )}
-    </div>
+    <form className="tp-calib" onSubmit={handleSave} aria-labelledby="tp-calib-title">
+      <h2 id="tp-calib-title" className="tp-calib__title">{t('teamPlanner.calib.title', { gw })}</h2>
+      <p className="tp-note">{t('teamPlanner.calib.hint')}</p>
+      <div className="tp-calib__fields">
+        <label className="tp-field">
+          <span className="label">{t('teamPlanner.calib.bank')}</span>
+          <input
+            className="ui-input ui-input--plain num"
+            type="text"
+            inputMode="decimal"
+            value={bank}
+            onChange={(e) => setBank(e.target.value)}
+            aria-invalid={!bankValid}
+            autoFocus
+          />
+        </label>
+        {values.hasFreeTransfers && (
+          <label className="tp-field">
+            <span className="label">{t('teamPlanner.calib.free')}</span>
+            <Select
+              value={free}
+              onChange={setFree}
+              options={Array.from({ length: TEAM_PLANNER_FREE_TRANSFER_CAP + 1 }, (_, n) => ({ value: String(n), label: String(n) }))}
+            />
+          </label>
+        )}
+      </div>
+      {!bankValid && <p className="tp-warn">{t('teamPlanner.calib.invalid', { max: TEAM_PLANNER_BUDGET })}</p>}
+      <div className="tp-calib__actions">
+        <Button variant="primary" size="sm" type="submit" disabled={!bankValid}>{t('teamPlanner.calib.save')}</Button>
+        <Button variant="ghost" size="sm" onClick={onCancel}>{t('teamPlanner.cancel')}</Button>
+        {values.custom && <Button variant="ghost" size="sm" onClick={onReset}>{t('teamPlanner.calib.reset')}</Button>}
+      </div>
+    </form>
   );
 }
 
 export default function TeamPlannerTab({
-  t, onOpenPlayer,
-  ratings, homeAdvantage, openSections, toggleSection,
-  teamPlannerPlayers, updateTeamPlannerPlayer, toggleTeamPlannerBench,
-  teamPlannerBenchByGw, teamPlannerCaptainByGw, setTeamPlannerCaptain,
-  teamPlannerGw, handleTeamPlannerGwPrev, handleTeamPlannerGwNext,
-  teamPlannerTotalPrice, teamPlannerClubCounts, teamPlannerFormationCounts,
-  playerDatabase, playerDatabaseLoading, playerDatabaseError, fetchPlayerDatabase,
-  teamPlannerResolvedPlayers, teamPlannerTransferHistory, teamPlannerTransferBudget, planTeamPlannerTransfer, removeTeamPlannerTransfer,
-  handleOptimizeTeamPlannerLineup, teamPlannerOptimized,
-  teamPlannerBoosters, toggleTeamPlannerBooster,
-  handleClearTeamPlanner, handleClearTeamPlannerTransfers, swapTeamPlannerBenchPlayers,
+  t, onOpenPlayer, ratings, homeAdvantage, openSections, toggleSection,
+  planner, playerDatabase, playerDatabaseLoading, playerDatabaseError, fetchPlayerDatabase,
   isPlayerWatched, toggleWatchlistPlayer,
 }) {
   const index = usePlayerIndex();
-  // "Wis team" heeft enkel zin als er iets ingevuld is. Gebaseerd op de echte basisploeg.
-  const isRosterEmpty = teamPlannerPlayers.every(p => !p.name);
-
-  // Recharge-bewerking (booster): tijdelijke, niet-bevestigde bewerking van de 15 spelers zoals ze op
-  // de bekeken GW spelen. null = niet aan het bewerken; anders array van 15 { name, teamCode, price }.
-  const [rechargeDraft, setRechargeDraft] = useState(null);
-  const listRef = useRef(null);
-  const transferRef = useRef(null);
-  // Signaal naar TransferPanel (zie externalOutIndex daar); null zodra het verwerkt is.
-  const [transferOutIndex, setTransferOutIndex] = useState(null);
-  const [, setIsTransferPanelOpen] = useState(false);
-  // Herschik-modus voor de bank: zolang AAN, selecteert een tik op een bankspeler die speler om te
-  // wisselen (twee tikken = wissel) in plaats van het slot-menu te openen.
-  const [isBenchReorderMode, setIsBenchReorderMode] = useState(false);
-  const [benchSwapSlot, setBenchSwapSlot] = useState(null);
-  // Weergave op gsm/tablet (<1100px): Veld | Lijst | Transfers.
+  const p = planner.planner;
   const [view, setView] = useState('pitch');
-  // Open "⋯"-menu ({ anchor, items, label }) en open spelerskiezer ({ index }).
-  const [menu, setMenu] = useState(null);
+  const [menu, setMenu] = useState(null); // { anchor, items, label }
+  // { mode: 'fill' | 'replace' | 'transfer', index, added }
   const [picker, setPicker] = useState(null);
+  const [swapFrom, setSwapFrom] = useState(null);
+  const [editStart, setEditStart] = useState(false);
+  const [calibGw, setCalibGw] = useState(null);
   const closeMenu = useCallback(() => setMenu(null), []);
-  const consumeTransferOut = useCallback(() => setTransferOutIndex(null), []);
 
-  useEffect(() => {
-    setBenchSwapSlot(null);
-  }, [teamPlannerGw, isBenchReorderMode]);
-
-  const handleSelectForSwap = (slotIndex) => {
-    if (benchSwapSlot === null) {
-      setBenchSwapSlot(slotIndex);
-    } else if (benchSwapSlot === slotIndex) {
-      setBenchSwapSlot(null); // nogmaals dezelfde speler aantikken annuleert de selectie
-    } else {
-      swapTeamPlannerBenchPlayers(benchSwapSlot, slotIndex);
-      setBenchSwapSlot(null);
-    }
-  };
-
-  // Activeert Recharge voor de bekeken GW EN leidt de gebruiker meteen naar de selectielijst, waar hij
-  // effectief kan bewerken (op gsm: de weergave "Lijst"). Enkel bij het ACTIVEREN is dat zinvol.
-  const handleActivateRecharge = () => {
-    const wasActive = boosterState('recharge') === 'active';
-    toggleTeamPlannerBooster('recharge', teamPlannerGw);
-    setRechargeDraft(null);
-    if (!wasActive) {
-      setView('list');
-      requestAnimationFrame(() => {
-        listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      });
-    }
-  };
-
-  // Budget-/club-validatie: normaal op de statische GW1-basisploeg (teamPlannerTotalPrice/ClubCounts,
-  // berekend in FDRTool.jsx). Tijdens een Recharge-bewerking op de draft zelf, zodat overschrijden daar
-  // onmogelijk is (isRechargeInvalid blokkeert "Bevestig recharge").
-  const effectiveRosterList = rechargeDraft ?? teamPlannerPlayers;
-  const effectiveTotalPrice = rechargeDraft
-    ? rechargeDraft.reduce((sum, p) => {
-        const price = parseFloat(p.price);
-        return Number.isFinite(price) ? sum + price : sum;
-      }, 0)
-    : teamPlannerTotalPrice;
-  const effectiveClubCounts = rechargeDraft
-    ? effectiveRosterList.reduce((counts, p) => {
-        if (p.teamCode) counts[p.teamCode] = (counts[p.teamCode] ?? 0) + 1;
-        return counts;
-      }, {})
-    : teamPlannerClubCounts;
-  const remainingBudget = TEAM_PLANNER_BUDGET - effectiveTotalPrice;
-  const isOverBudget = effectiveTotalPrice > TEAM_PLANNER_BUDGET;
-  const overCapClubs = Object.entries(effectiveClubCounts).filter(([, count]) => count > TEAM_PLANNER_MAX_PER_CLUB);
-  const overCapClubCodes = new Set(overCapClubs.map(([code]) => code));
-  const isRechargeInvalid = rechargeDraft !== null && (isOverBudget || overCapClubs.length > 0);
-
-  // Het veld, de bank, de kapitein en de transfers gebruiken het team ZOALS HET ERUIT ZIET op de
-  // bekeken GW (inclusief alle transfers t/m die GW). Elke speler krijgt zijn slot-index mee.
-  const resolvedIndexedPlayers = teamPlannerResolvedPlayers.map((player, i) => ({ ...player, index: i }));
-
-  const benchForGw = teamPlannerBenchByGw[teamPlannerGw] ?? [];
-  const captainForGw = teamPlannerCaptainByGw[teamPlannerGw];
-  const benchCount = benchForGw.length;
-  const isBenchComplete = benchCount === TEAM_PLANNER_BENCH_SIZE;
-  const isBenchFull = benchCount >= TEAM_PLANNER_BENCH_SIZE;
-  // Bank-volgorde: een gebankte keeper staat altijd vooraan; de rest in de opgeslagen volgorde.
-  const benchPlayersInStoredOrder = benchForGw.map(i => resolvedIndexedPlayers[i]).filter(Boolean);
-  const benchOutfieldPlayers = benchPlayersInStoredOrder.filter(p => p.position !== 'GK');
-  const benchPlayers = [
-    ...benchPlayersInStoredOrder.filter(p => p.position === 'GK'),
-    ...benchOutfieldPlayers,
-  ];
-
-  // Formatie-validatie (zie VALID_FORMATIONS in constants.js).
-  const { GK: gkCount, DEF: defCount, MID: midCount, FWD: fwdCount } = teamPlannerFormationCounts;
-  const matchesValidFormation = VALID_FORMATIONS.some(([d, m, f]) => d === defCount && m === midCount && f === fwdCount);
-  const startingCount = gkCount + defCount + midCount + fwdCount;
-  const hasFullStartingXi = startingCount === TEAM_PLANNER_SQUAD_SIZE - TEAM_PLANNER_BENCH_SIZE;
-  const isValidFormation = isBenchComplete && hasFullStartingXi && gkCount === 1 && matchesValidFormation;
-  const formationLabel = `${defCount}-${midCount}-${fwdCount}`;
-
-  const isBenchBoostActive = teamPlannerBoosters.benchBoost === teamPlannerGw;
-  const isTripleCaptainActive = teamPlannerBoosters.tripleCaptain === teamPlannerGw;
-  // Eén bron van waarheid voor "Recharge loopt op deze GW" (ook gebruikt door het transferbudget).
-  const isRechargeActiveForGw = isRechargeActiveForGwRule(teamPlannerBoosters, teamPlannerGw);
-
-  // 'automatic' | 'active' | 'used-elsewhere' | 'available' — zie toggleTeamPlannerBooster (FDRTool.jsx).
-  const boosterState = (key) => {
-    if (key === 'recharge' && AUTO_RECHARGE_GWS.has(teamPlannerGw)) return 'automatic';
-    const usedGw = teamPlannerBoosters[key];
-    if (usedGw === teamPlannerGw) return 'active';
-    if (usedGw != null) return 'used-elsewhere';
-    return 'available';
-  };
-
-  // Zolang rechargeDraft niet null is, bewerkt de selectielijst het team ZOALS HET ERUIT ZIET op de
-  // bekeken GW; bevestigen zet elke gewijzigde rij om in een transfer op teamPlannerGw.
-  const rosterRowsData = rechargeDraft ?? teamPlannerPlayers;
-
-  const handleStartRecharge = () => {
-    setRechargeDraft(teamPlannerResolvedPlayers.map(p => ({ name: p.name, teamCode: p.teamCode, price: p.price })));
-  };
-
-  const handleConfirmRecharge = () => {
-    if (!rechargeDraft || isRechargeInvalid) return;
-    rechargeDraft.forEach((draftPlayer, i) => {
-      const current = teamPlannerResolvedPlayers[i];
-      const changed = draftPlayer.name !== current.name || draftPlayer.teamCode !== current.teamCode;
-      if (changed && draftPlayer.name) {
-        planTeamPlannerTransfer(i, teamPlannerGw, {
-          name: draftPlayer.name, teamCode: draftPlayer.teamCode,
-          position: TEAM_PLANNER_SLOT_POSITIONS[i], price: draftPlayer.price ?? null,
-        });
-      }
-    });
-    setRechargeDraft(null);
-  };
-
-  // Een keuze uit de spelerskiezer: buiten Recharge vult dit de GW1-basisploeg in
-  // (updateTeamPlannerPlayer); tijdens Recharge enkel de lokale draft. Zelfde gedrag als de vroegere
-  // 15 zoekvelden.
-  const applyPick = (slotIndex, selected) => {
-    if (rechargeDraft) {
-      setRechargeDraft(prev => prev.map((p, i) => (
-        i === slotIndex ? { name: selected.name, teamCode: selected.teamCode, price: selected.price ?? '' } : p
-      )));
-    } else {
-      updateTeamPlannerPlayer(slotIndex, 'name', selected.name);
-      updateTeamPlannerPlayer(slotIndex, 'teamCode', selected.teamCode);
-      updateTeamPlannerPlayer(slotIndex, 'price', selected.price ?? '');
-    }
-  };
-
-  const clearSlot = (slotIndex) => {
-    updateTeamPlannerPlayer(slotIndex, 'name', '');
-    updateTeamPlannerPlayer(slotIndex, 'teamCode', '');
-    updateTeamPlannerPlayer(slotIndex, 'price', '');
-  };
-
-  // Een leeg slot invullen zet de kiezer in "vulmodus": na een keuze springt hij naar het volgende
-  // lege slot (eerst dezelfde positie, dan de volgende positie) en blijft hij open, zodat je meerdere
-  // spelers na elkaar kiest. Hij sluit pas als alles gevuld is of je op "Klaar" tikt. Een bezet slot
-  // vervangen sluit de kiezer na één keuze, zoals voorheen.
-  const openPicker = (slotIndex) => {
-    if (playerDatabaseError) return;
-    setPicker({ index: slotIndex, fill: isEmptySlot(rosterRowsData[slotIndex]), added: [] });
-  };
-
-  // Eerste lege slot van een positie, het net gekozen slot niet meegerekend (de state is op dat moment
-  // nog niet bijgewerkt).
-  const firstEmptySlot = (pos, skipIndex = -1) => rosterRowsData.findIndex(
-    (p, i) => i !== skipIndex && TEAM_PLANNER_SLOT_POSITIONS[i] === pos && isEmptySlot(p),
+  // Starttoestand: het startteam invullen of rechtzetten. Daarbuiten: het team van de bekeken GW.
+  const baseMode = editStart || !planner.complete;
+  const gw = baseMode ? planner.startGw : planner.gw;
+  const displayTeam = useMemo(
+    () => (baseMode ? p.players.map((player, i) => ({ ...player, index: i })) : planner.team),
+    [baseMode, p.players, planner.team],
   );
+  const lineup = baseMode ? planner.startLineup : planner.lineup;
+  const bench = lineup.bench;
 
-  const handlePick = (selected) => {
-    applyPick(picker.index, selected);
-    if (!picker.fill) { setPicker(null); return; }
-    let next = firstEmptySlot(TEAM_PLANNER_SLOT_POSITIONS[picker.index], picker.index);
-    if (next < 0) next = rosterRowsData.findIndex((p, i) => i !== picker.index && isEmptySlot(p));
-    if (next < 0) { setPicker(null); return; }
-    setPicker({ index: next, fill: true, added: [...picker.added, selected.name] });
-  };
-
-  // In vulmodus mag je van positie wisselen zolang die positie nog een leeg slot heeft.
-  const pickerPositions = picker?.fill
-    ? ['GK', 'DEF', 'MID', 'FWD'].filter(pos => pos === TEAM_PLANNER_SLOT_POSITIONS[picker.index] || firstEmptySlot(pos) >= 0)
-    : null;
-  const switchPickerPosition = (pos) => {
-    const next = firstEmptySlot(pos);
-    if (next >= 0) setPicker(prev => ({ ...prev, index: next }));
-  };
-  const pickerEmptyLeft = picker?.fill
-    ? rosterRowsData.filter((p, i) => TEAM_PLANNER_SLOT_POSITIONS[i] === TEAM_PLANNER_SLOT_POSITIONS[picker.index] && isEmptySlot(p)).length
-    : 0;
-
-  const openMenu = (event, items, label) => {
-    setMenu({ anchor: event.currentTarget.getBoundingClientRect(), items, label });
-  };
-
-  const startTransferOut = (slotIndex) => {
-    setView('pitch');
-    setTransferOutIndex(slotIndex);
-    requestAnimationFrame(() => transferRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
-  };
+  // Wisselmodus stopt bij een andere speeldag, een andere toestand of Escape (C3).
+  useEffect(() => { setSwapFrom(null); }, [planner.gw, baseMode]);
+  useEffect(() => {
+    if (swapFrom === null) return undefined;
+    const onKey = (e) => { if (e.key === 'Escape') setSwapFrom(null); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [swapFrom]);
+  const swapTargets = useMemo(
+    () => (swapFrom === null ? new Set() : planner.swapTargets(swapFrom)),
+    // planner.swapTargets hangt af van de opstelling van de bekeken GW
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [swapFrom, planner.lineup, p.players],
+  );
 
   const shortLabel = (player) => index.find(player.name, player.teamCode)?.short || player.name;
 
@@ -499,95 +232,254 @@ export default function TeamPlannerTab({
   const isNotFound = (player) => databaseReady && !!player?.name && !findInDatabase(playerDatabase, player.name, player.teamCode);
   const slotStatus = (player) => (isNotFound(player) ? NOT_FOUND_STATUS : availability(player.name, player.teamCode));
 
-  // Acties voor een slot (veld, bank of lijst). `isBenched` geldt voor de bekeken GW.
-  const slotActions = (slotIndex, { fromList = false } = {}) => {
-    const resolved = resolvedIndexedPlayers[slotIndex];
-    const row = rosterRowsData[slotIndex];
-    const filled = !isEmptySlot(resolved);
-    const isBenched = benchForGw.includes(slotIndex);
+  const isBenchBoostActive = p.boosters.benchBoost === gw;
+  const isTripleCaptainActive = p.boosters.tripleCaptain === gw;
+  const isRecharge = isRechargeActiveForGw(p.boosters, gw);
+  const boosterState = (key) => {
+    if (key === 'recharge' && AUTO_RECHARGE_GWS.has(gw)) return 'automatic';
+    const usedGw = p.boosters[key];
+    if (usedGw === gw) return 'active';
+    if (usedGw != null) return 'used-elsewhere';
+    return 'available';
+  };
+
+  // --- Startteam: budget en clublimiet van de ingevulde spelers -----------------------------------
+  const baseClubCounts = useMemo(() => {
+    const counts = {};
+    p.players.forEach(player => { if (player.teamCode && player.name) counts[player.teamCode] = (counts[player.teamCode] ?? 0) + 1; });
+    return counts;
+  }, [p.players]);
+  const overCapClubs = baseMode ? Object.entries(baseClubCounts).filter(([, count]) => count > TEAM_PLANNER_MAX_PER_CLUB) : [];
+  const overCapClubCodes = new Set(overCapClubs.map(([code]) => code));
+  const baseBank = p.startBank ?? (TEAM_PLANNER_BUDGET - planner.startValue);
+
+  // --- Statusregel: budget, gratis transfers en kosten van de bekeken GW (C1) -----------------------
+  const bankInfo = planner.bankByGw[gw];
+  const bankShown = baseMode ? baseBank : (bankInfo?.end ?? baseBank);
+  const budget = baseMode ? null : planner.transferBudget[gw];
+  const remainingFree = budget ? Math.max(0, budget.freeAvailable - budget.used) : null;
+  const squadCount = p.players.filter(player => player.name).length;
+  const checkGw = Math.max(planner.startGw, CURRENT_GW);
+  const showCheck = planner.complete && !baseMode && !p.checkConfirmed && calibGw === null;
+
+  const openCalibration = (g) => {
+    setCalibGw(g);
+    if (g !== planner.gw) planner.goTo(g);
+  };
+  const ownFieldsAt = (g) => (g === planner.startGw
+    ? { bank: p.startBank !== null, freeTransfers: planner.startGw > 1 }
+    : { bank: 'bank' in (p.checkpoints[g] ?? {}), freeTransfers: 'freeTransfers' in (p.checkpoints[g] ?? {}) });
+
+  // --- Spelerskiezer ------------------------------------------------------------------------------
+  const firstEmptySlot = (pos, skipIndex = -1) => p.players.findIndex(
+    (player, i) => i !== skipIndex && TEAM_PLANNER_SLOT_POSITIONS[i] === pos && isEmptySlot(player),
+  );
+  const openFillPicker = (slot) => {
+    if (playerDatabaseError) return;
+    setPicker({ mode: isEmptySlot(p.players[slot]) ? 'fill' : 'replace', index: slot, added: [] });
+  };
+  const openTransferPicker = (slot) => {
+    if (playerDatabaseError) return;
+    setPicker({ mode: 'transfer', index: slot, added: [] });
+  };
+
+  const handlePick = (selected) => {
+    if (picker.mode === 'transfer') {
+      planner.transfer(picker.index, selected);
+      setPicker(null);
+      return;
+    }
+    planner.fillSlot(picker.index, selected);
+    if (picker.mode !== 'fill') { setPicker(null); return; }
+    // Vulmodus: door naar het volgende lege vak (eerst dezelfde positie), tot alles gevuld is.
+    let next = firstEmptySlot(TEAM_PLANNER_SLOT_POSITIONS[picker.index], picker.index);
+    if (next < 0) next = p.players.findIndex((player, i) => i !== picker.index && isEmptySlot(player));
+    if (next < 0) { setPicker(null); return; }
+    setPicker({ mode: 'fill', index: next, added: [...picker.added, selected.name] });
+  };
+
+  const pickerPositions = picker?.mode === 'fill'
+    ? PITCH_ROW_ORDER.filter(pos => pos === TEAM_PLANNER_SLOT_POSITIONS[picker.index] || firstEmptySlot(pos) >= 0)
+    : null;
+  const switchPickerPosition = (pos) => {
+    const next = firstEmptySlot(pos);
+    if (next >= 0) setPicker(prev => ({ ...prev, index: next }));
+  };
+  const pickerEmptyLeft = picker?.mode === 'fill'
+    ? p.players.filter((player, i) => TEAM_PLANNER_SLOT_POSITIONS[i] === TEAM_PLANNER_SLOT_POSITIONS[picker.index] && isEmptySlot(player)).length
+    : 0;
+
+  // Regels in de kiezer: in de starttoestand geen dubbele speler en max. 3 per club; bij een transfer
+  // daarbovenop het budget en de latere speeldagen (useTeamPlanner.transferBlocker).
+  const pickerBlocked = useMemo(() => {
+    if (!picker) return null;
+    if (picker.mode === 'transfer') return planner.transferBlocker(picker.index);
+    const others = p.players.filter((player, i) => i !== picker.index && player.name);
+    return (candidate) => {
+      if (others.some(u => planner.isSamePlayer(u, candidate))) return t('picker.reasonInTeam');
+      if (others.filter(u => u.teamCode === candidate.teamCode).length >= TEAM_PLANNER_MAX_PER_CLUB) {
+        return t('picker.reasonClubLimit', { max: TEAM_PLANNER_MAX_PER_CLUB });
+      }
+      return null;
+    };
+    // planner.transferBlocker verandert met de planner zelf
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [picker, p, planner.gw, t]);
+
+  const pickerBudgetMax = (() => {
+    if (!picker) return null;
+    if (picker.mode === 'transfer') return planner.transferRules(picker.index).maxPrice;
+    // Een zelf ingevuld startbudget ligt vast: rechtzetten van het startteam verandert het niet.
+    if (p.startBank !== null) return null;
+    return baseBank + (parseFloat(p.players[picker.index]?.price) || 0);
+  })();
+  const pickerOut = picker?.mode === 'transfer' ? planner.team[picker.index] : null;
+
+  // --- Acties per speler ----------------------------------------------------------------------------
+  const openMenu = (event, items, label) => {
+    setMenu({ anchor: event.currentTarget.getBoundingClientRect(), items, label });
+  };
+
+  const startSwap = (slot) => {
+    setView('pitch');
+    setSwapFrom(slot);
+  };
+
+  const slotActions = (slot) => {
+    const player = displayTeam[slot];
     const items = [];
-    if (fromList) {
-      items.push({ key: 'replace', label: t('teamPlanner.menu.replace'), onSelect: () => openPicker(slotIndex), disabled: !!playerDatabaseError });
+    if (baseMode) {
+      items.push({ key: 'replace', label: t('teamPlanner.menu.replace'), onSelect: () => openFillPicker(slot), disabled: !!playerDatabaseError });
+      if (onOpenPlayer && player?.name && player?.teamCode) {
+        items.push({ key: 'open', label: t('teamPlanner.menu.openPlayer'), onSelect: () => onOpenPlayer(player.name, player.teamCode) });
+      }
+      if (player?.name) items.push({ key: 'remove', label: t('teamPlanner.menu.remove'), danger: true, onSelect: () => planner.clearSlot(slot) });
+      return items;
     }
-    if (filled && !isBenched) {
-      items.push(captainForGw === slotIndex
-        ? { key: 'cap', label: t('teamPlanner.menu.removeCaptain'), onSelect: () => setTeamPlannerCaptain(null) }
-        : { key: 'cap', label: t('teamPlanner.menu.captain', { gw: teamPlannerGw }), onSelect: () => setTeamPlannerCaptain(slotIndex) });
+    const onPitch = !bench.includes(slot);
+    if (planner.swapTargets(slot).size > 0) {
+      items.push({ key: 'swap', label: t('teamPlanner.menu.swap'), onSelect: () => startSwap(slot) });
     }
-    if (filled) {
-      items.push(isBenched
-        ? { key: 'bench', label: t('teamPlanner.menu.toPitch', { gw: teamPlannerGw }), onSelect: () => toggleTeamPlannerBench(slotIndex) }
-        : {
-            key: 'bench', disabled: isBenchFull, onSelect: () => toggleTeamPlannerBench(slotIndex),
-            label: isBenchFull ? t('teamPlanner.menu.toBenchFull') : t('teamPlanner.menu.toBench', { gw: teamPlannerGw }),
-          });
+    if (planner.canTransfer) {
+      items.push({ key: 'transfer', label: t('teamPlanner.menu.transfer'), onSelect: () => openTransferPicker(slot), disabled: !!playerDatabaseError || playerDatabaseLoading });
     }
-    if (filled && !fromList) {
-      items.push({ key: 'transfer', label: t('teamPlanner.menu.transferOut'), onSelect: () => startTransferOut(slotIndex) });
+    if (onPitch) {
+      items.push(lineup.captain === slot
+        ? { key: 'cap', label: t('teamPlanner.menu.removeCaptain'), onSelect: () => planner.setCaptain(null) }
+        : { key: 'cap', label: t('teamPlanner.menu.captain', { gw }), onSelect: () => planner.setCaptain(slot) });
+      items.push(lineup.vice === slot
+        ? { key: 'vice', label: t('teamPlanner.menu.removeVice'), onSelect: () => planner.setVice(null) }
+        : { key: 'vice', label: t('teamPlanner.menu.vice', { gw }), onSelect: () => planner.setVice(slot) });
     }
-    const sheetTarget = fromList ? row : resolved;
-    if (onOpenPlayer && sheetTarget?.name && sheetTarget?.teamCode) {
-      items.push({ key: 'open', label: t('teamPlanner.menu.openPlayer'), onSelect: () => onOpenPlayer(sheetTarget.name, sheetTarget.teamCode) });
-    }
-    if (fromList && !rechargeDraft && row?.name) {
-      items.push({ key: 'remove', label: t('teamPlanner.menu.remove'), danger: true, onSelect: () => clearSlot(slotIndex) });
+    if (onOpenPlayer && player?.name && player?.teamCode) {
+      items.push({ key: 'open', label: t('teamPlanner.menu.openPlayer'), onSelect: () => onOpenPlayer(player.name, player.teamCode) });
     }
     return items;
   };
 
-  // Transfer-tijdlijn gegroepeerd per GW (teamPlannerTransferHistory staat al gesorteerd op GW).
-  const transferGroups = [];
-  teamPlannerTransferHistory.forEach(entry => {
-    const lastGroup = transferGroups[transferGroups.length - 1];
-    if (lastGroup && lastGroup.gw === entry.gw) lastGroup.entries.push(entry);
-    else transferGroups.push({ gw: entry.gw, entries: [entry] });
-  });
+  const roleOf = (slot) => {
+    if (lineup.captain === slot) return { glyph: isTripleCaptainActive ? '3×C' : 'C', tone: 'accent', title: t('teamPlanner.captain') };
+    if (lineup.vice === slot) return { glyph: 'V', tone: 'vice', title: t('teamPlanner.vice') };
+    return null;
+  };
 
-  // --- Statusregel ---------------------------------------------------------------------------------
-  const squadCount = effectiveRosterList.filter(p => p.name).length;
-  const resolvedCount = resolvedIndexedPlayers.filter(p => !isEmptySlot(p)).length;
-  const budget = teamPlannerGw > 1 ? teamPlannerTransferBudget[teamPlannerGw] : null;
-  const remainingFree = budget ? Math.max(0, budget.freeAvailable - budget.used) : null;
-  let formationStatus;
-  if (resolvedCount < TEAM_PLANNER_SQUAD_SIZE) {
-    formationStatus = <span className="tp-status__muted">{t('teamPlanner.formationIncomplete')}</span>;
-  } else if (!isBenchComplete) {
-    const need = TEAM_PLANNER_BENCH_SIZE - benchCount;
-    formationStatus = <span className="is-danger">{need === 1 ? t('teamPlanner.status.benchNeededOne') : t('teamPlanner.status.benchNeededMany', { count: need })}</span>;
-  } else if (!isValidFormation) {
-    formationStatus = <span className="is-danger">{t('teamPlanner.status.invalidFormation', { formation: formationLabel })}</span>;
-  } else {
-    formationStatus = <span>{t('teamPlanner.formation', { formation: formationLabel })}</span>;
-  }
+  const renderSlot = (player, { benched = false } = {}) => {
+    if (isEmptySlot(player)) {
+      return (
+        <PitchSlot
+          key={player.index}
+          player={player}
+          gw={gw}
+          onClick={() => openFillPicker(player.index)}
+          disabled={!!playerDatabaseError || !baseMode}
+          ariaLabel={t('teamPlanner.emptySlot', { position: player.position })}
+        />
+      );
+    }
+    const role = benched ? null : roleOf(player.index);
+    const swapping = swapFrom !== null;
+    const isTarget = swapping && swapTargets.has(player.index);
+    const classes = [
+      swapping && player.index === swapFrom && 'is-selected',
+      isTarget && 'is-swappable',
+      swapping && !isTarget && player.index !== swapFrom && 'is-dimmed',
+      benched && isBenchBoostActive && 'is-boosted',
+    ].filter(Boolean).join(' ');
+    const fromName = swapping ? displayTeam[swapFrom]?.name : '';
+    return (
+      <PitchSlot
+        key={player.index}
+        player={player}
+        label={shortLabel(player)}
+        gw={gw}
+        ratings={ratings}
+        homeAdvantage={homeAdvantage}
+        roleGlyph={role?.glyph}
+        roleTone={role?.tone}
+        status={slotStatus(player)}
+        className={classes}
+        disabled={swapping && !isTarget && player.index !== swapFrom}
+        ariaLabel={swapping
+          ? (player.index === swapFrom
+            ? t('teamPlanner.swapCancelAria', { name: player.name })
+            : t('teamPlanner.swapTargetAria', { name: fromName, other: player.name }))
+          : t('teamPlanner.slotAria', { name: player.name, position: player.position })}
+        onClick={swapping
+          ? () => {
+              if (player.index !== swapFrom) planner.swap(swapFrom, player.index);
+              setSwapFrom(null);
+            }
+          : (e) => openMenu(e, slotActions(player.index), player.name)}
+      />
+    );
+  };
 
-  const listRows = rosterRowsData.map((p, i) => ({ ...p, index: i, position: TEAM_PLANNER_SLOT_POSITIONS[i] }));
+  // Bank: een keeper staat altijd vooraan, de rest in de volgorde van de invallers.
+  const benchPlayers = [
+    ...bench.filter(i => TEAM_PLANNER_SLOT_POSITIONS[i] === 'GK'),
+    ...bench.filter(i => TEAM_PLANNER_SLOT_POSITIONS[i] !== 'GK'),
+  ].map(i => displayTeam[i]).filter(Boolean);
+  const formationLabel = (() => {
+    const counts = { DEF: 0, MID: 0, FWD: 0 };
+    TEAM_PLANNER_SLOT_POSITIONS.forEach((pos, i) => { if (pos !== 'GK' && !bench.includes(i)) counts[pos] += 1; });
+    return `${counts.DEF}-${counts.MID}-${counts.FWD}`;
+  })();
+
+  // --- Lijst (C5): hetzelfde team als het veld, met dezelfde acties --------------------------------
+  const apiGw = index.data?.gw ?? 0;
+  const listRows = displayTeam.map((player, i) => ({ ...player, index: i, position: TEAM_PLANNER_SLOT_POSITIONS[i] }));
+  const apiFor = (row) => (row.name ? index.find(row.name, row.teamCode) : null);
 
   const listColumns = [
     {
       key: 'player', label: t('teamPlanner.colPlayer'), rowHeader: true, sticky: true, stickyEdge: true,
-      render: (row) => (isEmptySlot(row) ? (
-        <button type="button" className="tp-emptyslot" onClick={() => openPicker(row.index)} disabled={!!playerDatabaseError}>
-          {t('teamPlanner.emptySlotShort', { position: row.position })}
-        </button>
-      ) : (
-        <PlayerCell
-          byName
-          name={row.name}
-          short={shortLabel(row)}
-          clubCode={row.teamCode}
-          price={row.price}
-          subDesktop={false}
-          badges={(
-            <>
-              {!rechargeDraft && captainForGw === row.index && !benchForGw.includes(row.index) && (
-                <Badge tone="accent" title={t('teamPlanner.captain')}>{isTripleCaptainActive ? '3×C' : 'C'}</Badge>
-              )}
-              {!rechargeDraft && benchForGw.includes(row.index) && <span className="tp-benchtag">{t('teamPlanner.benchTag')}</span>}
-              {isNotFound(row) && <Badge tone="outline" title={t('teamPlanner.notFoundTitle')}>{t('teamPlanner.notFound')}</Badge>}
-            </>
-          )}
-        />
-      )),
+      render: (row) => {
+        if (isEmptySlot(row)) {
+          return (
+            <button type="button" className="tp-emptyslot" onClick={() => openFillPicker(row.index)} disabled={!!playerDatabaseError || !baseMode}>
+              {t('teamPlanner.emptySlotShort', { position: row.position })}
+            </button>
+          );
+        }
+        const role = bench.includes(row.index) ? null : roleOf(row.index);
+        return (
+          <PlayerCell
+            byName
+            name={row.name}
+            short={shortLabel(row)}
+            clubCode={row.teamCode}
+            price={row.price}
+            subDesktop={false}
+            badges={(
+              <>
+                {role && <Badge tone={role.tone} title={role.title}>{role.glyph}</Badge>}
+                {bench.includes(row.index) && <span className="tp-benchtag">{t('teamPlanner.benchTag')}</span>}
+                {isNotFound(row) && <Badge tone="outline" title={t('teamPlanner.notFoundTitle')}>{t('teamPlanner.notFound')}</Badge>}
+              </>
+            )}
+          />
+        );
+      },
     },
     {
       key: 'club', label: t('teamPlanner.colClub'), className: 'tp-col-desktop',
@@ -595,25 +487,43 @@ export default function TeamPlannerTab({
       cellClass: row => (row.teamCode && overCapClubCodes.has(row.teamCode) ? 'tp-danger-text' : ''),
     },
     { key: 'price', label: t('teamPlanner.colPriceEuro'), num: true, className: 'tp-col-desktop', render: row => (hasPrice(row.price) ? formatPrice(row.price) : null) },
+    { key: 'pts', label: t('teamPlanner.colPts'), title: t('teamPlanner.colPtsTitle'), num: true, className: 'tp-col-desktop', render: row => apiFor(row)?.pts ?? null },
     {
-      key: 'next', label: `GW${teamPlannerGw}`, className: 'tp-col-fix',
+      key: 'form', label: t('teamPlanner.colForm'), title: t('teamPlanner.colFormTitle', { count: FORM_GWS }), num: true, className: 'tp-col-desktop',
+      render: row => { const api = apiFor(row); return api ? sumLast(api.w?.pts, apiGw, FORM_GWS) : null; },
+    },
+    {
+      key: 'next3', label: t('teamPlanner.colNext'), className: 'tp-col-desktop tp-col-next',
+      render: row => (row.teamCode ? <UpcomingFixtures club={row.teamCode} fromGw={gw} count={3} ratings={ratings} homeAdvantage={homeAdvantage} wrap={false} /> : null),
+      blankWhenEmpty: true,
+    },
+    {
+      key: 'next', label: `GW${gw}`, className: 'tp-col-fix tp-col-mobile',
       render: row => (row.teamCode ? (
-        <MiniFixtureBadge teamCode={row.teamCode} fixture={FIXTURES[row.teamCode]?.[teamPlannerGw - 1]} gwNumber={teamPlannerGw} ratings={ratings} homeAdvantage={homeAdvantage} />
+        <MiniFixtureBadge teamCode={row.teamCode} fixture={FIXTURES[row.teamCode]?.[gw - 1]} gwNumber={gw} ratings={ratings} homeAdvantage={homeAdvantage} />
       ) : null),
       blankWhenEmpty: true,
     },
     {
       key: 'menu', label: <span className="ui-sr-only">{t('teamPlanner.colActions')}</span>, className: 'tp-col-menu', blankWhenEmpty: true,
-      render: row => (
+      render: row => (isEmptySlot(row) ? null : (
         <Button
           variant="icon" size="sm" bare icon={MoreHorizontal}
           aria-haspopup="menu"
-          aria-label={t('teamPlanner.slotMenuAria', { name: row.name || t('teamPlanner.emptySlotShort', { position: row.position }) })}
-          onClick={(e) => openMenu(e, slotActions(row.index, { fromList: true }), row.name || row.position)}
+          aria-label={t('teamPlanner.slotMenuAria', { name: row.name })}
+          onClick={(e) => openMenu(e, slotActions(row.index), row.name)}
         />
-      ),
+      )),
     },
   ];
+
+  // --- Transfers -----------------------------------------------------------------------------------
+  const transferGroups = [];
+  planner.history.forEach(entry => {
+    const lastGroup = transferGroups[transferGroups.length - 1];
+    if (lastGroup && lastGroup.gw === entry.gw) lastGroup.entries.push(entry);
+    else transferGroups.push({ gw: entry.gw, entries: [entry] });
+  });
 
   const transferColumns = [
     {
@@ -638,66 +548,15 @@ export default function TeamPlannerTab({
       render: e => (
         <Button
           variant="icon" size="sm" bare icon={X}
-          onClick={() => removeTeamPlannerTransfer(e.slotIndex, e.id)}
+          onClick={() => planner.removeTransfer(e.slotIndex, e.id)}
           aria-label={t('teamPlanner.removeTransferAria', { out: e.outPlayer.name, in: e.inPlayer.name })}
         />
       ),
     },
   ];
 
-  const pickerRow = picker ? rosterRowsData[picker.index] : null;
-  const pickerBlocked = useCallback((candidate) => {
-    if (!picker) return null;
-    const others = rosterRowsData.filter((p, i) => i !== picker.index && p.name);
-    if (others.some(u => isSamePlayer(u, candidate))) return t('picker.reasonInTeam');
-    const sameClub = others.filter(u => u.teamCode === candidate.teamCode).length;
-    if (sameClub >= TEAM_PLANNER_MAX_PER_CLUB) return t('picker.reasonClubLimit', { max: TEAM_PLANNER_MAX_PER_CLUB });
-    return null;
-  }, [picker, rosterRowsData, t]);
-
-  const renderSlot = (player, { benched = false } = {}) => {
-    const isCaptain = !benched && captainForGw === player.index;
-    if (isEmptySlot(player)) {
-      return (
-        <PitchSlot
-          key={player.index}
-          player={player}
-          gw={teamPlannerGw}
-          onClick={() => openPicker(player.index)}
-          disabled={!!playerDatabaseError}
-          ariaLabel={t('teamPlanner.emptySlot', { position: player.position })}
-        />
-      );
-    }
-    const reorder = benched && isBenchReorderMode;
-    const isGk = player.position === 'GK';
-    const classes = [
-      reorder && !isGk && 'is-swappable',
-      reorder && benchSwapSlot === player.index && 'is-selected',
-      benched && isBenchBoostActive && 'is-boosted',
-    ].filter(Boolean).join(' ');
-    return (
-      <PitchSlot
-        key={player.index}
-        player={player}
-        label={shortLabel(player)}
-        gw={teamPlannerGw}
-        ratings={ratings}
-        homeAdvantage={homeAdvantage}
-        captainGlyph={isCaptain ? (isTripleCaptainActive ? '3×C' : 'C') : null}
-        status={slotStatus(player)}
-        className={classes}
-        disabled={reorder && isGk}
-        title={reorder && isGk ? t('teamPlanner.reorderGkDisabled') : undefined}
-        ariaLabel={reorder
-          ? t('teamPlanner.swapAria', { name: player.name })
-          : t('teamPlanner.slotAria', { name: player.name, position: player.position })}
-        onClick={reorder
-          ? () => handleSelectForSwap(player.index)
-          : (e) => openMenu(e, slotActions(player.index), player.name)}
-      />
-    );
-  };
+  const swapName = swapFrom !== null ? displayTeam[swapFrom]?.name : '';
+  const showPlannerControls = !baseMode;
 
   return (
     <>
@@ -708,12 +567,11 @@ export default function TeamPlannerTab({
         playerDatabase={playerDatabase}
         playerDatabaseLoading={playerDatabaseLoading}
         playerDatabaseError={playerDatabaseError}
-        updateTeamPlannerPlayer={updateTeamPlannerPlayer}
-        setTeamPlannerCaptain={setTeamPlannerCaptain}
-        teamPlannerGw={teamPlannerGw}
-        isRosterEmpty={isRosterEmpty}
-        extraActions={!isRosterEmpty && (
-          <Button variant="danger" size="sm" icon={Trash2} onClick={handleClearTeamPlanner}>{t('teamPlanner.clearTeam')}</Button>
+        onApply={planner.importTeam}
+        startGw={Math.max(CURRENT_GW, 1)}
+        isRosterEmpty={planner.empty}
+        extraActions={!planner.empty && (
+          <Button variant="danger" size="sm" icon={Trash2} onClick={planner.clearTeam}>{t('teamPlanner.clearTeam')}</Button>
         )}
       />
 
@@ -724,14 +582,47 @@ export default function TeamPlannerTab({
         <ErrorBanner onRetry={fetchPlayerDatabase} retryLabel={t('shared.retry')}>{t(playerDatabaseError)}</ErrorBanner>
       )}
 
-      {/* Statusregel (spec §7.3): vervangt de vroegere pillen. Sticky onder de topbalk. */}
+      {/* Eenmalige controle (C1): klopt het berekende budget voor de huidige speeldag? */}
+      {showCheck && (
+        <Notice
+          action={(
+            <span className="tp-check__actions">
+              <Button variant="secondary" size="sm" onClick={planner.confirmCheck}>{t('teamPlanner.check.ok')}</Button>
+              <Button variant="ghost" size="sm" onClick={() => openCalibration(checkGw)}>{t('teamPlanner.check.adjust')}</Button>
+            </span>
+          )}
+        >
+          <strong>{t('teamPlanner.check.question', { gw: checkGw })}</strong>{' '}
+          {(() => {
+            const values = planner.calibrationAt(checkGw);
+            const bankText = t('teamPlanner.check.bank', { value: formatMoney(values.bank ?? 0) });
+            if (!values.hasFreeTransfers) return bankText;
+            return `${bankText} · ${t(values.freeTransfers === 1 ? 'teamPlanner.freeTransfer' : 'teamPlanner.freeTransfers', { count: values.freeTransfers })}`;
+          })()}
+        </Notice>
+      )}
+
+      {/* Statusregel (spec §7.3, C1): budget, gratis transfers en kosten van de bekeken GW. */}
       <div className="tp-status" aria-label={t('teamPlanner.status.aria')}>
-        <span>{t('teamPlanner.status.squad', { count: squadCount, total: TEAM_PLANNER_SQUAD_SIZE })}</span>
-        <span className={isOverBudget ? 'is-danger' : undefined}>
-          {t('teamPlanner.status.bank')} <span className="num">{remainingBudget < 0 ? '−' : ''}€{Math.abs(remainingBudget).toFixed(1)}M</span>
-        </span>
+        {(baseMode || squadCount < TEAM_PLANNER_SQUAD_SIZE) && (
+          <span>{t('teamPlanner.status.squad', { count: squadCount, total: TEAM_PLANNER_SQUAD_SIZE })}</span>
+        )}
+        {showPlannerControls ? (
+          <button
+            type="button"
+            className={`tp-status__edit${bankShown < 0 ? ' is-danger' : ''}`}
+            onClick={() => openCalibration(gw)}
+            aria-label={t('teamPlanner.status.calibrateAria', { gw })}
+          >
+            {t('teamPlanner.status.bank')} <span className="num">{formatMoney(bankShown)}</span>
+          </button>
+        ) : (
+          <span className={bankShown < 0 ? 'is-danger' : undefined}>
+            {t('teamPlanner.status.bank')} <span className="num">{formatMoney(bankShown)}</span>
+          </span>
+        )}
         {budget && (
-          <span>
+          <button type="button" className="tp-status__edit" onClick={() => openCalibration(gw)} aria-label={t('teamPlanner.status.calibrateAria', { gw })}>
             {budget.isRecharge
               ? t('teamPlanner.rechargeFree')
               : (
@@ -740,7 +631,7 @@ export default function TeamPlannerTab({
                   <span className="tp-status__short">{t('teamPlanner.status.freeShort', { count: remainingFree })}</span>
                 </>
               )}
-          </span>
+          </button>
         )}
         {budget?.pointsCost > 0 && (
           <TooltipTrigger
@@ -751,13 +642,39 @@ export default function TeamPlannerTab({
             {t('teamPlanner.pointsCost', { cost: budget.pointsCost })}
           </TooltipTrigger>
         )}
-        {formationStatus}
+        {showPlannerControls && <span>{t('teamPlanner.formation', { formation: formationLabel })}</span>}
+        {showPlannerControls && lineup.captain === null && <span className="is-danger">{t('teamPlanner.status.chooseCaptain')}</span>}
         {overCapClubs.length > 0 && (
           <span className="is-danger">
             {t('teamPlanner.overCapClubs', { max: TEAM_PLANNER_MAX_PER_CLUB, clubs: overCapClubs.map(([code, count]) => `${teamNameFor(code)} (${count})`).join(', ') })}
           </span>
         )}
+        {planner.complete && !editStart && (
+          <Button variant="ghost" size="sm" icon={Pencil} className="tp-status__action" onClick={() => { setEditStart(true); setCalibGw(null); }}>
+            {t('teamPlanner.editStart')}
+          </Button>
+        )}
+        {editStart && (
+          <Button variant="secondary" size="sm" className="tp-status__action" onClick={() => setEditStart(false)} disabled={!planner.complete}>
+            {t('teamPlanner.editStartDone')}
+          </Button>
+        )}
       </div>
+
+      {editStart && <p className="tp-note is-accent">{t('teamPlanner.editStartNote', { gw: planner.startGw })}</p>}
+
+      {calibGw !== null && !baseMode && (
+        <CalibrationPanel
+          key={calibGw}
+          t={t}
+          gw={calibGw}
+          values={planner.calibrationAt(calibGw)}
+          ownFields={ownFieldsAt(calibGw)}
+          onSave={(values) => { planner.calibrate(calibGw, values); setCalibGw(null); }}
+          onReset={() => { planner.resetCalibration(calibGw); setCalibGw(null); }}
+          onCancel={() => setCalibGw(null)}
+        />
+      )}
 
       <Segmented
         className="tp-viewswitch"
@@ -772,138 +689,86 @@ export default function TeamPlannerTab({
       />
 
       <div className="tp-layout">
-        <section className={`tp-panel tp-panel--pitch${view !== 'pitch' ? ' is-hidden-narrow' : ''}`} aria-label={t('teamPlanner.pitchAria', { gw: teamPlannerGw })}>
-          <div className="tp-gwbar">
-            <Button variant="icon" icon={ChevronLeft} onClick={handleTeamPlannerGwPrev} disabled={teamPlannerGw <= 1} aria-label={t('teamPlanner.prevGwAria')} />
-            <span className="tp-gwbar__gw num">GW{teamPlannerGw}</span>
-            <Button variant="icon" icon={ChevronRight} onClick={handleTeamPlannerGwNext} disabled={teamPlannerGw >= GW_COUNT} aria-label={t('teamPlanner.nextGwAria')} />
-            {/* De topbalk toont al de deadline van CURRENT_GW; hier enkel voor een andere GW. */}
-            {teamPlannerGw !== CURRENT_GW && GW_DEADLINES[teamPlannerGw] && (
-              <span className="tp-gwbar__meta">{t('teamPlanner.deadline', { value: GW_DEADLINES[teamPlannerGw] })}</span>
+        <section className={`tp-panel tp-panel--pitch${view !== 'pitch' ? ' is-hidden-narrow' : ''}`} aria-label={t('teamPlanner.pitchAria', { gw })}>
+          {showPlannerControls && (
+            <>
+              <div className="tp-gwbar">
+                <Button variant="icon" icon={ChevronLeft} onClick={() => { planner.goPrev(); setCalibGw(null); }} disabled={!planner.canPrev} aria-label={t('teamPlanner.prevGwAria')} />
+                <span className="tp-gwbar__gw num">GW{gw}</span>
+                <Button variant="icon" icon={ChevronRight} onClick={() => { planner.goNext(); setCalibGw(null); }} disabled={!planner.canNext || gw >= GW_COUNT} aria-label={t('teamPlanner.nextGwAria')} />
+                {gw < CURRENT_GW && <span className="tp-gwbar__past">{t('teamPlanner.pastGw')}</span>}
+                {/* De topbalk toont al de deadline van CURRENT_GW; hier enkel voor een andere GW. */}
+                {gw !== CURRENT_GW && GW_DEADLINES[gw] && (
+                  <span className="tp-gwbar__meta">{t('teamPlanner.deadline', { value: GW_DEADLINES[gw] })}</span>
+                )}
+              </div>
+
+              <div className="tp-boosters" role="group" aria-label={t('teamPlanner.boosters')}>
+                {['benchBoost', 'tripleCaptain', 'recharge'].map(key => (
+                  <BoosterButton
+                    key={key}
+                    t={t}
+                    label={t(`teamPlanner.booster.${key}.label`)}
+                    description={key === 'recharge' && AUTO_RECHARGE_GWS.has(gw)
+                      ? t('teamPlanner.booster.recharge.autoDescription', { gw })
+                      : t(`teamPlanner.booster.${key}.description`)}
+                    state={boosterState(key)}
+                    usedGw={p.boosters[key]}
+                    gw={gw}
+                    onClick={() => planner.toggleBooster(key)}
+                  />
+                ))}
+              </div>
+
+              {AUTO_RECHARGE_GWS.has(gw) && <p className="tp-note">{t('teamPlanner.autoRechargeNote', { gw })}</p>}
+              {isTripleCaptainActive && <p className="tp-note is-accent">{t('teamPlanner.tripleCaptainActive', { gw })}</p>}
+              {isRecharge && <p className="tp-note is-warning">{t('teamPlanner.rechargeNote', { gw })}</p>}
+              {lineup.lineupIsAuto && <p className="tp-note">{t('teamPlanner.autoLineupNote')}</p>}
+            </>
+          )}
+
+          {/* Wisselmodus (C3): één regel die zegt wat er gebeurt, ook voor schermlezers. */}
+          <div className="tp-swapbar" role="status" aria-live="polite">
+            {swapFrom !== null && (
+              <>
+                <span>{t('teamPlanner.swapLive', { name: swapName })}</span>
+                <Button variant="ghost" size="sm" onClick={() => setSwapFrom(null)}>{t('teamPlanner.cancel')}</Button>
+              </>
             )}
           </div>
 
-          <div className="tp-boosters" role="group" aria-label={t('teamPlanner.boosters')}>
-            <BoosterButton
-              t={t}
-              label={t('teamPlanner.booster.benchBoost.label')}
-              description={t('teamPlanner.booster.benchBoost.description')}
-              state={boosterState('benchBoost')}
-              usedGw={teamPlannerBoosters.benchBoost}
-              gw={teamPlannerGw}
-              onClick={() => toggleTeamPlannerBooster('benchBoost', teamPlannerGw)}
-            />
-            <BoosterButton
-              t={t}
-              label={t('teamPlanner.booster.tripleCaptain.label')}
-              description={t('teamPlanner.booster.tripleCaptain.description')}
-              state={boosterState('tripleCaptain')}
-              usedGw={teamPlannerBoosters.tripleCaptain}
-              gw={teamPlannerGw}
-              onClick={() => toggleTeamPlannerBooster('tripleCaptain', teamPlannerGw)}
-            />
-            <BoosterButton
-              t={t}
-              label={t('teamPlanner.booster.recharge.label')}
-              description={AUTO_RECHARGE_GWS.has(teamPlannerGw)
-                ? t('teamPlanner.booster.recharge.autoDescription', { gw: teamPlannerGw })
-                : t('teamPlanner.booster.recharge.description')}
-              state={boosterState('recharge')}
-              usedGw={teamPlannerBoosters.recharge}
-              gw={teamPlannerGw}
-              onClick={handleActivateRecharge}
-            />
-          </div>
-
-          {AUTO_RECHARGE_GWS.has(teamPlannerGw) && <p className="tp-note">{t('teamPlanner.autoRechargeNote', { gw: teamPlannerGw })}</p>}
-          {isTripleCaptainActive && <p className="tp-note is-accent">{t('teamPlanner.tripleCaptainActive', { gw: teamPlannerGw })}</p>}
-          {isRechargeActiveForGw && <p className="tp-note is-warning">{t('teamPlanner.rechargeActiveEditAbove', { gw: teamPlannerGw })}</p>}
-          {isBenchComplete && hasFullStartingXi && !isValidFormation && (
-            <p className="tp-note is-danger">{t('teamPlanner.invalidFormation', { formation: formationLabel, gk: gkCount })}</p>
-          )}
-
-          <TransferPanel
-            t={t}
-            gw={teamPlannerGw}
-            resolvedIndexedPlayers={resolvedIndexedPlayers}
-            playerDatabase={playerDatabase}
-            playerDatabaseLoading={playerDatabaseLoading}
-            playerDatabaseError={playerDatabaseError}
-            onConfirm={planTeamPlannerTransfer}
-            externalOutIndex={transferOutIndex}
-            onExternalOutIndexConsumed={consumeTransferOut}
-            onOpenChange={setIsTransferPanelOpen}
-            panelRef={transferRef}
-          />
-
-          <div className="tp-pitch">
+          <div className={`tp-pitch${swapFrom !== null ? ' is-swapping' : ''}`}>
             {PITCH_ROW_ORDER.map(pos => (
               <div key={pos} className="tp-pitch__row">
-                {resolvedIndexedPlayers
-                  .filter(p => p.position === pos && !benchForGw.includes(p.index))
-                  .map(p => renderSlot(p))}
+                {displayTeam
+                  .filter(player => player.position === pos && !bench.includes(player.index))
+                  .map(player => renderSlot(player))}
               </div>
             ))}
           </div>
 
           <div className="tp-bench">
             <div className="tp-bench__head">
-              <h3 className="label tp-bench__title">{t('teamPlanner.benchDash', { gw: teamPlannerGw })}</h3>
-              {isBenchBoostActive && <span className="tp-note is-accent">{t('teamPlanner.benchBoostActive', { gw: teamPlannerGw })}</span>}
+              <h3 className="label tp-bench__title">{t('teamPlanner.benchDash', { gw })}</h3>
+              {showPlannerControls && isBenchBoostActive && <span className="tp-note is-accent">{t('teamPlanner.benchBoostActive', { gw })}</span>}
             </div>
-            {isBenchReorderMode && (
-              <p className="tp-note is-accent" role="status">
-                <strong>{t('teamPlanner.reorderModeActive')}.</strong>{' '}
-                {benchSwapSlot === null ? t('teamPlanner.reorderModeHintFirst') : t('teamPlanner.reorderModeHintSecond')}
-              </p>
+            <div className="tp-bench__row">{benchPlayers.map(player => renderSlot(player, { benched: true }))}</div>
+            {showPlannerControls && (
+              <div className="tp-bench__actions">
+                <Button variant="secondary" size="sm" icon={Wand2} onClick={planner.optimize}>{t('teamPlanner.optimizeLineup')}</Button>
+                <span className="tp-note tp-note--inline">{t('teamPlanner.optimizeExplain', { count: FORM_GWS })}</span>
+              </div>
             )}
-            {benchPlayers.length === 0 ? (
-              <p className="tp-note">{t('teamPlanner.emptyBench')}</p>
-            ) : (
-              <div className="tp-bench__row">{benchPlayers.map(p => renderSlot(p, { benched: true }))}</div>
-            )}
-            <div className="tp-bench__actions">
-              <Button variant="secondary" size="sm" icon={Wand2} onClick={handleOptimizeTeamPlannerLineup}>{t('teamPlanner.optimizeLineup')}</Button>
-              <Button
-                variant="secondary" size="sm" icon={ArrowUpDown}
-                aria-pressed={isBenchReorderMode}
-                disabled={benchOutfieldPlayers.length < 2}
-                onClick={() => setIsBenchReorderMode(o => !o)}
-              >
-                {isBenchReorderMode ? t('teamPlanner.reorderBenchDone') : t('teamPlanner.reorderBench')}
-              </Button>
-              {benchOutfieldPlayers.length < 2 && <span className="tp-note tp-note--inline">{t('teamPlanner.reorderBenchMinPlayers')}</span>}
-            </div>
-            {teamPlannerOptimized && <p className="tp-note is-accent">{t('teamPlanner.lineupOptimized', { gw: teamPlannerGw })}</p>}
           </div>
         </section>
 
         <div className="tp-side">
-          <section ref={listRef} className={`tp-panel tp-panel--list${view !== 'list' ? ' is-hidden-narrow' : ''}`} aria-labelledby="tp-list-title">
+          <section className={`tp-panel tp-panel--list${view !== 'list' ? ' is-hidden-narrow' : ''}`} aria-labelledby="tp-list-title">
             <div className="tp-panel__head">
-              <h2 id="tp-list-title" className="tp-panel__title">{t('teamPlanner.selection')}</h2>
+              <h2 id="tp-list-title" className="tp-panel__title">
+                {t('teamPlanner.selection')} <span className="tp-panel__meta num">GW{gw}</span>
+              </h2>
             </div>
-
-            {/* Recharge-booster: laat de gebruiker het volledige team op de bekeken GW herbewerken
-                via deze lijst (rechargeDraft/handleConfirmRecharge hierboven). */}
-            {isRechargeActiveForGw && (
-              <div className="tp-recharge" role="status">
-                <p>{t('teamPlanner.rechargeActive', { gw: teamPlannerGw, editingSuffix: rechargeDraft ? t('teamPlanner.rechargeActiveEditingSuffix') : '' })}</p>
-                {rechargeDraft === null ? (
-                  <Button variant="secondary" size="sm" onClick={handleStartRecharge}>{t('teamPlanner.startEditing')}</Button>
-                ) : (
-                  <>
-                    <Button variant="secondary" size="sm" onClick={handleConfirmRecharge} disabled={isRechargeInvalid}>{t('teamPlanner.confirmRecharge')}</Button>
-                    <Button variant="ghost" size="sm" onClick={() => setRechargeDraft(null)}>{t('teamPlanner.cancel')}</Button>
-                  </>
-                )}
-              </div>
-            )}
-
-            {!rechargeDraft && teamPlannerTransferHistory.length > 0 && (
-              <p className="tp-note">{t('teamPlanner.listBaseNote')}</p>
-            )}
-
             <DataTable
               className="tp-list"
               ariaLabel={t('teamPlanner.selection')}
@@ -915,7 +780,7 @@ export default function TeamPlannerTab({
                 <span className="tp-group">{pos} <span className="num">{items.filter(r => r.name).length}/{items.length}</span></span>
               )}
               onRowClick={row => {
-                if (isEmptySlot(row)) openPicker(row.index);
+                if (isEmptySlot(row)) { if (baseMode) openFillPicker(row.index); }
                 else if (onOpenPlayer && row.name && row.teamCode) onOpenPlayer(row.name, row.teamCode);
               }}
               rowLabel={row => (isEmptySlot(row) ? t('teamPlanner.emptySlot', { position: row.position }) : t('playerSheet.openAria', { name: row.name }))}
@@ -936,7 +801,7 @@ export default function TeamPlannerTab({
                   onToggle={toggleSection}
                 />
               </div>
-              <Button variant="danger" size="sm" icon={Trash2} onClick={handleClearTeamPlannerTransfers} disabled={transferGroups.length === 0}>
+              <Button variant="danger" size="sm" icon={Trash2} onClick={planner.clearTransfers} disabled={transferGroups.length === 0}>
                 {t('teamPlanner.clearAllTransfers')}
               </Button>
             </div>
@@ -945,14 +810,12 @@ export default function TeamPlannerTab({
                 {transferGroups.length === 0 ? (
                   <EmptyState>{t('teamPlanner.emptyTransfers')}</EmptyState>
                 ) : transferGroups.map(group => {
-                  const groupBudget = teamPlannerTransferBudget[group.gw];
+                  const groupBudget = planner.transferBudget[group.gw];
                   return (
                     <div key={group.gw} className="tp-tgroup">
                       <h3 className="tp-tgroup__title">
                         <span className="num">GW{group.gw}</span>
-                        {/* Zelfde regel als de transfer-budgetberekening: handmatige Recharge of een
-                            automatische Recharge-GW. */}
-                        {isRechargeActiveForGwRule(teamPlannerBoosters, group.gw) && <span className="tp-tgroup__meta">Recharge</span>}
+                        {isRechargeActiveForGw(p.boosters, group.gw) && <span className="tp-tgroup__meta">Recharge</span>}
                         {groupBudget?.pointsCost > 0 && (
                           <span
                             className="tp-tgroup__meta is-danger"
@@ -988,13 +851,15 @@ export default function TeamPlannerTab({
           players={playerDatabase}
           loading={playerDatabaseLoading}
           position={TEAM_PLANNER_SLOT_POSITIONS[picker.index]}
+          title={pickerOut ? t('teamPlanner.transferPickerTitle', { gw, name: shortLabel(pickerOut) }) : null}
+          note={pickerOut ? t('teamPlanner.transferPickerNote', { max: pickerBudgetMax.toFixed(1) }) : null}
           switchablePositions={pickerPositions}
           onSwitchPosition={switchPickerPosition}
-          added={picker.fill ? picker.added : null}
+          added={picker.mode === 'fill' ? picker.added : null}
           emptyLeft={pickerEmptyLeft}
           blockedReason={pickerBlocked}
-          budgetMax={remainingBudget + (parseFloat(pickerRow?.price) || 0)}
-          gw={teamPlannerGw}
+          budgetMax={pickerBudgetMax}
+          gw={gw}
           ratings={ratings}
           homeAdvantage={homeAdvantage}
           isWatched={isPlayerWatched}

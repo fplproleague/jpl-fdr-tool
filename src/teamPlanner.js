@@ -406,3 +406,128 @@ export function lineupForGw(planner, gw, autoBench) {
     vice: onPitch(viceRaw) && viceRaw !== captainRaw ? viceRaw : null,
   };
 }
+
+// Standaardbank voor een team dat nog niet compleet is (4-4-2, de tweede keeper erop): zo staan de lege
+// vakken altijd op dezelfde plek terwijl je invult.
+export const DEFAULT_BENCH = Object.freeze([1, 6, 11, 14]);
+
+// Kapitein en vice volgens een score per slot: de twee beste basisspelers. Een keeper komt pas in
+// aanmerking als er geen veldspeler meer over is: hij haalt zelden een grote score, dus als voorstel
+// voelt hij fout aan, ook met een goede vorm. Zelf kiezen kan altijd.
+export function suggestCaptains(bench, scoreForSlot) {
+  const starters = TEAM_PLANNER_SLOT_POSITIONS
+    .map((_, index) => index)
+    .filter(index => !bench.includes(index))
+    .sort((a, b) => (TEAM_PLANNER_SLOT_POSITIONS[a] === 'GK') - (TEAM_PLANNER_SLOT_POSITIONS[b] === 'GK')
+      || scoreForSlot(b) - scoreForSlot(a) || a - b);
+  return { captain: starters[0] ?? null, vice: starters[1] ?? null };
+}
+
+// --- Wijzigingen (puur: geven een nieuw plannerobject terug) ------------------------------------
+
+const samePlayer = (a, b) => !!a?.name && a.name === b?.name && a.teamCode === b?.teamCode;
+
+// Transfer op `slot` vanaf `gw` (C4). Een bestaande transfer op dezelfde slot en speeldag wordt
+// vervangen. Kies je de speler die er vóór die speeldag stond, dan verdwijnt de transfer gewoon.
+// Geeft { planner, kind: 'done' | 'reverted', out } terug.
+export function applyTransfer(planner, slot, gw, inPlayer) {
+  const existing = planner.transfersBySlot[slot] ?? [];
+  const others = existing.filter(t => t.gw !== gw);
+  const before = resolveSlotAtGw(planner.players[slot], others.filter(t => t.gw < gw), gw);
+  const out = resolveSlotAtGw(planner.players[slot], existing, gw);
+  const nextForSlot = samePlayer(before, inPlayer)
+    ? others
+    : [...others, {
+        id: createUniqueId(),
+        gw,
+        player: { name: inPlayer.name, teamCode: inPlayer.teamCode, position: inPlayer.position ?? TEAM_PLANNER_SLOT_POSITIONS[slot], price: inPlayer.price ?? null },
+      }].sort((a, b) => a.gw - b.gw);
+  const transfersBySlot = { ...planner.transfersBySlot };
+  if (nextForSlot.length > 0) transfersBySlot[slot] = nextForSlot;
+  else delete transfersBySlot[slot];
+  return { planner: { ...planner, transfersBySlot }, kind: samePlayer(before, inPlayer) ? 'reverted' : 'done', out };
+}
+
+// Een transfer verwijderen, samen met de latere transfers op hetzelfde slot (die vertrekken van de
+// speler die net weggaat). Geeft { planner, removed } terug.
+export function removeTransferCascade(planner, slot, transferId) {
+  const existing = planner.transfersBySlot[slot] ?? [];
+  const target = existing.find(t => t.id === transferId);
+  if (!target) return { planner, removed: 0 };
+  const kept = existing.filter(t => t.gw < target.gw);
+  const transfersBySlot = { ...planner.transfersBySlot };
+  if (kept.length > 0) transfersBySlot[slot] = kept;
+  else delete transfersBySlot[slot];
+  return { planner: { ...planner, transfersBySlot }, removed: existing.length - kept.length };
+}
+
+// Kapitein of vice instellen voor `gw` (en later, tot een nieuwe keuze). Kapitein en vice zijn nooit
+// dezelfde speler: wie de andere rol had, laat die plek leeg (C2).
+export function setRoleAt(planner, gw, role, slot) {
+  const own = role === 'captain' ? 'captainByGw' : 'viceByGw';
+  const other = role === 'captain' ? 'viceByGw' : 'captainByGw';
+  const next = { ...planner, [own]: { ...planner[own], [gw]: slot } };
+  if (slot !== null && resolveForGw(planner[other], gw, planner.startGw) === slot) {
+    next[other] = { ...planner[other], [gw]: null };
+  }
+  return next;
+}
+
+export function setBenchAt(planner, gw, bench) {
+  return { ...planner, benchByGw: { ...planner.benchByGw, [gw]: [...bench] } };
+}
+
+// "Klopt niet? Pas aan" (C1): de echte waarden aan het begin van `gw`, vóór de geplande transfers.
+// Op de startspeeldag zijn dat gewoon de startwaarden; later wordt het een ijkpunt. `values` bevat
+// enkel wat de bezoeker invulde ({ bank?, freeTransfers? }).
+export function setCalibrationAt(planner, gw, values) {
+  if (gw === planner.startGw) {
+    const next = { ...planner };
+    if ('bank' in values) next.startBank = values.bank;
+    if ('freeTransfers' in values && planner.startGw > 1) next.startFreeTransfers = values.freeTransfers;
+    return next;
+  }
+  const entry = {};
+  if (Number.isFinite(values.bank)) entry.bank = Math.round(values.bank * 10) / 10;
+  if (Number.isInteger(values.freeTransfers)) entry.freeTransfers = Math.min(TEAM_PLANNER_FREE_TRANSFER_CAP, Math.max(0, values.freeTransfers));
+  const checkpoints = { ...planner.checkpoints };
+  if (Object.keys(entry).length > 0) checkpoints[gw] = entry;
+  else delete checkpoints[gw];
+  return { ...planner, checkpoints };
+}
+
+export function hasCalibrationAt(planner, gw) {
+  if (gw === planner.startGw) return planner.startBank !== null || (planner.startGw > 1 && planner.startFreeTransfers !== 1);
+  return !!planner.checkpoints[gw];
+}
+
+export function clearCalibrationAt(planner, gw) {
+  if (gw === planner.startGw) return { ...planner, startBank: null, startFreeTransfers: 1 };
+  const checkpoints = { ...planner.checkpoints };
+  delete checkpoints[gw];
+  return { ...planner, checkpoints };
+}
+
+// Een team dat net compleet werd, krijgt meteen een geldige opstelling met kapitein en vice (C2), op
+// de startspeeldag. Wat de bezoeker daar al zelf koos, blijft staan.
+export function withStartLineup(prev, next, scoreForSlotAt) {
+  if (!isPlannerComplete(next.players) || isPlannerComplete(prev.players)) return next;
+  const gw = next.startGw;
+  const score = scoreForSlotAt(next, gw);
+  let result = next;
+  let bench = resolveForGw(next.benchByGw, gw, next.startGw);
+  if (!isValidBench(bench, next.players)) {
+    bench = bestLineup(score).bench;
+    result = setBenchAt(result, gw, bench);
+  }
+  const { captain, vice } = suggestCaptains(bench, score);
+  if (resolveForGw(next.captainByGw, gw, next.startGw) === undefined) {
+    result = { ...result, captainByGw: { ...result.captainByGw, [gw]: captain } };
+  }
+  if (resolveForGw(next.viceByGw, gw, next.startGw) === undefined) {
+    const currentCaptain = resolveForGw(result.captainByGw, gw, next.startGw);
+    const v = vice === currentCaptain ? captain : vice;
+    result = { ...result, viceByGw: { ...result.viceByGw, [gw]: v === currentCaptain ? null : v } };
+  }
+  return result;
+}
