@@ -2,7 +2,7 @@
 
 Website met tools voor **Fantasy Pro League** (fantasy-spel van de Belgische Jupiler Pro League), gemaakt door @fpl_proleague. Live op https://fplproleague.vercel.app, GitHub: `fplproleague/jpl-fdr-tool` (openbaar).
 
-Tabs: FDR (Fixture Difficulty Rating), Team Planner, Verwachte XI's, Spelers, Bonuspunten, Set Pieces, Watchlist, Kaarten, Klassement, Price Changes (`src/tabs/PlayerStatusTab.jsx` bestaat, maar wordt nergens gebruikt). Plus een speler- en clubpagina per speler/club. De site bestaat in het Nederlands (`/fdr`) en het Frans (`/fr/fdr`).
+Tabs: FDR (Fixture Difficulty Rating), Team Planner, Verwachte XI's, Spelers, Bonuspunten, Set Pieces, Watchlist, Kaarten, Klassement, Price Changes (`src/tabs/PlayerStatusTab.jsx` bestaat, maar wordt nergens gebruikt). Plus een speler- en clubpagina per speler/club. De site bestaat in het Nederlands (`/fdr`), het Frans (`/fr/fdr`) en het Engels (`/en/fdr`); elke tekst staat in `src/i18n.js` in alle drie de talen.
 
 ## Werken met de eigenaar
 

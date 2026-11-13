@@ -28,6 +28,9 @@
 @media (max-width: 700px) {
   .rk-toolbar__search { flex: 1 1 100%; }
   .rk-toolbar > .ui-seg-wrap { width: 100%; }
+  /* Segmenten over de volle breedte en iets compacter, zodat ook het laatste ("Totaal") past. */
+  .rk-toolbar > .ui-seg-wrap > .ui-seg { display: flex; width: 100%; }
+  .rk-toolbar > .ui-seg-wrap .ui-seg__item { flex: 1 1 auto; padding: 0 var(--s-2); font-size: var(--fs-meta); }
   .rk-col-club, .rk-col-extra { display: none; }
   .rk-table .ui-table .is-sticky { max-width: 200px; }
 }

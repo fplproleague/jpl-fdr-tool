@@ -1,11 +1,24 @@
 /* DataTable (spec §5.6): de ruggengraat van de site. Lijnen, geen dozen; geen zebra; geen kaarten. */
-.ui-table-scroll { position: relative; width: 100%; }
+/* overflow-x: clip tot useOverflow gemeten heeft: zonder dat steekt een nieuwe, brede tabel even buiten
+   de pagina, waarna een gsm de pagina herschaalt en naar boven springt. clip (i.p.v. auto) maakt er
+   nog geen scrollvak van, dus de sticky kop blijft aan de pagina plakken. */
+.ui-table-scroll { position: relative; width: 100%; overflow-x: clip; }
 .ui-table-scroll.is-overflowing {
   overflow-x: auto; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch;
   -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
   mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
 }
 .ui-table-scroll.is-overflowing.is-end { -webkit-mask-image: none; mask-image: none; }
+
+@keyframes ui-table-hint-nudge { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(4px); } }
+.ui-table-hint {
+  display: flex; justify-content: flex-end; align-items: center; gap: var(--s-1); margin: 0 0 var(--s-1);
+  color: var(--text-3); font-size: var(--fs-label); line-height: var(--lh-label);
+}
+.ui-table-hint.is-done { visibility: hidden; }
+.ui-table-hint__arrow { display: inline-block; color: var(--accent); animation: ui-table-hint-nudge 1.2s var(--ease) 3; }
+@media (prefers-reduced-motion: reduce) { .ui-table-hint__arrow { animation: none; } }
+@media (hover: hover) and (pointer: fine) and (min-width: 701px) { .ui-table-hint { display: none; } }
 
 .ui-table {
   width: 100%; border-collapse: separate; border-spacing: 0;
@@ -22,12 +35,18 @@
 .ui-table th.is-num, .ui-table td.is-num { text-align: right; }
 .ui-table th.is-center, .ui-table td.is-center { text-align: center; }
 .ui-table th.is-sorted { color: var(--accent); }
+/* Het sorteerpijltje staat absoluut naast het label, zodat het label zelf exact boven de cijfers
+   staat (rechts uitgelijnd bij getallen, pijltje dan links ervan). */
 .ui-th-sort {
-  display: inline-flex; align-items: center; gap: 4px; height: 32px;
+  position: relative; display: inline-flex; align-items: center; height: 32px;
   border: 0; padding: 0; background: none; color: inherit; font: inherit; letter-spacing: inherit;
   text-transform: inherit; cursor: pointer;
 }
-.ui-th-sort__arrow { font-family: var(--font-num); font-size: var(--fs-micro); width: 1ch; display: inline-block; }
+.ui-th-sort__arrow {
+  position: absolute; left: 100%; top: 50%; transform: translateY(-50%); margin-left: 2px;
+  font-family: var(--font-num); font-size: var(--fs-micro); width: 1ch; text-align: center;
+}
+.ui-table th.is-num .ui-th-sort__arrow { left: auto; right: 100%; margin: 0 2px 0 0; }
 .ui-th-sort__arrow--idle { color: var(--text-4); visibility: hidden; }
 .ui-th-sort:hover .ui-th-sort__arrow--idle, .ui-th-sort:focus-visible .ui-th-sort__arrow--idle { visibility: visible; }
 

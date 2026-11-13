@@ -17,7 +17,12 @@
     margin-right: calc(var(--fdr-page-gutter) * -1);
   }
 }
-.fdr-meta-custom { color: var(--accent); }
+.fdr-meta-link, .fdr-intro-link {
+  border: 0; padding: 0; background: none; font: inherit; cursor: pointer;
+  color: var(--accent); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px;
+}
+.fdr-meta-link:not(.is-custom) { color: var(--text-2); }
+.fdr-meta-link:hover, .fdr-intro-link:hover { text-decoration-thickness: 2px; }
 
 /* --- Toolbar --------------------------------------------------------------------------------- */
 .fdr-toolbar {
@@ -67,7 +72,7 @@
   border-collapse: separate; border-spacing: 2px;
   color: var(--text-1); font-family: var(--font-ui);
 }
-.fdr-grid--compare { --fdr-avg-w: 0px; }
+.fdr-grid--compare, .fdr-grid--no-avg { --fdr-avg-w: 0px; }
 .fdr-grid th, .fdr-grid td { padding: 0; }
 
 /* Kop: sticky onder de topbalk (zolang de tabel niet horizontaal scrolt; zie useOverflow). */
@@ -125,15 +130,10 @@ span.fdr-team { cursor: default; }
 .fdr-section { margin-bottom: var(--s-5); }
 .fdr-section .fdr-range { margin-bottom: var(--s-1); }
 
-.fdr-runs { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
-.fdr-runs__row {
-  display: grid; grid-template-columns: 24px 20px minmax(120px, 200px) minmax(0, 1fr);
-  align-items: center; gap: var(--s-3); padding: var(--s-2) 0; border-bottom: 1px solid var(--line);
-}
-.fdr-runs__rank { color: var(--text-3); font-size: var(--fs-ui); text-align: right; }
+.fdr-grid--runs thead th { position: static; }
+.fdr-runs__rank { width: 14px; flex-shrink: 0; color: var(--text-3); font-size: var(--fs-meta); text-align: right; }
 .fdr-runs__rank.is-first { color: var(--accent); }
-.fdr-runs__name { display: flex; flex-direction: column; gap: 2px; font: 600 var(--fs-ui)/var(--lh-ui) var(--font-ui); min-width: 0; }
-.fdr-runs__avg { color: var(--text-3); font-size: var(--fs-meta); font-weight: 400; }
+.fdr-runs__more { margin-top: var(--s-2); }
 
 .fdr-compare-chips {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: var(--s-1);
@@ -180,8 +180,6 @@ span.fdr-team { cursor: default; }
   .fdr-tool-btn__text { display: none; }
   .fdr-legend--top { display: none; }
   .fdr-legend--bottom { display: inline-flex; }
-  .fdr-runs__row { grid-template-columns: 20px 20px minmax(0, 1fr); row-gap: var(--s-1); }
-  .fdr-runs__row > .ui-fstrip-scroll, .fdr-runs__row > :last-child { grid-column: 1 / -1; }
   .fdr-rating-row { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'club switch' 'seg seg'; row-gap: var(--s-1); padding: var(--s-2) 0; }
   .fdr-rating-row__club { grid-area: club; }
   .fdr-rating-row .fdr-switch { grid-area: switch; }

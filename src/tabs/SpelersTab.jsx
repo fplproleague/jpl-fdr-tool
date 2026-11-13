@@ -11,7 +11,7 @@
 // Bij een fout van de bron toont de tab de laatst bekende data (eerst van de server, anders uit deze
 // browser) met een duidelijke melding, nooit een lege pagina.
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { SlidersHorizontal, X, Link2, Check, GitCompareArrows } from 'lucide-react';
+import { SlidersHorizontal, X, Link2, Check, Scale } from 'lucide-react';
 import { CURRENT_GW, TEAMS_ALPHA } from '../constants';
 import ScopeFilter, { ScopeEmptyMessage } from '../components/ScopeFilter';
 import { Sparkline, UpcomingFixtures, ClubLogo } from '../components/SpelersParts';
@@ -67,11 +67,13 @@ function useSpelersData() {
 
 // --- Filterlade ----------------------------------------------------------------------------------
 
-// Twee schuifregelaars (min en max) voor de prijs. Bewust twee losse, gelabelde sliders i.p.v. één
-// met twee handvatten: die laatste zijn op een telefoon lastig te pakken en voor screenreaders slecht.
+// Eén prijsbalk met twee handvatten (min en max). Technisch blijven het twee gewone, gelabelde
+// schuifregelaars (goed voor toetsenbord en schermlezer), maar ze liggen op dezelfde balk; enkel de
+// handvatten vangen tikken op. Het stuk tussen de handvatten kleurt mee.
 function PriceRange({ t, bounds, pmin, pmax, onChange }) {
   const lo = pmin ?? bounds.min;
   const hi = pmax ?? bounds.max;
+  const span = Math.max(bounds.max - bounds.min, 0.5);
   const set = (nextLo, nextHi) => onChange(
     nextLo <= bounds.min ? null : nextLo,
     nextHi >= bounds.max ? null : nextHi,
@@ -82,6 +84,15 @@ function PriceRange({ t, bounds, pmin, pmax, onChange }) {
         {t('spelers.filter.price')} <span className="num spl-field__value">€{lo.toFixed(1)} – €{hi.toFixed(1)}</span>
       </span>
       <div className="spl-range">
+        <span className="spl-range__track" aria-hidden="true">
+          <span
+            className="spl-range__fill"
+            style={{
+              left: `${((lo - bounds.min) / span) * 100}%`,
+              right: `${100 - ((hi - bounds.min) / span) * 100}%`,
+            }}
+          />
+        </span>
         <input type="range" min={bounds.min} max={bounds.max} step={0.5} value={lo}
           aria-label={t('spelers.filter.priceMin')}
           onChange={e => { const v = Number(e.target.value); set(v, Math.max(v, hi)); }} />
@@ -497,7 +508,7 @@ export default function SpelersTab({
             <Button icon={SlidersHorizontal} onClick={() => setFiltersOpen(true)} aria-haspopup="dialog">
               {chips.length ? t('spelers.filter.buttonCount', { n: chips.length }) : t('spelers.filter.button')}
             </Button>
-            <Button icon={GitCompareArrows} aria-pressed={compareMode} onClick={() => setCompareMode(m => !m)}>
+            <Button icon={Scale} aria-pressed={compareMode} onClick={() => setCompareMode(m => !m)}>
               {t('spelers.compare.mode')}
             </Button>
           </div>
@@ -539,6 +550,7 @@ export default function SpelersTab({
           <DataTable
             className="spl-table"
             bleed
+            scrollHint={t('shared.scrollHint')}
             loading={loading && !data}
             columns={tableColumns}
             rows={sorted.slice(0, visible)}

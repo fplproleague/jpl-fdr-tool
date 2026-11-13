@@ -6,6 +6,10 @@
 // ownership en de foto komen uit usePlayerIndex zodra /api/players geladen is; tot dan staan die
 // kolommen op "—".
 //
+// Vulmodus (added !== null): de Team Planner houdt de kiezer open na een keuze en schuift door naar het
+// volgende lege slot. Bovenaan staat dan wie je net koos en hoeveel plaatsen er nog vrij zijn; onderaan
+// een knop "Klaar". switchablePositions zet de andere posities met een vrij slot aan.
+//
 // blockedReason(player) -> tekst of null: spelers die al in de selectie zitten of de clublimiet
 // zouden breken, blijven zichtbaar (opacity .4) met de reden eronder, maar zijn niet te kiezen.
 import { useMemo, useState } from 'react';
@@ -38,7 +42,7 @@ const isDesktop = () => typeof window !== 'undefined' && window.matchMedia?.('(m
 
 export default function PlayerPicker({
   t, onClose, onSelect, players, loading = false, position, blockedReason, budgetMax, gw, ratings, homeAdvantage,
-  isWatched, onToggleWatch,
+  isWatched, onToggleWatch, switchablePositions = null, onSwitchPosition, added = null, emptyLeft = 0,
 }) {
   const index = usePlayerIndex();
   const [query, setQuery] = useState('');
@@ -64,7 +68,10 @@ export default function PlayerPicker({
     }
     return { priceOptions: opts, defaultPrice: budget !== null ? budget.toFixed(1) : 'all' };
   }, [players, position, budgetMax, t]);
-  const [maxPrice, setMaxPrice] = useState(defaultPrice);
+  // Zolang je zelf geen maximumprijs koos, volgt de filter het resterende budget (dat zakt na elke
+  // keuze in vulmodus).
+  const [maxPriceChoice, setMaxPrice] = useState(null);
+  const maxPrice = maxPriceChoice !== null && priceOptions.some(o => o.value === maxPriceChoice) ? maxPriceChoice : defaultPrice;
 
   const apiGw = index.data?.gw ?? 0;
   const rows = useMemo(() => {
@@ -146,7 +153,18 @@ export default function PlayerPicker({
   const titleId = 'ui-picker-title';
 
   return (
-    <Sheet titleId={titleId} title={t(`picker.title.${position}`)} closeLabel={t('picker.close')} onClose={onClose} width="680px">
+    <Sheet
+      titleId={titleId} title={t(`picker.title.${position}`)} closeLabel={t('picker.close')} onClose={onClose} width="680px"
+      footer={added && added.length > 0 ? <Button variant="primary" onClick={onClose}>{t('picker.done')}</Button> : null}
+    >
+      {added && (
+        <p className="ui-picker__progress" role="status">
+          {added.length > 0 && (
+            <span className="ui-picker__added">{t('picker.added', { name: added[added.length - 1] })} </span>
+          )}
+          {t(emptyLeft === 1 ? 'picker.leftOne' : 'picker.leftMany', { count: emptyLeft })}
+        </p>
+      )}
       <div className="ui-picker__filters">
         <SearchField
           value={query}
@@ -160,8 +178,8 @@ export default function PlayerPicker({
           size="sm"
           ariaLabel={t('picker.positionAria')}
           value={position}
-          onChange={() => {}}
-          options={POSITIONS.map(p => ({ value: p, label: p, disabled: p !== position }))}
+          onChange={(p) => { if (p !== position) onSwitchPosition?.(p); }}
+          options={POSITIONS.map(p => ({ value: p, label: p, disabled: p !== position && !switchablePositions?.includes(p) }))}
         />
         <label className="ui-picker__select">
           <span className="label">{t('picker.maxPrice')}</span>
@@ -185,7 +203,7 @@ export default function PlayerPicker({
         loading={loading}
         rowKey={r => `${r.player.teamCode}-${r.player.name}`}
         rowClassName={r => (r.reason ? 'is-dimmed is-blocked' : undefined)}
-        onRowClick={r => { if (!r.reason) onSelect(r.player); }}
+        onRowClick={r => { if (!r.reason) { onSelect(r.player); setQuery(''); setLimit(PAGE_SIZE); } }}
         rowLabel={r => (r.reason ? `${r.player.name}: ${r.reason}` : t('picker.chooseAria', { name: r.player.name }))}
         empty={<EmptyState>{t('picker.empty')}</EmptyState>}
         footer={rows.length > limit ? (
