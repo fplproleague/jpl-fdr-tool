@@ -34,18 +34,11 @@ import Switch from './Switch';
 import { AvailabilityBadge } from './AvailabilityMark';
 import { useAvailabilityLookup } from '../availabilityContext';
 import { isAvailable } from '../availability';
+import { FORM_GWS, formAverage, formatForm } from '../spelers';
 import './PlayerPicker.css';
 
 const POSITIONS = ['GK', 'DEF', 'MID', 'FWD'];
 const PAGE_SIZE = 60;
-const FORM_GWS = 5; // zelfde venster als de vormkolom op de Spelers-tab (spelers.js)
-
-function sumLast(arr, gw, n) {
-  if (!Array.isArray(arr)) return null;
-  let total = 0;
-  for (let i = Math.max(0, gw - n); i < gw; i++) total += arr[i] ?? 0;
-  return total;
-}
 
 const isDesktop = () => typeof window !== 'undefined' && window.matchMedia?.('(min-width: 900px) and (pointer: fine)').matches;
 
@@ -101,7 +94,7 @@ export default function PlayerPicker({
           player: p,
           status,
           pts: api?.pts ?? null,
-          form: api ? sumLast(api.w?.pts, apiGw, FORM_GWS) : null,
+          form: api ? formAverage(api.w?.pts, apiGw) : null,
           sel: api?.sel ?? null,
           reason: blockedReason?.(p) ?? null,
         };
@@ -154,7 +147,7 @@ export default function PlayerPicker({
     { key: 'club', label: t('picker.col.club'), className: 'ui-picker__col-club', render: ({ player }) => player.teamCode },
     { key: 'price', label: t('picker.col.price'), num: true, className: 'ui-picker__col-price', render: ({ player }) => (Number.isFinite(player.price) ? `€${player.price.toFixed(1)}` : null) },
     { key: 'pts', label: t('picker.col.pts'), title: t('picker.sort.pts'), num: true, render: r => r.pts },
-    { key: 'form', label: t('picker.col.form'), title: t('picker.col.formTitle', { count: FORM_GWS }), num: true, render: r => r.form },
+    { key: 'form', label: t('picker.col.form'), title: t('picker.col.formTitle', { count: FORM_GWS }), num: true, render: r => formatForm(r.form) },
     {
       key: 'next', label: t('picker.col.next'), className: 'ui-picker__col-next',
       render: ({ player }) => (

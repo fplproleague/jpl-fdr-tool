@@ -23,13 +23,14 @@ export const SPARK_GWS = 5;
 //   period: true  -> herberekend voor de gekozen periode (punten, minuten, goals, assists, bonus)
 //   per90:  true  -> kan per 90 minuten getoond worden
 //   decimals: aantal decimalen bij weergave
+//   title: i18n-sleutel voor de tooltip in de kolomkop (anders het label zelf)
 //   lowerIsBetter: voor de "beste waarde"-markering in Vergelijken
 export const COLUMNS = {
   price: { label: 'spelers.col.price', get: r => r.price, decimals: 1, format: v => `€${v.toFixed(1)}`, lowerIsBetter: true, noBest: true },
   pts: { label: 'spelers.col.pts', get: r => r.pts, period: true, per90: true },
   ppm: { label: 'spelers.col.ppm', get: r => r.ppm, decimals: 1 },
   ppg: { label: 'spelers.col.ppg', get: r => r.ppg, decimals: 1 },
-  form: { label: 'spelers.col.form', get: r => r.form },
+  form: { label: 'spelers.col.form', title: 'spelers.col.formTitle', get: r => r.form, decimals: 1 },
   sel: { label: 'spelers.col.sel', get: r => r.sel, format: v => `${v}%` },
   min: { label: 'spelers.col.min', get: r => r.min, period: true },
   mp: { label: 'spelers.col.mp', get: r => r.mp, period: true },
@@ -94,6 +95,19 @@ function countPlayed(minArr, from, to) {
 
 const ratio = (a, b) => (b > 0 ? a / b : null);
 
+// Vorm (spec E4): het gemiddelde aantal punten per speeldag over de laatste FORM_GWS speeldagen (of
+// minder, vroeg in het seizoen). Een speeldag zonder minuten telt mee als 0: zo lees je "vorm" zoals in
+// FPL. Eén functie voor de Spelers-tabel, de spelerskiezer, de Team Planner en de spelerskaart.
+// weekPts = de weekreeks (player.w.pts), gw = laatst gespeelde speeldag. null als er nog niets gespeeld is.
+export function formAverage(weekPts, gw, n = FORM_GWS) {
+  if (!Array.isArray(weekPts) || !(gw > 0)) return null;
+  const from = Math.max(0, gw - n);
+  return sumRange(weekPts, from, gw) / (gw - from);
+}
+
+// Vorm met één decimaal voor de weergave ("6.2"), of null.
+export const formatForm = (value) => (Number.isFinite(value) ? value.toFixed(1) : null);
+
 // Speler uit /api/players + gekozen periode -> één tabelrij met alle afgeleide waarden.
 // `gw` = laatst gespeelde speeldag (lengte van de weekreeksen).
 export function buildRow(player, period, gw) {
@@ -119,8 +133,7 @@ export function buildRow(player, period, gw) {
     ppg: ratio(base.pts, base.mp),
     p90: base.min >= MIN_MINUTES_PER90 ? (base.pts / base.min) * 90 : null,
     minPerMatch: ratio(base.min, base.mp),
-    form: sumRange(w?.pts, Math.max(0, gw - FORM_GWS), gw),
-    form3: sumRange(w?.pts, Math.max(0, gw - 3), gw),
+    form: formAverage(w?.pts, gw),
     spark: Array.from({ length: gw - sparkFrom }, (_, i) => ({ gw: sparkFrom + i + 1, pts: w?.pts?.[sparkFrom + i] ?? null })),
   };
 }

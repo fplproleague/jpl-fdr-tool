@@ -194,3 +194,22 @@
   .tp-slot.is-empty .tp-slot__frame { width: 46px; height: 52px; }
   .tp-bench__row { gap: var(--s-1); }
 }
+
+/* --- Lade "Wie gaat eruit?" (spec E2) ---------------------------------------------------------- */
+.tp-incoming__in {
+  display: flex; align-items: center; gap: var(--s-3); padding: var(--s-2) var(--s-3); margin-bottom: var(--s-3);
+  border: 1px solid var(--accent); border-radius: var(--r-1);
+}
+.tp-incoming__label { color: var(--accent); font: 600 var(--fs-micro)/1 var(--font-ui); text-transform: uppercase; letter-spacing: 0.04em; }
+.tp-incoming { list-style: none; margin: 0; padding: 0; }
+.tp-incoming__row {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); width: 100%; min-height: 48px;
+  padding: var(--s-2) 0; border: 0; border-bottom: 1px solid var(--line); background: none; color: var(--text-1);
+  text-align: left; cursor: pointer;
+}
+.tp-incoming__state { flex-shrink: 0; color: var(--accent); font: 600 var(--fs-meta)/1.2 var(--font-ui); text-align: right; }
+.tp-incoming__row.is-blocked { cursor: default; opacity: 0.55; }
+.tp-incoming__row.is-blocked .tp-incoming__state { color: var(--text-3); font-weight: 500; max-width: 55%; white-space: normal; }
+@media (hover: hover) and (pointer: fine) {
+  .tp-incoming__row:not(.is-blocked):hover { background: var(--ink-2); }
+}

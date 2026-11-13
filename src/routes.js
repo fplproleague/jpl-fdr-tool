@@ -177,7 +177,7 @@ export function pathForRoute(key, language = DEFAULT_ROUTE_LANGUAGE) {
 export const TAB_QUERY_PARAMS = {
   fdr: ['r', 'ha', 'clubs'],
   spelers: ['q', 'pos', 'club', 'pmin', 'pmax', 'mins', 'scope', 'per', 'mode', 'cols', 'sort', 'dir', 'compare', 'speler', 'diff', 'avail'],
-  predictedlineups: ['match', 'team', 'view', 'twijfel'],
+  predictedlineups: ['match', 'team', 'view', 'twijfel', 'mijn'],
   klassement: ['team', 'rgw'],
 };
 

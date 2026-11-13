@@ -26,6 +26,7 @@ import { AvailabilityContext } from './availabilityContext';
 import { buildAvailabilityLookup } from './availability';
 import { loadPlayers } from './data/playersApi';
 import { playerDatabaseFromApi, findInDatabase } from './data/playerDatabase';
+import { normalizePlayerName } from './data/usePlayerIndex';
 import {
   applyOverrides, diffFromDefaults, setOverride, removeOverride, loadOverrides, saveOverrides,
   encodeRatingsParam, decodeRatingsParam, encodeHomeParam, decodeHomeParam,
@@ -1084,6 +1085,41 @@ export default function FDRTool() {
   const isPlayerInMyTeam = (name, teamCode) =>
     myTeamPlayerKeys.has(`${(name ?? '').trim().toLowerCase()}|${(teamCode ?? '').toUpperCase()}`);
 
+  // "Mijn spelers" in de Verwachte XI's (spec E1): het team zoals het er in de speeldag van de
+  // opstellingen uitziet, dus na geplande transfers. Namen vergelijken via de databank (korte en
+  // volledige naam), anders hoofdletter- en accentongevoelig. Leeg team = lege lijst: de tab toont dan
+  // niets extra.
+  const lineupPlayerKey = useCallback((name, teamCode) => {
+    const row = findInDatabase(playerDatabase, name, teamCode);
+    return `${normalizePlayerName(row?.name ?? name)}|${String(teamCode ?? '').toUpperCase()}`;
+  }, [playerDatabase]);
+  const lineupMyTeam = useMemo(
+    () => planner.teamAt(PREDICTED_LINEUPS_GW)
+      .filter(p => p?.name && p.teamCode)
+      .map(p => ({ name: p.name, teamCode: p.teamCode, key: lineupPlayerKey(p.name, p.teamCode) })),
+    [planner.teamAt, lineupPlayerKey],
+  );
+
+  // De knop onderaan de spelerskaart (spec E2): met een volledig team "Transfer naar mijn team", zit de
+  // speler er al in "In je team" (uitgeschakeld), anders "Naar Team Planner" zoals vroeger.
+  // Een open "Wie gaat eruit?" vervalt zodra je een andere tab opent.
+  const hasIncoming = Boolean(planner.incoming);
+  const { cancelIncoming } = planner;
+  useEffect(() => {
+    if (hasIncoming && activeTab !== 'teamplanner') cancelIncoming();
+  }, [activeTab, hasIncoming]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const teamPlannerActionFor = (name, teamCode, beforeNavigate) => {
+    const toPlanner = () => { beforeNavigate?.(); navigateToTab('teamplanner'); };
+    const row = findInDatabase(playerDatabase, name, teamCode);
+    if (!planner.complete || !row?.position) return { kind: 'planner', onClick: toPlanner };
+    if (planner.currentTeam.some(p => planner.isSamePlayer(p, row))) return { kind: 'inTeam' };
+    return {
+      kind: 'transfer',
+      onClick: () => { planner.startIncoming(row); toPlanner(); },
+    };
+  };
+
   // Lost een spelers-URL op zodra er data is om in te zoeken. Draait opnieuw wanneer de
   // spelersdatabank binnenkomt, zodat een deeplink naar iemand die niet in de verwachte opstellingen
   // staat alsnog opent.
@@ -1246,7 +1282,10 @@ export default function FDRTool() {
 
         {activeTab === 'predictedlineups' && (
           <Suspense fallback={<TabLoading text={t('shared.loading')} />}>
-            <PredictedLineupsTab t={t} language={language} onOpenPlayer={openPlayerSheet} onOpenClub={openClubSheet} />
+            <PredictedLineupsTab
+              t={t} language={language} onOpenPlayer={openPlayerSheet} onOpenClub={openClubSheet}
+              myTeam={lineupMyTeam} playerKeyOf={lineupPlayerKey}
+            />
           </Suspense>
         )}
 
@@ -1316,6 +1355,7 @@ export default function FDRTool() {
               onRemoveWatchlistPlayer={handleRemoveWatchlistPlayer}
               setPiecesEntries={setPiecesData.entries}
               onGoToTeamPlanner={() => navigateToTab('teamplanner')}
+              teamPlannerActionFor={teamPlannerActionFor}
               isPlayerWatched={isPlayerWatched}
               isPlayerInMyTeam={isPlayerInMyTeam}
               toggleWatchlistPlayer={toggleWatchlistPlayer}
@@ -1353,6 +1393,7 @@ export default function FDRTool() {
             isWatched={isPlayerWatched(sheet.name, sheet.teamCode)}
             onToggleWatch={() => toggleWatchlistPlayer(sheet)}
             onGoToTeamPlanner={() => { closeSheet(); navigateToTab('teamplanner'); }}
+            teamPlannerAction={teamPlannerActionFor(sheet.name, sheet.teamCode, closeSheet)}
             onOpenClub={openClubSheet}
           />
         </Suspense>
