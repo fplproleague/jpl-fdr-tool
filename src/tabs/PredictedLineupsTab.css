@@ -126,3 +126,21 @@
   .pxl-lines { flex-direction: column; gap: var(--s-1); }
   .pxl-names { padding: 0; border-left: 0; }
 }
+
+/* --- Mijn spelers (spec E1) ------------------------------------------------------------------ */
+/* Een dunne accentlijn onder de naam, niet de hele rij: zo botst het niet met de statusstip. */
+.pxl-name.is-mine .pxl-name__text { text-decoration: underline 2px var(--accent); text-underline-offset: 3px; }
+.pxi-field--site .pxi-card-name[data-mine] { box-shadow: inset 0 -2px 0 var(--accent); }
+.pxl-mine-mark { display: inline-block; width: 12px; height: 2px; background: var(--accent); flex-shrink: 0; }
+.pxl-match__mine {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; padding: 0 4px;
+  margin-left: 2px; border-radius: 8px; background: var(--accent); color: var(--ink-0); font-size: var(--fs-micro); font-weight: 700;
+}
+.pxl-mine { margin: 0 0 var(--s-4); color: var(--text-2); font-size: var(--fs-ui); line-height: var(--lh-ui); }
+.pxl-mine strong { color: var(--text-1); font-weight: 700; }
+.pxl-mine__sep { color: var(--text-4); }
+.pxl-mine__name {
+  border: 0; padding: 0; background: none; color: var(--text-1); font: inherit; cursor: pointer;
+  text-decoration: underline 1px var(--line-strong); text-underline-offset: 2px;
+}
+.pxl-mine__name:hover { text-decoration-color: currentColor; }

@@ -32,7 +32,7 @@ import EmptyState from '../ui/EmptyState';
 import {
   COLUMNS, PRESETS, PRESET_KEYS, PRESET_SORT, POSITION_KEYS, PERIODS, MIN_MINUTES_OPTIONS, MAX_COMPARE, COMPARE_ROWS,
   DEFAULT_STATE, DIFFERENTIAL_MAX_SEL, buildRow, cellValue, formatCell, filterRows, sortRows, bestIndexes,
-  stateFromSearch, searchFromState, buildSheetNameResolver, MIN_MINUTES_PER90,
+  stateFromSearch, searchFromState, buildSheetNameResolver, MIN_MINUTES_PER90, FORM_GWS,
 } from '../spelers';
 import { getSessionPlayers, loadPlayers } from '../data/playersApi';
 import { useAvailabilityLookup } from '../availabilityContext';
@@ -278,7 +278,7 @@ function CompareSheet({ t, rows, mode, fromGw, ratings, homeAdvantage, onRemove,
 
 export default function SpelersTab({
   t, ratings, homeAdvantage, playerDatabase, watchlist = [], isPlayerWatched, isPlayerInMyTeam, toggleWatchlistPlayer,
-  onRemoveWatchlistPlayer, hasMyTeam, hasWatchlist, onOpenClub, setPiecesEntries, onGoToTeamPlanner,
+  onRemoveWatchlistPlayer, hasMyTeam, hasWatchlist, onOpenClub, setPiecesEntries, onGoToTeamPlanner, teamPlannerActionFor,
 }) {
   const { data, loading, error, fromLocal, reload } = useSpelersData();
   const [ui, setUi] = useState(() => (typeof window === 'undefined' ? DEFAULT_STATE : stateFromSearch(window.location.search)));
@@ -454,7 +454,7 @@ export default function SpelersTab({
     ...columns.map(key => ({
       key,
       label: `${t(`${COLUMNS[key].label}Short`)}${ui.mode === 'p90' && COLUMNS[key].per90 ? '/90' : ''}`,
-      title: t(COLUMNS[key].label),
+      title: t(COLUMNS[key].title ?? COLUMNS[key].label, { count: FORM_GWS }),
       num: true,
       sortable: true,
       render: r => formatCell(cellValue(r, key, ui.mode), key, ui.mode),
@@ -635,6 +635,7 @@ export default function SpelersTab({
             onToggleCompare={() => { setCompareMode(true); toggleCompare(popupRow.id); }}
             onOpenClub={onOpenClub ? (code) => { setUi(prev => ({ ...prev, speler: null })); onOpenClub(code); } : undefined}
             onGoToTeamPlanner={onGoToTeamPlanner ? () => { setUi(prev => ({ ...prev, speler: null })); onGoToTeamPlanner(); } : undefined}
+            teamPlannerAction={teamPlannerActionFor?.(sheetName(popupRow), popupRow.club, () => setUi(prev => ({ ...prev, speler: null })))}
           />
         </Suspense>
       )}
