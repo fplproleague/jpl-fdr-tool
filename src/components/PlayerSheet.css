@@ -36,6 +36,7 @@ button.ps-club:hover { text-decoration: underline; text-underline-offset: 2px; }
 .ps-empty, .ps-muted { color: var(--text-3); }
 .ps-empty { margin: 0; font-size: var(--fs-meta); }
 .ps-warn { color: var(--warning); }
+.ps-danger { color: var(--danger); }
 .ps-note { margin: var(--s-2) 0 0; color: var(--text-3); font-size: var(--fs-label); line-height: var(--lh-label); }
 
 .ps-facts {

@@ -39,6 +39,9 @@ import PlayerPicker from '../ui/PlayerPicker';
 import ErrorBanner from '../ui/ErrorBanner';
 import EmptyState from '../ui/EmptyState';
 import usePlayerIndex from '../data/usePlayerIndex';
+import { findInDatabase } from '../data/playerDatabase';
+import { AvailabilityMini } from '../ui/AvailabilityMark';
+import { useAvailabilityLookup } from '../availabilityContext';
 import './TeamPlannerTab.css';
 
 // Veldvolgorde: GK bovenaan, FWD onderaan, zoals de echte FPL-app.
@@ -102,7 +105,11 @@ function BoosterButton({ t, label, description, state, usedGw, gw, onClick }) {
 // Eén slot op het veld of de bank (spec §5.13): shirt, naamlabel, MiniFixture voor de bekeken GW. Een
 // leeg slot is een gestippeld kader met het positielabel. Tik = het slot-menu (of de spelerskiezer bij
 // een leeg slot, of selecteren om te wisselen in de herschik-modus van de bank).
-function PitchSlot({ player, label, gw, ratings, homeAdvantage, captainGlyph, onClick, ariaLabel, className = '', disabled, title }) {
+// Een speler die niet (meer) in de spelersdatabank staat, krijgt een klein label in plaats van te
+// verdwijnen (spec B1). Zelfde vorm als een beschikbaarheidsstatus, zodat AvailabilityMini hem toont.
+const NOT_FOUND_STATUS = { kind: 'notFound', tone: 'outline', labelKey: 'teamPlanner.notFound', titleKey: 'teamPlanner.notFoundTitle', vars: {} };
+
+function PitchSlot({ player, label, gw, ratings, homeAdvantage, captainGlyph, status = null, onClick, ariaLabel, className = '', disabled, title }) {
   if (isEmptySlot(player)) {
     return (
       <button type="button" className={`tp-slot is-empty ${className}`} onClick={onClick} aria-label={ariaLabel} disabled={disabled}>
@@ -118,6 +125,7 @@ function PitchSlot({ player, label, gw, ratings, homeAdvantage, captainGlyph, on
           <img src={`/club-shirts/${player.teamCode}.webp`} alt="" width="40" height="40" loading="lazy" decoding="async" onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }} />
         )}
         {captainGlyph && <Badge tone="accent" className="tp-slot__cap">{captainGlyph}</Badge>}
+        <AvailabilityMini status={status} className="tp-slot__avail" />
       </span>
       <span className="tp-slot__name">{label || player.name || '—'}</span>
       <span className="tp-slot__fix">
@@ -484,6 +492,13 @@ export default function TeamPlannerTab({
 
   const shortLabel = (player) => index.find(player.name, player.teamCode)?.short || player.name;
 
+  // Beschikbaarheid (spec B3) of "niet gevonden" (spec B1). Niet gevonden pas als de databank echt
+  // geladen is, anders lijkt even iedereen verdwenen.
+  const availability = useAvailabilityLookup();
+  const databaseReady = !playerDatabaseLoading && playerDatabase.length > 0;
+  const isNotFound = (player) => databaseReady && !!player?.name && !findInDatabase(playerDatabase, player.name, player.teamCode);
+  const slotStatus = (player) => (isNotFound(player) ? NOT_FOUND_STATUS : availability(player.name, player.teamCode));
+
   // Acties voor een slot (veld, bank of lijst). `isBenched` geldt voor de bekeken GW.
   const slotActions = (slotIndex, { fromList = false } = {}) => {
     const resolved = resolvedIndexedPlayers[slotIndex];
@@ -568,6 +583,7 @@ export default function TeamPlannerTab({
                 <Badge tone="accent" title={t('teamPlanner.captain')}>{isTripleCaptainActive ? '3×C' : 'C'}</Badge>
               )}
               {!rechargeDraft && benchForGw.includes(row.index) && <span className="tp-benchtag">{t('teamPlanner.benchTag')}</span>}
+              {isNotFound(row) && <Badge tone="outline" title={t('teamPlanner.notFoundTitle')}>{t('teamPlanner.notFound')}</Badge>}
             </>
           )}
         />
@@ -669,6 +685,7 @@ export default function TeamPlannerTab({
         ratings={ratings}
         homeAdvantage={homeAdvantage}
         captainGlyph={isCaptain ? (isTripleCaptainActive ? '3×C' : 'C') : null}
+        status={slotStatus(player)}
         className={classes}
         disabled={reorder && isGk}
         title={reorder && isGk ? t('teamPlanner.reorderGkDisabled') : undefined}
