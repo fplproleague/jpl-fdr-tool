@@ -1,14 +1,15 @@
-// Inhoud van de FDR-tab (spec §7.1): paginakop met de ratingstatus, een toolbar (GW-bereik, legende
-// die ook filtert, knoppen), de hoofdtabel (de Σ-kolom met het gemiddelde is optioneel), "Beste fixture runs" en
-// "Vergelijk teams". De team-sterktes pas je aan in een lade ("Ratings aanpassen").
+// Inhoud van de FDR-tab (spec §7.1): paginakop met de ratingstatus, een toolbar (één periode met
+// snelknoppen, legende die ook filtert, knoppen), de hoofdtabel (de Σ-kolom met het gemiddelde is
+// optioneel) en "Beste fixture runs". De team-sterktes pas je aan in een lade ("Ratings aanpassen");
+// welke clubs de tabel toont, kies je in een tweede lade ("Clubs kiezen", vervangt "Vergelijk teams").
 //
 // Alle data-state en handlers komen als props uit FDRTool.jsx: de tab wordt bij elke tabwissel
-// opnieuw gemount, dus lokale state zou resetten (sortering, gekozen GW's, ...). Enkel "staat de
-// ratings-lade open" is hier lokaal; die mag gerust dicht zijn als je terugkomt.
+// opnieuw gemount, dus lokale state zou resetten (sortering, gekozen GW's, ...). Enkel "staat een
+// lade open" is hier lokaal; die mag gerust dicht zijn als je terugkomt.
 
 import { useState } from 'react';
-import { RotateCcw, Link2, Download, Check, SlidersHorizontal, Info, Sigma } from 'lucide-react';
-import { TEAMS, TEAMS_ALPHA, FIXTURES, RATING_STYLE, GW_COUNT, GW_INDEXES, DEFAULT_RATINGS, getFixtureInfo } from '../constants';
+import { RotateCcw, Link2, Download, Check, SlidersHorizontal, Info, Sigma, ListFilter } from 'lucide-react';
+import { TEAMS_ALPHA, FIXTURES, RATING_STYLE, GW_COUNT, GW_INDEXES, DEFAULT_RATINGS, getFixtureInfo } from '../constants';
 import { SectionHeader } from '../components/SectionHeader';
 import Sheet from '../components/Sheet';
 import PageHeader from '../ui/PageHeader';
@@ -17,6 +18,8 @@ import Select from '../ui/Select';
 import Segmented from '../ui/Segmented';
 import FdrCell from '../ui/FdrCell';
 import Badge from '../ui/Badge';
+import FilterChip, { FilterChips } from '../ui/FilterChip';
+import { FDR_QUICK_PERIODS } from '../fdrPeriod';
 import { possiblyPostponedText } from '../postponed';
 import { useOverflow } from '../ui/DataTable';
 import '../ui/DataTable.css';
@@ -33,7 +36,7 @@ function gwOptions(vanaf, tot) {
     .map(gw => <option key={gw} value={gw}>{gw}</option>);
 }
 
-function GwRange({ t, from, to, setFrom, setTo, fromAria, toAria }) {
+function GwRange({ t, from, to, setFrom, setTo, fromAria, toAria, quickPeriod, chooseQuickPeriod }) {
   return (
     <div className="fdr-range">
       <span className="label">{t('fdr.gwLabel')}</span>
@@ -45,7 +48,55 @@ function GwRange({ t, from, to, setFrom, setTo, fromAria, toAria }) {
       <Select size="sm" value={to} onChange={v => setTo(Number(v))} aria-label={toAria}>
         {gwOptions(from, GW_COUNT)}
       </Select>
+      {/* Snelknoppen "Volgende 3 · 5 · 8" (spec D2). Een eigen periode laat ze alle drie uit. */}
+      {chooseQuickPeriod && (
+        <span className="fdr-quick">
+          <span className="fdr-range__to">{t('fdr.quickLabel')}</span>
+          <Segmented
+            size="sm"
+            options={FDR_QUICK_PERIODS.map(n => ({ value: n, label: String(n), title: t('fdr.quickTitle', { n }) }))}
+            value={quickPeriod}
+            onChange={v => chooseQuickPeriod(Number(v))}
+            ariaLabel={t('fdr.quickAria')}
+          />
+        </span>
+      )}
     </div>
+  );
+}
+
+// Lade "Clubs kiezen" (spec D3): 18 vinkjes. Niets of alles aangevinkt = alle clubs; met een deel
+// toont de hoofdtabel enkel die clubs. De tabel ernaast verandert live mee.
+function ClubsSheet({ t, selection, setSelection, onClose }) {
+  const toggle = (code) => setSelection(prev => (prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code]));
+  return (
+    <Sheet
+      titleId="fdr-clubs-title"
+      title={t('fdr.clubs.title')}
+      closeLabel={t('infoModal.close')}
+      onClose={onClose}
+      footer={(
+        <div className="fdr-clubs__actions">
+          <Button variant="secondary" size="sm" onClick={() => setSelection(TEAMS_ALPHA.map(team => team.code))}>{t('fdr.clubs.all')}</Button>
+          <Button variant="ghost" size="sm" onClick={() => setSelection([])} disabled={selection.length === 0}>{t('fdr.clubs.clear')}</Button>
+          <Button variant="primary" size="sm" className="fdr-clubs__done" onClick={onClose}>{t('fdr.clubs.done')}</Button>
+        </div>
+      )}
+    >
+      <p className="fdr-sheet-intro">{t('fdr.clubs.intro')}</p>
+      <ul className="fdr-clubs">
+        {TEAMS_ALPHA.map(team => (
+          <li key={team.code}>
+            <label className="fdr-clubs__row">
+              <input type="checkbox" checked={selection.includes(team.code)} onChange={() => toggle(team.code)} />
+              <ClubLogo code={team.code} />
+              <span className="fdr-clubs__name">{team.name}</span>
+              <span className="fdr-clubs__code">{team.code}</span>
+            </label>
+          </li>
+        ))}
+      </ul>
+    </Sheet>
   );
 }
 
@@ -241,21 +292,22 @@ export default function FDRTab({
   sortBy, toggleSortByAverage, showAvgColumn, toggleAvgColumn,
   highlightedRatings, toggleRatingFilter, clearRatingFilter,
   gwHorizonStart, setGwHorizonStart, gwHorizonEnd, setGwHorizonEnd, gwHorizonRange,
-  visibleGwHeaderCells, compareGwHeaderCells, compareGwStart, compareGwEnd,
+  quickPeriod, chooseQuickPeriod,
+  visibleGwHeaderCells, runsGwHeaderCells,
   displayedTeams, teamAvgDifficulty, tableRef,
-  rangeStart, setRangeStart, rangeEnd, setRangeEnd, bestRuns,
-  compareTeams, toggleCompareTeam,
+  clubFilter, clubFilterActive, setClubFilter,
+  bestRuns,
   teamForm,
   onOpenClub,
 }) {
   const [ratingsOpen, setRatingsOpen] = useState(false);
+  const [clubsOpen, setClubsOpen] = useState(false);
   // Beste runs: standaard de top 5, uitklapbaar naar alle clubs.
   const [showAllRuns, setShowAllRuns] = useState(false);
   const gwCount = visibleGwHeaderCells.length;
   const mainScroll = useOverflow(`${gwCount}-${displayedTeams.length}`);
-  const compareScroll = useOverflow(`${compareGwHeaderCells.length}-${compareTeams.length}`);
   const visibleRuns = showAllRuns ? bestRuns : bestRuns.slice(0, 5);
-  const runsScroll = useOverflow(`${compareGwHeaderCells.length}-${visibleRuns.length}-${openSections.runs}`);
+  const runsScroll = useOverflow(`${runsGwHeaderCells.length}-${visibleRuns.length}-${openSections.runs}`);
   const sortedByAvg = sortBy.mode === 'avg';
 
   const legendProps = { t, highlightedRatings, toggleRatingFilter, clearRatingFilter };
@@ -296,9 +348,13 @@ export default function FDRTab({
           t={t}
           from={gwHorizonStart} to={gwHorizonEnd} setFrom={setGwHorizonStart} setTo={setGwHorizonEnd}
           fromAria={t('fdr.tableRangeFromAria')} toAria={t('fdr.tableRangeToAria')}
+          quickPeriod={quickPeriod} chooseQuickPeriod={chooseQuickPeriod}
         />
         <RatingLegend {...legendProps} className="fdr-legend--top" />
         <div className="fdr-toolbar__actions">
+          <Button icon={ListFilter} className="fdr-tool-btn" onClick={() => setClubsOpen(true)} aria-haspopup="dialog" aria-pressed={clubFilterActive} aria-label={t('fdr.clubs.button')}>
+            <span className="fdr-tool-btn__text">{t('fdr.clubs.button')}</span>
+          </Button>
           <Button icon={SlidersHorizontal} className="fdr-tool-btn" onClick={() => setRatingsOpen(true)} aria-haspopup="dialog" aria-label={t('fdr.editRatings')}>
             <span className="fdr-tool-btn__text">{t('fdr.editRatings')}</span>
           </Button>
@@ -322,6 +378,18 @@ export default function FDRTab({
       </div>
 
       {isViewingShared && <SharedRatingsBanner t={t} onAdopt={adoptSharedRatings} onLeave={leaveSharedRatings} />}
+
+      {clubFilterActive && (
+        <div className="fdr-chipsline">
+          <FilterChips>
+            <FilterChip
+              label={t('fdr.clubs.chip', { count: clubFilter.length })}
+              onRemove={() => setClubFilter([])}
+              removeLabel={t('fdr.clubs.chipRemove')}
+            />
+          </FilterChips>
+        </div>
+      )}
 
       {/* tableRef + .fdr-table-scroll: hierop werkt de afbeelding-export in FDRTool.jsx. */}
       <div ref={tableRef} id="fdr-capture-wrapper">
@@ -391,21 +459,16 @@ export default function FDRTab({
         <SectionHeader title={t('fdr.section.runs')} sectionKey="runs" isOpen={openSections.runs} onToggle={toggleSection} />
         {openSections.runs && (
           <div id="fdr-section-runs">
-            <GwRange
-              t={t}
-              from={rangeStart} to={rangeEnd} setFrom={setRangeStart} setTo={setRangeEnd}
-              fromAria={t('fdr.runsRangeFromAria')} toAria={t('fdr.runsRangeToAria')}
-            />
-            <p className="fdr-hint">{t('fdr.sharedRangeHint')}</p>
+            <p className="fdr-hint fdr-hint--lead">{t('fdr.runsPeriodHint', { from: gwHorizonRange.start, to: gwHorizonRange.end })}</p>
             {/* Zelfde tabelvorm als de hoofdtabel: rang + club, het gemiddelde (daar draait de ranglijst
                 om) en per speeldag een volle FDR-cel met tegenstander en thuis/uit. */}
             <div ref={runsScroll.ref} onScroll={runsScroll.onScroll} className={`ui-table-scroll${runsScroll.className}`}>
-              <table className="fdr-grid fdr-grid--runs" style={{ '--fdr-gws': compareGwHeaderCells.length }}>
+              <table className="fdr-grid fdr-grid--runs" style={{ '--fdr-gws': runsGwHeaderCells.length }}>
                 <thead>
                   <tr>
                     <th scope="col" className="fdr-grid__team fdr-grid__corner">{t('fdr.teamColumn')}</th>
                     <th scope="col" className="fdr-grid__avg" title={t('fdr.avgColumnTitle')}>{t('fdr.runsAvg')}</th>
-                    {compareGwHeaderCells}
+                    {runsGwHeaderCells}
                   </tr>
                 </thead>
                 <tbody>
@@ -442,64 +505,6 @@ export default function FDRTab({
         )}
       </section>
 
-      <section className="fdr-section">
-        <SectionHeader title={t('fdr.section.compare')} sectionKey="compare" isOpen={openSections.compare} onToggle={toggleSection} />
-        {openSections.compare && (
-          <div id="fdr-section-compare">
-            <p className="fdr-hint fdr-hint--lead">{t('fdr.compareIntro')}</p>
-            {/* Zelfde periode als "Beste fixture runs" (rangeStart/rangeEnd). Bewust een tweede kiezer:
-                de secties klappen los van elkaar open, dus één gedeelde kiezer zou vaak onbereikbaar zijn. */}
-            <GwRange
-              t={t}
-              from={rangeStart} to={rangeEnd} setFrom={setRangeStart} setTo={setRangeEnd}
-              fromAria={t('fdr.compareRangeFromAria')} toAria={t('fdr.compareRangeToAria')}
-            />
-            <p className="fdr-hint">{t('fdr.sharedRangeHint')}</p>
-            <div className="fdr-compare-chips">
-              {TEAMS_ALPHA.map(team => {
-                const selected = compareTeams.includes(team.code);
-                const disabled = !selected && compareTeams.length >= 5;
-                return (
-                  <Button key={team.code} size="sm" onClick={() => toggleCompareTeam(team.code)} disabled={disabled} aria-pressed={selected} className="fdr-compare-chip">
-                    <ClubLogo code={team.code} size={14} />
-                    {team.code}
-                  </Button>
-                );
-              })}
-            </div>
-            {compareTeams.length === 0 && <p className="fdr-hint">{t('fdr.compareNoTeams')}</p>}
-            {compareTeams.length > 0 && (
-              <div ref={compareScroll.ref} onScroll={compareScroll.onScroll} className={`ui-table-scroll${compareScroll.className}`}>
-                <table className="fdr-grid fdr-grid--compare" style={{ '--fdr-gws': compareGwHeaderCells.length }}>
-                  <thead>
-                    <tr>
-                      <th scope="col" className="fdr-grid__team fdr-grid__corner">{t('fdr.teamColumn')}</th>
-                      {compareGwHeaderCells}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {compareTeams.map(code => {
-                      const team = TEAMS.find(x => x.code === code);
-                      return (
-                        <tr key={code}>
-                          <TeamCell t={t} team={team} teamForm={null} onOpenClub={onOpenClub} />
-                          {/* Zelfde venster als compareGwHeaderCells: kop en rijen uit één bron. */}
-                          {FIXTURES[code].slice(compareGwStart - 1, compareGwEnd).map((f, i) => {
-                            const gwNumber = compareGwStart + i;
-                            const info = getFixtureInfo(code, f, gwNumber, ratings, homeAdvantage);
-                            return <FdrCell key={gwNumber} info={info} ariaLabel={buildFixtureCellAriaLabel(t, info)} />;
-                          })}
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        )}
-      </section>
-
       {ratingsOpen && (
         <RatingsSheet
           t={t}
@@ -515,6 +520,9 @@ export default function FDRTab({
           onLeave={leaveSharedRatings}
           onClose={() => setRatingsOpen(false)}
         />
+      )}
+      {clubsOpen && (
+        <ClubsSheet t={t} selection={clubFilter} setSelection={setClubFilter} onClose={() => setClubsOpen(false)} />
       )}
     </>
   );

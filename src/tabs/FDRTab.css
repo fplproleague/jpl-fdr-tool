@@ -34,6 +34,8 @@
 .fdr-range { display: inline-flex; align-items: center; gap: var(--s-2); }
 .fdr-range .label { color: var(--text-3); }
 .fdr-range__to { color: var(--text-3); font-size: var(--fs-meta); }
+.fdr-quick { display: inline-flex; align-items: center; gap: var(--s-2); margin-left: var(--s-2); }
+.fdr-chipsline { margin: calc(-1 * var(--s-2)) 0 var(--s-3); }
 
 /* Legende = filter. 10px-vierkantjes in een aanraakzone van 24px (op touch 32px). */
 .fdr-legend { display: inline-flex; align-items: center; gap: 2px; }
@@ -93,7 +95,10 @@
 }
 .fdr-grid__sort:hover { color: var(--text-1); }
 .fdr-grid__sort.is-sorted { color: var(--accent); border-bottom-color: var(--accent); }
-.fdr-grid__sort.is-sorted::after { content: '↑'; font-family: var(--font-num); }
+/* Sorteerpijltje in elke kop (spec D4): zo zie je dat een klik sorteert, ook op touch. */
+.fdr-grid__sort::after { content: '↕'; font-family: var(--font-num); font-size: var(--fs-micro); color: var(--text-4); }
+.fdr-grid__sort:hover::after { color: var(--text-3); }
+.fdr-grid__sort.is-sorted::after { content: '↑'; font-size: inherit; color: inherit; }
 
 /* Sticky kolommen: team + Σ blijven staan bij horizontaal scrollen. */
 .fdr-grid .fdr-grid__team {
@@ -135,11 +140,17 @@ span.fdr-team { cursor: default; }
 .fdr-runs__rank.is-first { color: var(--accent); }
 .fdr-runs__more { margin-top: var(--s-2); }
 
-.fdr-compare-chips {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: var(--s-1);
-  margin-bottom: var(--s-4);
+/* --- Lade "Clubs kiezen" (D3) ------------------------------------------------------------------ */
+.fdr-clubs { list-style: none; margin: 0; padding: 0; }
+.fdr-clubs__row {
+  display: flex; align-items: center; gap: var(--s-2); min-height: 40px;
+  border-bottom: 1px solid var(--line); cursor: pointer;
 }
-.fdr-compare-chip { gap: var(--s-1); }
+.fdr-clubs__row input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+.fdr-clubs__name { flex: 1; min-width: 0; color: var(--text-1); font-weight: 500; }
+.fdr-clubs__code { color: var(--text-3); font: 500 var(--fs-meta)/1 var(--font-num); }
+.fdr-clubs__actions { display: flex; gap: var(--s-2); width: 100%; }
+.fdr-clubs__done { margin-left: auto; }
 
 /* --- Ratings-lade ------------------------------------------------------------------------------ */
 .fdr-sheet-intro { margin: 0 0 var(--s-3); color: var(--text-2); font-size: var(--fs-meta); line-height: var(--lh-meta); }
