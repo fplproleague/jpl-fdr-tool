@@ -12,8 +12,9 @@
 //   - dw/dl (duels gewonnen/verloren), hc (verdedigende kopballen), br (recoveries),
 //     bc (grote kansen gecreëerd), int (interceptions)
 //   - sel (% managers), cap (% kapitein)
-//   - w: { pts, min, g, a, bp } — arrays met één waarde per speeldag (index 0 = GW1), null = niet
-//     gespeeld. Ontbreekt (null) voor spelers die nog geen minuut speelden.
+//   - w: { pts, min, g, a, bp, yc, rc } — arrays met één waarde per speeldag (index 0 = GW1), null = niet
+//     gespeeld. Ontbreekt (null) voor spelers die nog geen minuut speelden. yc/rc (kaarten per speeldag)
+//     tonen in welke GW een schorsing viel (spec B2, zie suspensionFromWeekly in src/kaarten.js).
 //
 // Caching: speeldagen die de bron als definitief bevestigt (points-confirmation) veranderen niet meer
 // en blijven per serverinstantie in het geheugen. Het hele antwoord staat een uur vers op Vercels CDN
@@ -52,7 +53,8 @@ async function fetchWeeks(weekIds, confirmedSet) {
 }
 
 function emptyWeekly(gw) {
-  return { pts: Array(gw).fill(null), min: Array(gw).fill(null), g: Array(gw).fill(null), a: Array(gw).fill(null), bp: Array(gw).fill(null) };
+  const empty = () => Array(gw).fill(null);
+  return { pts: empty(), min: empty(), g: empty(), a: empty(), bp: empty(), yc: empty(), rc: empty() };
 }
 
 const add = (arr, idx, value) => { arr[idx] = (arr[idx] ?? 0) + value; };
@@ -89,6 +91,8 @@ export function buildPlayers({ players, clubs, seasonStats, weeks, gw }) {
       add(entry.w.g, idx, num(row.statGoals));
       add(entry.w.a, idx, num(row.statAssists));
       add(entry.w.bp, idx, bonus.total);
+      add(entry.w.yc, idx, num(row.statYellow));
+      add(entry.w.rc, idx, num(row.statRed));
       entry.bp += bonus.total;
       entry.bpDuels += bonus.duels;
       entry.bpHeaders += bonus.headers;

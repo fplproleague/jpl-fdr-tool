@@ -25,6 +25,8 @@ import { buildRow } from '../spelers';
 import { PREDICTED_LINEUPS } from '../predictedLineupsData';
 import { languageFromPath, pathForSheet } from '../routes';
 import usePlayerIndex from '../data/usePlayerIndex';
+import { findInDatabase } from '../data/playerDatabase';
+import AvailabilityMark from '../ui/AvailabilityMark';
 import { PlayerFace, PlayerFaceByName } from '../ui/PlayerFace';
 import StarButton from '../ui/StarButton';
 import StatusDot from '../ui/StatusDot';
@@ -275,9 +277,12 @@ export default function PlayerSheet({
   const season = apiPlayer ? buildRow(apiPlayer, 'season', gw) : null;
   const [{ loading, error, detail }, retry] = usePlayerDetail(apiPlayer?.id ?? null, apiPlayer?.pos ?? null);
 
-  const dbEntry = playerDatabase.find(p => p.name === name && p.teamCode === teamCode) ?? null;
-  const bonusEntry = findPlayerBonusEntry(buildBonuspuntenEntries(playerDatabase), { name, teamCode });
-  const cardsEntry = buildKaartenEntries(playerDatabase).find(e => e.player === name && e.clubCode === teamCode) ?? null;
+  // De databank kent spelers op hun korte naam; de kaart kan ook met de volledige naam openen.
+  const dbEntry = findInDatabase(playerDatabase, name, teamCode);
+  const dbName = dbEntry?.name ?? name;
+  const bonusEntry = findPlayerBonusEntry(buildBonuspuntenEntries(playerDatabase), { name: dbName, teamCode });
+  const cardsEntry = buildKaartenEntries(playerDatabase).find(e => e.player === dbName && e.clubCode === teamCode) ?? null;
+  const suspension = dbEntry?.suspension ?? null;
   const setPieceRoles = setPieceRolesFor(setPiecesEntries.find(e => e.clubCode === teamCode), name, t);
 
   // findLast: staan er ooit een oude en een nieuwe opstelling voor dezelfde club in de data, dan telt
@@ -311,6 +316,7 @@ export default function PlayerSheet({
           ) : <span className="ps-club"><ClubLogo code={teamCode} size={16} /> {teamCode}</span>}
           {pos && <span title={t(`spelers.pos.${pos}`)}>· {pos}</span>}
           {price && <span className="num">· €{Number(price).toFixed(1)}</span>}
+          <AvailabilityMark name={dbName} clubCode={teamCode} />
         </div>
         <div className="ps-head__actions">
           {onToggleWatch && (
@@ -417,7 +423,12 @@ export default function PlayerSheet({
             {cardsEntry ? (
               <>
                 <span className="num">{cardsEntry.cards}</span>
-                {cardsEntry.cardsRemaining > 0 && (
+                {suspension && (
+                  <span className="ps-danger">
+                    {' · '}{t(suspension.cause === 'red' ? 'availability.suspendedRed' : 'availability.suspendedYellow', { gw: suspension.gw, cardGw: suspension.cardGw, cards: suspension.cards })}
+                  </span>
+                )}
+                {!suspension && cardsEntry.cardsRemaining > 0 && (
                   <span className={cardsEntry.cardsRemaining === 1 ? 'ps-warn' : 'ps-muted'}>
                     {' · '}{t('playerSheet.cardsUntilSuspension', { count: cardsEntry.cardsRemaining })}
                   </span>

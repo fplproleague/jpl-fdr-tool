@@ -12,6 +12,9 @@ import { assignCompetitionRanks } from './ranking';
 // KaartenTab.jsx roepen enkel nextSuspensionThreshold()/cardsUntilSuspension() aan en hoeven dus niet te
 // veranderen. Nog geen play-off-fase toegevoegd: dat is nu nog niet nodig (zie project-instructies), maar
 // deze opzet maakt dat later toevoegen een lokale wijziging i.p.v. een herschrijving van de tracker.
+//
+// Bevestigd door de eigenaar (november 2026, FUNCTIONALITEIT_SPEC B2): een schorsing valt bij 5, 10 en 15
+// gele kaarten. Dat is precies wat cycleLength 5 hieronder doet.
 export const SUSPENSION_PHASES = {
   regular: { cycleLength: 5 },
 };
@@ -27,6 +30,28 @@ export function nextSuspensionThreshold(cards, phase = 'regular') {
 
 export function cardsUntilSuspension(cards, phase = 'regular') {
   return nextSuspensionThreshold(cards, phase) - cards;
+}
+
+// Schorsing voor de volgende speeldag, afgeleid uit de kaarten per speeldag van /api/players (spec B2).
+// weekly = { yc: [...], rc: [...] } met één waarde per speeldag (index 0 = GW1, null = niet gespeeld);
+// lastGw = de laatst gespeelde speeldag. Een speler is geschorst voor lastGw + 1 als hij in lastGw:
+//   - rood kreeg ('red'). Hoeveel wedstrijden weet de bron niet: de site zegt 'minstens 1'.
+//   - of met zijn gele kaarten van die speeldag over een drempel (5, 10, 15, ...) ging ('yellow').
+// Een schorsing uit een vroegere speeldag is dan al uitgezeten en telt niet meer. Geeft null of
+// { gw, cardGw, cause, cards } terug (cards = totaal gele kaarten na lastGw).
+export function suspensionFromWeekly(weekly, lastGw, phase = 'regular') {
+  if (!weekly || !Number.isInteger(lastGw) || lastGw < 1) return null;
+  const idx = lastGw - 1;
+  const yc = Array.isArray(weekly.yc) ? weekly.yc : [];
+  const rc = Array.isArray(weekly.rc) ? weekly.rc : [];
+  const before = yc.slice(0, idx).reduce((sum, v) => sum + (Number(v) || 0), 0);
+  const after = before + (Number(yc[idx]) || 0);
+  if ((Number(rc[idx]) || 0) > 0) return { gw: lastGw + 1, cardGw: lastGw, cause: 'red', cards: after };
+  const { cycleLength } = SUSPENSION_PHASES[phase] ?? SUSPENSION_PHASES.regular;
+  if (Math.floor(after / cycleLength) > Math.floor(before / cycleLength)) {
+    return { gw: lastGw + 1, cardGw: lastGw, cause: 'yellow', cards: after };
+  }
+  return null;
 }
 
 // Zet de gedeelde spelersdatabank (playerDatabase, zie parsePlayerDatabaseCsv in constants.js — al

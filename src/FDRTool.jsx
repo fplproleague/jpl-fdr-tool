@@ -23,6 +23,10 @@ import {
 import { t as translate, LANGUAGES, DEFAULT_LANGUAGE } from './i18n';
 import { PREDICTED_LINEUPS } from './predictedLineupsData';
 import { I18nContext } from './i18nContext';
+import { AvailabilityContext } from './availabilityContext';
+import { buildAvailabilityLookup } from './availability';
+import { loadPlayers } from './data/playersApi';
+import { playerDatabaseFromApi, findInDatabase } from './data/playerDatabase';
 import {
   applyOverrides, diffFromDefaults, setOverride, removeOverride, loadOverrides, saveOverrides,
   encodeRatingsParam, decodeRatingsParam, encodeHomeParam, decodeHomeParam,
@@ -133,7 +137,9 @@ function loadStoredLanguage() {
 // die fetch. Geeft null als niets past — dan blijft gewoon de onderliggende tab staan i.p.v. een lege
 // kaart te tonen voor een verzonnen URL.
 function resolvePlayerSlug(slug, playerDatabase) {
-  const fromDatabase = playerDatabase.find(p => playerSlug(p.name, p.teamCode) === slug);
+  // Ook de volledige naam (bv. een link gemaakt vanuit de Spelers-tabel) telt.
+  const fromDatabase = playerDatabase.find(p => playerSlug(p.name, p.teamCode) === slug)
+    ?? playerDatabase.find(p => p.fullName && playerSlug(p.fullName, p.teamCode) === slug);
   if (fromDatabase) return { name: fromDatabase.name, teamCode: fromDatabase.teamCode };
   for (const lineup of PREDICTED_LINEUPS) {
     for (const slot of lineup.slots) {
@@ -1045,23 +1051,38 @@ export default function FDRTool() {
     }
   }, [teamPlannerPlayers, teamPlannerBenchByGw, teamPlannerCaptainByGw, teamPlannerTransfersBySlot, teamPlannerBoosters]);
 
-  // Haalt de spelersdatabank-CSV op en parset ze naar playerDatabase. Losse useCallback (i.p.v.
-  // rechtstreeks in de useEffect hieronder) zodat zowel de automatische fetch bij het laden als de
-  // "opnieuw proberen"-knop in TeamPlannerTab.jsx exact dezelfde logica hergebruiken. cache: 'no-store'
-  // zodat elke fetch altijd de meest actuele sheet-inhoud ophaalt — de gebruiker werkt de sheet
-  // regelmatig bij tijdens de zomermercato, dus verouderde gecachete data zou hier vervelend zijn.
+  // Haalt de spelersdatabank op (spec B1). Losse useCallback (i.p.v. rechtstreeks in de useEffect
+  // hieronder) zodat zowel de automatische fetch bij het laden als de "opnieuw proberen"-knop in
+  // TeamPlannerTab.jsx exact dezelfde logica hergebruiken.
+  //   1. /api/players: de officiële Fantasy Pro League-data, dezelfde request als de Spelers-tab en de
+  //      spelersfoto's (één keer per sessie, zie src/data/playersApi.js).
+  //   2. Lukt dat niet: de Google Sheet zoals vroeger. cache: 'no-store', zodat het altijd de meest
+  //      actuele sheet-inhoud is.
+  //   3. Lukt ook dat niet: de laatste kopie van /api/players in deze browser, als die er is.
   const fetchPlayerDatabase = useCallback(async () => {
     setPlayerDatabaseLoading(true);
     setPlayerDatabaseError(null);
     try {
-      const response = await fetch(PLAYER_DATABASE_CSV_URL, { cache: 'no-store' });
-      if (!response.ok) throw new Error('Netwerkfout');
-      const text = await response.text();
-      // Een gepubliceerde Google Sheet kan bij verkeerde/ingetrokken publish-rechten een HTML-
-      // foutpagina teruggeven i.p.v. CSV — die herkennen we hier zodat de UI een duidelijke
-      // foutmelding toont i.p.v. stilzwijgend brokkenrijen te parsen.
-      if (/^\s*<(!doctype|html)/i.test(text)) throw new Error('Onverwacht antwoord');
-      setPlayerDatabase(parsePlayerDatabaseCsv(text));
+      const fromApi = await loadPlayers();
+      if (fromApi.data && !fromApi.fromLocal) {
+        setPlayerDatabase(playerDatabaseFromApi(fromApi.data));
+        return;
+      }
+      try {
+        const response = await fetch(PLAYER_DATABASE_CSV_URL, { cache: 'no-store' });
+        if (!response.ok) throw new Error('Netwerkfout');
+        const text = await response.text();
+        // Een gepubliceerde Google Sheet kan bij verkeerde/ingetrokken publish-rechten een HTML-
+        // foutpagina teruggeven i.p.v. CSV — die herkennen we hier zodat de UI een duidelijke
+        // foutmelding toont i.p.v. stilzwijgend brokkenrijen te parsen.
+        if (/^\s*<(!doctype|html)/i.test(text)) throw new Error('Onverwacht antwoord');
+        const rows = parsePlayerDatabaseCsv(text);
+        if (rows.length === 0) throw new Error('Lege sheet');
+        setPlayerDatabase(rows);
+      } catch (err) {
+        if (!fromApi.data) throw err;
+        setPlayerDatabase(playerDatabaseFromApi(fromApi.data));
+      }
     } catch {
       // Een i18n-sleutel, geen zin: de tabs vertalen hem bij het tonen (spec A3).
       setPlayerDatabaseError('shared.loadError');
@@ -1069,6 +1090,17 @@ export default function FDRTool() {
       setPlayerDatabaseLoading(false);
     }
   }, []);
+
+  // Beschikbaarheid per speler (spec B2/B3): schorsingen uit de API, twijfel/risico uit de Verwachte
+  // XI's (enkel als die voor de komende speeldag gepubliceerd zijn) en één kaart van een schorsing.
+  // Via AvailabilityContext beschikbaar voor PlayerCell, de kiezer, de planner en de spelerskaart.
+  const availabilityLookup = useMemo(() => {
+    const published = PREDICTED_LINEUPS_GW >= CURRENT_GW;
+    return buildAvailabilityLookup(playerDatabase, {
+      lineups: published ? PREDICTED_LINEUPS : null,
+      lineupGw: published ? PREDICTED_LINEUPS_GW : null,
+    });
+  }, [playerDatabase]);
 
   // Haalt de spelersdatabank eenmalig op bij het laden van de app. Nog steeds vooraf (los van de
   // actieve tab), zodat ze klaarstaat zodra iemand naar Team Planner of Bonuspunten navigeert — maar
@@ -1226,7 +1258,7 @@ export default function FDRTool() {
       showWatchlistNotice({ kind: 'removed', player: watchlist[index], index });
       return;
     }
-    const price = playerDatabase.find(p => p.name === name && p.teamCode === teamCode)?.price ?? null;
+    const price = findInDatabase(playerDatabase, name, teamCode)?.price ?? null;
     const added = { id: createUniqueId(), name, teamCode, price };
     setWatchlist(prev => [...prev, added]);
     showWatchlistNotice({ kind: 'added', player: added });
@@ -1576,6 +1608,7 @@ export default function FDRTool() {
 
   return (
     <I18nContext.Provider value={i18nValue}>
+    <AvailabilityContext.Provider value={availabilityLookup}>
     <div style={{ minHeight: '100vh', background: 'var(--ink-0)', fontFamily: 'var(--font-ui)', position: 'relative' }}>
 
       <AppShell
@@ -1903,6 +1936,7 @@ export default function FDRTool() {
         </div>
       )}
     </div>
+    </AvailabilityContext.Provider>
     </I18nContext.Provider>
   );
 }
