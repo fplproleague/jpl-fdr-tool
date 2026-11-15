@@ -174,15 +174,25 @@ export function pathForRoute(key, language = DEFAULT_ROUTE_LANGUAGE) {
 // zodat bv. de filters van de Spelers-tab niet blijven plakken aan de FDR-URL. Ook ?r= en ?ha= (de
 // ratings uit een gedeelde FDR-link) horen enkel bij de FDR-tab: wie van tab wisselt, ziet daarna weer
 // zijn eigen ratings (FUNCTIONALITEIT_SPEC A1).
+const TABLE_PARAMS = ['q', 'pos', 'club', 'pmin', 'pmax', 'mins', 'scope', 'per', 'mode', 'cols', 'sort', 'dir', 'compare', 'speler', 'diff', 'avail'];
+// Spelers, Bonuspunten en Kaarten gebruiken dezelfde tabel en dus dezelfde parameters (spec E3).
+const TABLE_TABS = ['spelers', 'bonuspunten', 'kaarten'];
 export const TAB_QUERY_PARAMS = {
   fdr: ['r', 'ha', 'clubs'],
-  spelers: ['q', 'pos', 'club', 'pmin', 'pmax', 'mins', 'scope', 'per', 'mode', 'cols', 'sort', 'dir', 'compare', 'speler', 'diff', 'avail'],
+  spelers: TABLE_PARAMS,
+  bonuspunten: TABLE_PARAMS,
+  kaarten: TABLE_PARAMS,
   predictedlineups: ['match', 'team', 'view', 'twijfel', 'mijn'],
   klassement: ['team', 'rgw'],
 };
 
-export function searchForTab(search, key) {
+// fromKey = de tab waar je vandaan komt. Tussen Spelers, Bonuspunten en Kaarten vallen de filters
+// wel weg (zelfde namen, maar een sortering of kolomkeuze van de ene pagina hoort niet bij de andere).
+export function searchForTab(search, key, fromKey = null) {
   const params = new URLSearchParams(search || '');
+  if (fromKey && fromKey !== key && TABLE_TABS.includes(fromKey) && TABLE_TABS.includes(key)) {
+    TABLE_PARAMS.forEach(k => params.delete(k));
+  }
   // Een parameter die ook bij de doel-tab hoort (bv. 'team' bij Verwachte XI's én Klassement) blijft staan.
   const own = new Set(TAB_QUERY_PARAMS[key] ?? []);
   for (const [tab, keys] of Object.entries(TAB_QUERY_PARAMS)) {

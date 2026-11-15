@@ -55,8 +55,6 @@ const PlayerSheet = lazy(() => import('./components/PlayerSheet'));
 const ClubSheet = lazy(() => import('./components/ClubSheet'));
 const TeamPlannerTab = lazy(() => import('./tabs/TeamPlannerTab'));
 const PredictedLineupsTab = lazy(() => import('./tabs/PredictedLineupsTab'));
-const BonuspuntenTab = lazy(() => import('./tabs/BonuspuntenTab'));
-const KaartenTab = lazy(() => import('./tabs/KaartenTab'));
 const SetPiecesTab = lazy(() => import('./tabs/SetPiecesTab'));
 const SpelersTab = lazy(() => import('./tabs/SpelersTab'));
 const KlassementTab = lazy(() => import('./tabs/KlassementTab'));
@@ -321,11 +319,11 @@ export default function FDRTool() {
     setActiveTab(key);
     if (typeof window === 'undefined') return;
     // Parameters die enkel bij een andere tab horen (filters van Spelers/Klassement) vallen weg.
-    const url = urlForRoute(key, searchForTab(window.location.search, key), language);
+    const url = urlForRoute(key, searchForTab(window.location.search, key, activeTab), language);
     if (url !== window.location.pathname + window.location.search) {
       window.history.pushState({ tab: key }, '', url);
     }
-  }, [language]);
+  }, [language, activeTab]);
 
   // Terug-/vooruitknop van de browser. Leest ook de taal terug uit het pad, zodat terugkeren naar een
   // /fr-URL de interface weer in het Frans zet i.p.v. een Franse URL met Nederlandse inhoud.
@@ -1270,18 +1268,24 @@ export default function FDRTool() {
 
         {activeTab === 'bonuspunten' && (
           <Suspense fallback={<TabLoading text={t('shared.loading')} />}>
-            <BonuspuntenTab
+            {/* Bonuspunten en Kaarten draaien op de tabel van Spelers (spec E3). */}
+            <SpelersTab
+              key={`bonuspunten-${spelersMountKey}`}
+              page="bonuspunten"
               t={t}
+              ratings={ratings}
+              homeAdvantage={homeAdvantage}
               playerDatabase={playerDatabase}
-              playerDatabaseLoading={playerDatabaseLoading}
-              playerDatabaseError={playerDatabaseError}
-              fetchPlayerDatabase={fetchPlayerDatabase}
-              toggleWatchlistPlayer={toggleWatchlistPlayer}
+              watchlist={watchlist}
+              onRemoveWatchlistPlayer={handleRemoveWatchlistPlayer}
+              setPiecesEntries={setPiecesData.entries}
+              onGoToTeamPlanner={() => navigateToTab('teamplanner')}
+              teamPlannerActionFor={teamPlannerActionFor}
               isPlayerWatched={isPlayerWatched}
               isPlayerInMyTeam={isPlayerInMyTeam}
+              toggleWatchlistPlayer={toggleWatchlistPlayer}
               hasMyTeam={myTeamPlayerKeys.size > 0}
               hasWatchlist={watchlist.length > 0}
-              onOpenPlayer={openPlayerSheet}
               onOpenClub={openClubSheet}
             />
           </Suspense>
@@ -1305,18 +1309,23 @@ export default function FDRTool() {
 
         {activeTab === 'kaarten' && (
           <Suspense fallback={<TabLoading text={t('shared.loading')} />}>
-            <KaartenTab
+            <SpelersTab
+              key={`kaarten-${spelersMountKey}`}
+              page="kaarten"
               t={t}
+              ratings={ratings}
+              homeAdvantage={homeAdvantage}
               playerDatabase={playerDatabase}
-              playerDatabaseLoading={playerDatabaseLoading}
-              playerDatabaseError={playerDatabaseError}
-              fetchPlayerDatabase={fetchPlayerDatabase}
-              toggleWatchlistPlayer={toggleWatchlistPlayer}
+              watchlist={watchlist}
+              onRemoveWatchlistPlayer={handleRemoveWatchlistPlayer}
+              setPiecesEntries={setPiecesData.entries}
+              onGoToTeamPlanner={() => navigateToTab('teamplanner')}
+              teamPlannerActionFor={teamPlannerActionFor}
               isPlayerWatched={isPlayerWatched}
               isPlayerInMyTeam={isPlayerInMyTeam}
+              toggleWatchlistPlayer={toggleWatchlistPlayer}
               hasMyTeam={myTeamPlayerKeys.size > 0}
               hasWatchlist={watchlist.length > 0}
-              onOpenPlayer={openPlayerSheet}
               onOpenClub={openClubSheet}
             />
           </Suspense>

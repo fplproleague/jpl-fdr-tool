@@ -1,6 +1,10 @@
 // Rekenlogica voor de Spelers-tab (src/tabs/SpelersTab.jsx): kolommen, periodes (seizoen of laatste
 // 3/5/8 speeldagen), per-90-waarden, filteren, sorteren en de URL-staat. Bevat geen JSX en geen
 // netwerkverkeer, zodat alles hier los te testen valt. De data zelf komt uit /api/players.
+//
+// Sinds spec E3 draaien ook Bonuspunten en Kaarten op deze tabel (met hun eigen kolommen en
+// standaardsortering, zie PAGE_DEFAULTS).
+import { cardsUntilSuspension } from './kaarten';
 
 export const POSITION_KEYS = ['GK', 'DEF', 'MID', 'FWD'];
 
@@ -25,6 +29,8 @@ export const SPARK_GWS = 5;
 //   decimals: aantal decimalen bij weergave
 //   title: i18n-sleutel voor de tooltip in de kolomkop (anders het label zelf)
 //   lowerIsBetter: voor de "beste waarde"-markering in Vergelijken
+//   tiebreak(a, b): volgorde bij een gelijke waarde (anders: meeste punten eerst)
+const signed = (v) => `${v > 0 ? '+' : ''}${v}`;
 export const COLUMNS = {
   price: { label: 'spelers.col.price', get: r => r.price, decimals: 1, format: v => `€${v.toFixed(1)}`, lowerIsBetter: true, noBest: true },
   pts: { label: 'spelers.col.pts', get: r => r.pts, period: true, per90: true },
@@ -41,12 +47,20 @@ export const COLUMNS = {
   hc: { label: 'spelers.col.hc', get: r => r.hc, per90: true },
   dw: { label: 'spelers.col.dw', get: r => r.dw, per90: true },
   dl: { label: 'spelers.col.dl', get: r => r.dl, per90: true, lowerIsBetter: true },
+  // Duelsaldo (gewonnen min verloren): de voorwaarde voor het duelbonuspunt.
+  dd: { label: 'spelers.col.dd', get: r => (r.dw == null || r.dl == null ? null : r.dw - r.dl), per90: true, format: signed },
   br: { label: 'spelers.col.br', get: r => r.br, per90: true },
   int: { label: 'spelers.col.int', get: r => r.int, per90: true },
   sv: { label: 'spelers.col.sv', get: r => r.sv, per90: true },
   ps: { label: 'spelers.col.ps', get: r => r.ps },
   yc: { label: 'spelers.col.yc', get: r => r.yc, lowerIsBetter: true },
   rc: { label: 'spelers.col.rc', get: r => r.rc, lowerIsBetter: true },
+  // Gele kaarten tot de volgende schorsing (5, 10, 15, ...). Bij gelijke afstand eerst wie de meeste
+  // kaarten heeft.
+  toSusp: {
+    label: 'spelers.col.toSusp', get: r => cardsUntilSuspension(r.yc ?? 0), lowerIsBetter: true, noBest: true,
+    tiebreak: (a, b) => (b.yc ?? 0) - (a.yc ?? 0),
+  },
   bp: { label: 'spelers.col.bp', get: r => r.bp, period: true, per90: true },
   bpDuels: { label: 'spelers.col.bpDuels', get: r => r.bpDuels },
   bpHeaders: { label: 'spelers.col.bpHeaders', get: r => r.bpHeaders },
@@ -63,12 +77,37 @@ export const PRESETS = {
   attack: ['price', 'pts', 'g', 'a', 'bc', 'min'],
   defence: ['price', 'pts', 'cs', 'hc', 'dw', 'dl', 'br'],
   bonus: ['pts', 'bp', 'bpDuels', 'bpHeaders', 'bpRecoveries', 'bpBigChances'],
+  cards: ['toSusp', 'yc', 'rc', 'mp', 'min'],
   ownership: ['price', 'sel', 'pts', 'ppm', 'form'],
+  // Enkel op de Bonuspunten-pagina (de knoppen per voorwaarde): het bonuspunt van die voorwaarde en
+  // de statistiek erachter.
+  bonusDuels: ['bp', 'bpDuels', 'dd', 'dw', 'dl', 'mp'],
+  bonusHeaders: ['bp', 'bpHeaders', 'hc', 'mp'],
+  bonusRecoveries: ['bp', 'bpRecoveries', 'br', 'mp'],
+  bonusBigChances: ['bp', 'bpBigChances', 'bc', 'mp'],
 };
+// Alle geldige presets (ook in een link); SPELERS_PRESET_KEYS = de knoppen op de Spelers-pagina.
 export const PRESET_KEYS = Object.keys(PRESETS);
+export const SPELERS_PRESET_KEYS = ['overview', 'attack', 'defence', 'bonus', 'cards', 'ownership'];
+// De knoppen op de Bonuspunten-pagina: "Totaal" en de vier voorwaarden voor een bonuspunt.
+export const BONUS_PRESETS = [
+  { cols: 'bonus', label: 'bonuspunten.tab.total' },
+  { cols: 'bonusDuels', label: 'bonuspunten.tab.duels' },
+  { cols: 'bonusHeaders', label: 'bonuspunten.tab.headers' },
+  { cols: 'bonusRecoveries', label: 'bonuspunten.tab.recoveries' },
+  { cols: 'bonusBigChances', label: 'bonuspunten.tab.bigChances' },
+];
 
 // Standaardsortering wanneer je een preset kiest (enkel waar die afwijkt van punten).
-export const PRESET_SORT = { ownership: { sort: 'sel', dir: 'desc' } };
+export const PRESET_SORT = {
+  ownership: { sort: 'sel', dir: 'desc' },
+  bonus: { sort: 'bp', dir: 'desc' },
+  cards: { sort: 'toSusp', dir: 'asc' },
+  bonusDuels: { sort: 'bpDuels', dir: 'desc' },
+  bonusHeaders: { sort: 'bpHeaders', dir: 'desc' },
+  bonusRecoveries: { sort: 'bpRecoveries', dir: 'desc' },
+  bonusBigChances: { sort: 'bpBigChances', dir: 'desc' },
+};
 
 // "Differentials": spelers met een ownership onder deze grens (in %).
 export const DIFFERENTIAL_MAX_SEL = 5;
@@ -229,7 +268,7 @@ export function sortRows(rows, sortKey, dir, mode) {
     if (va == null && vb == null) return b.pts - a.pts;
     if (va == null) return 1;
     if (vb == null) return -1;
-    return sign * (va - vb) || b.pts - a.pts || a.name.localeCompare(b.name);
+    return sign * (va - vb) || (COLUMNS[sortKey]?.tiebreak?.(a, b) ?? 0) || b.pts - a.pts || a.name.localeCompare(b.name);
   });
 }
 
@@ -257,13 +296,21 @@ export const DEFAULT_STATE = {
   mode: 'total', cols: 'overview', sort: 'pts', dir: 'desc', compare: [], speler: null, diff: false,
 };
 
+// Standaardstaat per pagina op deze tabel (spec E3). Wat gelijk is aan de standaard van de pagina,
+// komt niet in de URL: /bonuspunten blijft dus gewoon /bonuspunten.
+export const PAGE_DEFAULTS = {
+  spelers: DEFAULT_STATE,
+  bonuspunten: { ...DEFAULT_STATE, cols: 'bonus', ...PRESET_SORT.bonus },
+  kaarten: { ...DEFAULT_STATE, cols: 'cards', ...PRESET_SORT.cards },
+};
+
 const toNumberOrNull = (v) => {
   if (v == null || v === '') return null;
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
 };
 
-export function stateFromSearch(search) {
+export function stateFromSearch(search, defaults = DEFAULT_STATE) {
   const p = new URLSearchParams(search);
   const per = p.get('per');
   const perValue = PERIODS.find(x => String(x) === per) ?? 'season';
@@ -278,9 +325,9 @@ export function stateFromSearch(search) {
     scope: ['all', 'myTeam', 'watchlist'].includes(p.get('scope')) ? p.get('scope') : 'all',
     per: perValue,
     mode: p.get('mode') === 'p90' ? 'p90' : 'total',
-    cols: PRESET_KEYS.includes(p.get('cols')) ? p.get('cols') : 'overview',
-    sort: sort && (COLUMNS[sort] || ['name', 'club', 'pos'].includes(sort)) ? sort : 'pts',
-    dir: p.get('dir') === 'asc' ? 'asc' : 'desc',
+    cols: PRESET_KEYS.includes(p.get('cols')) ? p.get('cols') : defaults.cols,
+    sort: sort && (COLUMNS[sort] || ['name', 'club', 'pos'].includes(sort)) ? sort : defaults.sort,
+    dir: ['asc', 'desc'].includes(p.get('dir')) ? p.get('dir') : defaults.dir,
     compare: (p.get('compare') ?? '').split(',').map(Number).filter(n => Number.isInteger(n) && n > 0).slice(0, MAX_COMPARE),
     speler: toNumberOrNull(p.get('speler')),
     diff: p.get('diff') === '1',
@@ -289,7 +336,7 @@ export function stateFromSearch(search) {
 
 // Bouwt de nieuwe query-string: parameters van andere tabs (bv. ?r= en ?ha= van de FDR-ratings)
 // blijven staan, de Spelers-parameters worden herschreven.
-export function searchFromState(state, currentSearch = '') {
+export function searchFromState(state, currentSearch = '', defaults = DEFAULT_STATE) {
   const p = new URLSearchParams(currentSearch);
   SPELERS_QUERY_PARAMS.forEach(k => p.delete(k));
   const set = (k, v) => { if (v !== '' && v != null) p.set(k, String(v)); };
@@ -302,9 +349,9 @@ export function searchFromState(state, currentSearch = '') {
   if (state.scope !== 'all') set('scope', state.scope);
   if (state.per !== 'season') set('per', state.per);
   if (state.mode !== 'total') set('mode', state.mode);
-  if (state.cols !== 'overview') set('cols', state.cols);
-  if (state.sort !== 'pts') set('sort', state.sort);
-  if (state.dir !== 'desc') set('dir', state.dir);
+  if (state.cols !== defaults.cols) set('cols', state.cols);
+  if (state.sort !== defaults.sort) set('sort', state.sort);
+  if (state.dir !== defaults.dir) set('dir', state.dir);
   if (state.compare.length) set('compare', state.compare.join(','));
   if (state.speler) set('speler', state.speler);
   if (state.diff) set('diff', 1);
