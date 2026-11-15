@@ -1,6 +1,6 @@
 // Inhoud van de FDR-tab (spec §7.1): paginakop met de ratingstatus, een toolbar (één periode met
 // snelknoppen, legende die ook filtert, knoppen), de hoofdtabel (de Σ-kolom met het gemiddelde is
-// optioneel) en "Beste fixture runs". De team-sterktes pas je aan in een lade ("Ratings aanpassen");
+// optioneel; standaard gesorteerd van makkelijk naar moeilijk). De team-sterktes pas je aan in een lade ("Ratings aanpassen");
 // welke clubs de tabel toont, kies je in een tweede lade ("Clubs kiezen", vervangt "Vergelijk teams").
 //
 // Alle data-state en handlers komen als props uit FDRTool.jsx: de tab wordt bij elke tabwissel
@@ -10,7 +10,6 @@
 import { useState } from 'react';
 import { RotateCcw, Link2, Download, Check, SlidersHorizontal, Info, Sigma, ListFilter } from 'lucide-react';
 import { TEAMS_ALPHA, FIXTURES, RATING_STYLE, GW_COUNT, GW_INDEXES, DEFAULT_RATINGS, getFixtureInfo } from '../constants';
-import { SectionHeader } from '../components/SectionHeader';
 import Sheet from '../components/Sheet';
 import PageHeader from '../ui/PageHeader';
 import Button from '../ui/Button';
@@ -293,21 +292,16 @@ export default function FDRTab({
   highlightedRatings, toggleRatingFilter, clearRatingFilter,
   gwHorizonStart, setGwHorizonStart, gwHorizonEnd, setGwHorizonEnd, gwHorizonRange,
   quickPeriod, chooseQuickPeriod,
-  visibleGwHeaderCells, runsGwHeaderCells,
+  visibleGwHeaderCells,
   displayedTeams, teamAvgDifficulty, tableRef,
   clubFilter, clubFilterActive, setClubFilter,
-  bestRuns,
   teamForm,
   onOpenClub,
 }) {
   const [ratingsOpen, setRatingsOpen] = useState(false);
   const [clubsOpen, setClubsOpen] = useState(false);
-  // Beste runs: standaard de top 5, uitklapbaar naar alle clubs.
-  const [showAllRuns, setShowAllRuns] = useState(false);
   const gwCount = visibleGwHeaderCells.length;
   const mainScroll = useOverflow(`${gwCount}-${displayedTeams.length}`);
-  const visibleRuns = showAllRuns ? bestRuns : bestRuns.slice(0, 5);
-  const runsScroll = useOverflow(`${runsGwHeaderCells.length}-${visibleRuns.length}-${openSections.runs}`);
   const sortedByAvg = sortBy.mode === 'avg';
 
   const legendProps = { t, highlightedRatings, toggleRatingFilter, clearRatingFilter };
@@ -402,7 +396,20 @@ export default function FDRTab({
           <table className={`fdr-grid${showAvgColumn ? '' : ' fdr-grid--no-avg'}`} style={{ '--fdr-gws': gwCount }}>
             <thead>
               <tr>
-                <th scope="col" className="fdr-grid__team fdr-grid__corner">{t('fdr.teamColumn')}</th>
+                {/* De kop "Team" sorteert van makkelijk naar moeilijk over de gekozen periode (dat is de
+                    standaard); nog eens klikken zet de vaste clubvolgorde terug. Werkt ook zonder Σ-kolom. */}
+                <th scope="col" className="fdr-grid__team fdr-grid__corner" aria-sort={sortedByAvg ? 'ascending' : 'none'}>
+                  <button
+                    type="button"
+                    onClick={toggleSortByAverage}
+                    aria-pressed={sortedByAvg}
+                    aria-label={t('fdr.sortByAvgAria')}
+                    title={t('fdr.sortByAvgAria')}
+                    className={`fdr-grid__sort fdr-grid__sort--team${sortedByAvg ? ' is-sorted' : ''}`}
+                  >
+                    {t('fdr.teamColumn')}
+                  </button>
+                </th>
                 {showAvgColumn && (
                   <th scope="col" className="fdr-grid__avg" aria-sort={sortedByAvg ? 'ascending' : 'none'}>
                     <button
@@ -454,56 +461,6 @@ export default function FDRTab({
         <RatingLegend {...legendProps} className="fdr-legend--bottom" />
         <p className="fdr-hint">{t('fdr.tapHint')}</p>
       </div>
-
-      <section className="fdr-section">
-        <SectionHeader title={t('fdr.section.runs')} sectionKey="runs" isOpen={openSections.runs} onToggle={toggleSection} />
-        {openSections.runs && (
-          <div id="fdr-section-runs">
-            <p className="fdr-hint fdr-hint--lead">{t('fdr.runsPeriodHint', { from: gwHorizonRange.start, to: gwHorizonRange.end })}</p>
-            {/* Zelfde tabelvorm als de hoofdtabel: rang + club, het gemiddelde (daar draait de ranglijst
-                om) en per speeldag een volle FDR-cel met tegenstander en thuis/uit. */}
-            <div ref={runsScroll.ref} onScroll={runsScroll.onScroll} className={`ui-table-scroll${runsScroll.className}`}>
-              <table className="fdr-grid fdr-grid--runs" style={{ '--fdr-gws': runsGwHeaderCells.length }}>
-                <thead>
-                  <tr>
-                    <th scope="col" className="fdr-grid__team fdr-grid__corner">{t('fdr.teamColumn')}</th>
-                    <th scope="col" className="fdr-grid__avg" title={t('fdr.avgColumnTitle')}>{t('fdr.runsAvg')}</th>
-                    {runsGwHeaderCells}
-                  </tr>
-                </thead>
-                <tbody>
-                  {visibleRuns.map((team, idx) => (
-                    <tr key={team.code}>
-                      <th scope="row" className="fdr-grid__team">
-                        <button
-                          type="button" className="fdr-team"
-                          onClick={() => onOpenClub?.(team.code)} disabled={!onOpenClub}
-                          aria-label={t('clubSheet.openAria', { club: team.name })}
-                        >
-                          <span className={`fdr-runs__rank num${idx === 0 ? ' is-first' : ''}`}>{idx + 1}</span>
-                          <ClubLogo code={team.code} />
-                          <span className="fdr-team__code">{team.code}</span>
-                        </button>
-                      </th>
-                      <td className="fdr-grid__avg num" aria-label={t('fdr.avgDifficulty', { value: team.avg.toFixed(1) })}>
-                        {team.avg.toFixed(1)}
-                      </td>
-                      {team.fixtures.map((f, i) => {
-                        const gwNumber = team.startGW + i;
-                        const info = getFixtureInfo(team.code, f, gwNumber, ratings, homeAdvantage);
-                        return <FdrCell key={gwNumber} info={info} ariaLabel={buildFixtureCellAriaLabel(t, info)} />;
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <Button variant="ghost" size="sm" className="fdr-runs__more" onClick={() => setShowAllRuns(v => !v)} aria-expanded={showAllRuns}>
-              {showAllRuns ? t('fdr.runsShowTop') : t('fdr.runsShowAll', { count: bestRuns.length })}
-            </Button>
-          </div>
-        )}
-      </section>
 
       {ratingsOpen && (
         <RatingsSheet

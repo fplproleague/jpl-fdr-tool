@@ -9,7 +9,7 @@ import {
   createEmptyPlanner, teamAtGw, applyTransfer, removeTransferCascade, setRoleAt, setCalibrationAt,
   clearCalibrationAt, withStartLineup, suggestCaptains, isPlannerComplete,
 } from './teamPlanner';
-import { basisScore, fixtureFactorFor, startFactorFor } from './lineupScore';
+import { basisScore, clubFactorFor, fixtureFactorFor, lineupScore, startFactorFor } from './lineupScore';
 
 // De berekening zoals ze vóór fase C in constants.js stond, letterlijk overgenomen als referentie.
 function referenceBudget(transferHistory, boosters) {
@@ -223,7 +223,11 @@ describe('opstellingsscore', () => {
   it('basis: gemiddelde per gespeelde speeldag in de laatste 5, anders seizoen, anders 1', () => {
     const pts = [2, 2, 2, 2, 2, 2, 10, 0, 6, 8, 4];
     const min = [90, 90, 90, 90, 90, 90, 90, 0, 90, 90, 90];
+    // Enkel vorm bekend: dan telt die alleen.
     expect(basisScore({ weeklyPts: pts, weeklyMin: min, lastGw: 11 })).toBeCloseTo((10 + 6 + 8 + 4) / 4);
+    // Vorm en seizoen: 35% vorm + 65% seizoen.
+    expect(basisScore({ weeklyPts: pts, weeklyMin: min, lastGw: 11, seasonPts: 40, seasonMatches: 10 }))
+      .toBeCloseTo(0.35 * 7 + 0.65 * 4);
     expect(basisScore({ weeklyPts: [5], weeklyMin: [0], lastGw: 1, seasonPts: 12, seasonMatches: 3 })).toBe(4);
     expect(basisScore({})).toBe(1);
     expect(basisScore({ weeklyPts: [-2], weeklyMin: [30], lastGw: 1 })).toBe(0.1);
@@ -236,6 +240,24 @@ describe('opstellingsscore', () => {
     expect(startFactorFor({ gw: 12, lineupGw: 12, lineupSafety: 'red' })).toBe(0.3);
     expect(startFactorFor({ gw: 12, lineupGw: 12, lineupSafety: null })).toBe(0.9);
     expect(startFactorFor({ gw: 13, lineupGw: 12, lineupSafety: 'red' })).toBe(1);
+  });
+
+  it('eigen club: sterkere ploeg = hogere factor', () => {
+    expect(clubFactorFor('CLU', { CLU: 5 })).toBe(1.15);
+    expect(clubFactorFor('OHL', { OHL: 2 })).toBe(0.92);
+    expect(clubFactorFor('XXX', {})).toBe(1);
+  });
+
+  it('één hoge vormweek duwt een vaste waarde van een topclub niet meer naar de bank', () => {
+    const ratings = new Proxy({ CLU: 5, OHL: 2 }, { get: (o, k) => o[k] ?? 3 });
+    // Topclubspeler: 5 per match over het seizoen, recent 4. Middenmoter: 3 per match, recent 8.
+    const top = { teamCode: 'CLU', points: 50, games: 10, apiGw: 5, weekly: { pts: [4, 4, 4, 4, 4], min: [90, 90, 90, 90, 90] } };
+    const mid = { teamCode: 'OHL', points: 30, games: 10, apiGw: 5, weekly: { pts: [8, 8, 8, 8, 8], min: [90, 90, 90, 90, 90] } };
+    const gw = 12;
+    const fx = (p) => fixtureFactorFor(p.teamCode, gw, ratings, {});
+    const scoreTop = lineupScore({ player: top, gw, ratings, homeAdvantage: {} }) / fx(top);
+    const scoreMid = lineupScore({ player: mid, gw, ratings, homeAdvantage: {} }) / fx(mid);
+    expect(scoreTop).toBeGreaterThan(scoreMid);
   });
 
   it('tegenstander: factor volgens de FDR, geen wedstrijd = 0', () => {

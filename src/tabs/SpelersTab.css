@@ -83,20 +83,36 @@
 .spl-sheet-actions { display: flex; justify-content: flex-end; gap: var(--s-2); flex-wrap: wrap; }
 
 /* Vergelijken (in een Sheet). */
-.spl-compare { overflow-x: auto; overscroll-behavior-x: contain; margin-top: var(--s-2); }
-.spl-compare__table { width: auto; min-width: 100%; }
+.spl-compare { margin-top: var(--s-2); }
+.spl-compare__table { width: 100%; table-layout: fixed; }
 .spl-compare__table thead th { position: static; height: auto; vertical-align: bottom; padding-bottom: var(--s-2); }
+.spl-compare__table thead th.spl-compare__stat { width: 220px; }
 .spl-compare__stat {
-  position: sticky; left: 0; z-index: 1; background: var(--ink-1);
-  text-align: left; color: var(--text-3); font-size: var(--fs-meta); font-weight: 600; min-width: 132px;
+  text-align: left; color: var(--text-3); font-size: var(--fs-meta); font-weight: 600;
+  white-space: normal !important; line-height: var(--lh-meta);
 }
 .spl-compare__table tbody th.spl-compare__stat { font-weight: 600; }
-.spl-compare__player { min-width: 112px; text-transform: none; letter-spacing: 0; }
-.spl-compare__head { display: flex; flex-direction: column; align-items: center; gap: var(--s-1); }
+.spl-compare__labelrow { display: none; }
+.spl-compare__player { text-transform: none; letter-spacing: 0; white-space: normal !important; }
+.spl-compare__head { display: flex; flex-direction: column; align-items: center; gap: var(--s-1); min-width: 0; }
 .spl-compare__remove { align-self: flex-end; }
 .spl-compare__name {
-  border: 0; padding: 0; background: none; cursor: pointer; text-align: center;
-  font: 600 var(--fs-ui)/var(--lh-ui) var(--font-ui); color: var(--text-1);
+  max-width: 100%; border: 0; padding: 0; background: none; cursor: pointer; text-align: center;
+  font: 600 var(--fs-ui)/var(--lh-ui) var(--font-ui); color: var(--text-1); overflow-wrap: anywhere;
+}
+.spl-compare__table td { overflow: hidden; text-overflow: ellipsis; }
+/* Gsm: geen statkolom links; de naam van de stat staat als eigen regel boven de waarden. */
+@media (max-width: 700px) {
+  /* De statkolom verdwijnt helemaal; de labelregel (die op desktop verborgen is) neemt haar rol over. */
+  .spl-compare__table th.spl-compare__stat { display: none; }
+  .spl-compare__labelrow { display: table-row; }
+  .spl-compare__labelrow td {
+    padding: var(--s-2) var(--s-1) 0 !important; height: auto !important; border-bottom: 0 !important;
+    color: var(--text-3); font-size: var(--fs-label); font-weight: 600; text-align: left !important;
+  }
+  .spl-compare__table td { padding-left: 2px; padding-right: 2px; }
+  .spl-compare__name { font-size: var(--fs-meta); }
+  .spl-compare__meta { font-size: var(--fs-label); }
 }
 .spl-compare__name:hover { text-decoration: underline; text-underline-offset: 2px; }
 .spl-compare__meta { color: var(--text-3); font-size: var(--fs-meta); font-weight: 400; }

@@ -317,7 +317,7 @@ export default function PlayerSheet({
               <ClubLogo code={teamCode} size={16} /> {teamCode}
             </button>
           ) : <span className="ps-club"><ClubLogo code={teamCode} size={16} /> {teamCode}</span>}
-          {pos && <span title={t(`spelers.pos.${pos}`)}>· {pos}</span>}
+          {pos && <span title={t(`spelers.pos.${pos}`)}>· {t(`spelers.posShort.${pos}`)}</span>}
           {price && <span className="num">· €{Number(price).toFixed(1)}</span>}
           <AvailabilityMark name={dbName} clubCode={teamCode} />
         </div>

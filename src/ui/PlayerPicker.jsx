@@ -30,10 +30,8 @@ import Select from './Select';
 import DataTable from './DataTable';
 import Button from './Button';
 import EmptyState from './EmptyState';
-import Switch from './Switch';
 import { AvailabilityBadge } from './AvailabilityMark';
 import { useAvailabilityLookup } from '../availabilityContext';
-import { isAvailable } from '../availability';
 import { FORM_GWS, formAverage, formatForm } from '../spelers';
 import './PlayerPicker.css';
 
@@ -51,7 +49,6 @@ export default function PlayerPicker({
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState('pts');
   const [limit, setLimit] = useState(PAGE_SIZE);
-  const [availableOnly, setAvailableOnly] = useState(false);
   const availability = useAvailabilityLookup();
 
   // Prijsopties per halve miljoen, plus "wat het budget toelaat" als standaard.
@@ -87,7 +84,6 @@ export default function PlayerPicker({
       .filter(p => !q || normalizePlayerName(p.name).includes(q))
       .filter(p => !Number.isFinite(p.price) || p.price <= cap)
       .map(p => ({ p, status: availability(p.name, p.teamCode) }))
-      .filter(({ status }) => !availableOnly || isAvailable(status))
       .map(({ p, status }) => {
         const api = index.find(p.name, p.teamCode);
         return {
@@ -108,7 +104,7 @@ export default function PlayerPicker({
       if (vb == null) return -1;
       return vb - va || (b.player.price ?? 0) - (a.player.price ?? 0) || a.player.name.localeCompare(b.player.name);
     });
-  }, [players, position, query, maxPrice, sort, index, apiGw, blockedReason, availability, availableOnly]);
+  }, [players, position, query, maxPrice, sort, index, apiGw, blockedReason, availability]);
 
   const nextGws = [gw, gw + 1, gw + 2].filter(g => g >= 1 && g <= GW_COUNT);
 
@@ -191,7 +187,7 @@ export default function PlayerPicker({
           ariaLabel={t('picker.positionAria')}
           value={position}
           onChange={(p) => { if (p !== position) onSwitchPosition?.(p); }}
-          options={POSITIONS.map(p => ({ value: p, label: p, disabled: p !== position && !switchablePositions?.includes(p) }))}
+          options={POSITIONS.map(p => ({ value: p, label: t(`spelers.posShort.${p}`), disabled: p !== position && !switchablePositions?.includes(p) }))}
         />
         <label className="ui-picker__select">
           <span className="label">{t('picker.maxPrice')}</span>
@@ -206,12 +202,6 @@ export default function PlayerPicker({
             options={['pts', 'form', 'sel', 'price'].map(k => ({ value: k, label: t(`picker.sort.${k}`) }))}
           />
         </label>
-        <Switch
-          className="ui-picker__avail"
-          checked={availableOnly}
-          onChange={(v) => { setAvailableOnly(v); setLimit(PAGE_SIZE); }}
-          label={t('availability.filter')}
-        />
       </div>
       <DataTable
         className="ui-picker__table"
