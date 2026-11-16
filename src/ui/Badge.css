@@ -23,3 +23,4 @@
 .ui-avail-mini.is-warning { background: var(--warning); }
 .ui-avail-mini.is-doubt, .ui-avail-mini.is-risk { width: 14px; height: 14px; }
 .ui-avail-mini.is-outline { width: 14px; height: 14px; background: var(--ink-3); color: var(--text-1); }
+.ui-avail-mini.is-officialOut { width: 14px; height: 14px; font-size: 12px; }

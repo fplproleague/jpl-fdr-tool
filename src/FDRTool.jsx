@@ -26,6 +26,7 @@ import { AvailabilityContext } from './availabilityContext';
 import { buildAvailabilityLookup } from './availability';
 import { loadPlayers } from './data/playersApi';
 import { playerDatabaseFromApi, findInDatabase } from './data/playerDatabase';
+import { LIVE_GW, buildOfficialIndex, useOfficialLineups } from './data/officialLineups';
 import { normalizePlayerName } from './data/usePlayerIndex';
 import {
   applyOverrides, diffFromDefaults, setOverride, removeOverride, loadOverrides, saveOverrides,
@@ -1079,6 +1080,11 @@ export default function FDRTool() {
     [planner.teamAt, lineupPlayerKey],
   );
 
+  // Officiële opstellingen van de speeldag die nu gespeeld wordt (spec F3), enkel opgehaald op de tabs
+  // die ze tonen. Zelfde spelerssleutel als de Verwachte XI's.
+  const officialData = useOfficialLineups(LIVE_GW, activeTab === 'predictedlineups' || activeTab === 'teamplanner');
+  const officialLineups = useMemo(() => buildOfficialIndex(officialData, lineupPlayerKey), [officialData, lineupPlayerKey]);
+
   // De knop onderaan de spelerskaart (spec E2): met een volledig team "Transfer naar mijn team", zit de
   // speler er al in "In je team" (uitgeschakeld), anders "Naar Team Planner" zoals vroeger.
   // Een open "Wie gaat eruit?" vervalt zodra je een andere tab opent.
@@ -1252,6 +1258,8 @@ export default function FDRTool() {
             playerDatabaseError={playerDatabaseError}
             fetchPlayerDatabase={fetchPlayerDatabase}
             isPlayerWatched={isPlayerWatched}
+            official={officialLineups}
+            officialKeyOf={lineupPlayerKey}
             toggleWatchlistPlayer={toggleWatchlistPlayer}
           />
           </Suspense>
@@ -1261,7 +1269,7 @@ export default function FDRTool() {
           <Suspense fallback={<TabLoading text={t('shared.loading')} />}>
             <PredictedLineupsTab
               t={t} language={language} onOpenPlayer={openPlayerSheet} onOpenClub={openClubSheet}
-              myTeam={lineupMyTeam} playerKeyOf={lineupPlayerKey}
+              myTeam={lineupMyTeam} playerKeyOf={lineupPlayerKey} official={officialLineups}
             />
           </Suspense>
         )}

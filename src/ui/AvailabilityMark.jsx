@@ -27,7 +27,8 @@ export default function AvailabilityMark({ name, clubCode, className }) {
 // Compacte vorm voor plaatsen waar geen woord past (op het shirt in de Team Planner): een klein vierkant
 // in dezelfde kleur, met een kaartje voor een schorsing of één kaart en een "?" voor twijfel/risico. De
 // uitleg staat in de tooltip en voor schermlezers.
-const MINI_GLYPH = { suspended: '', oneCard: '!', doubt: '?', risk: '?', notFound: '!' };
+// officialOut (spec F3): officieel niet in de basis, een kruisje.
+const MINI_GLYPH = { suspended: '', oneCard: '!', doubt: '?', risk: '?', notFound: '!', officialOut: '×' };
 
 export function AvailabilityMini({ status, className = '' }) {
   const { t } = useI18n();

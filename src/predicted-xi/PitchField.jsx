@@ -113,6 +113,9 @@ const PitchField = forwardRef(function PitchField({
   // Optioneel, enkel de publieke tab (spec E1): (naam, clubcode) -> true als die speler in het team
   // van de bezoeker zit. Zonder deze prop krijgt geen enkel kaartje een markering.
   highlightPlayer = null,
+  // Optioneel, enkel de publieke tab (spec F3): (naam, clubcode) -> { state: 'starts'|'bench'|'out',
+  // label } of null, uit de officiële opstelling. Zonder deze prop verandert er niets.
+  officialStatus = null,
 }, ref) {
   const site = variant === 'site' && siteTheme;
   const pitchSlots = slots.filter(s => s.positionId !== '_unassigned');
@@ -315,6 +318,7 @@ const PitchField = forwardRef(function PitchField({
                 onViewPlayer={onViewPlayer}
                 viewPlayerLabel={viewPlayerLabel}
                 highlighted={highlightPlayer && slot.playerName ? highlightPlayer(slot.playerName, slot.playerTeamCode || club?.code) : undefined}
+                official={officialStatus && slot.playerName ? officialStatus(slot.playerName, slot.playerTeamCode || club?.code) : undefined}
                 teamCode={club?.code}
                 shirtWidthPx={shirtWidthPx}
               />
