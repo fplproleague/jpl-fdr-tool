@@ -15,6 +15,8 @@ import StatusDot from '../ui/StatusDot';
 import { PlayerFaceByName } from '../ui/PlayerFace';
 import { ClubLogo } from './SpelersParts';
 import { XG_MATCHES, resultOf, summarizeXg, useTeamXg } from '../data/teamXg';
+import { ordinal, useStandings } from '../data/standings';
+import { useI18n } from '../i18nContext';
 import './ClubSheet.css';
 
 // Acht speeldagen vooruit, zoals de FDR-tabel standaard toont.
@@ -45,6 +47,15 @@ export default function ClubSheet({
   const form = teamForm?.[clubCode] ?? [];
   const setPieces = setPiecesEntries.find(e => e.clubCode === clubCode) ?? null;
   const xgClubs = useTeamXg();
+  // Plaats in het klassement van de echte competitie (spec F4); tijdens de play-offs met de naam van de groep.
+  const { language } = useI18n();
+  const standings = useStandings();
+  const standing = standings?.clubs?.[clubCode] ?? null;
+  const standingText = standing && Number.isInteger(standing.rank)
+    ? t(standings.playoffs && standing.group ? 'clubSheet.standingGroup' : 'clubSheet.standing', {
+      rank: ordinal(standing.rank, language), points: standing.points ?? 0, group: standing.group ?? '',
+    })
+    : null;
   const xg = summarizeXg(xgClubs?.[clubCode]);
 
   // De laatst beschikbare verwachte opstelling (findLast: bij een oude én een nieuwe telt de nieuwste).
@@ -71,9 +82,14 @@ export default function ClubSheet({
       />
       <div className="cs-head__text">
         <h2 id={headingId} className="cs-name">{clubName}</h2>
-        {form.length > 0 && (
-          <div className="cs-form" role="img" aria-label={t('clubSheet.formAria', { results: form.map(formLetter).join(', ') })}>
-            {form.map((r, i) => <span key={i} className={`cs-form__r is-${r}`} aria-hidden="true">{formLetter(r)}</span>)}
+        {(form.length > 0 || standingText) && (
+          <div className="cs-meta">
+            {form.length > 0 && (
+              <div className="cs-form" role="img" aria-label={t('clubSheet.formAria', { results: form.map(formLetter).join(', ') })}>
+                {form.map((r, i) => <span key={i} className={`cs-form__r is-${r}`} aria-hidden="true">{formLetter(r)}</span>)}
+              </div>
+            )}
+            {standingText && <span className="cs-standing">{standingText}</span>}
           </div>
         )}
       </div>

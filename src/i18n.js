@@ -111,7 +111,7 @@ const STRINGS = {
     'fdr.sortByDifficulty': 'Sorteer op makkelijkste run',
     'fdr.gwLabel': 'GW',
     'fdr.gwTo': 't/m',
-    'fdr.tapHint': 'Tik op grijze cellen of die met een * voor meer info',
+    'fdr.tapHint': "Tik op een cel voor de aftraptijd. Grijze cellen en die met een * hebben extra uitleg.",
     'fdr.teamColumn': 'Team',
     // Filteren op moeilijkheidsgraad (de legende onder de hoofdtabel) + sorteren per kolom.
     'fdr.filterByRating': 'Filter op moeilijkheid',
@@ -966,6 +966,8 @@ const STRINGS = {
     'teamPlanner.officialBench': "Bank",
     'teamPlanner.officialOut': "Niet in selectie",
     'teamPlanner.officialTitle': "Officiële opstelling GW{{gw}}: start niet ({{status}})",
+    'clubSheet.standing': "{{rank}} in het klassement · {{points}} ptn",
+    'clubSheet.standingGroup': "{{rank}} in {{group}} · {{points}} ptn",
   },
 
 
@@ -1047,7 +1049,7 @@ const STRINGS = {
     'fdr.sortByDifficulty': 'Trier par calendrier le plus facile',
     'fdr.gwLabel': 'J',
     'fdr.gwTo': 'à',
-    'fdr.tapHint': 'Touchez les cellules grises ou marquées d’un * pour plus d’infos',
+    'fdr.tapHint': "Touchez une cellule pour l’heure du coup d’envoi. Les cellules grises ou marquées d’un * ont plus d’infos.",
     'fdr.teamColumn': 'Équipe',
     'fdr.filterByRating': 'Filtrer par difficulté',
     'fdr.filterLabel': 'Filtre',
@@ -1883,6 +1885,8 @@ const STRINGS = {
     'teamPlanner.officialBench': "Banc",
     'teamPlanner.officialOut': "Pas dans le groupe",
     'teamPlanner.officialTitle': "Composition officielle J{{gw}} : pas titulaire ({{status}})",
+    'clubSheet.standing': "{{rank}} au classement · {{points}} pts",
+    'clubSheet.standingGroup': "{{rank}} en {{group}} · {{points}} pts",
   },
 
   // Engels (sinds de feedbackronde van november 2026). Waar een gangbare FPL-term bestaat, staat die
@@ -1959,7 +1963,7 @@ const STRINGS = {
     'fdr.sortByDifficulty': "Sort by easiest run",
     'fdr.gwLabel': "GW",
     'fdr.gwTo': "to",
-    'fdr.tapHint': "Tap grey cells or cells with a * for more info",
+    'fdr.tapHint': "Tap a cell for the kick-off time. Grey cells and cells with a * have extra info.",
     'fdr.teamColumn': "Team",
     'fdr.filterByRating': "Filter by difficulty",
     'fdr.filterLabel': "Filter",
@@ -2614,6 +2618,8 @@ const STRINGS = {
     'teamPlanner.officialBench': "Bench",
     'teamPlanner.officialOut': "Not in squad",
     'teamPlanner.officialTitle': "Official lineup GW{{gw}}: not starting ({{status}})",
+    'clubSheet.standing': "{{rank}} in the table · {{points}} pts",
+    'clubSheet.standingGroup': "{{rank}} in {{group}} · {{points}} pts",
   },
 };
 

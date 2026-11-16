@@ -203,3 +203,13 @@
   white-space: nowrap; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 }
 .pxl-side__mine-part.is-officialOut .pxl-side__mine-dot { background: var(--danger); }
+
+/* --- Aftraptijden (spec F4) ------------------------------------------------------------------ */
+/* De wedstrijdknop krijgt een tweede regel met dag en uur ("za 18:15"). */
+.pxl-match { flex-direction: column; gap: 2px; height: auto; min-height: 40px; padding-top: 4px; padding-bottom: 4px; }
+.pxl-match__teams { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 0; }
+.pxl-match__time { color: var(--text-3); font: 500 var(--fs-micro)/1 var(--font-ui); }
+.pxl-match.is-active .pxl-match__time { color: inherit; opacity: 0.75; }
+@media (max-width: 899px) {
+  .pxl-match { height: auto; min-height: 44px; }
+}

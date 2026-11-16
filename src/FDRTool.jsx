@@ -23,6 +23,7 @@ import { t as translate, LANGUAGES, DEFAULT_LANGUAGE } from './i18n';
 import { PREDICTED_LINEUPS } from './predictedLineupsData';
 import { I18nContext } from './i18nContext';
 import { AvailabilityContext } from './availabilityContext';
+import { KickoffContext, useKickoffs } from './data/kickoffs';
 import { buildAvailabilityLookup } from './availability';
 import { loadPlayers } from './data/playersApi';
 import { playerDatabaseFromApi, findInDatabase } from './data/playerDatabase';
@@ -1083,6 +1084,9 @@ export default function FDRTool() {
   // Officiële opstellingen van de speeldag die nu gespeeld wordt (spec F3), enkel opgehaald op de tabs
   // die ze tonen. Zelfde spelerssleutel als de Verwachte XI's.
   const officialData = useOfficialLineups(LIVE_GW, activeTab === 'predictedlineups' || activeTab === 'teamplanner');
+  // Aftraptijden (spec F4) voor de FDR-cellen, de clubkaart en de wedstrijdstrip van de Verwachte XI's.
+  // Uit de gratis kalender van Fantasy Pro League; één keer per bezoek.
+  const kickoffs = useKickoffs();
   const officialLineups = useMemo(() => buildOfficialIndex(officialData, lineupPlayerKey), [officialData, lineupPlayerKey]);
 
   // De knop onderaan de spelerskaart (spec E2): met een volledig team "Transfer naar mijn team", zit de
@@ -1172,6 +1176,7 @@ export default function FDRTool() {
   return (
     <I18nContext.Provider value={i18nValue}>
     <AvailabilityContext.Provider value={availabilityLookup}>
+    <KickoffContext.Provider value={kickoffs}>
     <div style={{ minHeight: '100vh', background: 'var(--ink-0)', fontFamily: 'var(--font-ui)', position: 'relative' }}>
 
       <AppShell
@@ -1512,6 +1517,7 @@ export default function FDRTool() {
         </div>
       )}
     </div>
+    </KickoffContext.Provider>
     </AvailabilityContext.Provider>
     </I18nContext.Provider>
   );

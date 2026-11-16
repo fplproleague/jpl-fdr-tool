@@ -1,0 +1,3 @@
+# Testbestanden niet mee naar Vercel: elk .js-bestand in api/ telt anders als serverfunctie,
+# en het gratis plan staat er hoogstens 12 toe. De tests draaien lokaal met `npm test`.
+api/**/*.test.js
