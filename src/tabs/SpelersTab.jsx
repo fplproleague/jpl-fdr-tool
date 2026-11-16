@@ -35,6 +35,8 @@ import {
   stateFromSearch, searchFromState, buildSheetNameResolver, MIN_MINUTES_PER90,
 } from '../spelers';
 import { getSessionPlayers, loadPlayers } from '../data/playersApi';
+import { useAvailabilityLookup } from '../availabilityContext';
+import { isAvailable } from '../availability';
 import './SpelersTab.css';
 
 // Dezelfde spelerskaart als overal op de site (spec §7.9), hier geopend via ?speler=<id>.
@@ -165,6 +167,11 @@ function FilterSheet({ t, ui, update, priceBounds, resultCount, onReset, onClose
 
         <div className="spl-field">
           <Switch checked={ui.diff} onChange={diff => update({ diff })} label={t('spelers.filter.diff', { max: DIFFERENTIAL_MAX_SEL })} />
+        </div>
+
+        <div className="spl-field">
+          <Switch checked={ui.avail} onChange={avail => update({ avail })} label={t('availability.filter')} />
+          <p className="spl-field__note">{t('availability.filterNote')}</p>
         </div>
       </div>
     </Sheet>
@@ -319,7 +326,9 @@ export default function SpelersTab({
   const matchesScope = ui.scope === 'watchlist' ? watched : ui.scope === 'myTeam' ? inMyTeam : null;
 
   const columns = PRESETS[ui.cols];
-  const filtered = useMemo(() => filterRows(allRows, ui, { matchesScope }), [allRows, ui, matchesScope]);
+  const availability = useAvailabilityLookup();
+  const isAvailableRow = useCallback((r) => isAvailable(availability(r.name, r.club)), [availability]);
+  const filtered = useMemo(() => filterRows(allRows, ui, { matchesScope, isAvailable: isAvailableRow }), [allRows, ui, matchesScope, isAvailableRow]);
   const sorted = useMemo(() => sortRows(filtered, ui.sort, ui.dir, ui.mode), [filtered, ui.sort, ui.dir, ui.mode]);
   const compareRows = ui.compare.map(id => byId.get(id)).filter(Boolean);
   const popupRow = ui.speler ? seasonById.get(ui.speler) : null;
@@ -385,9 +394,10 @@ export default function SpelersTab({
     ui.mode !== 'total' && { key: 'mode', label: t('spelers.mode.p90'), clear: { mode: 'total' } },
     ui.scope !== 'all' && { key: 'scope', label: t(`scopeFilter.${ui.scope}`), clear: { scope: 'all' } },
     ui.diff && { key: 'diff', label: t('spelers.filter.diffChip', { max: DIFFERENTIAL_MAX_SEL }), clear: { diff: false } },
+    ui.avail && { key: 'avail', label: t('availability.filterChip'), clear: { avail: false } },
   ].filter(Boolean);
-  const resetDrawerFilters = () => update({ club: '', pmin: null, pmax: null, mins: 0, scope: 'all', per: 'season', mode: 'total', diff: false });
-  const resetAll = () => update({ q: '', pos: [], club: '', pmin: null, pmax: null, mins: 0, scope: 'all', per: 'season', mode: 'total', diff: false });
+  const resetDrawerFilters = () => update({ club: '', pmin: null, pmax: null, mins: 0, scope: 'all', per: 'season', mode: 'total', diff: false, avail: false });
+  const resetAll = () => update({ q: '', pos: [], club: '', pmin: null, pmax: null, mins: 0, scope: 'all', per: 'season', mode: 'total', diff: false, avail: false });
   const anyFilter = chips.length > 0 || ui.q || ui.pos.length > 0;
 
   const posValue = ui.pos.length === 0 ? 'all' : ui.pos.length === 1 ? ui.pos[0] : null;

@@ -3,13 +3,16 @@
 //              CLU · MID · €11.5
 // Op desktop staan club en positie meestal in eigen kolommen: geef dan `sub={false}`/`subDesktop={false}`.
 // Op gsm toont de cel de korte naam (`short`), op desktop de volledige.
+// Naast de naam staat automatisch de beschikbaarheid (geschorst, twijfel, 1 kaart; spec B3), tenzij
+// `availability={false}`.
 import { memo } from 'react';
 import { PlayerFace, PlayerFaceByName } from './PlayerFace';
+import AvailabilityMark from './AvailabilityMark';
 import './PlayerCell.css';
 
 const PlayerCell = memo(function PlayerCell({
   name, short, photo, clubCode, position, price, faceSize = 24, byName = false,
-  sub = true, subDesktop = true, badges, trailing, onClick, buttonLabel,
+  sub = true, subDesktop = true, badges, trailing, onClick, buttonLabel, availability = true,
 }) {
   const face = byName
     ? <PlayerFaceByName name={name} clubCode={clubCode} size={faceSize} />
@@ -29,6 +32,7 @@ const PlayerCell = memo(function PlayerCell({
           {onClick ? (
             <button type="button" className="ui-pcell__btn" onClick={onClick} aria-label={buttonLabel}>{nameEl}</button>
           ) : nameEl}
+          {availability && <AvailabilityMark name={name} clubCode={clubCode} />}
           {badges}
         </span>
         {sub && subParts.length > 0 && (

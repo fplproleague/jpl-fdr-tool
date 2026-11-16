@@ -12,6 +12,9 @@
 //
 // blockedReason(player) -> tekst of null: spelers die al in de selectie zitten of de clublimiet
 // zouden breken, blijven zichtbaar (opacity .4) met de reden eronder, maar zijn niet te kiezen.
+//
+// Beschikbaarheid (spec B3): naast de naam staat geschorst/twijfel/1 kaart, en de schakelaar "Enkel
+// beschikbare spelers" verbergt wie geschorst is.
 import { useMemo, useState } from 'react';
 import Sheet from '../components/Sheet';
 import { MiniFixtureBadge } from '../components/MiniFixtureBadge';
@@ -25,6 +28,10 @@ import Select from './Select';
 import DataTable from './DataTable';
 import Button from './Button';
 import EmptyState from './EmptyState';
+import Switch from './Switch';
+import { AvailabilityBadge } from './AvailabilityMark';
+import { useAvailabilityLookup } from '../availabilityContext';
+import { isAvailable } from '../availability';
 import './PlayerPicker.css';
 
 const POSITIONS = ['GK', 'DEF', 'MID', 'FWD'];
@@ -48,6 +55,8 @@ export default function PlayerPicker({
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState('pts');
   const [limit, setLimit] = useState(PAGE_SIZE);
+  const [availableOnly, setAvailableOnly] = useState(false);
+  const availability = useAvailabilityLookup();
 
   // Prijsopties per halve miljoen, plus "wat het budget toelaat" als standaard.
   const { priceOptions, defaultPrice } = useMemo(() => {
@@ -81,10 +90,13 @@ export default function PlayerPicker({
       .filter(p => p.position === position)
       .filter(p => !q || normalizePlayerName(p.name).includes(q))
       .filter(p => !Number.isFinite(p.price) || p.price <= cap)
-      .map(p => {
+      .map(p => ({ p, status: availability(p.name, p.teamCode) }))
+      .filter(({ status }) => !availableOnly || isAvailable(status))
+      .map(({ p, status }) => {
         const api = index.find(p.name, p.teamCode);
         return {
           player: p,
+          status,
           pts: api?.pts ?? null,
           form: api ? sumLast(api.w?.pts, apiGw, FORM_GWS) : null,
           sel: api?.sel ?? null,
@@ -100,14 +112,14 @@ export default function PlayerPicker({
       if (vb == null) return -1;
       return vb - va || (b.player.price ?? 0) - (a.player.price ?? 0) || a.player.name.localeCompare(b.player.name);
     });
-  }, [players, position, query, maxPrice, sort, index, apiGw, blockedReason]);
+  }, [players, position, query, maxPrice, sort, index, apiGw, blockedReason, availability, availableOnly]);
 
   const nextGws = [gw, gw + 1, gw + 2].filter(g => g >= 1 && g <= GW_COUNT);
 
   const columns = [
     {
       key: 'player', label: t('picker.col.player'), rowHeader: true, sticky: true, stickyEdge: true,
-      render: ({ player, reason }) => (
+      render: ({ player, reason, status }) => (
         <span className="ui-picker__player">
           {onToggleWatch && (
             <StarButton
@@ -120,7 +132,10 @@ export default function PlayerPicker({
           )}
           <PlayerFaceByName name={player.name} clubCode={player.teamCode} size={32} />
           <span className="ui-picker__text">
-            <span className="ui-picker__name">{player.name}</span>
+            <span className="ui-picker__nameline">
+              <span className="ui-picker__name">{player.name}</span>
+              <AvailabilityBadge status={status} />
+            </span>
             <span className={`ui-picker__sub${reason ? ' is-reason' : ''}`}>
               {reason ?? (
                 <>
@@ -194,6 +209,12 @@ export default function PlayerPicker({
             options={['pts', 'form', 'sel', 'price'].map(k => ({ value: k, label: t(`picker.sort.${k}`) }))}
           />
         </label>
+        <Switch
+          className="ui-picker__avail"
+          checked={availableOnly}
+          onChange={(v) => { setAvailableOnly(v); setLimit(PAGE_SIZE); }}
+          label={t('availability.filter')}
+        />
       </div>
       <DataTable
         className="ui-picker__table"

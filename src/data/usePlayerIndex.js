@@ -5,14 +5,14 @@
 //   const apiPlayer = find('Hans Vanaken', 'CLU');   // -> { id, name, short, club, photo, ... } of null
 //
 // find() zoekt binnen dezelfde club: eerst de exacte volledige naam, dan `short`, dan de achternaam
-// (als die uniek is in de club), en pas als laatste een fuzzy match (Levenshtein ≥ 0.85) via de
-// bestaande matchPlayer-helper. Resultaten worden onthouden, dus een lijst van 500 rijen kost maar
-// één zoektocht per speler.
+// (als die uniek is in de club), telkens zonder accenten en hoofdletters. Sinds fase B (spec B1) komt
+// de spelersdatabank zelf uit /api/players, dus het gokken op gelijkaardige namen (Levenshtein) is hier
+// weg; dat blijft enkel voor de screenshot-import (utils/playerFuzzyMatch.js). Resultaten worden
+// onthouden, dus een lijst van 500 rijen kost maar één zoektocht per speler.
 //
 // Laadt /api/players pas wanneer een component deze hook effectief gebruikt (dus niet op de FDR-tab).
 import { useEffect, useMemo, useState } from 'react';
 import { getSessionPlayers, loadPlayers } from './playersApi';
-import { matchPlayer } from '../utils/playerFuzzyMatch';
 
 export function normalizePlayerName(value) {
   return String(value ?? '')
@@ -61,10 +61,6 @@ function buildIndex(data) {
     if (club) {
       const n = normalizePlayerName(name);
       hit = club.full.get(n) ?? club.short.get(n) ?? club.last.get(lastToken(n)) ?? null;
-      if (!hit) {
-        const { matched, confidence } = matchPlayer({ name, position: null }, club.players.map(p => ({ ...p, name: p.name })));
-        if (matched && confidence === 'hoog') hit = matched;
-      }
     }
     cache.set(key, hit);
     return hit;

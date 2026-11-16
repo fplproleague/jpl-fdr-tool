@@ -24,6 +24,8 @@ import Button from '../ui/Button';
 import EmptyState from '../ui/EmptyState';
 import { formatShellCountdown } from '../ui/AppShell';
 import { postponedText } from '../postponed';
+import { AvailabilityBadge } from '../ui/AvailabilityMark';
+import { useAvailability } from '../availabilityContext';
 import '../ui/DataTable.css';
 import './PredictedLineupsTab.css';
 
@@ -306,6 +308,7 @@ function Overview({ t, onlyDoubts, onOpenPlayer, onOpenClub }) {
                             <button type="button" className="pxl-name" onClick={() => onOpenPlayer?.(slot.playerName, slot.playerTeamCode || team.code)}>
                               <SafetyDot level={slot.safety} t={t} />
                               {slot.playerName}
+                              <CardStatus name={slot.playerName} clubCode={slot.playerTeamCode || team.code} />
                             </button>
                           </li>
                         ))}
@@ -320,6 +323,13 @@ function Overview({ t, onlyDoubts, onOpenPlayer, onOpenClub }) {
       </table>
     </div>
   );
+}
+
+// Kaarten naast een naam in de lijst (spec B2): geschorst of nog 1 kaart van een schorsing. Twijfel en
+// risico staan hier al als stip, die tonen we niet dubbel.
+function CardStatus({ name, clubCode }) {
+  const status = useAvailability(name, clubCode);
+  return status && (status.kind === 'suspended' || status.kind === 'oneCard') ? <AvailabilityBadge status={status} /> : null;
 }
 
 export default function PredictedLineupsTab({ t, language = 'nl', onOpenPlayer, onOpenClub }) {

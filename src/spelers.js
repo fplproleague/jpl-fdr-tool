@@ -183,7 +183,8 @@ export function buildSheetNameResolver(playerDatabase) {
 
 // --- Filteren en sorteren ------------------------------------------------------------------------
 
-export function filterRows(rows, f, { matchesScope } = {}) {
+// isAvailable(row) -> false voor wie geschorst is (src/availability.js); enkel gebruikt met f.avail.
+export function filterRows(rows, f, { matchesScope, isAvailable } = {}) {
   const query = normalizeName(f.q);
   return rows.filter(r => {
     if (f.pos.length > 0 && !f.pos.includes(r.pos)) return false;
@@ -194,6 +195,7 @@ export function filterRows(rows, f, { matchesScope } = {}) {
     if (f.diff && (r.sel ?? 0) >= DIFFERENTIAL_MAX_SEL) return false;
     if (query && !normalizeName(r.name).includes(query)) return false;
     if (matchesScope && !matchesScope(r)) return false;
+    if (f.avail && isAvailable && !isAvailable(r)) return false;
     return true;
   });
 }
@@ -235,11 +237,11 @@ export function bestIndexes(values, { lowerIsBetter = false } = {}) {
 // Alles wat je instelt (filters, sortering, kolommen, vergelijking) staat in de URL, zodat je een
 // gefilterde lijst of een vergelijking kan delen (bv. /spelers?compare=107,99). Enkel waarden die
 // afwijken van de standaard komen in de URL, zodat een gewone link kort blijft.
-export const SPELERS_QUERY_PARAMS = ['q', 'pos', 'club', 'pmin', 'pmax', 'mins', 'scope', 'per', 'mode', 'cols', 'sort', 'dir', 'compare', 'speler', 'diff'];
+export const SPELERS_QUERY_PARAMS = ['q', 'pos', 'club', 'pmin', 'pmax', 'mins', 'scope', 'per', 'mode', 'cols', 'sort', 'dir', 'compare', 'speler', 'diff', 'avail'];
 
 export const DEFAULT_STATE = {
   q: '', pos: [], club: '', pmin: null, pmax: null, mins: 0, scope: 'all', per: 'season',
-  mode: 'total', cols: 'overview', sort: 'pts', dir: 'desc', compare: [], speler: null, diff: false,
+  mode: 'total', cols: 'overview', sort: 'pts', dir: 'desc', compare: [], speler: null, diff: false, avail: false,
 };
 
 const toNumberOrNull = (v) => {
@@ -269,6 +271,7 @@ export function stateFromSearch(search) {
     compare: (p.get('compare') ?? '').split(',').map(Number).filter(n => Number.isInteger(n) && n > 0).slice(0, MAX_COMPARE),
     speler: toNumberOrNull(p.get('speler')),
     diff: p.get('diff') === '1',
+    avail: p.get('avail') === '1',
   };
 }
 
@@ -293,6 +296,7 @@ export function searchFromState(state, currentSearch = '') {
   if (state.compare.length) set('compare', state.compare.join(','));
   if (state.speler) set('speler', state.speler);
   if (state.diff) set('diff', 1);
+  if (state.avail) set('avail', 1);
   const s = p.toString().replace(/%2C/g, ',');
   return s ? `?${s}` : '';
 }

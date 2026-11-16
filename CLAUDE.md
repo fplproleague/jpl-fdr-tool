@@ -20,7 +20,7 @@ Tabs (8): FDR (Fixture Difficulty Rating), Verwachte XI's, Team Planner, Spelers
   - `api/team-form.js`: de vorm per club, uit API-Football. Gebruikt `API_FOOTBALL_KEY` en optioneel `API_FOOTBALL_SEASON`.
   - `api/analyze-screenshot.js`: een screenshot van een team inlezen met Claude. Gebruikt `ANTHROPIC_API_KEY`.
   - `api/players.js`, `api/player/[id].js`, `api/rankings.js`: Spelers- en Klassement-tab, uit de publieke Fantasy Pro League-API (geen sleutel nodig). Gedeelde code in `api/_lib/proleague.js`. Zie `README.MD`.
-- **Geen database / geen Supabase.** Spelersdata (prijzen, stats, set pieces) komt uit openbaar gepubliceerde Google Sheets (CSV-links in `src/constants.js`). Gebruikersdata (team, watchlist) blijft in `localStorage` van de browser.
+- **Geen database / geen Supabase.** Spelersdata (naam, club, prijs, stats, kaarten) komt uit `/api/players` (`src/data/playerDatabase.js`). Lukt dat niet, dan valt de site terug op de Google Sheet. Set pieces komen enkel uit de Google Sheet (CSV-links in `src/constants.js`). Gebruikersdata (team, watchlist) blijft in `localStorage` van de browser.
 
 ## Belangrijkste bestanden
 
@@ -30,6 +30,7 @@ Tabs (8): FDR (Fixture Difficulty Rating), Verwachte XI's, Team Planner, Spelers
 - `src/predictedLineupsData.js`: de verwachte opstellingen. Die worden **elke speeldag bijgewerkt**.
 - `src/routes.js` + `src/i18n.js`: routes en vertalingen (nl/fr/en). Een nieuwe tab = een entry in `ROUTES` + vertaalsleutels in de drie talen; zie `README.MD`. Geen zichtbare tekst hard in de code.
 - `src/fdrRatings.js`: de FDR-ratings als afwijkingen van de standaard (`DEFAULT_RATINGS`), met de migratie uit de oude opslag. Pas je `DEFAULT_RATINGS` aan, dan krijgt iedereen die die club niet zelf veranderde de nieuwe waarde.
+- `src/availability.js`: één beschikbaarheidsstatus per speler (geschorst, twijfel/risico uit de Verwachte XI's, één kaart van een schorsing). Bewust geen blessures (beslissing eigenaar).
 - `scripts/build-routes.mjs`: maakt na de Vite-build een HTML-pagina per route/speler/club per taal, plus `sitemap.xml`.
 - `src/predicted-xi/` + `predicted-xi.html`: aparte, niet-gelinkte privétool om opstellingen samen te stellen.
 

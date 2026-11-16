@@ -10,3 +10,15 @@
 .ui-badge--danger { background: var(--danger); color: #FFF; }
 .ui-badge--warning { background: var(--warning); color: var(--accent-ink); }
 .ui-badge--outline { background: transparent; border: 1px solid var(--line-strong); color: var(--text-2); }
+
+/* Beschikbaarheid in compacte vorm (spec B3): een kaartje (geschorst, 1 kaart) of een "?" (twijfel). */
+.ui-avail-mini {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 12px; height: 14px; border-radius: var(--r-1);
+  font: 700 10px/1 var(--font-num); color: var(--accent-ink);
+  box-shadow: 0 0 0 1px var(--ink-0);
+}
+.ui-avail-mini.is-danger { background: var(--danger); }
+.ui-avail-mini.is-warning { background: var(--warning); }
+.ui-avail-mini.is-doubt, .ui-avail-mini.is-risk { width: 14px; height: 14px; }
+.ui-avail-mini.is-outline { width: 14px; height: 14px; background: var(--ink-3); color: var(--text-1); }
