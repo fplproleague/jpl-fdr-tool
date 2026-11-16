@@ -33,6 +33,36 @@
       "source": "/en/watchlist",
       "destination": "/en/spelers?scope=watchlist",
       "permanent": true
+    },
+    {
+      "source": "/bonuspunten",
+      "destination": "/spelers?cols=bonus&sort=bp",
+      "permanent": true
+    },
+    {
+      "source": "/kaarten",
+      "destination": "/spelers?cols=cards&sort=toSusp&dir=asc",
+      "permanent": true
+    },
+    {
+      "source": "/fr/bonuspunten",
+      "destination": "/fr/spelers?cols=bonus&sort=bp",
+      "permanent": true
+    },
+    {
+      "source": "/fr/kaarten",
+      "destination": "/fr/spelers?cols=cards&sort=toSusp&dir=asc",
+      "permanent": true
+    },
+    {
+      "source": "/en/bonuspunten",
+      "destination": "/en/spelers?cols=bonus&sort=bp",
+      "permanent": true
+    },
+    {
+      "source": "/en/kaarten",
+      "destination": "/en/spelers?cols=cards&sort=toSusp&dir=asc",
+      "permanent": true
     }
   ],
   "rewrites": [
@@ -49,16 +79,8 @@
       "destination": "/predicted-lineups.html"
     },
     {
-      "source": "/bonuspunten",
-      "destination": "/bonuspunten.html"
-    },
-    {
       "source": "/set-pieces",
       "destination": "/set-pieces.html"
-    },
-    {
-      "source": "/kaarten",
-      "destination": "/kaarten.html"
     },
     {
       "source": "/spelers",

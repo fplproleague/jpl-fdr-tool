@@ -2,7 +2,7 @@
 
 Website met tools voor **Fantasy Pro League** (fantasy-spel van de Belgische Jupiler Pro League), gemaakt door @fpl_proleague. Live op https://fplproleague.vercel.app, GitHub: `fplproleague/jpl-fdr-tool` (openbaar).
 
-Tabs (8): FDR (Fixture Difficulty Rating), Verwachte XI's, Team Planner, Spelers, Bonuspunten, Set pieces, Kaarten, Klassement. De watchlist zit sinds de redesign als filter in Spelers; Watchlist en Price Changes bestaan niet meer als tab (oude links sturen door). Plus een speler- en clubpagina per speler/club. De site bestaat in het Nederlands (`/fdr`), het Frans (`/fr/fdr`) en het Engels (`/en/fdr`); elke tekst staat in `src/i18n.js` in alle drie de talen.
+Tabs (6): FDR (Fixture Difficulty Rating), Verwachte XI's, Team Planner, Spelers, Set pieces, Klassement. De watchlist zit sinds de redesign als filter in Spelers; Bonuspunten en Kaarten zijn sinds feedbackronde 2 de kolomkeuzes "Bonus" en "Kaarten" in Spelers. Watchlist, Price Changes, Bonuspunten en Kaarten bestaan niet meer als tab (oude links sturen door). Plus een speler- en clubpagina per speler/club. De site bestaat in het Nederlands (`/fdr`), het Frans (`/fr/fdr`) en het Engels (`/en/fdr`); elke tekst staat in `src/i18n.js` in alle drie de talen.
 
 ## Werken met de eigenaar
 
@@ -30,7 +30,7 @@ Tabs (8): FDR (Fixture Difficulty Rating), Verwachte XI's, Team Planner, Spelers
 ## Belangrijkste bestanden
 
 - `src/FDRTool.jsx`: de hoofdcomponent (tabs, data ophalen, layout).
-- `src/tabs/*.jsx`: één bestand per tab. Bonuspunten en Kaarten zijn `SpelersTab.jsx` met `page="bonuspunten"`/`"kaarten"` (eigen kolommen en sortering via `PAGE_DEFAULTS` in `src/spelers.js`).
+- `src/tabs/*.jsx`: één bestand per tab. De kolomkeuzes van Spelers (Overzicht, Aanval, Verdediging, Bonus, Kaarten) staan in `PRESETS` in `src/spelers.js`.
 - `src/constants.js`: teams, de **volledige kalender (`FIXTURES`)**, uitgestelde wedstrijden (`POSTPONED`), deadlines, huidige GW en de CSV-links. Kalenderwijzigingen (afgelastingen, deadlines) gebeuren hier.
 - `src/predictedLineupsData.js`: de verwachte opstellingen. Die worden **elke speeldag bijgewerkt**.
 - `src/routes.js` + `src/i18n.js`: routes en vertalingen (nl/fr/en). Een nieuwe tab = een entry in `ROUTES` + vertaalsleutels in de drie talen; zie `README.MD`. Geen zichtbare tekst hard in de code.

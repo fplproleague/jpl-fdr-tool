@@ -69,7 +69,7 @@ const TABS = ROUTES;
 // FDR-tab staat er bewust niet bij: die rendert volledig uit constants.js.
 // De Spelers-tab haalt zijn eigen data uit /api/players, maar heeft de databank nodig om spelers aan de
 // watchlist en "Mijn team" te koppelen (die kennen spelers op hun naam in de sheet).
-const PLAYER_DATABASE_TABS = new Set(['teamplanner', 'bonuspunten', 'kaarten', 'spelers']);
+const PLAYER_DATABASE_TABS = new Set(['teamplanner', 'spelers']);
 
 // Eén plek voor de canonieke oorsprong van de site; stond eerder als letterlijke string in de
 // title/canonical-useEffect en moet nu ook door de hreflang-alternates gebruikt worden.
@@ -321,7 +321,7 @@ export default function FDRTool() {
     setActiveTab(key);
     if (typeof window === 'undefined') return;
     // Parameters die enkel bij een andere tab horen (filters van Spelers/Klassement) vallen weg.
-    const url = urlForRoute(key, searchForTab(window.location.search, key, activeTab), language);
+    const url = urlForRoute(key, searchForTab(window.location.search, key), language);
     if (url !== window.location.pathname + window.location.search) {
       window.history.pushState({ tab: key }, '', url);
     }
@@ -1279,30 +1279,6 @@ export default function FDRTool() {
           </Suspense>
         )}
 
-        {activeTab === 'bonuspunten' && (
-          <Suspense fallback={<TabLoading text={t('shared.loading')} />}>
-            {/* Bonuspunten en Kaarten draaien op de tabel van Spelers (spec E3). */}
-            <SpelersTab
-              key={`bonuspunten-${spelersMountKey}`}
-              page="bonuspunten"
-              t={t}
-              ratings={ratings}
-              homeAdvantage={homeAdvantage}
-              playerDatabase={playerDatabase}
-              watchlist={watchlist}
-              onRemoveWatchlistPlayer={handleRemoveWatchlistPlayer}
-              setPiecesEntries={setPiecesData.entries}
-              onGoToTeamPlanner={() => navigateToTab('teamplanner')}
-              teamPlannerActionFor={teamPlannerActionFor}
-              isPlayerWatched={isPlayerWatched}
-              isPlayerInMyTeam={isPlayerInMyTeam}
-              toggleWatchlistPlayer={toggleWatchlistPlayer}
-              hasMyTeam={myTeamPlayerKeys.size > 0}
-              hasWatchlist={watchlist.length > 0}
-              onOpenClub={openClubSheet}
-            />
-          </Suspense>
-        )}
 
         {activeTab === 'setpieces' && (
           <Suspense fallback={<TabLoading text={t('shared.loading')} />}>
@@ -1320,29 +1296,6 @@ export default function FDRTool() {
           </Suspense>
         )}
 
-        {activeTab === 'kaarten' && (
-          <Suspense fallback={<TabLoading text={t('shared.loading')} />}>
-            <SpelersTab
-              key={`kaarten-${spelersMountKey}`}
-              page="kaarten"
-              t={t}
-              ratings={ratings}
-              homeAdvantage={homeAdvantage}
-              playerDatabase={playerDatabase}
-              watchlist={watchlist}
-              onRemoveWatchlistPlayer={handleRemoveWatchlistPlayer}
-              setPiecesEntries={setPiecesData.entries}
-              onGoToTeamPlanner={() => navigateToTab('teamplanner')}
-              teamPlannerActionFor={teamPlannerActionFor}
-              isPlayerWatched={isPlayerWatched}
-              isPlayerInMyTeam={isPlayerInMyTeam}
-              toggleWatchlistPlayer={toggleWatchlistPlayer}
-              hasMyTeam={myTeamPlayerKeys.size > 0}
-              hasWatchlist={watchlist.length > 0}
-              onOpenClub={openClubSheet}
-            />
-          </Suspense>
-        )}
 
         {activeTab === 'spelers' && (
           <Suspense fallback={<TabLoading text={t('shared.loading')} />}>

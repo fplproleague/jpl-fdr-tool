@@ -11,9 +11,8 @@
 // Bij een fout van de bron toont de tab de laatst bekende data (eerst van de server, anders uit deze
 // browser) met een duidelijke melding, nooit een lege pagina.
 //
-// Spec E3: Bonuspunten en Kaarten zijn dezelfde tabel met een eigen titel, eigen kolommen en een eigen
-// standaardsortering (prop page = 'bonuspunten' | 'kaarten'). Zo krijgen ze vanzelf het zoekveld, de
-// positie- en clubfilter, Vergelijken en "Toon meer". Hun URL's en SEO-pagina's blijven dezelfde.
+// Bonuspunten en Kaarten waren aparte tabs op deze tabel (spec E3); sinds feedbackronde 2 zijn het
+// enkel nog de kolomkeuzes "Bonus" en "Kaarten" hier (oude links sturen door, zie routes.js).
 import { Fragment, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SlidersHorizontal, X, Link2, Check, Scale } from 'lucide-react';
 import { CURRENT_GW, TEAMS_ALPHA } from '../constants';
@@ -33,8 +32,8 @@ import FilterChip, { FilterChips } from '../ui/FilterChip';
 import ErrorBanner, { Notice } from '../ui/ErrorBanner';
 import EmptyState from '../ui/EmptyState';
 import {
-  COLUMNS, PRESETS, SPELERS_PRESET_KEYS, BONUS_PRESETS, PRESET_SORT, POSITION_KEYS, PERIODS, MIN_MINUTES_OPTIONS, MAX_COMPARE, COMPARE_ROWS,
-  PAGE_DEFAULTS, availableColumns, buildRow, cellValue, formatCell, filterRows, sortRows, bestIndexes,
+  COLUMNS, PRESETS, SPELERS_PRESET_KEYS, PRESET_SORT, POSITION_KEYS, PERIODS, MIN_MINUTES_OPTIONS, MAX_COMPARE, COMPARE_ROWS,
+  DEFAULT_STATE, availableColumns, buildRow, cellValue, formatCell, filterRows, sortRows, bestIndexes,
   stateFromSearch, searchFromState, buildSheetNameResolver, MIN_MINUTES_PER90, FORM_GWS,
 } from '../spelers';
 import { getSessionPlayers, loadPlayers } from '../data/playersApi';
@@ -47,11 +46,7 @@ const PAGE_SIZE = 60;
 const FIXED_SORT_KEYS = ['name', 'club', 'pos'];
 
 // Wat per pagina verschilt: titel, korte intro, de uitleg onder "Uitleg" en de voetnoot.
-const PAGE_TEXT = {
-  spelers: { title: 'spelers.pageTitle', intro: 'spelers.introShort', more: null, caption: 'spelers.tableCaption', footnote: 'spelers.footnote' },
-  bonuspunten: { title: 'nav.bonuspunten', intro: 'bonuspunten.introShort', more: 'bonuspunten.intro', caption: 'nav.bonuspunten', footnote: 'spelers.footnote' },
-  kaarten: { title: 'nav.kaarten', intro: 'kaarten.introShort', more: 'kaarten.suspensionExplainer', caption: 'nav.kaarten', footnote: 'kaarten.footnote' },
-};
+const TEXT = { title: 'spelers.pageTitle', intro: 'spelers.introShort', caption: 'spelers.tableCaption' };
 
 // --- Data ophalen --------------------------------------------------------------------------------
 // Eén keer per sessie, gedeeld met de andere tabs (zie src/data/playersApi.js): terugkeren naar de
@@ -299,10 +294,9 @@ function CompareSheet({ t, rows, mode, fromGw, ratings, homeAdvantage, onRemove,
 export default function SpelersTab({
   t, ratings, homeAdvantage, playerDatabase, watchlist = [], isPlayerWatched, isPlayerInMyTeam, toggleWatchlistPlayer,
   onRemoveWatchlistPlayer, hasMyTeam, hasWatchlist, onOpenClub, setPiecesEntries, onGoToTeamPlanner, teamPlannerActionFor,
-  page = 'spelers',
 }) {
-  const defaults = PAGE_DEFAULTS[page] ?? PAGE_DEFAULTS.spelers;
-  const text = PAGE_TEXT[page] ?? PAGE_TEXT.spelers;
+  const defaults = DEFAULT_STATE;
+  const text = TEXT;
   const { data, loading, error, fromLocal, reload } = useSpelersData();
   const [ui, setUi] = useState(() => (typeof window === 'undefined' ? defaults : stateFromSearch(window.location.search, defaults)));
   const [visible, setVisible] = useState(PAGE_SIZE);
@@ -505,12 +499,7 @@ export default function SpelersTab({
 
   const meta = data ? <span className="num">{t('spelers.meta', { gw: data.gw, n: data.players.length })}</span> : null;
 
-  // Kolomkeuze per pagina: Spelers toont de presets, Bonuspunten "Totaal" en de vier voorwaarden,
-  // Kaarten heeft één vaste set kolommen.
-  const presetOptions = page === 'bonuspunten'
-    ? BONUS_PRESETS.map(p => ({ value: p.cols, label: t(p.label) }))
-    : page === 'kaarten' ? null
-      : SPELERS_PRESET_KEYS.map(key => ({ value: key, label: t(`spelers.presets.${key}`) }));
+  const presetOptions = SPELERS_PRESET_KEYS.map(key => ({ value: key, label: t(`spelers.presets.${key}`) }));
 
   return (
     <div className={`spl${compareMode ? ' is-compare' : ''}`}>
@@ -518,8 +507,6 @@ export default function SpelersTab({
         title={t(text.title)}
         meta={meta}
         intro={t(text.intro)}
-        more={text.more ? <p>{t(text.more)}</p> : undefined}
-        moreLabel={text.more ? t('shared.explain') : undefined}
       />
 
       <div className="spl-toolbar">
@@ -540,14 +527,12 @@ export default function SpelersTab({
               ...POSITION_KEYS.map(pos => ({ value: pos, label: t(`spelers.posShort.${pos}`) })),
             ]}
           />
-          {presetOptions && (
-            <Segmented
-              ariaLabel={t(page === 'bonuspunten' ? 'bonuspunten.statAria' : 'spelers.presets.label')}
-              value={ui.cols}
-              onChange={choosePreset}
-              options={presetOptions}
-            />
-          )}
+          <Segmented
+            ariaLabel={t('spelers.presets.label')}
+            value={ui.cols}
+            onChange={choosePreset}
+            options={presetOptions}
+          />
           <div className="spl-toolbar__actions">
             <Button icon={SlidersHorizontal} onClick={() => setFiltersOpen(true)} aria-haspopup="dialog">
               {chips.length ? t('spelers.filter.buttonCount', { n: chips.length }) : t('spelers.filter.button')}
@@ -627,7 +612,7 @@ export default function SpelersTab({
         </section>
       )}
 
-      {data && <p className="spl-note spl-footnote">{t(text.footnote)}</p>}
+      {data && <p className="spl-note spl-footnote">{t(ui.cols === 'cards' ? 'kaarten.footnote' : 'spelers.footnote')}</p>}
 
       {compareRows.length >= 2 && !compareOpen && (
         <div className="spl-comparebar" role="region" aria-label={t('spelers.compare.mode')}>

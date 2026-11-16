@@ -2,8 +2,7 @@
 // 3/5/8 speeldagen), per-90-waarden, filteren, sorteren en de URL-staat. Bevat geen JSX en geen
 // netwerkverkeer, zodat alles hier los te testen valt. De data zelf komt uit /api/players.
 //
-// Sinds spec E3 draaien ook Bonuspunten en Kaarten op deze tabel (met hun eigen kolommen en
-// standaardsortering, zie PAGE_DEFAULTS).
+// Bonuspunten en Kaarten zijn hier de kolomkeuzes "Bonus" en "Kaarten" (vroeger aparte tabs).
 import { cardsUntilSuspension } from './kaarten';
 
 export const POSITION_KEYS = ['GK', 'DEF', 'MID', 'FWD'];
@@ -82,35 +81,18 @@ export const PRESETS = {
   defence: ['price', 'pts', 'cs', 'hc', 'dw', 'dl', 'br'],
   bonus: ['pts', 'bp', 'bpDuels', 'bpHeaders', 'bpRecoveries', 'bpBigChances'],
   cards: ['toSusp', 'yc', 'rc', 'mp', 'min'],
+  // Geen knop meer (feedbackronde 2: ownership staat al in Overzicht), maar een oude link werkt nog.
   ownership: ['price', 'sel', 'pts', 'ppm', 'form'],
-  // Enkel op de Bonuspunten-pagina (de knoppen per voorwaarde): het bonuspunt van die voorwaarde en
-  // de statistiek erachter.
-  bonusDuels: ['bp', 'bpDuels', 'dd', 'dw', 'dl', 'mp'],
-  bonusHeaders: ['bp', 'bpHeaders', 'hc', 'mp'],
-  bonusRecoveries: ['bp', 'bpRecoveries', 'br', 'mp'],
-  bonusBigChances: ['bp', 'bpBigChances', 'bc', 'mp'],
 };
 // Alle geldige presets (ook in een link); SPELERS_PRESET_KEYS = de knoppen op de Spelers-pagina.
 export const PRESET_KEYS = Object.keys(PRESETS);
-export const SPELERS_PRESET_KEYS = ['overview', 'attack', 'defence', 'bonus', 'cards', 'ownership'];
-// De knoppen op de Bonuspunten-pagina: "Totaal" en de vier voorwaarden voor een bonuspunt.
-export const BONUS_PRESETS = [
-  { cols: 'bonus', label: 'bonuspunten.tab.total' },
-  { cols: 'bonusDuels', label: 'bonuspunten.tab.duels' },
-  { cols: 'bonusHeaders', label: 'bonuspunten.tab.headers' },
-  { cols: 'bonusRecoveries', label: 'bonuspunten.tab.recoveries' },
-  { cols: 'bonusBigChances', label: 'bonuspunten.tab.bigChances' },
-];
+export const SPELERS_PRESET_KEYS = ['overview', 'attack', 'defence', 'bonus', 'cards'];
 
 // Standaardsortering wanneer je een preset kiest (enkel waar die afwijkt van punten).
 export const PRESET_SORT = {
   ownership: { sort: 'sel', dir: 'desc' },
   bonus: { sort: 'bp', dir: 'desc' },
   cards: { sort: 'toSusp', dir: 'asc' },
-  bonusDuels: { sort: 'bpDuels', dir: 'desc' },
-  bonusHeaders: { sort: 'bpHeaders', dir: 'desc' },
-  bonusRecoveries: { sort: 'bpRecoveries', dir: 'desc' },
-  bonusBigChances: { sort: 'bpBigChances', dir: 'desc' },
 };
 
 // Rijen in Vergelijken.
@@ -311,12 +293,6 @@ export const DEFAULT_STATE = {
 
 // Standaardstaat per pagina op deze tabel (spec E3). Wat gelijk is aan de standaard van de pagina,
 // komt niet in de URL: /bonuspunten blijft dus gewoon /bonuspunten.
-export const PAGE_DEFAULTS = {
-  spelers: DEFAULT_STATE,
-  bonuspunten: { ...DEFAULT_STATE, cols: 'bonus', ...PRESET_SORT.bonus },
-  kaarten: { ...DEFAULT_STATE, cols: 'cards', ...PRESET_SORT.cards },
-};
-
 const toNumberOrNull = (v) => {
   if (v == null || v === '') return null;
   const n = Number(v);

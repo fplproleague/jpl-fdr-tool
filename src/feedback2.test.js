@@ -63,3 +63,14 @@ describe('Optimaliseer opstelling: kapitein en vice blijven', () => {
     expect(result.bench).not.toContain(result.vice);
   });
 });
+
+describe('Bonuspunten en Kaarten zijn kolomkeuzes in Spelers', () => {
+  it('oude links sturen door naar Spelers met de juiste kolommen en sortering', async () => {
+    const { legacyRedirectUrl, routeKeyFromPath } = await import('./routes');
+    expect(legacyRedirectUrl('/bonuspunten')).toBe('/spelers?cols=bonus&sort=bp');
+    expect(legacyRedirectUrl('/fr/kaarten')).toBe('/fr/spelers?cols=cards&sort=toSusp&dir=asc');
+    // Wat al in de link stond, gaat voor.
+    expect(legacyRedirectUrl('/en/bonuspunten', '?q=van&sort=bpDuels')).toBe('/en/spelers?q=van&sort=bpDuels&cols=bonus');
+    expect(routeKeyFromPath('/kaarten')).toBe('spelers');
+  });
+});
