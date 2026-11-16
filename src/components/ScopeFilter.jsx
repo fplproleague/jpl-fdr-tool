@@ -14,17 +14,6 @@ import EmptyState from '../ui/EmptyState';
 
 export const SCOPES = ['all', 'myTeam', 'watchlist'];
 
-// Geeft een predicaat (naam, clubcode) terug dat zegt of een rij binnen de gekozen scope valt. Het
-// doet zelf geen vergelijking: het leent de twee predicaten die FDRTool.jsx al beheert — isPlayerWatched
-// (de watchlist) en isPlayerInMyTeam (de Team Planner-selectie op de huidige speeldag). Zo blijft er
-// één bron van waarheid per lijst, en kan dit component nooit een eigen, afwijkend idee krijgen van
-// wat "in mijn team" betekent.
-export function makeScopeMatcher(scope, { isPlayerWatched, isPlayerInMyTeam }) {
-  if (scope === 'watchlist') return (name, clubCode) => !!isPlayerWatched?.(name, clubCode);
-  if (scope === 'myTeam') return (name, clubCode) => !!isPlayerInMyTeam?.(name, clubCode);
-  return () => true;
-}
-
 export default function ScopeFilter({ t, scope, onChange, className = '' }) {
   return (
     <Segmented

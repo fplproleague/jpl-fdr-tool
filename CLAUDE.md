@@ -25,7 +25,7 @@ Tabs (8): FDR (Fixture Difficulty Rating), Verwachte XI's, Team Planner, Spelers
 ## Belangrijkste bestanden
 
 - `src/FDRTool.jsx`: de hoofdcomponent (tabs, data ophalen, layout).
-- `src/tabs/*.jsx`: één bestand per tab.
+- `src/tabs/*.jsx`: één bestand per tab. Bonuspunten en Kaarten zijn `SpelersTab.jsx` met `page="bonuspunten"`/`"kaarten"` (eigen kolommen en sortering via `PAGE_DEFAULTS` in `src/spelers.js`).
 - `src/constants.js`: teams, de **volledige kalender (`FIXTURES`)**, uitgestelde wedstrijden (`POSTPONED`), deadlines, huidige GW en de CSV-links. Kalenderwijzigingen (afgelastingen, deadlines) gebeuren hier.
 - `src/predictedLineupsData.js`: de verwachte opstellingen. Die worden **elke speeldag bijgewerkt**.
 - `src/routes.js` + `src/i18n.js`: routes en vertalingen (nl/fr/en). Een nieuwe tab = een entry in `ROUTES` + vertaalsleutels in de drie talen; zie `README.MD`. Geen zichtbare tekst hard in de code.

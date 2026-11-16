@@ -10,6 +10,10 @@
 //
 // Bij een fout van de bron toont de tab de laatst bekende data (eerst van de server, anders uit deze
 // browser) met een duidelijke melding, nooit een lege pagina.
+//
+// Spec E3: Bonuspunten en Kaarten zijn dezelfde tabel met een eigen titel, eigen kolommen en een eigen
+// standaardsortering (prop page = 'bonuspunten' | 'kaarten'). Zo krijgen ze vanzelf het zoekveld, de
+// positie- en clubfilter, Vergelijken en "Toon meer". Hun URL's en SEO-pagina's blijven dezelfde.
 import { Fragment, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SlidersHorizontal, X, Link2, Check, Scale } from 'lucide-react';
 import { CURRENT_GW, TEAMS_ALPHA } from '../constants';
@@ -30,8 +34,8 @@ import FilterChip, { FilterChips } from '../ui/FilterChip';
 import ErrorBanner, { Notice } from '../ui/ErrorBanner';
 import EmptyState from '../ui/EmptyState';
 import {
-  COLUMNS, PRESETS, PRESET_KEYS, PRESET_SORT, POSITION_KEYS, PERIODS, MIN_MINUTES_OPTIONS, MAX_COMPARE, COMPARE_ROWS,
-  DEFAULT_STATE, DIFFERENTIAL_MAX_SEL, buildRow, cellValue, formatCell, filterRows, sortRows, bestIndexes,
+  COLUMNS, PRESETS, SPELERS_PRESET_KEYS, BONUS_PRESETS, PRESET_SORT, POSITION_KEYS, PERIODS, MIN_MINUTES_OPTIONS, MAX_COMPARE, COMPARE_ROWS,
+  PAGE_DEFAULTS, DIFFERENTIAL_MAX_SEL, buildRow, cellValue, formatCell, filterRows, sortRows, bestIndexes,
   stateFromSearch, searchFromState, buildSheetNameResolver, MIN_MINUTES_PER90, FORM_GWS,
 } from '../spelers';
 import { getSessionPlayers, loadPlayers } from '../data/playersApi';
@@ -42,6 +46,13 @@ const PlayerSheet = lazy(() => import('../components/PlayerSheet'));
 
 const PAGE_SIZE = 60;
 const FIXED_SORT_KEYS = ['name', 'club', 'pos'];
+
+// Wat per pagina verschilt: titel, korte intro, de uitleg onder "Uitleg" en de voetnoot.
+const PAGE_TEXT = {
+  spelers: { title: 'spelers.pageTitle', intro: 'spelers.introShort', more: null, caption: 'spelers.tableCaption', footnote: 'spelers.footnote' },
+  bonuspunten: { title: 'nav.bonuspunten', intro: 'bonuspunten.introShort', more: 'bonuspunten.intro', caption: 'nav.bonuspunten', footnote: 'spelers.footnote' },
+  kaarten: { title: 'nav.kaarten', intro: 'kaarten.introShort', more: 'kaarten.suspensionExplainer', caption: 'nav.kaarten', footnote: 'kaarten.footnote' },
+};
 
 // --- Data ophalen --------------------------------------------------------------------------------
 // Eén keer per sessie, gedeeld met de andere tabs (zie src/data/playersApi.js): terugkeren naar de
@@ -284,9 +295,12 @@ function CompareSheet({ t, rows, mode, fromGw, ratings, homeAdvantage, onRemove,
 export default function SpelersTab({
   t, ratings, homeAdvantage, playerDatabase, watchlist = [], isPlayerWatched, isPlayerInMyTeam, toggleWatchlistPlayer,
   onRemoveWatchlistPlayer, hasMyTeam, hasWatchlist, onOpenClub, setPiecesEntries, onGoToTeamPlanner, teamPlannerActionFor,
+  page = 'spelers',
 }) {
+  const defaults = PAGE_DEFAULTS[page] ?? PAGE_DEFAULTS.spelers;
+  const text = PAGE_TEXT[page] ?? PAGE_TEXT.spelers;
   const { data, loading, error, fromLocal, reload } = useSpelersData();
-  const [ui, setUi] = useState(() => (typeof window === 'undefined' ? DEFAULT_STATE : stateFromSearch(window.location.search)));
+  const [ui, setUi] = useState(() => (typeof window === 'undefined' ? defaults : stateFromSearch(window.location.search, defaults)));
   const [visible, setVisible] = useState(PAGE_SIZE);
   const [filtersOpen, setFiltersOpen] = useState(false);
   // Een gedeelde vergelijk-link (?compare=107,99) opent meteen de vergelijking.
@@ -303,10 +317,10 @@ export default function SpelersTab({
   const firstSync = useRef(true);
   useEffect(() => {
     if (firstSync.current) { firstSync.current = false; return; }
-    const search = searchFromState(ui, window.location.search);
+    const search = searchFromState(ui, window.location.search, defaults);
     const url = `${window.location.pathname}${search}`;
     if (url !== window.location.pathname + window.location.search) window.history.replaceState(window.history.state, '', url);
-  }, [ui]);
+  }, [ui, defaults]);
 
   const gw = data?.gw ?? 0;
   const fromGw = Math.min(34, Math.max(CURRENT_GW, gw + 1));
@@ -354,7 +368,7 @@ export default function SpelersTab({
     if (presetSort) return { cols, ...presetSort };
     // Sorteer je op een kolom die in de nieuwe preset niet meer staat, dan terug naar punten.
     const keepSort = FIXED_SORT_KEYS.includes(prev.sort) || PRESETS[cols].includes(prev.sort);
-    return keepSort ? { cols } : { cols, sort: DEFAULT_STATE.sort, dir: DEFAULT_STATE.dir };
+    return keepSort ? { cols } : { cols, sort: 'pts', dir: 'desc' };
   });
   const toggleCompare = (id) => update(prev => {
     if (prev.compare.includes(id)) return { compare: prev.compare.filter(x => x !== id) };
@@ -368,7 +382,7 @@ export default function SpelersTab({
   const openPopup = (id) => {
     setCompareOpen(false);
     setUi(prev => ({ ...prev, speler: id }));
-    const search = searchFromState({ ...ui, speler: id }, window.location.search);
+    const search = searchFromState({ ...ui, speler: id }, window.location.search, defaults);
     window.history.pushState({ spelerPopup: id }, '', `${window.location.pathname}${search}`);
   };
   const closePopup = () => {
@@ -376,10 +390,10 @@ export default function SpelersTab({
     update({ speler: null });
   };
   useEffect(() => {
-    const onPop = () => setUi(prev => ({ ...prev, speler: stateFromSearch(window.location.search).speler }));
+    const onPop = () => setUi(prev => ({ ...prev, speler: stateFromSearch(window.location.search, defaults).speler }));
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
-  }, []);
+  }, [defaults]);
 
   const toggleWatch = (r) => toggleWatchlistPlayer?.({ name: sheetName(r), teamCode: r.club });
 
@@ -488,9 +502,22 @@ export default function SpelersTab({
 
   const meta = data ? <span className="num">{t('spelers.meta', { gw: data.gw, n: data.players.length })}</span> : null;
 
+  // Kolomkeuze per pagina: Spelers toont de presets, Bonuspunten "Totaal" en de vier voorwaarden,
+  // Kaarten heeft één vaste set kolommen.
+  const presetOptions = page === 'bonuspunten'
+    ? BONUS_PRESETS.map(p => ({ value: p.cols, label: t(p.label) }))
+    : page === 'kaarten' ? null
+      : SPELERS_PRESET_KEYS.map(key => ({ value: key, label: t(`spelers.presets.${key}`) }));
+
   return (
     <div className={`spl${compareMode ? ' is-compare' : ''}`}>
-      <PageHeader title={t('spelers.pageTitle')} meta={meta} intro={t('spelers.introShort')} />
+      <PageHeader
+        title={t(text.title)}
+        meta={meta}
+        intro={t(text.intro)}
+        more={text.more ? <p>{t(text.more)}</p> : undefined}
+        moreLabel={text.more ? t('shared.explain') : undefined}
+      />
 
       <div className="spl-toolbar">
         <SearchField
@@ -510,12 +537,14 @@ export default function SpelersTab({
               ...POSITION_KEYS.map(pos => ({ value: pos, label: t(`spelers.posShort.${pos}`) })),
             ]}
           />
-          <Segmented
-            ariaLabel={t('spelers.presets.label')}
-            value={ui.cols}
-            onChange={choosePreset}
-            options={PRESET_KEYS.map(key => ({ value: key, label: t(`spelers.presets.${key}`) }))}
-          />
+          {presetOptions && (
+            <Segmented
+              ariaLabel={t(page === 'bonuspunten' ? 'bonuspunten.statAria' : 'spelers.presets.label')}
+              value={ui.cols}
+              onChange={choosePreset}
+              options={presetOptions}
+            />
+          )}
           <div className="spl-toolbar__actions">
             <Button icon={SlidersHorizontal} onClick={() => setFiltersOpen(true)} aria-haspopup="dialog">
               {chips.length ? t('spelers.filter.buttonCount', { n: chips.length }) : t('spelers.filter.button')}
@@ -572,7 +601,7 @@ export default function SpelersTab({
             rowLabel={compareMode ? undefined : (r => t('playerSheet.openAria', { name: r.name }))}
             sort={{ key: ui.sort, dir: ui.dir }}
             onSort={onSort}
-            ariaLabel={t('spelers.tableCaption')}
+            ariaLabel={t(text.caption)}
             footer={sorted.length > visible ? (
               <Button onClick={() => setVisible(v => v + PAGE_SIZE)}>
                 {t('spelers.showMore', { n: Math.min(PAGE_SIZE, sorted.length - visible), total: sorted.length - visible })}
@@ -595,7 +624,7 @@ export default function SpelersTab({
         </section>
       )}
 
-      {data && <p className="spl-note spl-footnote">{t('spelers.footnote')}</p>}
+      {data && <p className="spl-note spl-footnote">{t(text.footnote)}</p>}
 
       {compareRows.length >= 2 && !compareOpen && (
         <div className="spl-comparebar" role="region" aria-label={t('spelers.compare.mode')}>
