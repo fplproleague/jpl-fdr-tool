@@ -31,6 +31,7 @@ Tabs (8): FDR (Fixture Difficulty Rating), Verwachte XI's, Team Planner, Spelers
 - `src/routes.js` + `src/i18n.js`: routes en vertalingen (nl/fr/en). Een nieuwe tab = een entry in `ROUTES` + vertaalsleutels in de drie talen; zie `README.MD`. Geen zichtbare tekst hard in de code.
 - `src/fdrRatings.js`: de FDR-ratings als afwijkingen van de standaard (`DEFAULT_RATINGS`), met de migratie uit de oude opslag. Pas je `DEFAULT_RATINGS` aan, dan krijgt iedereen die die club niet zelf veranderde de nieuwe waarde.
 - Team Planner: `src/teamPlanner.js` (het rekenmodel: opslag `fpl_proleague_teamplanner_v2` met migratie uit v1, budget, gratis transfers, opstelling; puur en getest), `src/lineupScore.js` (score voor "Optimaliseer opstelling") en `src/useTeamPlanner.js` (de React-kant: state, meldingen, ongedaan maken). `src/tabs/TeamPlannerTab.jsx` toont enkel.
+- `src/myRankTeam.js`: "Mijn team volgen" in Klassement (opslag `fpl_proleague_my_rank_team_v1`, enkel team-ID + teamnaam, nooit managernamen).
 - `src/availability.js`: één beschikbaarheidsstatus per speler (geschorst, twijfel/risico uit de Verwachte XI's, één kaart van een schorsing). Bewust geen blessures (beslissing eigenaar).
 - `scripts/build-routes.mjs`: maakt na de Vite-build een HTML-pagina per route/speler/club per taal, plus `sitemap.xml`.
 - `src/predicted-xi/` + `predicted-xi.html`: aparte, niet-gelinkte privétool om opstellingen samen te stellen.

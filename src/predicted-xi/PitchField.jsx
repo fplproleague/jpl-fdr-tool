@@ -110,6 +110,9 @@ const PitchField = forwardRef(function PitchField({
   // voorheen: de privé-builder en de PNG-export geven deze props nooit mee.
   variant = 'default',
   siteTheme = null,
+  // Optioneel, enkel de publieke tab (spec E1): (naam, clubcode) -> true als die speler in het team
+  // van de bezoeker zit. Zonder deze prop krijgt geen enkel kaartje een markering.
+  highlightPlayer = null,
 }, ref) {
   const site = variant === 'site' && siteTheme;
   const pitchSlots = slots.filter(s => s.positionId !== '_unassigned');
@@ -311,6 +314,7 @@ const PitchField = forwardRef(function PitchField({
                 readOnly={readOnly}
                 onViewPlayer={onViewPlayer}
                 viewPlayerLabel={viewPlayerLabel}
+                highlighted={highlightPlayer && slot.playerName ? highlightPlayer(slot.playerName, slot.playerTeamCode || club?.code) : undefined}
                 teamCode={club?.code}
                 shirtWidthPx={shirtWidthPx}
               />

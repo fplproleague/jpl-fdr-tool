@@ -6,10 +6,14 @@
 // - Kiezen per wedstrijd: desktop toont beide ploegen naast elkaar, gsm één ploeg met een Segmented
 //   (en vegen of pijlen om te wisselen).
 // - "Overzicht": één tabel met alle 18 clubs, met de schakelaar "Enkel twijfels".
+// - "Mijn spelers" (spec E1): heb je een team in de Team Planner, dan krijgt elke speler uit dat team
+//   (zoals het er in deze speeldag uitziet) een dunne accentlijn onder de naam, in beide weergaven.
+//   Daarbij: "Enkel mijn spelers" in het overzicht, een getal in de wedstrijdstrip, een regel in de
+//   legende en bovenaan een samenvatting. Zonder team verschijnt daar niets van.
 //
 // Het veld komt uit de privé Predicted XI Builder (../predicted-xi/PitchField) met variant="site";
 // zonder die prop ziet het veld er exact uit zoals in de builder en de PNG-export.
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   TEAMS, TEAMS_ALPHA, CURRENT_GW, PREDICTED_LINEUPS_GW, POSTPONED, FIXTURES,
@@ -103,7 +107,7 @@ function groupByLine(lineup, players) {
   return groups;
 }
 
-// --- URL-state: ?match=CLU-AND&team=CLU&view=overzicht&twijfel=1 ---------------------------------
+// --- URL-state: ?match=CLU-AND&team=CLU&view=overzicht&twijfel=1&mijn=1 --------------------------
 function readUrlState(matches) {
   const p = new URLSearchParams(typeof window === 'undefined' ? '' : window.location.search);
   const matchParam = (p.get('match') || '').toUpperCase();
@@ -118,6 +122,7 @@ function readUrlState(matches) {
     team,
     view: p.get('view') === 'overzicht' ? 'overview' : 'pitch',
     onlyDoubts: p.get('twijfel') === '1',
+    onlyMine: p.get('mijn') === '1',
   };
 }
 
@@ -127,6 +132,7 @@ function writeUrlState(state) {
   if (state.team) p.set('team', state.team); else p.delete('team');
   if (state.view === 'overview') p.set('view', 'overzicht'); else p.delete('view');
   if (state.onlyDoubts) p.set('twijfel', '1'); else p.delete('twijfel');
+  if (state.onlyMine) p.set('mijn', '1'); else p.delete('mijn');
   const search = p.toString();
   const url = window.location.pathname + (search ? `?${search}` : '');
   if (url !== window.location.pathname + window.location.search) window.history.replaceState(window.history.state, '', url);
@@ -170,25 +176,79 @@ function SafetyDot({ level, t }) {
   return <span className={`pxl-dot is-${level ?? 'green'}`} role="img" aria-label={t(safetyLabelKey(level))} />;
 }
 
-function Legend({ t }) {
+function Legend({ t, hasTeam }) {
   return (
     <ul className="pxl-legend" aria-label={t('predictedLineups.legendAria')}>
       {SAFETY_LEVELS.map(({ level, labelKey }) => (
         <li key={level}><span className={`pxl-dot is-${level}`} aria-hidden="true" />{t(labelKey)}</li>
       ))}
+      {hasTeam && <li><span className="pxl-mine-mark" aria-hidden="true" />{t('predictedLineups.mine.legend')}</li>}
     </ul>
   );
 }
 
-function MatchButton({ match, active, onSelect, t }) {
+// Bovenaan (E1): hoe staat mijn team ervoor in de opstellingen van deze speeldag? Elke naam opent de
+// spelerskaart. Enkel als je een team hebt en de opstellingen van de komende speeldag er zijn.
+export function summarizeMyTeam(myTeam, playerKeyOf, lineupOf = lineupFor) {
+  const out = { starters: 0, doubts: [], notInXi: [], noXi: [], notPlaying: [] };
+  for (const player of myTeam) {
+    const postponed = POSTPONED.has(`${player.teamCode}-${SHOWN_GW}`);
+    if (postponed || fixtureEntries(player.teamCode, SHOWN_GW).length === 0) { out.notPlaying.push(player); continue; }
+    const lineup = lineupOf(player.teamCode);
+    if (!lineup) { out.noXi.push(player); continue; }
+    const slot = lineup.slots.find(sl => sl.positionId !== '_unassigned' && sl.playerName
+      && playerKeyOf(sl.playerName, sl.playerTeamCode || lineup.clubCode) === player.key);
+    if (!slot) { out.notInXi.push(player); continue; }
+    out.starters += 1;
+    if (DOUBT_LEVELS.has(slot.safety)) out.doubts.push({ ...player, name: slot.playerName });
+  }
+  return out;
+}
+
+function NameList({ players, onOpenPlayer, t }) {
+  return players.map((p, i) => (
+    <Fragment key={p.key}>
+      {i > 0 && ', '}
+      <button type="button" className="pxl-mine__name" onClick={() => onOpenPlayer?.(p.name, p.teamCode)} aria-label={t('playerSheet.openAria', { name: p.name })}>
+        {p.name}
+      </button>
+    </Fragment>
+  ));
+}
+
+function MyTeamLine({ t, myTeam, playerKeyOf, onOpenPlayer }) {
+  const summary = useMemo(() => summarizeMyTeam(myTeam, playerKeyOf), [myTeam, playerKeyOf]);
+  const parts = [
+    ['doubts', summary.doubts],
+    ['notInXi', summary.notInXi],
+    ['noXi', summary.noXi],
+    ['notPlaying', summary.notPlaying],
+  ].filter(([, list]) => list.length > 0);
+  return (
+    <p className="pxl-mine">
+      <strong>{t('predictedLineups.mine.title')}</strong>
+      <span aria-hidden="true">: </span>
+      <span>{t('predictedLineups.mine.starters', { count: summary.starters })}</span>
+      {parts.map(([key, list]) => (
+        <Fragment key={key}>
+          <span className="pxl-mine__sep" aria-hidden="true"> · </span>
+          <span className="pxl-mine__part">{t(`predictedLineups.mine.${key}`)} <NameList players={list} onOpenPlayer={onOpenPlayer} t={t} /></span>
+        </Fragment>
+      ))}
+    </p>
+  );
+}
+
+function MatchButton({ match, active, onSelect, t, mineCount = 0 }) {
   const home = teamByCode(match.home);
   const away = teamByCode(match.away);
+  const mineAria = mineCount > 0 ? `, ${t('predictedLineups.mine.matchAria', { count: mineCount })}` : '';
   return (
     <button
       type="button"
       className={`pxl-match${active ? ' is-active' : ''}${match.postponed ? ' is-postponed' : ''}`}
       aria-pressed={active}
-      aria-label={`${t('predictedLineups.matchAria', { home: home?.name ?? match.home, away: away?.name ?? match.away })}${match.postponed ? ` (${t('predictedLineups.postponed')})` : ''}`}
+      aria-label={`${t('predictedLineups.matchAria', { home: home?.name ?? match.home, away: away?.name ?? match.away })}${match.postponed ? ` (${t('predictedLineups.postponed')})` : ''}${mineAria}`}
       onClick={() => onSelect(match)}
     >
       <ClubLogo code={match.home} />
@@ -196,12 +256,13 @@ function MatchButton({ match, active, onSelect, t }) {
       <span className="pxl-match__sep" aria-hidden="true">–</span>
       <span className="pxl-match__code">{match.away}</span>
       <ClubLogo code={match.away} />
+      {mineCount > 0 && <span className="pxl-match__mine num" aria-hidden="true">{mineCount}</span>}
     </button>
   );
 }
 
 // Eén kant van een wedstrijd: kop (logo, club, formatie) + veld, of een melding.
-function Side({ t, language, code, oppCode, isHome, onOpenPlayer, onOpenClub, hiddenOnMobile }) {
+function Side({ t, language, code, oppCode, isHome, onOpenPlayer, onOpenClub, hiddenOnMobile, highlightPlayer }) {
   const club = teamByCode(code);
   const lineup = lineupFor(code);
   const postponed = POSTPONED.has(`${code}-${SHOWN_GW}`);
@@ -224,6 +285,7 @@ function Side({ t, language, code, oppCode, isHome, onOpenPlayer, onOpenClub, hi
         opponent={teamByCode(oppCode)}
         onViewPlayer={onOpenPlayer}
         viewPlayerLabel={name => t('playerSheet.openAria', { name })}
+        highlightPlayer={highlightPlayer}
         slots={lineup.slots}
         activeSlotIndex={null}
         onSlotClick={noop}
@@ -252,20 +314,24 @@ function Side({ t, language, code, oppCode, isHome, onOpenPlayer, onOpenClub, hi
   );
 }
 
-function Overview({ t, onlyDoubts, onOpenPlayer, onOpenClub }) {
+function Overview({ t, onlyDoubts, onlyMine, isMine, onOpenPlayer, onOpenClub }) {
+  const mineOf = (slot, code) => isMine(slot.playerName, slot.playerTeamCode || code);
+  const filtering = onlyDoubts || onlyMine;
   const rows = TEAMS_ALPHA.map(team => {
     const lineup = lineupFor(team.code);
     const entries = fixtureEntries(team.code, SHOWN_GW);
     const postponed = POSTPONED.has(`${team.code}-${SHOWN_GW}`);
     const players = lineup ? orderedSlots(lineup) : [];
     const groups = lineup ? groupByLine(lineup, players)
-      .map(g => (onlyDoubts ? g.filter(s => DOUBT_LEVELS.has(s.safety)) : g))
+      .map(g => g.filter(s => (!onlyDoubts || DOUBT_LEVELS.has(s.safety)) && (!onlyMine || mineOf(s, team.code))))
       .filter(g => g.length > 0) : [];
     const shown = groups.flat();
     return { team, lineup, entries, postponed, shown, groups };
-  }).filter(r => !onlyDoubts || r.shown.length > 0);
+  }).filter(r => !filtering || r.shown.length > 0);
 
-  if (onlyDoubts && rows.length === 0) return <EmptyState>{t('predictedLineups.noDoubts')}</EmptyState>;
+  if (filtering && rows.length === 0) {
+    return <EmptyState>{t(onlyMine ? (onlyDoubts ? 'predictedLineups.mine.noDoubts' : 'predictedLineups.mine.none') : 'predictedLineups.noDoubts')}</EmptyState>;
+  }
 
   return (
     <div className="ui-table-scroll">
@@ -303,15 +369,19 @@ function Overview({ t, onlyDoubts, onOpenPlayer, onOpenClub }) {
                   <div className="pxl-lines">
                     {groups.map((group, gi) => (
                       <ul key={gi} className="pxl-names">
-                        {group.map((slot, i) => (
-                          <li key={`${slot.playerName}-${i}`}>
-                            <button type="button" className="pxl-name" onClick={() => onOpenPlayer?.(slot.playerName, slot.playerTeamCode || team.code)}>
-                              <SafetyDot level={slot.safety} t={t} />
-                              {slot.playerName}
-                              <CardStatus name={slot.playerName} clubCode={slot.playerTeamCode || team.code} />
-                            </button>
-                          </li>
-                        ))}
+                        {group.map((slot, i) => {
+                          const mine = mineOf(slot, team.code);
+                          return (
+                            <li key={`${slot.playerName}-${i}`}>
+                              <button type="button" className={`pxl-name${mine ? ' is-mine' : ''}`} onClick={() => onOpenPlayer?.(slot.playerName, slot.playerTeamCode || team.code)}>
+                                <SafetyDot level={slot.safety} t={t} />
+                                <span className="pxl-name__text">{slot.playerName}</span>
+                                {mine && <span className="ui-sr-only"> ({t('predictedLineups.mine.legend')})</span>}
+                                <CardStatus name={slot.playerName} clubCode={slot.playerTeamCode || team.code} />
+                              </button>
+                            </li>
+                          );
+                        })}
                       </ul>
                     ))}
                   </div>
@@ -332,10 +402,23 @@ function CardStatus({ name, clubCode }) {
   return status && (status.kind === 'suspended' || status.kind === 'oneCard') ? <AvailabilityBadge status={status} /> : null;
 }
 
-export default function PredictedLineupsTab({ t, language = 'nl', onOpenPlayer, onOpenClub }) {
+// myTeam: [{ name, teamCode, key }] = het team van de bezoeker in deze speeldag (leeg = geen team);
+// playerKeyOf(naam, club) geeft dezelfde sleutel voor een speler uit de opstellingen.
+const EMPTY_TEAM = [];
+
+export default function PredictedLineupsTab({ t, language = 'nl', onOpenPlayer, onOpenClub, myTeam = EMPTY_TEAM, playerKeyOf }) {
   const matches = useMemo(() => buildMatches(SHOWN_GW), []);
   const [state, setState] = useState(() => readUrlState(matches));
   useEffect(() => { writeUrlState(state); }, [state]);
+
+  const hasTeam = myTeam.length > 0 && typeof playerKeyOf === 'function';
+  const mineKeys = useMemo(() => new Set(myTeam.map(p => p.key)), [myTeam]);
+  const isMine = useCallback(
+    (name, club) => hasTeam && Boolean(name) && mineKeys.has(playerKeyOf(name, club)),
+    [hasTeam, mineKeys, playerKeyOf],
+  );
+  const onlyMine = hasTeam && state.onlyMine;
+  const mineCountFor = (m) => (hasTeam ? myTeam.filter(p => p.teamCode === m.home || p.teamCode === m.away).length : 0);
 
   const now = useNow();
   const release = PUBLISHED ? null : getPredictedLineupsRelease(CURRENT_GW);
@@ -402,21 +485,26 @@ export default function PredictedLineupsTab({ t, language = 'nl', onOpenPlayer, 
         </p>
       )}
 
+      {hasTeam && PUBLISHED && <MyTeamLine t={t} myTeam={myTeam} playerKeyOf={playerKeyOf} onOpenPlayer={onOpenPlayer} />}
+
       <div className="pxl-toolbar">
         <Segmented options={viewOptions} value={state.view} onChange={v => setState(s => ({ ...s, view: v }))} ariaLabel={t('predictedLineups.viewAria')} />
         {state.view === 'overview' && (
           <Switch checked={state.onlyDoubts} onChange={v => setState(s => ({ ...s, onlyDoubts: v }))} label={t('predictedLineups.onlyDoubts')} />
         )}
-        <Legend t={t} />
+        {state.view === 'overview' && hasTeam && (
+          <Switch checked={state.onlyMine} onChange={v => setState(s => ({ ...s, onlyMine: v }))} label={t('predictedLineups.mine.only')} />
+        )}
+        <Legend t={t} hasTeam={hasTeam} />
       </div>
 
       {state.view === 'overview' ? (
-        <Overview t={t} onlyDoubts={state.onlyDoubts} onOpenPlayer={onOpenPlayer} onOpenClub={onOpenClub} />
+        <Overview t={t} onlyDoubts={state.onlyDoubts} onlyMine={onlyMine} isMine={isMine} onOpenPlayer={onOpenPlayer} onOpenClub={onOpenClub} />
       ) : (
         <>
           <div className="pxl-matches" role="group" aria-label={t('predictedLineups.pickMatchAria')}>
             {matches.map(m => (
-              <MatchButton key={m.id} match={m} active={m.id === match?.id} onSelect={selectMatch} t={t} />
+              <MatchButton key={m.id} match={m} active={m.id === match?.id} onSelect={selectMatch} t={t} mineCount={mineCountFor(m)} />
             ))}
           </div>
 
@@ -431,9 +519,9 @@ export default function PredictedLineupsTab({ t, language = 'nl', onOpenPlayer, 
                 />
               </div>
               <div className="pxl-pitches" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-                <Side t={t} language={language} code={match.home} oppCode={match.away} isHome onOpenPlayer={onOpenPlayer} onOpenClub={onOpenClub} hiddenOnMobile={state.team === match.away} />
+                <Side t={t} language={language} code={match.home} oppCode={match.away} isHome onOpenPlayer={onOpenPlayer} onOpenClub={onOpenClub} hiddenOnMobile={state.team === match.away} highlightPlayer={hasTeam ? isMine : undefined} />
                 <span className="pxl-vs" aria-hidden="true">{t('predictedLineups.vs')}</span>
-                <Side t={t} language={language} code={match.away} oppCode={match.home} isHome={false} onOpenPlayer={onOpenPlayer} onOpenClub={onOpenClub} hiddenOnMobile={state.team !== match.away} />
+                <Side t={t} language={language} code={match.away} oppCode={match.home} isHome={false} onOpenPlayer={onOpenPlayer} onOpenClub={onOpenClub} hiddenOnMobile={state.team !== match.away} highlightPlayer={hasTeam ? isMine : undefined} />
               </div>
               <div className="pxl-steppers">
                 <Button variant="icon" icon={ChevronLeft} onClick={() => stepMatch(-1)} aria-label={t('predictedLineups.prevMatch')} />

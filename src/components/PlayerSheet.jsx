@@ -12,7 +12,7 @@
 //
 // Het paneel zelf (dialoog, focus, Escape, lade op desktop / bottom sheet op gsm) komt uit Sheet.jsx.
 import { useEffect, useState } from 'react';
-import { Scale, Share2, Users } from 'lucide-react';
+import { ArrowLeftRight, Check, Scale, Share2, Users } from 'lucide-react';
 import Sheet, { SheetSection as Section } from './Sheet';
 import { FixtureStrip } from './FixtureStrip';
 import { ClubLogo } from './SpelersParts';
@@ -21,7 +21,7 @@ import {
   buildBonuspuntenEntries, findPlayerBonusEntry, perGameLabel, meetsThresholdPerGame, BONUS_THRESHOLD,
 } from '../bonuspunten';
 import { buildKaartenEntries } from '../kaarten';
-import { buildRow } from '../spelers';
+import { buildRow, FORM_GWS, formatForm } from '../spelers';
 import { PREDICTED_LINEUPS } from '../predictedLineupsData';
 import { languageFromPath, pathForSheet } from '../routes';
 import usePlayerIndex from '../data/usePlayerIndex';
@@ -267,6 +267,9 @@ export default function PlayerSheet({
   t, player, apiPlayer: apiPlayerProp, onClose,
   playerDatabase = [], setPiecesEntries = [], ratings, homeAdvantage,
   isWatched, onToggleWatch, onGoToTeamPlanner, onOpenClub,
+  // { kind: 'transfer' | 'inTeam' | 'planner', onClick } (spec E2). Zonder deze prop: de oude knop
+  // "Naar Team Planner" via onGoToTeamPlanner.
+  teamPlannerAction,
   inCompare, compareFull, onToggleCompare,
 }) {
   const headingId = 'fdr-player-sheet-title';
@@ -331,9 +334,16 @@ export default function PlayerSheet({
     </div>
   );
 
-  const footer = (onGoToTeamPlanner || onToggleCompare) ? (
+  const plannerButton = teamPlannerAction?.kind === 'inTeam'
+    ? <Button icon={Check} disabled>{t('playerSheet.inTeam')}</Button>
+    : teamPlannerAction?.kind === 'transfer'
+      ? <Button icon={ArrowLeftRight} onClick={teamPlannerAction.onClick}>{t('playerSheet.transferIn')}</Button>
+      : (teamPlannerAction?.onClick ?? onGoToTeamPlanner)
+        ? <Button icon={Users} onClick={teamPlannerAction?.onClick ?? onGoToTeamPlanner}>{t('playerSheet.toTeamPlanner')}</Button>
+        : null;
+  const footer = (plannerButton || onToggleCompare) ? (
     <>
-      {onGoToTeamPlanner && <Button icon={Users} onClick={onGoToTeamPlanner}>{t('playerSheet.toTeamPlanner')}</Button>}
+      {plannerButton}
       {onToggleCompare && (
         <Button
           icon={Scale} onClick={onToggleCompare} aria-pressed={Boolean(inCompare)}
@@ -347,7 +357,7 @@ export default function PlayerSheet({
 
   const seasonStats = season ? [
     { key: 'pts', label: t('spelers.col.pts'), value: season.pts },
-    { key: 'form', label: t('spelers.col.formShort'), title: t('spelers.col.form'), value: season.form },
+    { key: 'form', label: t('spelers.col.formShort'), title: t('spelers.col.formTitle', { count: FORM_GWS }), value: formatForm(season.form) },
     { key: 'sel', label: t('spelers.col.selShort'), title: t('spelers.col.sel'), value: season.sel != null ? `${season.sel}%` : null },
     { key: 'min', label: t('spelers.col.minShort'), title: t('spelers.col.min'), value: season.min },
     { key: 'g', label: t('spelers.col.g'), value: season.g },

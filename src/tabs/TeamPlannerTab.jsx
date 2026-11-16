@@ -23,6 +23,7 @@ import { MiniFixtureBadge } from '../components/MiniFixtureBadge';
 import { TooltipTrigger } from '../components/Tooltip';
 import { SectionHeader } from '../components/SectionHeader';
 import { UpcomingFixtures } from '../components/SpelersParts';
+import { FORM_GWS, formAverage, formatForm } from '../spelers';
 import { TeamScreenshotUpload } from './TeamScreenshotUpload';
 import PageHeader from '../ui/PageHeader';
 import Button from '../ui/Button';
@@ -32,6 +33,7 @@ import Select from '../ui/Select';
 import DataTable from '../ui/DataTable';
 import PlayerCell from '../ui/PlayerCell';
 import ActionMenu from '../ui/ActionMenu';
+import Sheet from '../components/Sheet';
 import PlayerPicker from '../ui/PlayerPicker';
 import ErrorBanner, { Notice } from '../ui/ErrorBanner';
 import EmptyState from '../ui/EmptyState';
@@ -44,7 +46,6 @@ import './TeamPlannerTab.css';
 
 // Veldvolgorde: GK bovenaan, FWD onderaan, zoals de echte FPL-app.
 const PITCH_ROW_ORDER = ['GK', 'DEF', 'MID', 'FWD'];
-const FORM_GWS = 5; // zelfde venster als de spelerskiezer en de Spelers-tab
 
 function hasPrice(price) {
   return price != null && price !== '' && Number.isFinite(Number(price));
@@ -58,13 +59,6 @@ const formatMoney = (value) => `${value < 0 ? '−' : ''}€${Math.abs(value).to
 
 function teamNameFor(teamCode) {
   return TEAMS.find(t => t.code === teamCode)?.name ?? teamCode;
-}
-
-function sumLast(arr, gw, n) {
-  if (!Array.isArray(arr)) return null;
-  let total = 0;
-  for (let i = Math.max(0, gw - n); i < gw; i++) total += arr[i] ?? 0;
-  return total;
 }
 
 // Booster als secondary-knop (spec §7.3). Actief in deze GW = omgekeerd (aria-pressed). Al gebruikt in
@@ -179,6 +173,51 @@ function CalibrationPanel({ t, gw, values, ownFields, onSave, onReset, onCancel 
         {values.custom && <Button variant="ghost" size="sm" onClick={onReset}>{t('teamPlanner.calib.reset')}</Button>}
       </div>
     </form>
+  );
+}
+
+// Lade "Wie gaat eruit?" (spec E2): de speler van de spelerskaart komt binnen, jij kiest wie vertrekt.
+// Enkel spelers op dezelfde positie; wie niet kan (budget, clublimiet, ...), staat gedimd met de reden
+// (dezelfde regels als de transferkiezer, useTeamPlanner.transferBlocker).
+function IncomingSheet({ t, planner, shortLabel }) {
+  const { incoming, gw, team } = planner;
+  const options = TEAM_PLANNER_SLOT_POSITIONS
+    .map((position, slot) => ({ position, slot, player: team[slot] }))
+    .filter(o => o.position === incoming.position && o.player?.name)
+    .map(o => ({ ...o, reason: planner.transferBlocker(o.slot)(incoming) }));
+  const incomingPrice = hasPrice(incoming.price) ? formatPrice(incoming.price) : null;
+  return (
+    <Sheet
+      titleId="tp-incoming-title"
+      title={t('teamPlanner.incoming.title', { gw })}
+      closeLabel={t('infoModal.close')}
+      onClose={planner.cancelIncoming}
+      footer={<Button variant="secondary" size="sm" onClick={planner.cancelIncoming}>{t('teamPlanner.incoming.cancel')}</Button>}
+    >
+      <div className="tp-incoming__in">
+        <span className="tp-incoming__label">{t('teamPlanner.transferCol.in')}</span>
+        <PlayerCell byName name={incoming.name} short={shortLabel(incoming)} clubCode={incoming.teamCode} price={incoming.price} />
+      </div>
+      <p className="tp-note">{t('teamPlanner.incoming.intro', { name: shortLabel(incoming), price: incomingPrice ?? '—' })}</p>
+      <ul className="tp-incoming" aria-labelledby="tp-incoming-title">
+        {options.map(({ slot, player, reason }) => (
+          <li key={slot}>
+            <button
+              type="button"
+              className={`tp-incoming__row${reason ? ' is-blocked' : ''}`}
+              disabled={Boolean(reason)}
+              onClick={() => planner.transferIncoming(slot)}
+              aria-label={reason
+                ? t('teamPlanner.incoming.blockedAria', { name: shortLabel(player), reason })
+                : t('teamPlanner.incoming.outAria', { out: shortLabel(player), in: shortLabel(incoming), gw })}
+            >
+              <PlayerCell byName name={player.name} short={shortLabel(player)} clubCode={player.teamCode} price={player.price} />
+              <span className="tp-incoming__state">{reason ?? t('teamPlanner.incoming.out')}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </Sheet>
   );
 }
 
@@ -490,7 +529,7 @@ export default function TeamPlannerTab({
     { key: 'pts', label: t('teamPlanner.colPts'), title: t('teamPlanner.colPtsTitle'), num: true, className: 'tp-col-desktop', render: row => apiFor(row)?.pts ?? null },
     {
       key: 'form', label: t('teamPlanner.colForm'), title: t('teamPlanner.colFormTitle', { count: FORM_GWS }), num: true, className: 'tp-col-desktop',
-      render: row => { const api = apiFor(row); return api ? sumLast(api.w?.pts, apiGw, FORM_GWS) : null; },
+      render: row => { const api = apiFor(row); return api ? formatForm(formAverage(api.w?.pts, apiGw)) : null; },
     },
     {
       key: 'next3', label: t('teamPlanner.colNext'), className: 'tp-col-desktop tp-col-next',
@@ -842,6 +881,8 @@ export default function TeamPlannerTab({
       </div>
 
       {menu && <ActionMenu anchor={menu.anchor} items={menu.items} label={t('teamPlanner.slotMenuAria', { name: menu.label })} onClose={closeMenu} />}
+
+      {planner.incoming && !picker && <IncomingSheet t={t} planner={planner} shortLabel={shortLabel} />}
 
       {picker && (
         <PlayerPicker

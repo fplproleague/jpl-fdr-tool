@@ -70,6 +70,10 @@ export default function PitchSlot({
   // het label per kaartje verschilt; zo hoeft deze module (die ook de privé-tool bedient) zelf geen
   // i18n te kennen.
   viewPlayerLabel,
+  // Enkel voor de publieke tab (spec E1): true = deze speler zit in het team van de bezoeker. Zet
+  // enkel een data-mine-haakje op het naamlabel; de stijl staat in PredictedLineupsTab.css. Zonder
+  // deze prop (de privé-builder en de PNG-export) komt er geen attribuut bij: pixel-identiek.
+  highlighted,
   // Fallback-teamcode voor het shirt-icoon (zie effectiveTeamCode hieronder) — de club waarvan dit veld
   // de opstelling toont, doorgegeven vanuit PitchField.jsx. Enkel nodig als slot.playerTeamCode leeg is
   // (bv. een handmatig ingevoerde speler die niet uit de spelersdatabank kwam, zie handleManualAdd in
@@ -246,7 +250,7 @@ export default function PitchSlot({
             <div className="pxi-card-label" style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px',
             }}>
-              <span className="pxi-card-name" style={{
+              <span className="pxi-card-name" data-mine={highlighted ? '' : undefined} style={{
                 color: '#FFF', fontSize: '13px', fontWeight: 800,
                 textAlign: 'center', lineHeight: 1.15, whiteSpace: 'nowrap',
                 textShadow: TEXT_SHADOW,

@@ -44,6 +44,9 @@ export default function useTeamPlanner({ playerDatabase, ratings, homeAdvantage,
   const [planner, setPlanner] = useState(() => loadTeamPlanner(getStorage(), CURRENT_GW));
   const [gwChoice, setGwChoice] = useState(CURRENT_GW);
   const [notice, setNotice] = useState(null);
+  // Speler die via "Transfer naar mijn team" op de spelerskaart binnenkomt (spec E2). Zolang die er
+  // is, toont de planner de lade "Wie gaat eruit?".
+  const [incoming, setIncoming] = useState(null);
   const noticeTimer = useRef(null);
 
   useEffect(() => { saveTeamPlanner(getStorage(), planner); }, [planner]);
@@ -107,6 +110,12 @@ export default function useTeamPlanner({ playerDatabase, ratings, homeAdvantage,
   // teamopbouw, zoals vroeger).
   const firstTransferGw = planner.startGw <= 1 ? 2 : planner.startGw;
   const canTransfer = complete && gw >= firstTransferGw;
+
+  // Het team in een bepaalde speeldag, na de geplande transfers (bv. de speeldag van de Verwachte XI's).
+  const teamAt = useCallback(
+    (g) => teamAtGw(planner.players, planner.transfersBySlot, Math.max(planner.startGw, g)),
+    [planner.players, planner.transfersBySlot, planner.startGw],
+  );
 
   // --- Meldingen ---------------------------------------------------------------------------------
   const showNotice = useCallback((next) => {
@@ -231,6 +240,21 @@ export default function useTeamPlanner({ playerDatabase, ratings, homeAdvantage,
       : { key: 'transferDone', vars: { out: result.out?.name || '—', in: inPlayer.name, gw } });
   };
 
+  // --- Transfer vanaf de spelerskaart (E2) --------------------------------------------------------
+  // De planner springt naar de speeldag van de transfer: de bekeken speeldag, maar nooit vroeger dan
+  // de komende speeldag of de eerste speeldag waarin transfers kunnen.
+  const startIncoming = (player) => {
+    if (!complete || !player?.name) return;
+    setGwChoice(Math.min(GW_COUNT, Math.max(gw, CURRENT_GW, firstTransferGw)));
+    setIncoming({ name: player.name, teamCode: player.teamCode, position: player.position, price: player.price ?? null });
+  };
+  const cancelIncoming = () => setIncoming(null);
+  const transferIncoming = (slot) => {
+    if (!incoming) return;
+    transfer(slot, incoming);
+    setIncoming(null);
+  };
+
   const removeTransfer = (slot, transferId) => {
     const result = removeTransferCascade(planner, slot, transferId);
     if (result.removed === 0) return;
@@ -318,6 +342,7 @@ export default function useTeamPlanner({ playerDatabase, ratings, homeAdvantage,
     fillSlot, clearSlot, clearTeam, importTeam,
     transferRules, transferBlocker, transfer, removeTransfer, clearTransfers,
     isSamePlayer: (a, b) => keyOf(a) === keyOf(b),
+    teamAt, incoming, startIncoming, cancelIncoming, transferIncoming,
     swapTargets, swap, setCaptain, setVice, optimize, toggleBooster,
     calibrationAt, calibrate, resetCalibration, confirmCheck,
     notice, undoNotice, dismissNotice,
