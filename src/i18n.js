@@ -944,6 +944,15 @@ const STRINGS = {
     'spelers.col.kp': "Key passes",
     'spelers.col.kpShort': "KP",
     'spelers.col.kpTitle': "Key passes: passes die tot een schot leiden (bron: API-Football)",
+    'clubSheet.xgHeading': "Expected goals (xG) · laatste {{n}}",
+    'clubSheet.xgFor': "xG voor",
+    'clubSheet.xgAgainst': "xG tegen",
+    'clubSheet.xgPerMatch': "per wedstrijd",
+    'clubSheet.xgGoals': "Doelpunten: {{value}}",
+    'clubSheet.xgResult': "Uitslag",
+    'clubSheet.xgShort': "xG",
+    'clubSheet.xgaShort': "xGA",
+    'clubSheet.xgHint': "xG = hoeveel doelpunten de kansen gemiddeld opleveren. Scoort een ploeg veel meer dan haar xG, dan was ze efficiënt of had ze geluk. Bron: API-Football.",
   },
 
 
@@ -1839,6 +1848,15 @@ const STRINGS = {
     'spelers.col.kp': "Passes clés",
     'spelers.col.kpShort': "PC",
     'spelers.col.kpTitle': "Passes clés : passes qui mènent à un tir (source : API-Football)",
+    'clubSheet.xgHeading': "Expected goals (xG) · {{n}} derniers matchs",
+    'clubSheet.xgFor': "xG pour",
+    'clubSheet.xgAgainst': "xG contre",
+    'clubSheet.xgPerMatch': "par match",
+    'clubSheet.xgGoals': "Buts : {{value}}",
+    'clubSheet.xgResult': "Score",
+    'clubSheet.xgShort': "xG",
+    'clubSheet.xgaShort': "xGA",
+    'clubSheet.xgHint': "xG = le nombre de buts que les occasions rapportent en moyenne. Une équipe qui marque bien plus que son xG a été efficace ou chanceuse. Source : API-Football.",
   },
 
   // Engels (sinds de feedbackronde van november 2026). Waar een gangbare FPL-term bestaat, staat die
@@ -2548,6 +2566,15 @@ const STRINGS = {
     'spelers.col.kp': "Key passes",
     'spelers.col.kpShort': "KP",
     'spelers.col.kpTitle': "Key passes: passes that lead to a shot (source: API-Football)",
+    'clubSheet.xgHeading': "Expected goals (xG) · last {{n}}",
+    'clubSheet.xgFor': "xG for",
+    'clubSheet.xgAgainst': "xG against",
+    'clubSheet.xgPerMatch': "per match",
+    'clubSheet.xgGoals': "Goals: {{value}}",
+    'clubSheet.xgResult': "Result",
+    'clubSheet.xgShort': "xG",
+    'clubSheet.xgaShort': "xGA",
+    'clubSheet.xgHint': "xG = how many goals the chances are worth on average. A team that scores well above its xG was clinical or lucky. Source: API-Football.",
   },
 };
 
