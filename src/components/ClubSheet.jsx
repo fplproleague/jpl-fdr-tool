@@ -1,4 +1,5 @@
-// Eén paneel met alles wat de site over één club weet (spec §7.10): recente vorm, de komende acht
+// Eén paneel met alles wat de site over één club weet (spec §7.10): recente vorm, xG van de laatste
+// vijf wedstrijden (spec F2, enkel als API-Football antwoordt), de komende acht
 // speeldagen in FDR-kleur, wie de stilstaande fases neemt, de verwachte XI en de spelers van die club
 // met de meeste bonuspunten.
 //
@@ -12,6 +13,8 @@ import Sheet, { SheetSection as Section } from './Sheet';
 import FdrCell from '../ui/FdrCell';
 import StatusDot from '../ui/StatusDot';
 import { PlayerFaceByName } from '../ui/PlayerFace';
+import { ClubLogo } from './SpelersParts';
+import { XG_MATCHES, resultOf, summarizeXg, useTeamXg } from '../data/teamXg';
 import './ClubSheet.css';
 
 // Acht speeldagen vooruit, zoals de FDR-tabel standaard toont.
@@ -41,6 +44,8 @@ export default function ClubSheet({
   // teamForm komt uit FDRTool.jsx (berekend door api/team-form.js): één bron voor de hele site.
   const form = teamForm?.[clubCode] ?? [];
   const setPieces = setPiecesEntries.find(e => e.clubCode === clubCode) ?? null;
+  const xgClubs = useTeamXg();
+  const xg = summarizeXg(xgClubs?.[clubCode]);
 
   // De laatst beschikbare verwachte opstelling (findLast: bij een oude én een nieuwe telt de nieuwste).
   const lineup = PREDICTED_LINEUPS.findLast(l => l.clubCode === clubCode) ?? null;
@@ -54,6 +59,10 @@ export default function ClubSheet({
     0,
   ).slice(0, TOP_PLAYERS);
 
+  // De vorm komt als W/G/V (Nederlands) uit api/team-form.js; toon de letters in de taal van de pagina,
+  // zodat ze overeenkomen met de uitslagen in het xG-blok (in het Frans is "V" net een overwinning).
+  const formLetter = (r) => t(({ W: 'spelers.popup.resultW', G: 'spelers.popup.resultD', V: 'spelers.popup.resultL' })[r] ?? '') || r;
+
   const header = (
     <div className="cs-head">
       <img
@@ -63,8 +72,8 @@ export default function ClubSheet({
       <div className="cs-head__text">
         <h2 id={headingId} className="cs-name">{clubName}</h2>
         {form.length > 0 && (
-          <div className="cs-form" role="img" aria-label={t('clubSheet.formAria', { results: form.join(', ') })}>
-            {form.map((r, i) => <span key={i} className={`cs-form__r is-${r}`} aria-hidden="true">{r}</span>)}
+          <div className="cs-form" role="img" aria-label={t('clubSheet.formAria', { results: form.map(formLetter).join(', ') })}>
+            {form.map((r, i) => <span key={i} className={`cs-form__r is-${r}`} aria-hidden="true">{formLetter(r)}</span>)}
           </div>
         )}
       </div>
@@ -75,6 +84,8 @@ export default function ClubSheet({
 
   return (
     <Sheet titleId={headingId} closeLabel={t('clubSheet.closeAria')} onClose={onClose} header={header}>
+      {xg && <XgSection t={t} xg={xg} />}
+
       <Section title={t('clubSheet.fixturesHeading')}>
         {upcomingGws.length > 0 ? (
           <div className="cs-fdr" style={{ '--cs-cols': upcomingGws.length }}>
@@ -148,5 +159,61 @@ export default function ClubSheet({
         ) : <p className="cs-empty">{t('clubSheet.noData')}</p>}
       </Section>
     </Sheet>
+  );
+}
+
+const fmt = (v) => (v == null ? '—' : v.toFixed(1));
+
+// xG voor en tegen (laatste vijf), met de echte doelpunten ernaast, en per wedstrijd een rijtje.
+function XgSection({ t, xg }) {
+  const resultLetter = { W: t('spelers.popup.resultW'), D: t('spelers.popup.resultD'), L: t('spelers.popup.resultL') };
+  return (
+    <Section title={t('clubSheet.xgHeading', { n: XG_MATCHES })}>
+      <dl className="cs-xg">
+        <div className="cs-xg__tile">
+          <dt>{t('clubSheet.xgFor')}</dt>
+          <dd><span className="cs-xg__val num">{fmt(xg.xg)}</span> <span className="cs-xg__unit">{t('clubSheet.xgPerMatch')}</span></dd>
+          <dd className="cs-xg__goals">{t('clubSheet.xgGoals', { value: fmt(xg.gf) })}</dd>
+        </div>
+        <div className="cs-xg__tile">
+          <dt>{t('clubSheet.xgAgainst')}</dt>
+          <dd><span className="cs-xg__val num">{fmt(xg.xga)}</span> <span className="cs-xg__unit">{t('clubSheet.xgPerMatch')}</span></dd>
+          <dd className="cs-xg__goals">{t('clubSheet.xgGoals', { value: fmt(xg.ga) })}</dd>
+        </div>
+      </dl>
+      <table className="cs-xgt">
+        <thead>
+          <tr>
+            <th scope="col">{t('spelers.popup.opponent')}</th>
+            <th scope="col">{t('clubSheet.xgResult')}</th>
+            <th scope="col" className="is-num" title={t('clubSheet.xgFor')}>{t('clubSheet.xgShort')}</th>
+            <th scope="col" className="is-num" title={t('clubSheet.xgAgainst')}>{t('clubSheet.xgaShort')}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {xg.matches.map((m, i) => {
+            const result = resultOf(m);
+            return (
+              <tr key={`${m.date}-${i}`}>
+                <td>
+                  <span className="cs-xgt__opp">
+                    <ClubLogo code={m.opp} size={14} />
+                    <span>{m.opp}</span>
+                    <span className="cs-xgt__venue">{m.home ? t('spelers.popup.home') : t('spelers.popup.away')}</span>
+                  </span>
+                </td>
+                <td>
+                  <span className="num">{m.gf ?? '?'}–{m.ga ?? '?'}</span>
+                  {result && <span className={`cs-xgt__res is-${result}`}>{resultLetter[result]}</span>}
+                </td>
+                <td className="is-num num">{fmt(m.xg)}</td>
+                <td className="is-num num">{fmt(m.xga)}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      <p className="cs-xg__hint">{t('clubSheet.xgHint')}</p>
+    </Section>
   );
 }
