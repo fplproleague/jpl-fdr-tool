@@ -43,6 +43,10 @@ export const COLUMNS = {
   g: { label: 'spelers.col.g', get: r => r.g, period: true, per90: true },
   a: { label: 'spelers.col.a', get: r => r.a, period: true, per90: true },
   bc: { label: 'spelers.col.bc', get: r => r.bc, per90: true },
+  // Uit API-Football (spec F1); enkel getoond als /api/shots werkte (data.shotsAvailable).
+  sh: { label: 'spelers.col.sh', title: 'spelers.col.shTitle', get: r => r.sh, period: true, per90: true, source: 'apiFootball' },
+  sot: { label: 'spelers.col.sot', title: 'spelers.col.sotTitle', get: r => r.sot, period: true, per90: true, source: 'apiFootball' },
+  kp: { label: 'spelers.col.kp', title: 'spelers.col.kpTitle', get: r => r.kp, period: true, per90: true, source: 'apiFootball' },
   cs: { label: 'spelers.col.cs', get: r => r.cs, per90: true },
   hc: { label: 'spelers.col.hc', get: r => r.hc, per90: true },
   dw: { label: 'spelers.col.dw', get: r => r.dw, per90: true },
@@ -74,7 +78,7 @@ export const COLUMNS = {
 // de rework (spec §7.4) geen kolommen meer; een oude link met sort=cap of sort=gc valt terug op punten.
 export const PRESETS = {
   overview: ['price', 'pts', 'ppm', 'form', 'sel', 'min'],
-  attack: ['price', 'pts', 'g', 'a', 'bc', 'min'],
+  attack: ['price', 'pts', 'g', 'a', 'sh', 'sot', 'kp', 'bc', 'min'],
   defence: ['price', 'pts', 'cs', 'hc', 'dw', 'dl', 'br'],
   bonus: ['pts', 'bp', 'bpDuels', 'bpHeaders', 'bpRecoveries', 'bpBigChances'],
   cards: ['toSusp', 'yc', 'rc', 'mp', 'min'],
@@ -113,7 +117,10 @@ export const PRESET_SORT = {
 export const DIFFERENTIAL_MAX_SEL = 5;
 
 // Rijen in Vergelijken.
-export const COMPARE_ROWS = ['price', 'pts', 'ppm', 'ppg', 'form', 'mp', 'min', 'g', 'a', 'bp', 'cs', 'bc', 'br', 'sel'];
+export const COMPARE_ROWS = ['price', 'pts', 'ppm', 'ppg', 'form', 'mp', 'min', 'g', 'a', 'sh', 'sot', 'kp', 'bp', 'cs', 'bc', 'br', 'sel'];
+
+// Kolommen uit API-Football vallen weg als die bron niet beschikbaar is.
+export const availableColumns = (keys, shotsAvailable) => keys.filter(k => shotsAvailable || COLUMNS[k]?.source !== 'apiFootball');
 export const MAX_COMPARE = 4;
 
 // --- Rijen berekenen -----------------------------------------------------------------------------
@@ -154,8 +161,12 @@ export function buildRow(player, period, gw) {
   const isSeason = period === 'season';
   const from = isSeason ? 0 : Math.max(0, gw - period);
   const base = isSeason
-    ? { pts: player.pts, min: player.min, g: player.g, a: player.a, bp: player.bp, mp: player.mp }
+    ? { pts: player.pts, min: player.min, g: player.g, a: player.a, bp: player.bp, mp: player.mp, sh: player.sh, sot: player.sot, kp: player.kp }
     : {
+      // Niet gekoppeld aan API-Football: blijft null ("—"), ook in een periode.
+      sh: player.sh == null ? player.sh : sumRange(w?.sh, from, gw),
+      sot: player.sot == null ? player.sot : sumRange(w?.sot, from, gw),
+      kp: player.kp == null ? player.kp : sumRange(w?.kp, from, gw),
       pts: sumRange(w?.pts, from, gw),
       min: sumRange(w?.min, from, gw),
       g: sumRange(w?.g, from, gw),

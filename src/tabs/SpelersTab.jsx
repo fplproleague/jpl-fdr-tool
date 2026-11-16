@@ -35,7 +35,7 @@ import ErrorBanner, { Notice } from '../ui/ErrorBanner';
 import EmptyState from '../ui/EmptyState';
 import {
   COLUMNS, PRESETS, SPELERS_PRESET_KEYS, BONUS_PRESETS, PRESET_SORT, POSITION_KEYS, PERIODS, MIN_MINUTES_OPTIONS, MAX_COMPARE, COMPARE_ROWS,
-  PAGE_DEFAULTS, DIFFERENTIAL_MAX_SEL, buildRow, cellValue, formatCell, filterRows, sortRows, bestIndexes,
+  PAGE_DEFAULTS, DIFFERENTIAL_MAX_SEL, availableColumns, buildRow, cellValue, formatCell, filterRows, sortRows, bestIndexes,
   stateFromSearch, searchFromState, buildSheetNameResolver, MIN_MINUTES_PER90, FORM_GWS,
 } from '../spelers';
 import { getSessionPlayers, loadPlayers } from '../data/playersApi';
@@ -185,7 +185,7 @@ function FilterSheet({ t, ui, update, priceBounds, resultCount, onReset, onClose
 
 // --- Vergelijken ---------------------------------------------------------------------------------
 
-function CompareSheet({ t, rows, mode, fromGw, ratings, homeAdvantage, onRemove, onClear, onOpen, onClose }) {
+function CompareSheet({ t, rows, mode, fromGw, ratings, homeAdvantage, onRemove, onClear, onOpen, onClose, shotsAvailable }) {
   const [copied, setCopied] = useState(false);
   const copyLink = async () => {
     try {
@@ -240,7 +240,7 @@ function CompareSheet({ t, rows, mode, fromGw, ratings, homeAdvantage, onRemove,
             </tr>
           </thead>
           <tbody>
-            {COMPARE_ROWS.map(key => {
+            {availableColumns(COMPARE_ROWS, shotsAvailable).map(key => {
               const col = COLUMNS[key];
               const values = rows.map(r => cellValue(r, key, mode));
               const best = col.noBest ? new Set() : bestIndexes(values, { lowerIsBetter: col.lowerIsBetter });
@@ -344,7 +344,7 @@ export default function SpelersTab({
   const inMyTeam = useCallback((r) => !!isPlayerInMyTeam?.(sheetName(r), r.club), [isPlayerInMyTeam, sheetName]);
   const matchesScope = ui.scope === 'watchlist' ? watched : ui.scope === 'myTeam' ? inMyTeam : null;
 
-  const columns = PRESETS[ui.cols];
+  const columns = availableColumns(PRESETS[ui.cols], Boolean(data?.shotsAvailable));
   const filtered = useMemo(() => filterRows(allRows, ui, { matchesScope }), [allRows, ui, matchesScope]);
   const sorted = useMemo(() => sortRows(filtered, ui.sort, ui.dir, ui.mode), [filtered, ui.sort, ui.dir, ui.mode]);
   const compareRows = ui.compare.map(id => byId.get(id)).filter(Boolean);
@@ -644,6 +644,7 @@ export default function SpelersTab({
       {compareOpen && compareRows.length > 0 && (
         <CompareSheet
           t={t} rows={compareRows} mode={ui.mode} fromGw={fromGw} ratings={ratings} homeAdvantage={homeAdvantage}
+          shotsAvailable={Boolean(data?.shotsAvailable)}
           onRemove={toggleCompare} onClear={clearCompare} onOpen={openPopup} onClose={() => setCompareOpen(false)}
         />
       )}

@@ -935,6 +935,15 @@ const STRINGS = {
     'spelers.col.toSuspShort': "Tot schorsing",
     'spelers.presets.cards': "Kaarten",
     'kaarten.footnote': "Bron: Fantasy Pro League. Een schorsing volgt bij 5, 10 en 15 gele kaarten, en na een rode kaart.",
+    'spelers.col.sh': "Schoten",
+    'spelers.col.shShort': "Sch",
+    'spelers.col.shTitle': "Schoten (bron: API-Football)",
+    'spelers.col.sot': "Schoten op doel",
+    'spelers.col.sotShort': "Op doel",
+    'spelers.col.sotTitle': "Schoten op doel (bron: API-Football)",
+    'spelers.col.kp': "Key passes",
+    'spelers.col.kpShort': "KP",
+    'spelers.col.kpTitle': "Key passes: passes die tot een schot leiden (bron: API-Football)",
   },
 
 
@@ -1821,6 +1830,15 @@ const STRINGS = {
     'spelers.col.toSuspShort': "Avant susp.",
     'spelers.presets.cards': "Cartons",
     'kaarten.footnote': "Source : Fantasy Pro League. Une suspension suit à 5, 10 et 15 cartons jaunes, et après un carton rouge.",
+    'spelers.col.sh': "Tirs",
+    'spelers.col.shShort': "Tirs",
+    'spelers.col.shTitle': "Tirs (source : API-Football)",
+    'spelers.col.sot': "Tirs cadrés",
+    'spelers.col.sotShort': "Cadrés",
+    'spelers.col.sotTitle': "Tirs cadrés (source : API-Football)",
+    'spelers.col.kp': "Passes clés",
+    'spelers.col.kpShort': "PC",
+    'spelers.col.kpTitle': "Passes clés : passes qui mènent à un tir (source : API-Football)",
   },
 
   // Engels (sinds de feedbackronde van november 2026). Waar een gangbare FPL-term bestaat, staat die
@@ -2521,6 +2539,15 @@ const STRINGS = {
     'spelers.col.toSuspShort': "To ban",
     'spelers.presets.cards': "Cards",
     'kaarten.footnote': "Source: Fantasy Pro League. A suspension follows at 5, 10 and 15 yellow cards, and after a red card.",
+    'spelers.col.sh': "Shots",
+    'spelers.col.shShort': "Sh",
+    'spelers.col.shTitle': "Shots (source: API-Football)",
+    'spelers.col.sot': "Shots on target",
+    'spelers.col.sotShort': "SoT",
+    'spelers.col.sotTitle': "Shots on target (source: API-Football)",
+    'spelers.col.kp': "Key passes",
+    'spelers.col.kpShort': "KP",
+    'spelers.col.kpTitle': "Key passes: passes that lead to a shot (source: API-Football)",
   },
 };
 
