@@ -308,10 +308,10 @@ export default function FDRTab({
 
   const meta = (
     <>
-      {/* Het ratings-label is ook de weg naar de ratings-lade. */}
-      <button type="button" className={`fdr-meta-link${isCustom || isViewingShared ? ' is-custom' : ''}`} onClick={() => setRatingsOpen(true)} aria-haspopup="dialog">
+      {/* Gewone tekst (feedback eigenaar): de link "Pas de ratings aan" in de intro opent de lade al. */}
+      <span className={`fdr-meta-source${isCustom || isViewingShared ? ' is-custom' : ''}`}>
         {t(isViewingShared ? 'fdr.metaShared' : isCustom ? 'fdr.metaCustom' : 'fdr.metaDefault')}
-      </button>
+      </span>
       <span aria-hidden="true"> · </span>
       <span className="num">{t('fdr.metaRange', { from: gwHorizonRange.start, to: gwHorizonRange.end })}</span>
     </>

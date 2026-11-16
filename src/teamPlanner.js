@@ -362,6 +362,20 @@ export function bestLineup(scoreForSlot) {
   return { bench: [gks[1].index, ...outfieldBench], starters: [...starterSet] };
 }
 
+// "Optimaliseer opstelling" (feedback eigenaar): de beste opstelling, maar de kapitein en vice die de
+// bezoeker koos, blijven altijd staan, en dus ook in de basis. Enkel een lege rol krijgt een voorstel.
+// current = { captain, vice } zoals de planner ze nu toont. Geeft { bench, starters, captain, vice }.
+export function optimizedLineup(scoreForSlot, current = {}) {
+  const keep = new Set([current.captain, current.vice].filter(isSlot));
+  const best = bestLineup(slot => (keep.has(slot) ? 1e6 : 0) + scoreForSlot(slot));
+  const suggested = suggestCaptains(best.bench, scoreForSlot);
+  const pick = (exclude) => [suggested.captain, suggested.vice].find(s => s != null && s !== exclude)
+    ?? TEAM_PLANNER_SLOT_POSITIONS.map((_, i) => i).find(i => !best.bench.includes(i) && i !== exclude) ?? null;
+  const captain = isSlot(current.captain) ? current.captain : pick(current.vice);
+  const vice = isSlot(current.vice) && current.vice !== captain ? current.vice : pick(captain);
+  return { ...best, captain, vice };
+}
+
 // Kan slot `a` met slot `b` wisselen (C3)? Twee bankspelers = de bankvolgorde wisselen (geen keeper).
 // Een basisspeler met een bankspeler: keeper enkel met keeper, en de formatie moet geldig blijven.
 export function canSwap(bench, a, b, players) {

@@ -85,8 +85,21 @@
 /* Vergelijken (in een Sheet). */
 .spl-compare { margin-top: var(--s-2); }
 .spl-compare__table { width: 100%; table-layout: fixed; }
-.spl-compare__table thead th { position: static; height: auto; vertical-align: bottom; padding-bottom: var(--s-2); }
-.spl-compare__table thead th.spl-compare__stat { width: 220px; }
+.spl-compare__table thead th, .spl-compare__table thead td { height: auto; vertical-align: bottom; border-bottom: 0; }
+.spl-compare__table thead .spl-compare__stat { width: 220px; }
+.spl-compare__faces td { padding-top: var(--s-2); padding-bottom: 0; }
+/* De naamregel plakt bovenaan het venster (feedback eigenaar). */
+.spl-compare__table .spl-compare__names th {
+  position: sticky; top: 0; z-index: 2; background: var(--ink-1);
+  padding-top: var(--s-2); padding-bottom: var(--s-2); border-bottom: 1px solid var(--line-strong);
+}
+.spl-compare__names .spl-compare__player { text-align: center; }
+.spl-compare__names .spl-compare__meta { display: block; }
+/* Volgende 3 wedstrijden: op smalle schermen onder elkaar in plaats van over elkaar. */
+.spl-compare__next > span { justify-content: center; }
+@media (max-width: 700px) {
+  .spl-compare__next > span { flex-direction: column; }
+}
 .spl-compare__stat {
   text-align: left; color: var(--text-3); font-size: var(--fs-meta); font-weight: 600;
   white-space: normal !important; line-height: var(--lh-meta);
@@ -104,7 +117,7 @@
 /* Gsm: geen statkolom links; de naam van de stat staat als eigen regel boven de waarden. */
 @media (max-width: 700px) {
   /* De statkolom verdwijnt helemaal; de labelregel (die op desktop verborgen is) neemt haar rol over. */
-  .spl-compare__table th.spl-compare__stat { display: none; }
+  .spl-compare__table .spl-compare__stat { display: none; }
   .spl-compare__labelrow { display: table-row; }
   .spl-compare__labelrow td {
     padding: var(--s-2) var(--s-1) 0 !important; height: auto !important; border-bottom: 0 !important;
@@ -129,4 +142,8 @@
   .spl-toolbar__actions > .ui-btn { flex: 1; }
   .spl-table .ui-table .is-sticky { max-width: 200px; }
   .spl-col-club, .spl-col-pos { display: none; }
+}
+/* Heel smalle gsm met 4 spelers: iets kleinere namen, zodat ze niet midden in een woord afbreken. */
+@media (max-width: 400px) {
+  .spl-compare__names .spl-compare__name { font-size: var(--fs-label); letter-spacing: -0.01em; hyphens: auto; }
 }

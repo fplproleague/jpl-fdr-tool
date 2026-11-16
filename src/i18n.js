@@ -689,9 +689,7 @@ const STRINGS = {
 
     'spelers.filter.showResults': "Toon {{n}} spelers",
 
-    'spelers.filter.diff': "Differentials (<{{max}}% ownership)",
 
-    'spelers.filter.diffChip': "Differentials (<{{max}}%)",
 
     'spelers.filter.removeChip': "Filter {{label}} wissen",
 
@@ -829,7 +827,7 @@ const STRINGS = {
     'teamPlanner.editStartNote': "Je past het startteam van GW{{gw}} aan. Dat telt niet als transfer.",
     'teamPlanner.pastGw': "Afgelopen speeldag",
     'teamPlanner.autoLineupNote': "Voorgestelde opstelling. Wissel of kies een kapitein om ze vast te zetten.",
-    'teamPlanner.optimizeExplain': "Op basis van punten dit seizoen, vorm (laatste {{count}}), tegenstander, sterkte van de eigen club en startkans.",
+    'teamPlanner.optimizeExplain': "Op basis van punten dit seizoen, vorm (laatste {{count}}), tegenstander, sterkte van de eigen club en startkans. Je kapitein en vice blijven staan.",
     'teamPlanner.rechargeNote': "Recharge in GW{{gw}}: je transfers van deze speeldag kosten geen punten.",
     'teamPlanner.check.question': "Klopt dit voor GW{{gw}}?",
     'teamPlanner.check.bank': "Budget {{value}}",
@@ -888,7 +886,7 @@ const STRINGS = {
     'fdr.copyFailedAria': "Link om te kopiëren",
     'spelers.col.formTitle': "Gemiddelde punten per speeldag, laatste {{count}}",
     'predictedLineups.mine.legend': "in jouw team",
-    'predictedLineups.mine.title': "Mijn team",
+    'predictedLineups.mine.title': "Mijn team · GW{{gw}}",
     'predictedLineups.mine.starters': "{{count}} verwacht in de basis",
     'predictedLineups.mine.doubts': "twijfel:",
     'predictedLineups.mine.notInXi': "niet in de XI:",
@@ -1608,9 +1606,7 @@ const STRINGS = {
 
     'spelers.filter.showResults': "Afficher {{n}} joueurs",
 
-    'spelers.filter.diff': "Différentiels (<{{max}} % de popularité)",
 
-    'spelers.filter.diffChip': "Différentiels (<{{max}} %)",
 
     'spelers.filter.removeChip': "Retirer le filtre {{label}}",
 
@@ -1748,7 +1744,7 @@ const STRINGS = {
     'teamPlanner.editStartNote': "Vous modifiez l'équipe de départ de la J{{gw}}. Cela ne compte pas comme un transfert.",
     'teamPlanner.pastGw': "Journée passée",
     'teamPlanner.autoLineupNote': "Composition proposée. Faites un changement ou choisissez un capitaine pour la fixer.",
-    'teamPlanner.optimizeExplain': "Selon les points de la saison, la forme (derniers {{count}}), l'adversaire, la force du club et la probabilité de titularisation.",
+    'teamPlanner.optimizeExplain': "Selon les points de la saison, la forme (derniers {{count}}), l'adversaire, la force du club et la probabilité de titularisation. Votre capitaine et vice-capitaine restent en place.",
     'teamPlanner.rechargeNote': "Recharge à la J{{gw}} : vos transferts de cette journée ne coûtent pas de points.",
     'teamPlanner.check.question': "Est-ce correct pour la J{{gw}} ?",
     'teamPlanner.check.bank': "Budget {{value}}",
@@ -1807,7 +1803,7 @@ const STRINGS = {
     'fdr.copyFailedAria': "Lien à copier",
     'spelers.col.formTitle': "Points moyens par journée, {{count}} dernières",
     'predictedLineups.mine.legend': "dans votre équipe",
-    'predictedLineups.mine.title': "Mon équipe",
+    'predictedLineups.mine.title': "Mon équipe · J{{gw}}",
     'predictedLineups.mine.starters': "titulaires attendus : {{count}}",
     'predictedLineups.mine.doubts': "incertains :",
     'predictedLineups.mine.notInXi': "pas dans le XI :",
@@ -2357,8 +2353,6 @@ const STRINGS = {
     'spelers.filter.buttonCount': "Filters ({{n}})",
     'spelers.filter.sheetTitle': "Filters",
     'spelers.filter.showResults': "Show {{n}} players",
-    'spelers.filter.diff': "Differentials (<{{max}}% selected by)",
-    'spelers.filter.diffChip': "Differentials (<{{max}}%)",
     'spelers.filter.removeChip': "Clear filter {{label}}",
     'spelers.period.seasonShort': "Season",
     'spelers.period.lastShort': "Last {{n}}",
@@ -2481,7 +2475,7 @@ const STRINGS = {
     'teamPlanner.editStartNote': "You're editing the starting team of GW{{gw}}. This doesn't count as a transfer.",
     'teamPlanner.pastGw': "Past gameweek",
     'teamPlanner.autoLineupNote': "Suggested lineup. Make a swap or choose a captain to lock it in.",
-    'teamPlanner.optimizeExplain': "Based on season points, form (last {{count}}), opponent, own club strength and chance of starting.",
+    'teamPlanner.optimizeExplain': "Based on season points, form (last {{count}}), opponent, own club strength and chance of starting. Your captain and vice stay in place.",
     'teamPlanner.rechargeNote': "Recharge in GW{{gw}}: your transfers this gameweek cost no points.",
     'teamPlanner.check.question': "Is this right for GW{{gw}}?",
     'teamPlanner.check.bank': "Budget {{value}}",
@@ -2540,7 +2534,7 @@ const STRINGS = {
     'fdr.copyFailedAria': "Link to copy",
     'spelers.col.formTitle': "Average points per gameweek, last {{count}}",
     'predictedLineups.mine.legend': "in your team",
-    'predictedLineups.mine.title': "My team",
+    'predictedLineups.mine.title': "My team · GW{{gw}}",
     'predictedLineups.mine.starters': "{{count}} expected to start",
     'predictedLineups.mine.doubts': "doubtful:",
     'predictedLineups.mine.notInXi': "not in the XI:",

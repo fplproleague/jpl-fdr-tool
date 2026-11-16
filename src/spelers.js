@@ -113,9 +113,6 @@ export const PRESET_SORT = {
   bonusBigChances: { sort: 'bpBigChances', dir: 'desc' },
 };
 
-// "Differentials": spelers met een ownership onder deze grens (in %).
-export const DIFFERENTIAL_MAX_SEL = 5;
-
 // Rijen in Vergelijken.
 export const COMPARE_ROWS = ['price', 'pts', 'ppm', 'ppg', 'form', 'mp', 'min', 'g', 'a', 'sh', 'sot', 'kp', 'bp', 'cs', 'bc', 'br', 'sel'];
 
@@ -154,6 +151,8 @@ export function formAverage(weekPts, gw, n = FORM_GWS) {
 // Vorm met één decimaal voor de weergave ("6.2"), of null.
 export const formatForm = (value) => (Number.isFinite(value) ? value.toFixed(1) : null);
 
+const GK_ZERO = Object.freeze({ hc: 0, br: 0, bc: 0, bpHeaders: 0, bpRecoveries: 0, bpBigChances: 0 });
+
 // Speler uit /api/players + gekozen periode -> één tabelrij met alle afgeleide waarden.
 // `gw` = laatst gespeelde speeldag (lengte van de weekreeksen).
 export function buildRow(player, period, gw) {
@@ -178,6 +177,10 @@ export function buildRow(player, period, gw) {
   return {
     ...player,
     ...base,
+    // Een keeper kan met kopballen, recoveries of grote kansen geen bonuspunt halen (enkel het duelpunt).
+    // Daarom staan die bij keepers standaard op 0 (feedback eigenaar), zodat ze die rangschikkingen niet
+    // vertekenen. Zo deed de Google Sheet het vroeger ook.
+    ...(player.pos === 'GK' ? GK_ZERO : null),
     seasonMin: player.min,
     ppm: player.price > 0 ? base.pts / player.price : null,
     ppg: ratio(base.pts, base.mp),
@@ -254,7 +257,6 @@ export function filterRows(rows, f, { matchesScope } = {}) {
     if (f.pmin != null && r.price < f.pmin) return false;
     if (f.pmax != null && r.price > f.pmax) return false;
     if (f.mins > 0 && r.min < f.mins) return false;
-    if (f.diff && (r.sel ?? 0) >= DIFFERENTIAL_MAX_SEL) return false;
     if (query && !normalizeName(r.name).includes(query)) return false;
     if (matchesScope && !matchesScope(r)) return false;
     return true;
@@ -298,13 +300,13 @@ export function bestIndexes(values, { lowerIsBetter = false } = {}) {
 // Alles wat je instelt (filters, sortering, kolommen, vergelijking) staat in de URL, zodat je een
 // gefilterde lijst of een vergelijking kan delen (bv. /spelers?compare=107,99). Enkel waarden die
 // afwijken van de standaard komen in de URL, zodat een gewone link kort blijft.
-export const SPELERS_QUERY_PARAMS = ['q', 'pos', 'club', 'pmin', 'pmax', 'mins', 'scope', 'per', 'mode', 'cols', 'sort', 'dir', 'compare', 'speler', 'diff',
-  // 'avail' bestaat niet meer als filter, maar blijft hier zodat een oude link de parameter opruimt.
-  'avail'];
+export const SPELERS_QUERY_PARAMS = ['q', 'pos', 'club', 'pmin', 'pmax', 'mins', 'scope', 'per', 'mode', 'cols', 'sort', 'dir', 'compare', 'speler',
+  // 'avail' en 'diff' bestaan niet meer als filter, maar blijven hier zodat een oude link de parameter opruimt.
+  'avail', 'diff'];
 
 export const DEFAULT_STATE = {
   q: '', pos: [], club: '', pmin: null, pmax: null, mins: 0, scope: 'all', per: 'season',
-  mode: 'total', cols: 'overview', sort: 'pts', dir: 'desc', compare: [], speler: null, diff: false,
+  mode: 'total', cols: 'overview', sort: 'pts', dir: 'desc', compare: [], speler: null,
 };
 
 // Standaardstaat per pagina op deze tabel (spec E3). Wat gelijk is aan de standaard van de pagina,
@@ -341,7 +343,6 @@ export function stateFromSearch(search, defaults = DEFAULT_STATE) {
     dir: ['asc', 'desc'].includes(p.get('dir')) ? p.get('dir') : defaults.dir,
     compare: (p.get('compare') ?? '').split(',').map(Number).filter(n => Number.isInteger(n) && n > 0).slice(0, MAX_COMPARE),
     speler: toNumberOrNull(p.get('speler')),
-    diff: p.get('diff') === '1',
   };
 }
 
@@ -365,7 +366,6 @@ export function searchFromState(state, currentSearch = '', defaults = DEFAULT_ST
   if (state.dir !== defaults.dir) set('dir', state.dir);
   if (state.compare.length) set('compare', state.compare.join(','));
   if (state.speler) set('speler', state.speler);
-  if (state.diff) set('diff', 1);
   const s = p.toString().replace(/%2C/g, ',');
   return s ? `?${s}` : '';
 }

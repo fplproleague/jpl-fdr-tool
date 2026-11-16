@@ -25,7 +25,6 @@ import SearchField from '../ui/SearchField';
 import Segmented from '../ui/Segmented';
 import Select from '../ui/Select';
 import Button from '../ui/Button';
-import Switch from '../ui/Switch';
 import DataTable from '../ui/DataTable';
 import PlayerCell from '../ui/PlayerCell';
 import { PlayerFace } from '../ui/PlayerFace';
@@ -35,7 +34,7 @@ import ErrorBanner, { Notice } from '../ui/ErrorBanner';
 import EmptyState from '../ui/EmptyState';
 import {
   COLUMNS, PRESETS, SPELERS_PRESET_KEYS, BONUS_PRESETS, PRESET_SORT, POSITION_KEYS, PERIODS, MIN_MINUTES_OPTIONS, MAX_COMPARE, COMPARE_ROWS,
-  PAGE_DEFAULTS, DIFFERENTIAL_MAX_SEL, availableColumns, buildRow, cellValue, formatCell, filterRows, sortRows, bestIndexes,
+  PAGE_DEFAULTS, availableColumns, buildRow, cellValue, formatCell, filterRows, sortRows, bestIndexes,
   stateFromSearch, searchFromState, buildSheetNameResolver, MIN_MINUTES_PER90, FORM_GWS,
 } from '../spelers';
 import { getSessionPlayers, loadPlayers } from '../data/playersApi';
@@ -174,10 +173,6 @@ function FilterSheet({ t, ui, update, priceBounds, resultCount, onReset, onClose
           <ScopeFilter t={t} scope={ui.scope} onChange={scope => update({ scope })} />
         </div>
 
-        <div className="spl-field">
-          <Switch checked={ui.diff} onChange={diff => update({ diff })} label={t('spelers.filter.diff', { max: DIFFERENTIAL_MAX_SEL })} />
-        </div>
-
       </div>
     </Sheet>
   );
@@ -219,11 +214,13 @@ function CompareSheet({ t, rows, mode, fromGw, ratings, homeAdvantage, onRemove,
           de spelers de volle breedte krijgen. */}
       <div className="spl-compare" style={{ '--spl-compare-n': rows.length }}>
         <table className="ui-table spl-compare__table">
+          {/* Twee kopregels: foto + verwijderknop scrollen weg, de regel met naam en club blijft
+              bovenaan plakken (feedback eigenaar), zodat je bij elke stat weet wie wie is. */}
           <thead>
-            <tr>
-              <th scope="col" className="spl-compare__stat"><span className="ui-sr-only">{t('spelers.compare.stat')}</span></th>
+            <tr className="spl-compare__faces">
+              <td className="spl-compare__stat" aria-hidden="true" />
               {rows.map(r => (
-                <th key={r.id} scope="col" className="spl-compare__player">
+                <td key={r.id} className="spl-compare__player">
                   <span className="spl-compare__head">
                     <Button
                       variant="icon" size="sm" bare icon={X}
@@ -232,9 +229,16 @@ function CompareSheet({ t, rows, mode, fromGw, ratings, homeAdvantage, onRemove,
                       aria-label={t('spelers.compare.removeAria', { name: r.name })}
                     />
                     <PlayerFace player={r} size={44} />
-                    <button type="button" className="spl-compare__name" onClick={() => onOpen(r.id)}>{r.short || r.name}</button>
-                    <span className="spl-compare__meta">{r.club} · {t(`spelers.posShort.${r.pos}`)}</span>
                   </span>
+                </td>
+              ))}
+            </tr>
+            <tr className="spl-compare__names">
+              <th scope="col" className="spl-compare__stat"><span className="ui-sr-only">{t('spelers.compare.stat')}</span></th>
+              {rows.map(r => (
+                <th key={r.id} scope="col" className="spl-compare__player">
+                  <button type="button" className="spl-compare__name" onClick={() => onOpen(r.id)}>{r.short || r.name}</button>
+                  <span className="spl-compare__meta">{r.club} · {t(`spelers.posShort.${r.pos}`)}</span>
                 </th>
               ))}
             </tr>
@@ -277,8 +281,8 @@ function CompareSheet({ t, rows, mode, fromGw, ratings, homeAdvantage, onRemove,
             <tr>
               <th scope="row" className="spl-compare__stat">{t('spelers.col.next')}</th>
               {rows.map(r => (
-                <td key={r.id} className="is-center">
-                  <UpcomingFixtures club={r.club} fromGw={fromGw} count={3} ratings={ratings} homeAdvantage={homeAdvantage} wrap={false} />
+                <td key={r.id} className="is-center spl-compare__next">
+                  <UpcomingFixtures club={r.club} fromGw={fromGw} count={3} ratings={ratings} homeAdvantage={homeAdvantage} />
                 </td>
               ))}
             </tr>
@@ -410,10 +414,9 @@ export default function SpelersTab({
     ui.per !== 'season' && { key: 'per', label: t('spelers.period.last', { n: ui.per }), clear: { per: 'season' } },
     ui.mode !== 'total' && { key: 'mode', label: t('spelers.mode.p90'), clear: { mode: 'total' } },
     ui.scope !== 'all' && { key: 'scope', label: t(`scopeFilter.${ui.scope}`), clear: { scope: 'all' } },
-    ui.diff && { key: 'diff', label: t('spelers.filter.diffChip', { max: DIFFERENTIAL_MAX_SEL }), clear: { diff: false } },
   ].filter(Boolean);
-  const resetDrawerFilters = () => update({ club: '', pmin: null, pmax: null, mins: 0, scope: 'all', per: 'season', mode: 'total', diff: false });
-  const resetAll = () => update({ q: '', pos: [], club: '', pmin: null, pmax: null, mins: 0, scope: 'all', per: 'season', mode: 'total', diff: false });
+  const resetDrawerFilters = () => update({ club: '', pmin: null, pmax: null, mins: 0, scope: 'all', per: 'season', mode: 'total' });
+  const resetAll = () => update({ q: '', pos: [], club: '', pmin: null, pmax: null, mins: 0, scope: 'all', per: 'season', mode: 'total' });
   const anyFilter = chips.length > 0 || ui.q || ui.pos.length > 0;
 
   const posValue = ui.pos.length === 0 ? 'all' : ui.pos.length === 1 ? ui.pos[0] : null;

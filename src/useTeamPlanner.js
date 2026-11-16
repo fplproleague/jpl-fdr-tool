@@ -17,8 +17,8 @@ import { lineupScore } from './lineupScore';
 import {
   DEFAULT_BENCH, applyTransfer, bestLineup, buildTransferHistory, canSwap, clearCalibrationAt,
   computeBankByGw, createEmptyPlanner, hasCalibrationAt, isPlannerComplete, isPlannerEmpty,
-  isValidBench, lineupForGw, loadTeamPlanner, removeTransferCascade, saveTeamPlanner, setBenchAt,
-  setCalibrationAt, setRoleAt, suggestCaptains, swapInBench, teamAtGw, teamValue, withStartLineup,
+  isValidBench, lineupForGw, loadTeamPlanner, optimizedLineup, removeTransferCascade, saveTeamPlanner, setBenchAt,
+  setCalibrationAt, setRoleAt, swapInBench, teamAtGw, teamValue, withStartLineup,
 } from './teamPlanner';
 
 const NOTICE_MS = 8000;
@@ -280,12 +280,13 @@ export default function useTeamPlanner({ playerDatabase, ratings, homeAdvantage,
   const setCaptain = (slot) => commit(setRoleAt(withLineupKept(planner, gw), gw, 'captain', slot));
   const setVice = (slot) => commit(setRoleAt(withLineupKept(planner, gw), gw, 'vice', slot));
 
-  // "Optimaliseer opstelling": de beste opstelling volgens de score, met kapitein en vice. De melding
-  // zegt wat er veranderde ("Van Den Kerkhof ↔ Sonko, kapitein: Zeneli").
+  // "Optimaliseer opstelling": de beste opstelling volgens de score. De kapitein en vice die de bezoeker
+  // koos, blijven staan (feedback eigenaar); enkel een lege rol krijgt een voorstel. De melding zegt wat
+  // er veranderde ("Van Den Kerkhof ↔ Sonko").
   const optimize = () => {
     const score = scoreForSlotAt(planner, gw);
-    const best = bestLineup(score);
-    const { captain, vice } = suggestCaptains(best.bench, score);
+    const best = optimizedLineup(score, lineup);
+    const { captain, vice } = best;
     let next = setBenchAt(planner, gw, best.bench);
     next = setRoleAt(next, gw, 'captain', captain);
     next = setRoleAt(next, gw, 'vice', vice === captain ? null : vice);

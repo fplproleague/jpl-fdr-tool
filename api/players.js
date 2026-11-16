@@ -4,7 +4,8 @@
 //
 // Response:
 //   { season: '2026-27', gw: 11, deadlineGw: 12, updatedAt, stale: false, players: [ ... ] }
-//   gw = laatst gespeelde speeldag (deadlineInfo.displayWeek). Per speler:
+//   gw = laatst gespeelde speeldag (deadlineInfo.displayWeek, of lager als die nog niet gespeeld is;
+//   zie trimToPlayed). Per speler:
 //   - id, name, short, club (sitecode), pos (GK/DEF/MID/FWD), price, photo (of null)
 //   - pts (officieel totaal), mp (wedstrijden), min, g, a, cs, yc, rc, sv (saves), ps (gestopte
 //     penalty's), gc (tegengoals), og (eigen goals), pm (gemiste penalty's)
@@ -152,16 +153,31 @@ export function buildPlayers({ players, clubs, seasonStats, weeks, gw }) {
     });
 }
 
+// De bron zet displayWeek soms al op de volgende speeldag voor die gespeeld is (bv. maandag na GW11
+// al op 12). Dan telt de laatste speeldag met minstens één gespeelde minuut als "laatst gespeeld", en
+// worden de weekreeksen daarop ingekort. Anders zou de schorsingscontrole (src/kaarten.js) in een lege
+// speeldag naar kaarten zoeken en niemand als geschorst tonen (feedback eigenaar, 16-11-2026).
+export function trimToPlayed(players, gw) {
+  let played = 0;
+  for (const p of players) {
+    const min = p.w?.min ?? [];
+    for (let i = min.length - 1; i >= played; i--) if (min[i] != null) { played = i + 1; break; }
+  }
+  if (played === 0 || played >= gw) return { gw, players };
+  const cut = (w) => (w ? Object.fromEntries(Object.entries(w).map(([k, v]) => [k, Array.isArray(v) ? v.slice(0, played) : v])) : w);
+  return { gw: played, players: players.map(p => (p.w ? { ...p, w: cut(p.w) } : p)) };
+}
+
 export default async function handler(req, res) {
   try {
     const [deadline, confirmations] = await Promise.all([
       fetchJson('matches/deadline-info'),
       fetchJson('points-confirmation').catch(() => []),
     ]);
-    const gw = num(deadline?.deadlineInfo?.displayWeek);
-    if (gw < 0 || gw > 40) throw new Error(`onverwachte speeldag in deadline-info: ${gw}`);
+    const displayGw = num(deadline?.deadlineInfo?.displayWeek);
+    if (displayGw < 0 || displayGw > 40) throw new Error(`onverwachte speeldag in deadline-info: ${displayGw}`);
     const confirmedSet = new Set(list(confirmations).filter(c => num(c?.confirmed) === 1).map(c => num(c.weekId)));
-    const weekIds = Array.from({ length: gw }, (_, i) => i + 1);
+    const weekIds = Array.from({ length: displayGw }, (_, i) => i + 1);
 
     const [playersBody, clubs, seasonStats, weeks] = await Promise.all([
       fetchJson('players'),
@@ -169,8 +185,9 @@ export default async function handler(req, res) {
       fetchAllStats(),
       fetchWeeks(weekIds, confirmedSet),
     ]);
-    const players = buildPlayers({ players: list(playersBody?.players), clubs, seasonStats, weeks, gw });
-    if (players.length === 0) throw new Error('de bron gaf geen spelers terug');
+    const built = buildPlayers({ players: list(playersBody?.players), clubs, seasonStats, weeks, gw: displayGw });
+    if (built.length === 0) throw new Error('de bron gaf geen spelers terug');
+    const { gw, players } = trimToPlayed(built, displayGw);
 
     const body = {
       season: seasonLabel(SEASON_ID),
