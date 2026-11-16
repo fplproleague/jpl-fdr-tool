@@ -13,6 +13,8 @@
 // blockedReason(player) -> tekst of null: spelers die al in de selectie zitten of de clublimiet
 // zouden breken, blijven zichtbaar (opacity .4) met de reden eronder, maar zijn niet te kiezen.
 //
+// title/note: een eigen titel en uitlegregel, bv. bij een transfer ("Transfer GW13: Seys eruit").
+//
 // Beschikbaarheid (spec B3): naast de naam staat geschorst/twijfel/1 kaart, en de schakelaar "Enkel
 // beschikbare spelers" verbergt wie geschorst is.
 import { useMemo, useState } from 'react';
@@ -50,6 +52,7 @@ const isDesktop = () => typeof window !== 'undefined' && window.matchMedia?.('(m
 export default function PlayerPicker({
   t, onClose, onSelect, players, loading = false, position, blockedReason, budgetMax, gw, ratings, homeAdvantage,
   isWatched, onToggleWatch, switchablePositions = null, onSwitchPosition, added = null, emptyLeft = 0,
+  title = null, note = null,
 }) {
   const index = usePlayerIndex();
   const [query, setQuery] = useState('');
@@ -169,9 +172,10 @@ export default function PlayerPicker({
 
   return (
     <Sheet
-      titleId={titleId} title={t(`picker.title.${position}`)} closeLabel={t('picker.close')} onClose={onClose} width="680px"
+      titleId={titleId} title={title ?? t(`picker.title.${position}`)} closeLabel={t('picker.close')} onClose={onClose} width="680px"
       footer={added && added.length > 0 ? <Button variant="primary" onClick={onClose}>{t('picker.done')}</Button> : null}
     >
+      {note && <p className="ui-picker__note">{note}</p>}
       {added && (
         <p className="ui-picker__progress" role="status">
           {added.length > 0 && (

@@ -672,7 +672,16 @@ export function isRechargeActiveForGw(boosters, gw) {
 //   het gratis-saldo waarmee je de Recharge-GW inging blijft ONGEWIJZIGD staan voor de GW erna — die
 //   Recharge-GW telt simpelweg niet mee in de opbouw-rekening, alsof hij was overgeslagen (net zoals
 //   een wildcard/free hit-chip in echte FPL geen extra vrije transfer oplevert of kost).
-export function computeTeamPlannerTransferBudget(transferHistory, boosters) {
+//
+// Startpunt en ijkpunten (FUNCTIONALITEIT_SPEC C1), via `options`:
+// - startGw 1 (standaard): de regel hierboven, GW2 begint met 1 gratis transfer.
+// - startGw > 1 (wie zijn team pas later invult): de startspeeldag zelf begint met startFreeTransfers.
+// - checkpoints[gw].freeTransfers: de echte waarde aan het begin van die speeldag, door de bezoeker
+//   ingevuld. Die vervangt het berekende saldo vanaf die speeldag; alles ervoor blijft hetzelfde.
+// Zonder options geeft de functie exact hetzelfde resultaat als vóór fase C (zie de test).
+export function computeTeamPlannerTransferBudget(transferHistory, boosters, options = {}) {
+  const { startGw = 1, startFreeTransfers = 1, checkpoints = {} } = options;
+  const clampFree = (v) => Math.min(TEAM_PLANNER_FREE_TRANSFER_CAP, Math.max(0, v));
   // Aantal effectief geplande transfers per GW — geteld uit de bestaande, platte transfer-tijdlijn
   // (teamPlannerTransferHistory in FDRTool.jsx, één entry per transfer met een .gw-veld), NIET los
   // herteld, om nooit uit sync te kunnen raken met wat de Transfers-sectie zelf toont.
@@ -682,8 +691,11 @@ export function computeTeamPlannerTransferBudget(transferHistory, boosters) {
   });
 
   const budgetByGw = {};
-  let freeAvailable = 1; // startsaldo waarmee GW2 begint
-  for (let gw = 2; gw <= GW_COUNT; gw++) {
+  const firstGw = startGw <= 1 ? 2 : startGw;
+  let freeAvailable = startGw <= 1 ? 1 : clampFree(startFreeTransfers); // startsaldo van de eerste GW
+  for (let gw = firstGw; gw <= GW_COUNT; gw++) {
+    const checkpointFree = checkpoints[gw]?.freeTransfers;
+    if (Number.isInteger(checkpointFree)) freeAvailable = clampFree(checkpointFree);
     const isRecharge = isRechargeActiveForGw(boosters, gw);
     const used = transfersUsedByGw[gw] ?? 0;
     const pointsCost = isRecharge ? 0 : Math.max(0, used - freeAvailable) * TEAM_PLANNER_TRANSFER_PENALTY;
@@ -698,6 +710,17 @@ export function computeTeamPlannerTransferBudget(transferHistory, boosters) {
     }
   }
   return budgetByGw;
+}
+
+// Bank, kapitein en vice per GW nemen over (FUNCTIONALITEIT_SPEC C2): een GW zonder eigen keuze krijgt
+// die van de dichtstbijzijnde vorige GW, startGw inbegrepen. `byGw` = { [gw]: waarde }; een waarde null
+// telt als keuze ("bewust leeg vanaf hier"). undefined = nergens een keuze.
+export function resolveForGw(byGw, gw, startGw = 1) {
+  if (!byGw) return undefined;
+  for (let g = gw; g >= startGw; g--) {
+    if (Object.prototype.hasOwnProperty.call(byGw, g)) return byGw[g];
+  }
+  return undefined;
 }
 
 // --- Team Planner: transfers zijn tijdgebonden ---

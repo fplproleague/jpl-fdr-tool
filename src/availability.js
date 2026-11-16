@@ -60,7 +60,9 @@ const keyFor = (name, club) => `${normalizePlayerName(name)}|${String(club ?? ''
 // Bouwt een opzoekfunctie (naam, club) -> status voor alle spelers in de databank. Werkt met de korte
 // naam (zoals in de sheet en de opslag) én met de volledige naam (zoals in de Spelers-tabel).
 // lineups = PREDICTED_LINEUPS, enkel doorgeven als ze voor de komende speeldag gepubliceerd zijn.
-export function buildAvailabilityLookup(playerDatabase = [], { lineups = null, lineupGw = null } = {}) {
+// De stip (darkgreen/green/orange/red) van elke speler in de Verwachte XI's, als opzoekfunctie
+// (naam, club) -> stip of null. Ook gebruikt door de opstellingsscore van de Team Planner (C6).
+export function buildLineupSafetyLookup(lineups = null) {
   const safety = new Map();
   for (const lineup of lineups ?? []) {
     for (const slot of lineup.slots ?? []) {
@@ -68,12 +70,17 @@ export function buildAvailabilityLookup(playerDatabase = [], { lineups = null, l
       safety.set(keyFor(slot.playerName, slot.playerTeamCode ?? lineup.clubCode), slot.safety);
     }
   }
+  return (name, club) => (name && club ? safety.get(keyFor(name, club)) ?? null : null);
+}
+
+export function buildAvailabilityLookup(playerDatabase = [], { lineups = null, lineupGw = null } = {}) {
+  const safetyOf = buildLineupSafetyLookup(lineups);
   const byKey = new Map();
   for (const p of playerDatabase) {
     const status = availabilityFor({
       suspension: p.suspension ?? null,
       yellowCards: p.yellowCards ?? 0,
-      lineupSafety: safety.get(keyFor(p.name, p.teamCode)) ?? null,
+      lineupSafety: safetyOf(p.name, p.teamCode),
       lineupGw,
     });
     if (!status) continue;

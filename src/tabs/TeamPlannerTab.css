@@ -22,6 +22,9 @@
 .tp-sugg__conf.is-doubt { color: var(--warning); }
 .tp-sugg__conf.is-missing { color: var(--danger); }
 .tp-sugg__pick { flex: 1 1 200px; min-width: 0; }
+.tp-proposal__extras { display: flex; flex-wrap: wrap; gap: var(--s-3); margin-top: var(--s-3); }
+.tp-proposal__extras .tp-field { flex: 0 1 200px; }
+.tp-sugg__vice { min-width: 32px; padding: 0 var(--s-2); }
 .tp-proposal__actions { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-top: var(--s-3); }
 
 /* --- Statusregel ---------------------------------------------------------------------------- */
@@ -36,6 +39,24 @@
 .tp-status__muted { color: var(--text-3); }
 .tp-status__short { display: none; }
 .tp-status__tip { cursor: pointer; text-decoration: underline dotted; text-underline-offset: 2px; }
+/* Budget en gratis transfers zijn aantikbaar ("Klopt niet? Pas aan", spec C1). */
+.tp-status__edit {
+  padding: 0; border: 0; background: none; color: inherit; cursor: pointer;
+  font: inherit; text-decoration: underline dotted; text-decoration-color: var(--text-3); text-underline-offset: 3px;
+}
+.tp-status__edit:hover { text-decoration-color: currentColor; }
+.tp-status__edit:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tp-status__edit.is-danger { color: var(--danger); }
+.tp-status__action { margin-left: auto; }
+
+/* Eenmalige controle en het venster voor budget en gratis transfers. */
+.tp-check__actions { display: inline-flex; flex-wrap: wrap; gap: var(--s-2); }
+.tp-calib { display: grid; gap: var(--s-2); margin: 0 0 var(--s-4); padding: var(--s-3) 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.tp-calib__title { margin: 0; color: var(--text-1); font: 700 var(--fs-ui)/var(--lh-ui) var(--font-ui); }
+.tp-calib .tp-note { margin: 0; }
+.tp-calib__fields { display: flex; flex-wrap: wrap; gap: var(--s-3); }
+.tp-calib__fields .tp-field { flex: 0 1 160px; }
+.tp-calib__actions { display: flex; flex-wrap: wrap; gap: var(--s-2); }
 
 .tp-viewswitch { display: none; margin-bottom: var(--s-4); }
 
@@ -60,20 +81,17 @@
 .tp-gwbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); margin-bottom: var(--s-3); }
 .tp-gwbar__gw { min-width: 56px; text-align: center; color: var(--text-1); font-size: var(--fs-title); font-weight: 700; }
 .tp-gwbar__meta { margin-left: var(--s-2); color: var(--text-3); font-size: var(--fs-meta); }
+.tp-gwbar__past { color: var(--warning); font-size: var(--fs-meta); font-weight: 600; }
 .tp-boosters { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-bottom: var(--s-3); }
 .tp-booster__state { color: inherit; font-weight: 500; font-size: var(--fs-meta); opacity: 0.85; }
 .tp-booster.is-auto:disabled { color: var(--invert-text); }
 
-/* --- Transfer plannen ----------------------------------------------------------------------- */
-.tp-transfer { margin-bottom: var(--s-4); }
-.tp-transfer__panel { display: grid; gap: var(--s-3); margin-top: var(--s-3); padding: var(--s-3) 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-.tp-transfer__fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--s-3); }
+/* --- Velden en wisselmodus ------------------------------------------------------------------ */
 .tp-field { display: grid; gap: var(--s-1); align-content: start; }
 .tp-field .label { color: var(--text-3); }
 .tp-field .ui-select { width: 100%; }
-.tp-transfer__preview { margin: 0; color: var(--text-2); font-size: var(--fs-ui); line-height: var(--lh-ui); }
-.tp-transfer__preview strong { color: var(--text-1); }
-.tp-transfer__arrow, .tp-transfer__club { color: var(--text-3); }
+.tp-swapbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); min-height: 0; margin-bottom: var(--s-2); color: var(--accent); font-size: var(--fs-meta); font-weight: 600; }
+.tp-swapbar:empty { margin: 0; }
 
 /* --- Veld ----------------------------------------------------------------------------------- */
 .tp-pitch {
@@ -113,7 +131,8 @@
   font: 600 var(--fs-label)/1 var(--font-ui); letter-spacing: 0.06em;
 }
 .tp-pitch .tp-slot.is-empty .tp-slot__frame { border-color: var(--pitch-line); }
-.tp-slot.is-swappable .tp-slot__shirt { outline: 1px dashed var(--accent); outline-offset: 3px; }
+.tp-slot.is-swappable .tp-slot__shirt { outline: 2px dashed var(--accent); outline-offset: 3px; }
+.tp-slot.is-dimmed { opacity: 0.35; }
 .tp-slot.is-selected .tp-slot__name { background: var(--accent); color: var(--accent-ink); }
 .tp-slot.is-boosted .tp-slot__name { border-bottom: 2px solid var(--accent); }
 
@@ -136,6 +155,12 @@
 .tp-col-menu { width: 32px; text-align: right !important; }
 .tp-col-arrow { width: 16px; color: var(--text-3); padding: 0 !important; }
 .tp-col-fix { width: 48px; }
+.tp-col-next { white-space: nowrap; }
+/* Lange namen ("Kevin Van Den Kerkhof bank") worden afgekapt, zodat de tabel naast het veld past. */
+.tp-list .ui-pcell { max-width: 150px; }
+.tp-list .ui-pcell__name > .tp-benchtag { flex-shrink: 0; overflow: visible; }
+.tp-col-mobile { display: none; }
+.tp-panel__meta { color: var(--text-3); font-size: var(--fs-meta); font-weight: 500; }
 .tp-emptyslot {
   height: 28px; padding: 0 var(--s-2); border: 1px dashed var(--line-strong); border-radius: var(--r-1);
   background: none; color: var(--text-2); font: 500 var(--fs-meta)/1 var(--font-ui); cursor: pointer;
@@ -158,6 +183,8 @@
   .tp-status__full { display: none; }
   .tp-status__short { display: inline; }
   .tp-col-desktop { display: none; }
+  .tp-col-mobile { display: table-cell; }
+  .tp-status__action { margin-left: 0; }
   .tp-pitch { padding: var(--s-4) 0 var(--s-3); gap: var(--s-2); }
   .tp-pitch::before { height: 52px; left: 20%; right: 20%; }
   .tp-pitch__row { gap: var(--s-1); min-height: 70px; }

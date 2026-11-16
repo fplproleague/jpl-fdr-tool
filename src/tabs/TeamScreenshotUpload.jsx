@@ -3,8 +3,9 @@
 // resultaat als een VOORSTEL dat de gebruiker expliciet moet nakijken/corrigeren en bevestigen
 // ("Toepassen") voor er iets echt in de 15 slots terechtkomt — herkenning is nooit 100% betrouwbaar,
 // dus dit vult nooit stilzwijgend/definitief in. Alle state hier is lokale, niet-bevestigde
-// draftstate (net als rechargeDraft/isTransferPanelOpen in TeamPlannerTab.jsx) — pas "Toepassen"
-// schrijft naar de echte domein-state via de meegegeven updateTeamPlannerPlayer/setTeamPlannerCaptain.
+// draftstate — pas "Toepassen" geeft het resultaat door aan de planner (onApply, zie importTeam in
+// useTeamPlanner.js): de spelers per slot, kapitein en vice, en budget en gratis transfers (spec C8).
+// Die twee staan meestal op dezelfde screenshot; de server probeert ze af te lezen.
 //
 // Sinds de rework (spec §7.3) is dit geen losse kaart meer: bij een lege planner één zin + de
 // primary-knop "Upload screenshot", daarna een kleine secondary-knop in de actierij bovenaan.
@@ -12,12 +13,13 @@
 
 import { useState, useRef } from 'react';
 import { Upload, Loader2, Check, X, Crown } from 'lucide-react';
-import { POSITIONS, TEAM_PLANNER_SLOT_POSITIONS } from '../constants';
+import { POSITIONS, TEAM_PLANNER_SLOT_POSITIONS, TEAM_PLANNER_FREE_TRANSFER_CAP } from '../constants';
 import { PlayerSearchInput } from '../components/PlayerSearchInput';
 import { downscaleImageToBase64 } from '../utils/imageDownscale';
 import { matchPlayer } from '../utils/playerFuzzyMatch';
 import Button from '../ui/Button';
 import Badge from '../ui/Badge';
+import Select from '../ui/Select';
 import ErrorBanner, { Notice } from '../ui/ErrorBanner';
 
 // Zekerheid van de herkenning. De sleutels komen uit utils/playerFuzzyMatch (data, geen tekst); het
@@ -61,7 +63,7 @@ function buildSuggestion(recognizedPlayer, playerDatabase) {
   };
 }
 
-function SuggestionRow({ t, suggestion, index, playerDatabase, onUpdate, onToggleCaptain }) {
+function SuggestionRow({ t, suggestion, index, playerDatabase, onUpdate, onToggleRole }) {
   const confidence = CONFIDENCE[suggestion.confidence] ?? CONFIDENCE['niet-gevonden'];
   return (
     <li className="tp-sugg">
@@ -76,7 +78,7 @@ function SuggestionRow({ t, suggestion, index, playerDatabase, onUpdate, onToggl
         <span className="tp-sugg__name">
           {t('screenshotUpload.recognized', { name: suggestion.rawName })}
           {suggestion.isCaptain && <Badge tone="accent" title={t('screenshotUpload.captainRecognized')} aria-label={t('screenshotUpload.captainRecognized')}>C</Badge>}
-          {suggestion.isViceCaptain && <Badge title={t('screenshotUpload.viceRecognized')} aria-label={t('screenshotUpload.viceRecognized')}>VC</Badge>}
+          {suggestion.isViceCaptain && <Badge tone="vice" title={t('screenshotUpload.viceRecognized')} aria-label={t('screenshotUpload.viceRecognized')}>V</Badge>}
         </span>
         <span className="tp-sugg__meta">
           {t('screenshotUpload.row', { row: suggestion.rowLabel || suggestion.rawPosition || '—' })} · <span className={`tp-sugg__conf ${confidence.className}`}>{t(confidence.labelKey)}</span>
@@ -95,11 +97,22 @@ function SuggestionRow({ t, suggestion, index, playerDatabase, onUpdate, onToggl
         variant="icon"
         size="sm"
         icon={Crown}
-        onClick={() => onToggleCaptain(index)}
+        onClick={() => onToggleRole(index, 'isCaptain')}
         aria-pressed={suggestion.isCaptain}
         aria-label={t(suggestion.isCaptain ? 'screenshotUpload.captainRemoveAria' : 'screenshotUpload.captainMakeAria', { name: suggestion.rawName })}
         title={t(suggestion.isCaptain ? 'screenshotUpload.captainRemove' : 'screenshotUpload.captainMake')}
       />
+      <Button
+        variant="secondary"
+        size="sm"
+        className="tp-sugg__vice"
+        onClick={() => onToggleRole(index, 'isViceCaptain')}
+        aria-pressed={suggestion.isViceCaptain}
+        aria-label={t(suggestion.isViceCaptain ? 'screenshotUpload.viceRemoveAria' : 'screenshotUpload.viceMakeAria', { name: suggestion.rawName })}
+        title={t(suggestion.isViceCaptain ? 'screenshotUpload.viceRemove' : 'screenshotUpload.viceMake')}
+      >
+        V
+      </Button>
     </li>
   );
 }
@@ -107,10 +120,10 @@ function SuggestionRow({ t, suggestion, index, playerDatabase, onUpdate, onToggl
 export function TeamScreenshotUpload({
   t,
   playerDatabase, playerDatabaseLoading, playerDatabaseError,
-  updateTeamPlannerPlayer, setTeamPlannerCaptain, teamPlannerGw, isRosterEmpty = false,
+  onApply, startGw, isRosterEmpty = false,
   extraActions = null,
 }) {
-  const [proposal, setProposal] = useState(null); // null | { suggestions: [...], warning }
+  const [proposal, setProposal] = useState(null); // null | { suggestions: [...], warning, bank, freeTransfers }
   const [status, setStatus] = useState('idle'); // 'idle' | 'loading' | 'error'
   // { code } bij een fout, { warning } als er niets herkend werd; null = geen melding.
   const [errorCode, setErrorCode] = useState(null);
@@ -144,7 +157,12 @@ export function TeamScreenshotUpload({
         setStatus('error');
         setErrorCode({ warning: data.warning ?? { code: 'not_recognized' } });
       } else {
-        setProposal({ suggestions, warning: data.warning ?? null });
+        setProposal({
+          suggestions,
+          warning: data.warning ?? null,
+          bank: Number.isFinite(data.bank) ? data.bank.toFixed(1) : '',
+          freeTransfers: Number.isInteger(data.freeTransfers) ? String(data.freeTransfers) : '',
+        });
         setStatus('idle');
       }
     } catch (err) {
@@ -160,46 +178,55 @@ export function TeamScreenshotUpload({
     });
   };
 
-  // Kapitein-markering is mutueel exclusief: deze rij aan-/uitzetten wist 'm meteen op elke andere rij.
-  const handleToggleCaptain = (index) => {
+  // Kapitein en vice zijn elk maar één speler, en nooit dezelfde: een rij aanzetten wist die rol op
+  // elke andere rij, en de andere rol op deze rij.
+  const handleToggleRole = (index, role) => {
+    const other = role === 'isCaptain' ? 'isViceCaptain' : 'isCaptain';
     setProposal(prev => {
       if (!prev) return prev;
-      const wasCaptain = prev.suggestions[index].isCaptain;
+      const wasOn = prev.suggestions[index][role];
       return {
         ...prev,
-        suggestions: prev.suggestions.map((s, i) => ({ ...s, isCaptain: i === index ? !wasCaptain : false })),
+        suggestions: prev.suggestions.map((s, i) => ({
+          ...s,
+          [role]: i === index ? !wasOn : false,
+          [other]: i === index && !wasOn ? false : s[other],
+        })),
       };
     });
   };
 
+  const bankNumber = Number(String(proposal?.bank ?? '').replace(',', '.'));
+  const bankValid = !proposal || proposal.bank === '' || (Number.isFinite(bankNumber) && bankNumber >= 0 && bankNumber <= 100);
+
   const handleApply = () => {
+    if (!bankValid) return;
     const included = proposal.suggestions.filter(s => s.included && s.selectedPlayer);
     const byPosition = { GK: [], DEF: [], MID: [], FWD: [] };
     included.forEach(s => { byPosition[s.selectedPlayer.position]?.push(s); });
 
+    // Elke positie vult haar vaste slots van links naar rechts.
+    const slots = [];
+    const slotOf = new Map();
     POSITIONS.forEach(pos => {
       const slotIndices = TEAM_PLANNER_SLOT_POSITIONS
         .map((p, i) => (p === pos ? i : null))
         .filter(i => i !== null);
       byPosition[pos].slice(0, slotIndices.length).forEach((suggestion, i) => {
-        const slotIndex = slotIndices[i];
-        updateTeamPlannerPlayer(slotIndex, 'name', suggestion.selectedPlayer.name);
-        updateTeamPlannerPlayer(slotIndex, 'teamCode', suggestion.selectedPlayer.teamCode);
-        updateTeamPlannerPlayer(slotIndex, 'price', suggestion.selectedPlayer.price ?? '');
+        slots.push({ slot: slotIndices[i], player: suggestion.selectedPlayer });
+        slotOf.set(suggestion, slotIndices[i]);
       });
     });
 
-    const captainSuggestion = included.find(s => s.isCaptain);
-    if (captainSuggestion) {
-      const pos = captainSuggestion.selectedPlayer.position;
-      const slotIndices = TEAM_PLANNER_SLOT_POSITIONS
-        .map((p, i) => (p === pos ? i : null))
-        .filter(i => i !== null);
-      const idxInGroup = byPosition[pos].indexOf(captainSuggestion);
-      if (idxInGroup !== -1 && idxInGroup < slotIndices.length) {
-        setTeamPlannerCaptain(slotIndices[idxInGroup]);
-      }
-    }
+    const captain = included.find(s => s.isCaptain);
+    const vice = included.find(s => s.isViceCaptain);
+    onApply({
+      slots,
+      captainSlot: captain ? slotOf.get(captain) ?? null : null,
+      viceSlot: vice ? slotOf.get(vice) ?? null : null,
+      bank: proposal.bank === '' ? null : Math.round(bankNumber * 10) / 10,
+      freeTransfers: proposal.freeTransfers === '' ? null : Number(proposal.freeTransfers),
+    });
 
     if (proposal.warning) setPersistentNotice(proposal.warning);
     setProposal(null);
@@ -212,7 +239,6 @@ export function TeamScreenshotUpload({
     setErrorCode(null);
   };
 
-  const hasViceCaptainSuggestion = proposal?.suggestions.some(s => s.isViceCaptain);
   const pickDisabled = playerDatabaseLoading || !!playerDatabaseError;
   const openPicker = () => fileInputRef.current?.click();
 
@@ -267,9 +293,8 @@ export function TeamScreenshotUpload({
           <h2 id="tp-proposal-title" className="label tp-proposal__title">{t('screenshotUpload.heading')}</h2>
           <p className="tp-proposal__hint">{t('screenshotUpload.reviewHint')}</p>
           {proposal.warning && <Notice>{warningText(t, proposal.warning)}</Notice>}
-          {teamPlannerGw !== 1 && (
-            <p className="tp-proposal__hint">{t('screenshotUpload.captainGwHint', { gw: teamPlannerGw })}</p>
-          )}
+          {!isRosterEmpty && <Notice>{t('screenshotUpload.replaceWarning')}</Notice>}
+          <p className="tp-proposal__hint">{t('screenshotUpload.captainGwHint', { gw: startGw })}</p>
           <ul className="tp-proposal__list">
             {proposal.suggestions.map((suggestion, index) => (
               <SuggestionRow
@@ -279,15 +304,39 @@ export function TeamScreenshotUpload({
                 index={index}
                 playerDatabase={playerDatabase}
                 onUpdate={updateSuggestion}
-                onToggleCaptain={handleToggleCaptain}
+                onToggleRole={handleToggleRole}
               />
             ))}
           </ul>
-          {hasViceCaptainSuggestion && (
-            <p className="tp-proposal__hint">{t('screenshotUpload.viceHint')}</p>
-          )}
+          <div className="tp-proposal__extras">
+            <label className="tp-field">
+              <span className="label">{t('screenshotUpload.bank')}</span>
+              <input
+                className="ui-input ui-input--plain num"
+                type="text"
+                inputMode="decimal"
+                value={proposal.bank}
+                placeholder={t('screenshotUpload.bankPlaceholder')}
+                onChange={(e) => setProposal(prev => ({ ...prev, bank: e.target.value }))}
+                aria-invalid={!bankValid}
+              />
+            </label>
+            <label className="tp-field">
+              <span className="label">{t('screenshotUpload.freeTransfers', { gw: startGw })}</span>
+              <Select
+                value={proposal.freeTransfers}
+                onChange={(v) => setProposal(prev => ({ ...prev, freeTransfers: v }))}
+                options={[
+                  { value: '', label: t('screenshotUpload.freeTransfersUnknown') },
+                  ...Array.from({ length: TEAM_PLANNER_FREE_TRANSFER_CAP + 1 }, (_, n) => ({ value: String(n), label: String(n) })),
+                ]}
+              />
+            </label>
+          </div>
+          <p className="tp-proposal__hint">{t('screenshotUpload.extrasHint')}</p>
+          {!bankValid && <p className="tp-warn">{t('teamPlanner.calib.invalid', { max: 100 })}</p>}
           <div className="tp-proposal__actions">
-            <Button variant="primary" icon={Check} onClick={handleApply}>{t('screenshotUpload.apply')}</Button>
+            <Button variant="primary" icon={Check} onClick={handleApply} disabled={!bankValid}>{t('screenshotUpload.apply')}</Button>
             <Button variant="ghost" icon={X} onClick={handleCancel}>{t('screenshotUpload.cancel')}</Button>
           </div>
         </section>

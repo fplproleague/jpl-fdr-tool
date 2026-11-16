@@ -41,6 +41,10 @@ export function playerDatabaseFromApi(body) {
         bonusPoints: p.bp ?? 0,
         games: p.mp ?? 0,
         suspension: lastGw ? suspensionFromWeekly(p.w, lastGw) : null,
+        // Voor de opstellingsscore (src/lineupScore.js): punten en minuten per speeldag + seizoenstotaal.
+        points: p.pts ?? 0,
+        weekly: p.w ? { pts: p.w.pts ?? null, min: p.w.min ?? null } : null,
+        apiGw: lastGw ?? 0,
       };
     });
 }
