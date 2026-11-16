@@ -592,7 +592,7 @@ export function getFixtureInfo(teamCode, fixture, gwNumber, ratings, homeAdvanta
       return { opp, venue, rating, style: RATING_STYLE[rating] };
     });
     return {
-      isDoubleGameweek: true, legs, teamCode,
+      isDoubleGameweek: true, legs, teamCode, gw: gwNumber,
       isPostponed: false, isPossiblyPostponed,
     };
   }
@@ -602,7 +602,8 @@ export function getFixtureInfo(teamCode, fixture, gwNumber, ratings, homeAdvanta
   const [opp, venue] = getFixtureLegs(fixture)[0].split('-');
   const rating = isPostponed ? null : getEffectiveRating(opp, venue, ratings, homeAdvantage);
   const style = rating === null ? null : RATING_STYLE[rating];
-  return { isDoubleGameweek: false, teamCode, opp, venue, rating, isPostponed, isPossiblyPostponed, style };
+  // gw: voor de aftraptijd in de tooltip (spec F4, zie FdrCell).
+  return { isDoubleGameweek: false, teamCode, gw: gwNumber, opp, venue, rating, isPostponed, isPossiblyPostponed, style };
 }
 
 // --- Team Planner: spelregels voor de 15-koppige selectie (Fase 1, handmatige invoer) ---

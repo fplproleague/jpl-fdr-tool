@@ -35,6 +35,7 @@ import { postponedText } from '../postponed';
 import { AvailabilityBadge } from '../ui/AvailabilityMark';
 import { useAvailability } from '../availabilityContext';
 import { officialStatus, unexpectedStarters } from '../data/officialLineups';
+import { formatKickoff, sortByKickoff, useKickoffLookup } from '../data/kickoffs';
 import '../ui/DataTable.css';
 import './PredictedLineupsTab.css';
 
@@ -73,7 +74,8 @@ function fixtureEntries(code, gw) {
   return (Array.isArray(entry) ? entry : [entry]).filter(x => typeof x === 'string' && x.includes('-'));
 }
 
-// De wedstrijden van een speeldag, uit FIXTURES (in die volgorde; aftraptijden zijn niet gekend).
+// De wedstrijden van een speeldag, uit FIXTURES. Zodra de aftraptijden binnen zijn (spec F4), sorteert
+// de tab ze chronologisch (sortByKickoff in src/data/kickoffs.js).
 function buildMatches(gw) {
   const seen = new Set();
   const matches = [];
@@ -275,7 +277,7 @@ function MyTeamLine({ t, myTeam, playerKeyOf, onOpenPlayer, statusOf }) {
   );
 }
 
-function MatchButton({ match, active, onSelect, t, mineCount = 0, official = false }) {
+function MatchButton({ match, active, onSelect, t, mineCount = 0, official = false, kickoff = null }) {
   const home = teamByCode(match.home);
   const away = teamByCode(match.away);
   const mineAria = (mineCount > 0 ? `, ${t('predictedLineups.mine.matchAria', { count: mineCount })}` : '')
@@ -285,14 +287,17 @@ function MatchButton({ match, active, onSelect, t, mineCount = 0, official = fal
       type="button"
       className={`pxl-match${active ? ' is-active' : ''}${match.postponed ? ' is-postponed' : ''}`}
       aria-pressed={active}
-      aria-label={`${t('predictedLineups.matchAria', { home: home?.name ?? match.home, away: away?.name ?? match.away })}${match.postponed ? ` (${t('predictedLineups.postponed')})` : ''}${mineAria}`}
+      aria-label={`${t('predictedLineups.matchAria', { home: home?.name ?? match.home, away: away?.name ?? match.away })}${match.postponed ? ` (${t('predictedLineups.postponed')})` : ''}${mineAria}${kickoff ? `, ${kickoff}` : ''}`}
       onClick={() => onSelect(match)}
     >
-      <ClubLogo code={match.home} />
-      <span className="pxl-match__code">{match.home}</span>
-      <span className="pxl-match__sep" aria-hidden="true">–</span>
-      <span className="pxl-match__code">{match.away}</span>
-      <ClubLogo code={match.away} />
+      <span className="pxl-match__teams">
+        <ClubLogo code={match.home} />
+        <span className="pxl-match__code">{match.home}</span>
+        <span className="pxl-match__sep" aria-hidden="true">–</span>
+        <span className="pxl-match__code">{match.away}</span>
+        <ClubLogo code={match.away} />
+      </span>
+      {kickoff && <span className="pxl-match__time">{kickoff}</span>}
       {mineCount > 0 && <span className="pxl-match__mine num" aria-hidden="true">{mineCount}</span>}
       {official && <span className="pxl-match__official" aria-hidden="true" title={t('predictedLineups.official.badge')} />}
     </button>
@@ -501,8 +506,12 @@ const EMPTY_TEAM = [];
 // official: de officiële opstellingen (buildOfficialIndex in src/data/officialLineups.js) of null. Enkel
 // gebruikt als ze bij de getoonde speeldag horen.
 export default function PredictedLineupsTab({ t, language = 'nl', onOpenPlayer, onOpenClub, myTeam = EMPTY_TEAM, playerKeyOf, official: officialIndex = null }) {
-  const matches = useMemo(() => buildMatches(SHOWN_GW), []);
-  const [state, setState] = useState(() => readUrlState(matches));
+  const baseMatches = useMemo(() => buildMatches(SHOWN_GW), []);
+  const [state, setState] = useState(() => readUrlState(baseMatches));
+  // Aftraptijden (spec F4): de strip chronologisch, met dag en uur onder elke wedstrijd.
+  const kickoffs = useKickoffLookup();
+  const kickoffOf = useCallback((m) => (kickoffs && !m.postponed ? kickoffs(SHOWN_GW, m.home, m.away) : null), [kickoffs]);
+  const matches = useMemo(() => (kickoffs ? sortByKickoff(baseMatches, kickoffOf) : baseMatches), [baseMatches, kickoffs, kickoffOf]);
   useEffect(() => { writeUrlState(state); }, [state]);
 
   const official = officialIndex?.gw === SHOWN_GW && typeof playerKeyOf === 'function' ? officialIndex : null;
@@ -607,7 +616,10 @@ export default function PredictedLineupsTab({ t, language = 'nl', onOpenPlayer, 
         <>
           <div className="pxl-matches" role="group" aria-label={t('predictedLineups.pickMatchAria')}>
             {matches.map(m => (
-              <MatchButton key={m.id} match={m} active={m.id === match?.id} onSelect={selectMatch} t={t} mineCount={mineCountFor(m)} official={Boolean(official?.matches.has(m.id))} />
+              <MatchButton
+                key={m.id} match={m} active={m.id === match?.id} onSelect={selectMatch} t={t} mineCount={mineCountFor(m)}
+                official={Boolean(official?.matches.has(m.id))} kickoff={formatKickoff(kickoffOf(m), language, { withDate: false })}
+              />
             ))}
           </div>
 
