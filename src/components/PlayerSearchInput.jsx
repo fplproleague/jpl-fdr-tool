@@ -10,6 +10,7 @@ import { createPortal } from 'react-dom';
 import { Search } from 'lucide-react';
 import '../ui/Field.css';
 import './PlayerSearchInput.css';
+import { useI18n } from '../i18nContext';
 
 // Zoekt op elk deel van de naam (case-insensitief), niet enkel het begin — zo vindt "iels" ook
 // "Thielemans". `filterPosition`, indien gezet, beperkt de kandidaten vooraf tot die ene positie
@@ -34,6 +35,7 @@ export const PlayerSearchInput = memo(function PlayerSearchInput({
   // "alle state blijft in FDRTool.jsx" — dat gaat over domein-state die tab-wissels moet overleven
   // (bank, budget, ...). Dit is voorbijgaande UI-state van één invoerveld: als de gebruiker halverwege
   // typen wegnavigeert is het prima dat dat resetten, net als een gewoon zoekveld in de browser.
+  const { t } = useI18n();
   const [query, setQuery] = useState(value ?? '');
   const [isOpen, setIsOpen] = useState(false);
   const [coords, setCoords] = useState(null);
@@ -148,7 +150,7 @@ export const PlayerSearchInput = memo(function PlayerSearchInput({
                 onError={(e) => { e.target.style.display = 'none'; }}
               />
               <span className="ui-psearch__name">{p.name}</span>
-              <span className="ui-psearch__meta">{p.teamCode} · {p.position}</span>
+              <span className="ui-psearch__meta">{p.teamCode} · {t(`spelers.posShort.${p.position}`)}</span>
               <span className="ui-psearch__price num">{p.price != null ? `€${p.price.toFixed(1)}` : '—'}</span>
             </button>
           )) : (

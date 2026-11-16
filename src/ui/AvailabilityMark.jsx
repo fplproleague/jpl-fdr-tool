@@ -1,6 +1,7 @@
 // Het kleine symbool voor de beschikbaarheid van een speler (spec B2/B3): een Badge met een kort
-// woord ("Gesch. GW12", "Twijfel", "1 kaart"), met de volledige uitleg als tooltip en voor
-// schermlezers. Rood (--danger) voor geschorst, oranje (--warning) voor twijfel, risico en één kaart
+// woord ("Gesch. GW12", "Twijfel"), met de volledige uitleg als tooltip en voor schermlezers. Eén kaart
+// van een schorsing toont geen woord maar een klein geel kaartje met "!" (feedback eigenaar: "1 kaart"
+// leek te zeggen dat de speler maar één kaart heeft); de uitleg staat in de tooltip. Rood (--danger) voor geschorst, oranje (--warning) voor twijfel, risico en één kaart
 // van een schorsing. Geeft niets terug als er niets te melden is.
 import Badge from './Badge';
 import { useI18n } from '../i18nContext';
@@ -9,6 +10,7 @@ import { useAvailability } from '../availabilityContext';
 export function AvailabilityBadge({ status, className = '' }) {
   const { t } = useI18n();
   if (!status) return null;
+  if (status.kind === 'oneCard') return <AvailabilityMini status={status} className={className} />;
   const title = t(status.titleKey, status.vars);
   return (
     <Badge tone={status.tone} title={title} role="img" aria-label={title} className={`ui-avail ${className}`}>
@@ -25,7 +27,7 @@ export default function AvailabilityMark({ name, clubCode, className }) {
 // Compacte vorm voor plaatsen waar geen woord past (op het shirt in de Team Planner): een klein vierkant
 // in dezelfde kleur, met een kaartje voor een schorsing of één kaart en een "?" voor twijfel/risico. De
 // uitleg staat in de tooltip en voor schermlezers.
-const MINI_GLYPH = { suspended: '', oneCard: '', doubt: '?', risk: '?', notFound: '!' };
+const MINI_GLYPH = { suspended: '', oneCard: '!', doubt: '?', risk: '?', notFound: '!' };
 
 export function AvailabilityMini({ status, className = '' }) {
   const { t } = useI18n();

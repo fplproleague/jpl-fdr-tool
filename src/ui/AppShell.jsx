@@ -25,6 +25,17 @@ export function formatShellCountdown(remaining, language = 'nl') {
   return `${remaining.minutes}m`;
 }
 
+// Dezelfde aftelling in stukjes (getal + eenheid), zodat de topbalk de eenheden kleiner en grijs kan
+// tonen met vaste tussenruimte: "4d 20u" leest dan als 4 d · 20 u in plaats van één blok tekst.
+export function shellCountdownParts(remaining, language = 'nl') {
+  if (!remaining) return null;
+  const pad = (n) => String(n).padStart(2, '0');
+  const h = language === 'nl' ? 'u' : 'h';
+  if (remaining.days > 0) return [[remaining.days, 'd'], [pad(remaining.hours), h]];
+  if (remaining.hours > 0) return [[remaining.hours, h], [pad(remaining.minutes), 'm']];
+  return [[remaining.minutes, 'm']];
+}
+
 function deadlineTone(remaining) {
   if (!remaining) return '';
   if (remaining.totalMinutes <= 120) return ' is-danger';
@@ -47,9 +58,16 @@ function NavLink({ route, active, hrefFor, onNavigate, t, compact = false, marke
       aria-label={compact ? t(`nav.${route.key}`) : undefined}
     >
       {compact && Icon && <Icon aria-hidden="true" strokeWidth={1.75} />}
-      <span className={compact ? 'ui-bottomnav__label' : undefined}>
-        {compact ? t(`nav.compact.${route.key}`) : t(`nav.${route.key}`)}
-      </span>
+      {compact ? (
+        <span className="ui-bottomnav__label">{t(`nav.compact.${route.key}`)}</span>
+      ) : (
+        <>
+          {/* Volledige naam op brede schermen, korte naam als de balk smaller wordt (vooral in het
+              Frans zijn de namen lang). Enkel één van de twee is zichtbaar (CSS). */}
+          <span className="ui-topnav__full">{t(`nav.${route.key}`)}</span>
+          <span className="ui-topnav__short" title={t(`nav.${route.key}`)}>{t(`nav.short.${route.key}`)}</span>
+        </>
+      )}
       {marker && <span className="ui-new-marker" aria-label={t('shell.newMarker')} role="img" />}
     </a>
   );
@@ -62,6 +80,7 @@ export default function AppShell({
 }) {
   const [moreOpen, setMoreOpen] = useState(false);
   const countdown = formatShellCountdown(deadlineRemaining, language);
+  const countdownParts = shellCountdownParts(deadlineRemaining, language);
   // Deadline voorbij terwijl de pagina openstond: de site staat nog op de oude GW (CURRENT_GW wordt
   // enkel bij het laden berekend), dus een kleine link die herlaadt.
   const deadlineText = deadlinePassed
@@ -76,7 +95,16 @@ export default function AppShell({
       </>
     )
     : countdown
-      ? <><span className="ui-deadline__gw">{t('shell.deadline', { gw: deadlineGw })}</span> <span className="num">{countdown}</span></>
+      ? (
+        <>
+          <span className="ui-deadline__gw">{t('shell.deadline', { gw: deadlineGw })}</span>
+          <span className="ui-deadline__time" aria-hidden="true">
+            {countdownParts.map(([n, unit]) => (
+              <span key={unit} className="ui-deadline__part"><span className="num">{n}</span><span className="ui-deadline__unit">{unit}</span></span>
+            ))}
+          </span>
+        </>
+      )
       : <span>{t('shell.live', { gw: deadlineGw })}</span>;
   const deadlineAria = deadlinePassed ? undefined
     : countdown ? t('shell.deadlineAria', { gw: deadlineGw, time: countdown }) : t('shell.live', { gw: deadlineGw });

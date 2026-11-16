@@ -34,6 +34,7 @@ import DataTable from '../ui/DataTable';
 import PlayerCell from '../ui/PlayerCell';
 import ActionMenu from '../ui/ActionMenu';
 import Sheet from '../components/Sheet';
+import { useI18n } from '../i18nContext';
 import PlayerPicker from '../ui/PlayerPicker';
 import ErrorBanner, { Notice } from '../ui/ErrorBanner';
 import EmptyState from '../ui/EmptyState';
@@ -95,10 +96,11 @@ const NOT_FOUND_STATUS = { kind: 'notFound', tone: 'outline', labelKey: 'teamPla
 // Eén slot op het veld of de bank (spec §5.13): shirt, naamlabel, MiniFixture voor de bekeken GW. Een
 // leeg slot is een gestippeld kader met het positielabel.
 function PitchSlot({ player, label, gw, ratings, homeAdvantage, roleGlyph = null, roleTone = 'accent', status = null, onClick, ariaLabel, className = '', disabled }) {
+  const { t } = useI18n();
   if (isEmptySlot(player)) {
     return (
       <button type="button" className={`tp-slot is-empty ${className}`} onClick={onClick} aria-label={ariaLabel} disabled={disabled}>
-        <span className="tp-slot__frame">{player.position}</span>
+        <span className="tp-slot__frame">{t(`spelers.posShort.${player.position}`)}</span>
       </button>
     );
   }
@@ -431,7 +433,7 @@ export default function TeamPlannerTab({
           gw={gw}
           onClick={() => openFillPicker(player.index)}
           disabled={!!playerDatabaseError || !baseMode}
-          ariaLabel={t('teamPlanner.emptySlot', { position: player.position })}
+          ariaLabel={t('teamPlanner.emptySlot', { position: t(`spelers.posShort.${player.position}`) })}
         />
       );
     }
@@ -462,7 +464,7 @@ export default function TeamPlannerTab({
           ? (player.index === swapFrom
             ? t('teamPlanner.swapCancelAria', { name: player.name })
             : t('teamPlanner.swapTargetAria', { name: fromName, other: player.name }))
-          : t('teamPlanner.slotAria', { name: player.name, position: player.position })}
+          : t('teamPlanner.slotAria', { name: player.name, position: t(`spelers.posShort.${player.position}`) })}
         onClick={swapping
           ? () => {
               if (player.index !== swapFrom) planner.swap(swapFrom, player.index);
@@ -496,7 +498,7 @@ export default function TeamPlannerTab({
         if (isEmptySlot(row)) {
           return (
             <button type="button" className="tp-emptyslot" onClick={() => openFillPicker(row.index)} disabled={!!playerDatabaseError || !baseMode}>
-              {t('teamPlanner.emptySlotShort', { position: row.position })}
+              {t('teamPlanner.emptySlotShort', { position: t(`spelers.posShort.${row.position}`) })}
             </button>
           );
         }
@@ -816,13 +818,13 @@ export default function TeamPlannerTab({
               rowKey={row => row.index}
               groupBy={row => row.position}
               renderGroup={(pos, items) => (
-                <span className="tp-group">{pos} <span className="num">{items.filter(r => r.name).length}/{items.length}</span></span>
+                <span className="tp-group">{t(`spelers.posShort.${pos}`)} <span className="num">{items.filter(r => r.name).length}/{items.length}</span></span>
               )}
               onRowClick={row => {
                 if (isEmptySlot(row)) { if (baseMode) openFillPicker(row.index); }
                 else if (onOpenPlayer && row.name && row.teamCode) onOpenPlayer(row.name, row.teamCode);
               }}
-              rowLabel={row => (isEmptySlot(row) ? t('teamPlanner.emptySlot', { position: row.position }) : t('playerSheet.openAria', { name: row.name }))}
+              rowLabel={row => (isEmptySlot(row) ? t('teamPlanner.emptySlot', { position: t(`spelers.posShort.${row.position}`) }) : t('playerSheet.openAria', { name: row.name }))}
               rowClassName={row => (row.teamCode && overCapClubCodes.has(row.teamCode) ? 'tp-row-overcap' : undefined)}
             />
           </section>

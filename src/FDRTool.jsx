@@ -424,7 +424,7 @@ export default function FDRTool() {
   });
   const ratings = sharedRatings?.ratings ?? ownRatings;
   const homeAdvantage = sharedRatings?.homeAdvantage ?? ownHomeAdvantage;
-  // Eén periode voor de hele FDR-pagina: de hoofdtabel, de Σ-kolom en "Beste fixture runs" (spec D2).
+  // Eén periode voor de hele FDR-pagina: de hoofdtabel en de Σ-kolom (spec D2).
   // Vroeger waren dat twee aparte periodes met drie kiezers. Standaard de huidige speeldag + 7 (schuift
   // vanzelf mee met CURRENT_GW); een eigen keuze geldt enkel voor dit bezoek (sessionStorage), zodat
   // de standaard volgende week weer klopt.
@@ -471,13 +471,14 @@ export default function FDRTool() {
   const [openSections, setOpenSections] = useState({
     sliders: false,
     table: true,
-    runs: false,
     teamPlannerTransfers: true,
   });
   // Sortering van de hoofdtabel. Vroeger een simpele boolean ("op gemiddelde run of niet"); nu kan er
   // ook op één kolom gesorteerd worden, wat een derde toestand vereist i.p.v. aan/uit.
   // mode: 'none' (TEAMS-volgorde) | 'avg' (gemiddelde over de horizon) | 'gw' (één speeldag).
-  const [sortBy, setSortBy] = useState({ mode: 'none', gw: null });
+  // Standaard van makkelijk naar moeilijk over de gekozen periode (feedback eigenaar, 16-11-2026), ook
+  // als de Σ-kolom verborgen is: de kop "Team" sorteert dan.
+  const [sortBy, setSortBy] = useState({ mode: 'avg', gw: null });
 
   // Welke moeilijkheidsgraden opgelicht blijven; leeg = geen filter, alles even zichtbaar. Bewust
   // dimmen i.p.v. verbergen: een rij waar plots cellen uit verdwijnen is niet meer te lezen als tabel.
@@ -497,13 +498,11 @@ export default function FDRTool() {
       if (next) window.localStorage?.setItem(FDR_SHOW_AVG_STORAGE_KEY, '1');
       else window.localStorage?.removeItem(FDR_SHOW_AVG_STORAGE_KEY);
     } catch { /* geen opslag: enkel voor dit bezoek */ }
-    if (!next) setSortBy(s => (s.mode === 'avg' ? { mode: 'none', gw: null } : s));
   };
 
-  // Nogmaals op dezelfde kolom klikken zet de sortering weer uit — anders is er geen weg terug naar de
-  // gewone volgorde zonder de andere knop te gebruiken.
+  // Nogmaals op dezelfde kolom klikken zet de standaardsortering (makkelijk naar moeilijk) terug.
   const toggleSortByGw = (gw) =>
-    setSortBy(prev => (prev.mode === 'gw' && prev.gw === gw ? { mode: 'none', gw: null } : { mode: 'gw', gw }));
+    setSortBy(prev => (prev.mode === 'gw' && prev.gw === gw ? { mode: 'avg', gw: null } : { mode: 'gw', gw }));
 
   const toggleRatingFilter = (rating) =>
     setHighlightedRatings(prev => (prev.includes(rating) ? prev.filter(r => r !== rating) : [...prev, rating]));
@@ -730,22 +729,8 @@ export default function FDRTool() {
   // Horizon van de hoofdtabel (= de ene periode, al genormaliseerd in changeFdrPeriod).
   const gwHorizonRange = fdrPeriod;
 
-  // "Beste fixture runs" volgt dezelfde periode als de hoofdtabel (spec D2).
-  const bestRuns = useMemo(() => {
-    const { start, end } = gwHorizonRange;
-    const results = TEAMS.map(team => {
-      const fixtures = FIXTURES[team.code].slice(start - 1, end);
-      const scores = getFixtureScores(team.code, fixtures, ratings, homeAdvantage, start);
-      return { ...team, avg: average(scores), fixtures, startGW: start };
-    });
-    // Alle clubs, makkelijkste eerst; de tab toont er standaard 5 en kan uitklappen naar alle 18.
-    return results.sort((a, b) => a.avg - b.avg || a.code.localeCompare(b.code));
-  }, [ratings, homeAdvantage, gwHorizonRange]);
-
-  // Alle GW-headers voor de huidige taal, één keer per taalwissel opgebouwd. De gewone (niet-klikbare)
-  // set is voor "Beste fixture runs", de sorteerbare voor de hoofdtabel.
-  const gwHeaderCells = useMemo(() => buildGwHeaderCells(t), [t]);
-
+  // "Beste fixture runs" is weg (feedback eigenaar, 16-11-2026): de hoofdtabel staat standaard al van
+  // makkelijk naar moeilijk over dezelfde periode, dus die sectie toonde hetzelfde nog een keer.
   const sortableGwHeaderCells = useMemo(
     () => buildGwHeaderCells(t, {
       sortedGw: sortBy.mode === 'gw' ? sortBy.gw : null,
@@ -761,10 +746,6 @@ export default function FDRTool() {
     [sortableGwHeaderCells, gwHorizonRange]
   );
 
-  const runsGwHeaderCells = useMemo(
-    () => gwHeaderCells.slice(gwHorizonRange.start - 1, gwHorizonRange.end),
-    [gwHeaderCells, gwHorizonRange]
-  );
 
   // --fdr-table-slot (84px, zie FDRTab.css) is de breedte van één kolom, met de Team-kolom meegeteld als 1 "slot"
   // naast de GW-kolommen. De tabel heeft bewust GEEN width: '100%' (zie <table> in FDRTab) — anders
@@ -794,7 +775,7 @@ export default function FDRTool() {
 
   const displayedTeams = useMemo(() => {
     if (sortBy.mode === 'avg') {
-      return TEAMS.slice().sort((a, b) => teamAvgDifficulty[a.code] - teamAvgDifficulty[b.code]);
+      return TEAMS.slice().sort((a, b) => teamAvgDifficulty[a.code] - teamAvgDifficulty[b.code] || a.code.localeCompare(b.code));
     }
     if (sortBy.mode === 'gw') {
       // Dezelfde scoreberekening als het gemiddelde hierboven (getFixtureScores), maar dan op één
@@ -1246,7 +1227,6 @@ export default function FDRTool() {
             quickPeriod={fdrQuickPeriod}
             chooseQuickPeriod={chooseFdrQuickPeriod}
             visibleGwHeaderCells={visibleGwHeaderCells}
-            runsGwHeaderCells={runsGwHeaderCells}
             mainTableSlots={mainTableSlots}
             displayedTeams={visibleTeams}
             clubFilter={fdrClubs}
@@ -1254,7 +1234,6 @@ export default function FDRTool() {
             setClubFilter={setFdrClubs}
             teamAvgDifficulty={teamAvgDifficulty}
             tableRef={tableRef}
-            bestRuns={bestRuns}
             teamForm={teamForm}
             onOpenClub={openClubSheet}
           />

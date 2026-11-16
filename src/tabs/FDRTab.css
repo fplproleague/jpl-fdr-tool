@@ -64,12 +64,13 @@
 .fdr-hint--lead { color: var(--text-2); margin-bottom: var(--s-3); }
 
 /* --- Tabel ----------------------------------------------------------------------------------- */
-/* Breedte: de tabel vult op desktop de inhoudsbreedte (geen lege ruimte rechts); elke GW-kolom is
-   minstens één slot (--fdr-table-slot, 84/64px) breed. */
+/* Breedte: elke GW-kolom is minstens één slot (--fdr-table-slot, 84/64px) en hoogstens
+   --fdr-cell-max breed. Bij veel speeldagen vult de tabel de inhoudsbreedte; bij weinig speeldagen
+   blijft ze links staan in plaats van enkele heel brede cellen te tonen (feedback eigenaar). */
 #fdr-capture-wrapper { background: var(--ink-0); }
 .fdr-grid {
-  --fdr-team-w: 112px; --fdr-avg-w: 48px;
-  width: 100%;
+  --fdr-team-w: 112px; --fdr-avg-w: 48px; --fdr-cell-max: 150px;
+  width: min(100%, calc(var(--fdr-team-w) + var(--fdr-avg-w) + var(--fdr-gws, 8) * (var(--fdr-cell-max) + 2px) + 6px));
   min-width: calc(var(--fdr-team-w) + var(--fdr-avg-w) + var(--fdr-gws, 8) * var(--fdr-table-slot));
   border-collapse: separate; border-spacing: 2px;
   color: var(--text-1); font-family: var(--font-ui);
@@ -106,6 +107,7 @@
   width: var(--fdr-team-w); min-width: var(--fdr-team-w); max-width: var(--fdr-team-w);
   text-align: left;
 }
+.fdr-grid__sort--team { justify-content: flex-start; padding-left: var(--s-1); }
 .fdr-grid .fdr-grid__avg {
   position: sticky; left: calc(var(--fdr-team-w) + 2px); z-index: 1; background: var(--ink-0);
   width: var(--fdr-avg-w); min-width: var(--fdr-avg-w); max-width: var(--fdr-avg-w);
@@ -135,10 +137,6 @@ span.fdr-team { cursor: default; }
 .fdr-section { margin-bottom: var(--s-5); }
 .fdr-section .fdr-range { margin-bottom: var(--s-1); }
 
-.fdr-grid--runs thead th { position: static; }
-.fdr-runs__rank { width: 14px; flex-shrink: 0; color: var(--text-3); font-size: var(--fs-meta); text-align: right; }
-.fdr-runs__rank.is-first { color: var(--accent); }
-.fdr-runs__more { margin-top: var(--s-2); }
 
 /* --- Lade "Clubs kiezen" (D3) ------------------------------------------------------------------ */
 .fdr-clubs { list-style: none; margin: 0; padding: 0; }

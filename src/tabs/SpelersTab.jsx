@@ -10,7 +10,7 @@
 //
 // Bij een fout van de bron toont de tab de laatst bekende data (eerst van de server, anders uit deze
 // browser) met een duidelijke melding, nooit een lege pagina.
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SlidersHorizontal, X, Link2, Check, Scale } from 'lucide-react';
 import { CURRENT_GW, TEAMS_ALPHA } from '../constants';
 import ScopeFilter, { ScopeEmptyMessage } from '../components/ScopeFilter';
@@ -35,8 +35,6 @@ import {
   stateFromSearch, searchFromState, buildSheetNameResolver, MIN_MINUTES_PER90, FORM_GWS,
 } from '../spelers';
 import { getSessionPlayers, loadPlayers } from '../data/playersApi';
-import { useAvailabilityLookup } from '../availabilityContext';
-import { isAvailable } from '../availability';
 import './SpelersTab.css';
 
 // Dezelfde spelerskaart als overal op de site (spec §7.9), hier geopend via ?speler=<id>.
@@ -169,10 +167,6 @@ function FilterSheet({ t, ui, update, priceBounds, resultCount, onReset, onClose
           <Switch checked={ui.diff} onChange={diff => update({ diff })} label={t('spelers.filter.diff', { max: DIFFERENTIAL_MAX_SEL })} />
         </div>
 
-        <div className="spl-field">
-          <Switch checked={ui.avail} onChange={avail => update({ avail })} label={t('availability.filter')} />
-          <p className="spl-field__note">{t('availability.filterNote')}</p>
-        </div>
       </div>
     </Sheet>
   );
@@ -198,7 +192,7 @@ function CompareSheet({ t, rows, mode, fromGw, ratings, homeAdvantage, onRemove,
       title={t('spelers.compare.title', { n: rows.length, max: MAX_COMPARE })}
       closeLabel={t('picker.close')}
       onClose={onClose}
-      width="720px"
+      width={`${Math.max(560, 240 + rows.length * 190)}px`}
       footer={(
         <div className="spl-sheet-actions">
           <Button variant="ghost" onClick={onClear}>{t('spelers.compare.clear')}</Button>
@@ -209,7 +203,10 @@ function CompareSheet({ t, rows, mode, fromGw, ratings, homeAdvantage, onRemove,
       )}
     >
       {rows.length < 2 && <Notice>{t('spelers.compare.pickMore')}</Notice>}
-      <div className="spl-compare">
+      {/* Nooit horizontaal scrollen (feedback eigenaar): desktop gebruikt de breedte (stat links, één
+          kolom per speler); op gsm staat de naam van elke stat als eigen regel boven de waarden, zodat
+          de spelers de volle breedte krijgen. */}
+      <div className="spl-compare" style={{ '--spl-compare-n': rows.length }}>
         <table className="ui-table spl-compare__table">
           <thead>
             <tr>
@@ -223,7 +220,7 @@ function CompareSheet({ t, rows, mode, fromGw, ratings, homeAdvantage, onRemove,
                       onClick={() => onRemove(r.id)}
                       aria-label={t('spelers.compare.removeAria', { name: r.name })}
                     />
-                    <PlayerFace player={r} size={48} />
+                    <PlayerFace player={r} size={44} />
                     <button type="button" className="spl-compare__name" onClick={() => onOpen(r.id)}>{r.short || r.name}</button>
                     <span className="spl-compare__meta">{r.club} · {t(`spelers.posShort.${r.pos}`)}</span>
                   </span>
@@ -237,17 +234,24 @@ function CompareSheet({ t, rows, mode, fromGw, ratings, homeAdvantage, onRemove,
               const values = rows.map(r => cellValue(r, key, mode));
               const best = col.noBest ? new Set() : bestIndexes(values, { lowerIsBetter: col.lowerIsBetter });
               const isP90 = mode === 'p90' && col.per90;
+              const label = `${t(col.label)}${isP90 ? ` ${t('spelers.per90Suffix')}` : ''}`;
               return (
-                <tr key={key}>
-                  <th scope="row" className="spl-compare__stat">{t(col.label)}{isP90 ? ` ${t('spelers.per90Suffix')}` : ''}</th>
+                <Fragment key={key}>
+                <tr className="spl-compare__labelrow">
+                  <td colSpan={rows.length + 1}>{label}</td>
+                </tr>
+                <tr>
+                  <th scope="row" className="spl-compare__stat">{label}</th>
                   {values.map((v, i) => (
                     <td key={rows[i].id} className={`is-num is-center${best.has(i) ? ' is-best' : ''}${v == null ? ' is-missing' : ''}`}>
                       {formatCell(v, key, mode)}
                     </td>
                   ))}
                 </tr>
+                </Fragment>
               );
             })}
+            <tr className="spl-compare__labelrow"><td colSpan={rows.length + 1}>{t('spelers.col.sparkline')}</td></tr>
             <tr>
               <th scope="row" className="spl-compare__stat">{t('spelers.col.sparkline')}</th>
               {rows.map(r => (
@@ -258,6 +262,7 @@ function CompareSheet({ t, rows, mode, fromGw, ratings, homeAdvantage, onRemove,
                 </td>
               ))}
             </tr>
+            <tr className="spl-compare__labelrow"><td colSpan={rows.length + 1}>{t('spelers.col.next')}</td></tr>
             <tr>
               <th scope="row" className="spl-compare__stat">{t('spelers.col.next')}</th>
               {rows.map(r => (
@@ -326,9 +331,7 @@ export default function SpelersTab({
   const matchesScope = ui.scope === 'watchlist' ? watched : ui.scope === 'myTeam' ? inMyTeam : null;
 
   const columns = PRESETS[ui.cols];
-  const availability = useAvailabilityLookup();
-  const isAvailableRow = useCallback((r) => isAvailable(availability(r.name, r.club)), [availability]);
-  const filtered = useMemo(() => filterRows(allRows, ui, { matchesScope, isAvailable: isAvailableRow }), [allRows, ui, matchesScope, isAvailableRow]);
+  const filtered = useMemo(() => filterRows(allRows, ui, { matchesScope }), [allRows, ui, matchesScope]);
   const sorted = useMemo(() => sortRows(filtered, ui.sort, ui.dir, ui.mode), [filtered, ui.sort, ui.dir, ui.mode]);
   const compareRows = ui.compare.map(id => byId.get(id)).filter(Boolean);
   const popupRow = ui.speler ? seasonById.get(ui.speler) : null;
@@ -394,10 +397,9 @@ export default function SpelersTab({
     ui.mode !== 'total' && { key: 'mode', label: t('spelers.mode.p90'), clear: { mode: 'total' } },
     ui.scope !== 'all' && { key: 'scope', label: t(`scopeFilter.${ui.scope}`), clear: { scope: 'all' } },
     ui.diff && { key: 'diff', label: t('spelers.filter.diffChip', { max: DIFFERENTIAL_MAX_SEL }), clear: { diff: false } },
-    ui.avail && { key: 'avail', label: t('availability.filterChip'), clear: { avail: false } },
   ].filter(Boolean);
-  const resetDrawerFilters = () => update({ club: '', pmin: null, pmax: null, mins: 0, scope: 'all', per: 'season', mode: 'total', diff: false, avail: false });
-  const resetAll = () => update({ q: '', pos: [], club: '', pmin: null, pmax: null, mins: 0, scope: 'all', per: 'season', mode: 'total', diff: false, avail: false });
+  const resetDrawerFilters = () => update({ club: '', pmin: null, pmax: null, mins: 0, scope: 'all', per: 'season', mode: 'total', diff: false });
+  const resetAll = () => update({ q: '', pos: [], club: '', pmin: null, pmax: null, mins: 0, scope: 'all', per: 'season', mode: 'total', diff: false });
   const anyFilter = chips.length > 0 || ui.q || ui.pos.length > 0;
 
   const posValue = ui.pos.length === 0 ? 'all' : ui.pos.length === 1 ? ui.pos[0] : null;

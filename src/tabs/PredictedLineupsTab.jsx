@@ -262,7 +262,29 @@ function MatchButton({ match, active, onSelect, t, mineCount = 0 }) {
 }
 
 // Eén kant van een wedstrijd: kop (logo, club, formatie) + veld, of een melding.
-function Side({ t, language, code, oppCode, isHome, onOpenPlayer, onOpenClub, hiddenOnMobile, highlightPlayer }) {
+// Per veld (feedback eigenaar): welke van jouw spelers van deze club staan niet in de XI of twijfelen?
+// Enkel als de XI's van de komende speeldag er zijn en er iets te melden is.
+function SideMine({ t, code, myTeam, playerKeyOf, onOpenPlayer }) {
+  const clubPlayers = useMemo(() => myTeam.filter(p => p.teamCode === code), [myTeam, code]);
+  const summary = useMemo(() => summarizeMyTeam(clubPlayers, playerKeyOf), [clubPlayers, playerKeyOf]);
+  const parts = [['notInXi', summary.notInXi], ['doubts', summary.doubts]].filter(([, list]) => list.length > 0);
+  if (parts.length === 0) return null;
+  return (
+    <p className="pxl-side__mine">
+      {parts.map(([key, list], i) => (
+        <Fragment key={key}>
+          {i > 0 && <span className="pxl-mine__sep" aria-hidden="true"> · </span>}
+          <span className={`pxl-side__mine-part is-${key}`}>
+            <span className="pxl-side__mine-dot" aria-hidden="true" />
+            {t(`predictedLineups.mine.side.${key}`)} <NameList players={list} onOpenPlayer={onOpenPlayer} t={t} />
+          </span>
+        </Fragment>
+      ))}
+    </p>
+  );
+}
+
+function Side({ t, language, code, oppCode, isHome, onOpenPlayer, onOpenClub, hiddenOnMobile, highlightPlayer, myTeam, playerKeyOf }) {
   const club = teamByCode(code);
   const lineup = lineupFor(code);
   const postponed = POSTPONED.has(`${code}-${SHOWN_GW}`);
@@ -309,6 +331,9 @@ function Side({ t, language, code, oppCode, isHome, onOpenPlayer, onOpenClub, hi
           <span className="pxl-side__updated">{t('predictedLineups.lastUpdated', { date: lineup.lastUpdatedLabel })}</span>
         )}
       </header>
+      {PUBLISHED && lineup && !postponed && myTeam?.length > 0 && playerKeyOf && (
+        <SideMine t={t} code={code} myTeam={myTeam} playerKeyOf={playerKeyOf} onOpenPlayer={onOpenPlayer} />
+      )}
       {body}
     </section>
   );
@@ -519,9 +544,9 @@ export default function PredictedLineupsTab({ t, language = 'nl', onOpenPlayer, 
                 />
               </div>
               <div className="pxl-pitches" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-                <Side t={t} language={language} code={match.home} oppCode={match.away} isHome onOpenPlayer={onOpenPlayer} onOpenClub={onOpenClub} hiddenOnMobile={state.team === match.away} highlightPlayer={hasTeam ? isMine : undefined} />
+                <Side t={t} language={language} code={match.home} oppCode={match.away} isHome onOpenPlayer={onOpenPlayer} onOpenClub={onOpenClub} hiddenOnMobile={state.team === match.away} highlightPlayer={hasTeam ? isMine : undefined} myTeam={hasTeam ? myTeam : EMPTY_TEAM} playerKeyOf={playerKeyOf} />
                 <span className="pxl-vs" aria-hidden="true">{t('predictedLineups.vs')}</span>
-                <Side t={t} language={language} code={match.away} oppCode={match.home} isHome={false} onOpenPlayer={onOpenPlayer} onOpenClub={onOpenClub} hiddenOnMobile={state.team !== match.away} highlightPlayer={hasTeam ? isMine : undefined} />
+                <Side t={t} language={language} code={match.away} oppCode={match.home} isHome={false} onOpenPlayer={onOpenPlayer} onOpenClub={onOpenClub} hiddenOnMobile={state.team !== match.away} highlightPlayer={hasTeam ? isMine : undefined} myTeam={hasTeam ? myTeam : EMPTY_TEAM} playerKeyOf={playerKeyOf} />
               </div>
               <div className="pxl-steppers">
                 <Button variant="icon" icon={ChevronLeft} onClick={() => stepMatch(-1)} aria-label={t('predictedLineups.prevMatch')} />
