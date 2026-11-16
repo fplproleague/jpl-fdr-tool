@@ -362,6 +362,12 @@ export default function PlayerSheet({
     { key: 'min', label: t('spelers.col.minShort'), title: t('spelers.col.min'), value: season.min },
     { key: 'g', label: t('spelers.col.g'), value: season.g },
     { key: 'a', label: t('spelers.col.a'), value: season.a },
+    // Uit API-Football (spec F1), enkel als de speler daar gekoppeld is.
+    ...(season.sh != null ? [
+      { key: 'sh', label: t('spelers.col.shShort'), title: t('spelers.col.shTitle'), value: season.sh },
+      { key: 'sot', label: t('spelers.col.sotShort'), title: t('spelers.col.sotTitle'), value: season.sot },
+      { key: 'kp', label: t('spelers.col.kpShort'), title: t('spelers.col.kpTitle'), value: season.kp },
+    ] : []),
   ] : null;
 
   const bonusStats = bonusEntry ? [

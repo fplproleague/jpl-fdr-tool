@@ -35,6 +35,35 @@ export function getSessionPlayers() {
   return sessionData;
 }
 
+// Schoten, schoten op doel en key passes uit API-Football (spec F1, /api/shots) bij de spelers zetten:
+// reeksen in w.sh/w.sot/w.kp (zelfde lengte als de andere reeksen) en seizoenstotalen sh/sot/kp. Een
+// speler die niet gekoppeld is, krijgt null (de tabel toont "—"). data.shotsAvailable zegt of de
+// kolommen getoond mogen worden; lukt /api/shots niet, dan blijft alles zoals voorheen.
+export function mergeShots(data, shots) {
+  if (!data || !Array.isArray(data.players) || !shots?.players) return data;
+  const gw = data.gw ?? 0;
+  const fit = (arr) => Array.from({ length: gw }, (_, i) => arr?.[i] ?? 0);
+  const total = (arr) => arr.reduce((sum, v) => sum + (v ?? 0), 0);
+  const players = data.players.map(p => {
+    const s = shots.players[p.id];
+    if (!s) return { ...p, sh: null, sot: null, kp: null };
+    const sh = fit(s.sh); const sot = fit(s.sot); const kp = fit(s.kp);
+    return { ...p, sh: total(sh), sot: total(sot), kp: total(kp), w: p.w ? { ...p.w, sh, sot, kp } : p.w };
+  });
+  return { ...data, players, shotsAvailable: true };
+}
+
+async function fetchShots() {
+  try {
+    const response = await fetch('/api/shots');
+    if (!response.ok) return null;
+    const body = await response.json();
+    return body?.players ? body : null;
+  } catch {
+    return null;
+  }
+}
+
 // Resolvet altijd (nooit reject): { data, error, fromLocal }.
 // force: opnieuw ophalen, ook als er al data is (de "Opnieuw proberen"-knop).
 export function loadPlayers({ force = false } = {}) {
@@ -42,9 +71,12 @@ export function loadPlayers({ force = false } = {}) {
   if (inflight && !force) return inflight;
   inflight = (async () => {
     try {
+      // Beide tegelijk; /api/shots is optioneel en mag nooit de spelers tegenhouden.
+      const shotsPromise = fetchShots();
       const response = await fetch('/api/players');
-      const body = await response.json().catch(() => null);
-      if (!response.ok || !body || !Array.isArray(body.players)) throw new Error(body?.error || `HTTP ${response.status}`);
+      const raw = await response.json().catch(() => null);
+      if (!response.ok || !raw || !Array.isArray(raw.players)) throw new Error(raw?.error || `HTTP ${response.status}`);
+      const body = mergeShots(raw, await shotsPromise);
       sessionData = body;
       if (!body.stale) writeLocalCache(body);
       return { data: body, error: null, fromLocal: false };
