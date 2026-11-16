@@ -4,9 +4,13 @@
 // geen wedstrijd = streepje.
 import { memo } from 'react';
 import { PostponedIndicator, TooltipTrigger } from '../components/Tooltip';
+import { useI18n } from '../i18nContext';
+import { fixtureInfoText } from '../postponed';
 import './FdrCell.css';
 
 const FdrCell = memo(function FdrCell({ info, ariaLabel, dimmed = false, as: Tag = 'td', className = '' }) {
+  const { t, language } = useI18n();
+  const tipText = fixtureInfoText(t, language, info);
   const cls = (extra) => ['ui-fdr', extra, dimmed && 'is-dimmed', className].filter(Boolean).join(' ');
 
   if (!info) {
@@ -14,7 +18,7 @@ const FdrCell = memo(function FdrCell({ info, ariaLabel, dimmed = false, as: Tag
   }
 
   if (info.isPostponed) {
-    return <PostponedIndicator as={Tag} className={cls('is-postponed')} text={info.postponedText} ariaLabel={ariaLabel} />;
+    return <PostponedIndicator as={Tag} className={cls('is-postponed')} text={tipText} ariaLabel={ariaLabel} />;
   }
 
   if (info.isDoubleGameweek) {
@@ -42,7 +46,7 @@ const FdrCell = memo(function FdrCell({ info, ariaLabel, dimmed = false, as: Tag
 
   if (info.isPossiblyPostponed) {
     return (
-      <TooltipTrigger as={Tag} className={cls('is-tip')} text={info.possiblyPostponedText} ariaLabel={ariaLabel} style={style}>
+      <TooltipTrigger as={Tag} className={cls('is-tip')} text={tipText} ariaLabel={ariaLabel} style={style}>
         {content}
       </TooltipTrigger>
     );

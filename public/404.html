@@ -6,87 +6,134 @@
     <title>Pagina niet gevonden | Fantasy Pro League Tools</title>
     <meta name="robots" content="noindex, follow" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-    <meta name="theme-color" content="#2A1440" />
+    <meta name="theme-color" content="#09282A" />
     <!--
       Vercel serveert dit bestand automatisch voor elk pad dat niet bestaat. Zonder deze pagina kreeg
-      een bezoeker de standaard zwarte Vercel-foutpagina: Engelstalig, zonder enige link terug naar de
-      site, en met "View documentation / Copy debug prompt" eronder — ontwikkelaarsgereedschap op een
-      pagina die een fantasyspeler te zien krijgt na één verkeerd getypte of verouderde link.
+      een bezoeker de standaard Vercel-foutpagina: Engelstalig en zonder link terug naar de site.
 
       Bewust platte HTML met inline CSS, geen React: deze pagina moet net werken op het moment dat er
-      iets misloopt, dus ze mag van niets afhangen. Kleuren/lettertypes komen overeen met de rest van
-      de site (zie de merkkleuren in src/theme.js); het lettertype valt terug op de systeem-sans als
-      Google Fonts niet laadt.
+      iets misloopt, dus ze mag van niets afhangen. De kleuren zijn de waarden uit src/styles/tokens.css
+      (logopalet), hier letterlijk overgenomen omdat deze losse pagina dat bestand niet laadt. Past het
+      palet ooit, pas dan ook de waarden in :root hieronder aan.
+
+      Een paar regels JavaScript (onderaan):
+      1. /club/CLU of /speler/Naam met hoofdletters bestaat niet (de pagina's zijn in kleine letters
+         gebouwd). Die sturen we door naar de kleine-letterversie, i.p.v. 34+ regels in vercel.json.
+      2. De taal volgt uit het pad (/fr/… of /en/…): tekst en links worden dan Frans of Engels.
     -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;900&family=Inter:wght@400;600&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&family=Martian+Mono:wght@500&display=swap" />
     <style>
-      :root { color-scheme: dark; }
+      :root {
+        color-scheme: dark;
+        --ink-0: #061B1C;
+        --ink-1: #09282A;
+        --ink-2: #0F3231;
+        --line-strong: #24514F;
+        --text-1: #EEF5F2;
+        --text-2: #B4C7C2;
+        --text-3: #8AA5A0;
+        --accent: #33EDD5;
+        --accent-ink: #061B1C;
+      }
+      * { box-sizing: border-box; }
       body {
         margin: 0;
         min-height: 100vh;
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 24px;
-        box-sizing: border-box;
-        background: #2E1547;
-        color: #FFFFFF;
-        font-family: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
-        text-align: center;
+        padding: 24px 16px;
+        background: var(--ink-0);
+        color: var(--text-1);
+        font-family: Archivo, system-ui, -apple-system, 'Segoe UI', sans-serif;
       }
-      .card { max-width: 460px; }
+      main { width: 100%; max-width: 520px; }
       .code {
-        font-family: Archivo, system-ui, sans-serif;
-        font-weight: 900;
-        font-size: 64px;
-        line-height: 1;
-        color: #4ECDC4;
-        margin: 0 0 8px;
-      }
-      h1 {
-        font-family: Archivo, system-ui, sans-serif;
-        font-weight: 900;
-        font-size: 24px;
-        text-transform: uppercase;
-        letter-spacing: 0.03em;
+        font-family: 'Martian Mono', ui-monospace, monospace;
+        font-weight: 500;
+        font-size: 13px;
+        letter-spacing: 0.08em;
+        color: var(--accent);
         margin: 0 0 12px;
       }
-      p { color: #C9B8E0; font-size: 14px; line-height: 1.6; margin: 0 0 8px; }
-      p.fr { color: #8F79AD; font-size: 13px; margin-bottom: 24px; }
-      .links { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+      h1 { font-weight: 800; font-size: 28px; line-height: 1.15; margin: 0 0 12px; }
+      p { color: var(--text-2); font-size: 15px; line-height: 1.55; margin: 0 0 24px; }
+      ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
       a {
-        display: inline-block;
-        border-radius: 8px;
-        padding: 10px 16px;
-        font-size: 13px;
+        display: flex;
+        align-items: center;
+        min-height: 44px;
+        padding: 0 14px;
+        border: 1px solid var(--line-strong);
+        border-radius: 2px;
+        background: var(--ink-1);
+        color: var(--text-1);
+        font-size: 14px;
         font-weight: 600;
         text-decoration: none;
-        background: rgba(255, 255, 255, 0.06);
-        border: 1px solid rgba(255, 255, 255, 0.14);
-        color: #FFFFFF;
       }
-      a.primary { background: #4ECDC4; border-color: #4ECDC4; color: #0B2E1B; font-weight: 700; }
-      a:focus-visible { outline: 2px solid #4ECDC4; outline-offset: 2px; }
+      a:hover { background: var(--ink-2); }
+      a.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+      a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+      .brand { margin-top: 32px; color: var(--text-3); font-size: 12px; }
     </style>
   </head>
   <body>
-    <main class="card">
+    <main>
       <p class="code">404</p>
-      <h1>Deze pagina bestaat niet</h1>
-      <p>De link is verouderd of er staat een tikfout in. Alle tools staan gewoon nog op hun plaats.</p>
-      <p class="fr">Cette page n’existe pas — tous les outils sont toujours disponibles ci-dessous.</p>
-      <div class="links">
-        <a class="primary" href="/fdr">FDR</a>
-        <a href="/team-planner">Team Planner</a>
-        <a href="/predicted-lineups">Verwachte XI’s</a>
-        <a href="/bonuspunten">Bonuspunten</a>
-        <a href="/set-pieces">Set Pieces</a>
-        <a href="/watchlist">Watchlist</a>
-        <a href="/kaarten">Kaarten</a>
-        <a href="/price-changes">Price Changes</a>
-      </div>
+      <h1 id="title">Deze pagina bestaat niet</h1>
+      <p id="lead">De link is verouderd of er staat een tikfout in. Alle tools staan gewoon nog op hun plaats.</p>
+      <ul id="links">
+        <li><a class="primary" href="/fdr">FDR</a></li>
+        <li><a href="/predicted-lineups">Verwachte XI's</a></li>
+        <li><a href="/team-planner">Team Planner</a></li>
+        <li><a href="/spelers">Spelers</a></li>
+        <li><a href="/bonuspunten">Bonuspunten</a></li>
+        <li><a href="/set-pieces">Set pieces</a></li>
+        <li><a href="/kaarten">Kaarten</a></li>
+        <li><a href="/klassement">Klassement</a></li>
+      </ul>
+      <p class="brand">Fantasy Pro League Tools · @fpl_proleague</p>
     </main>
+    <script>
+      (function () {
+        var path = window.location.pathname;
+
+        // 1. Hoofdletters in een speler- of clublink: door naar de kleine-letterversie.
+        if (/^(\/(fr|en))?\/(club|speler)\//i.test(path) && path !== path.toLowerCase()) {
+          window.location.replace(path.toLowerCase() + window.location.search + window.location.hash);
+          return;
+        }
+
+        // 2. Taal uit het pad. Houd de labels gelijk met nav.* in src/i18n.js.
+        var lang = /^\/fr(\/|$)/.test(path) ? 'fr' : /^\/en(\/|$)/.test(path) ? 'en' : 'nl';
+        if (lang === 'nl') return;
+        var copy = {
+          fr: {
+            title: 'Cette page n’existe pas',
+            lead: 'Le lien est obsolète ou contient une faute de frappe. Tous les outils sont toujours disponibles.',
+            doc: 'Page introuvable | Fantasy Pro League Tools',
+            labels: ['FDR', 'Compositions probables', 'Team Planner', 'Joueurs', 'Points bonus', 'Coups de pied arrêtés', 'Cartons', 'Classement']
+          },
+          en: {
+            title: 'This page doesn’t exist',
+            lead: 'The link is out of date or has a typo in it. All the tools are still right here.',
+            doc: 'Page not found | Fantasy Pro League Tools',
+            labels: ['FDR', 'Predicted XIs', 'Team Planner', 'Players', 'Bonus points', 'Set pieces', 'Cards', 'Rankings']
+          }
+        }[lang];
+        document.documentElement.lang = lang;
+        document.title = copy.doc;
+        document.getElementById('title').textContent = copy.title;
+        document.getElementById('lead').textContent = copy.lead;
+        var links = document.querySelectorAll('#links a');
+        for (var i = 0; i < links.length; i++) {
+          links[i].setAttribute('href', '/' + lang + links[i].getAttribute('href'));
+          links[i].textContent = copy.labels[i];
+        }
+      })();
+    </script>
   </body>
 </html>

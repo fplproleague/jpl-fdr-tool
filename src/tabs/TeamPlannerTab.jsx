@@ -220,6 +220,7 @@ function TransferPanel({ t, gw, resolvedIndexedPlayers, playerDatabase, playerDa
                 }
                 maxWidth="none"
                 onSelect={setInPlayer}
+                noResultsText={t('shared.noPlayersFound')}
               />
             </div>
           </div>
@@ -703,7 +704,7 @@ export default function TeamPlannerTab({
         <p className="tp-loading" role="status"><Loader2 className="fdr-spin" aria-hidden="true" /> {t('teamPlanner.loadingDb')}</p>
       )}
       {!playerDatabaseLoading && playerDatabaseError && (
-        <ErrorBanner onRetry={fetchPlayerDatabase} retryLabel={t('shared.retry')}>{playerDatabaseError}</ErrorBanner>
+        <ErrorBanner onRetry={fetchPlayerDatabase} retryLabel={t('shared.retry')}>{t(playerDatabaseError)}</ErrorBanner>
       )}
 
       {/* Statusregel (spec §7.3): vervangt de vroegere pillen. Sticky onder de topbalk. */}

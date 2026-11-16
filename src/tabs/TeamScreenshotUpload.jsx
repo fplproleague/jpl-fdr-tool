@@ -20,11 +20,32 @@ import Button from '../ui/Button';
 import Badge from '../ui/Badge';
 import ErrorBanner, { Notice } from '../ui/ErrorBanner';
 
+// Zekerheid van de herkenning. De sleutels komen uit utils/playerFuzzyMatch (data, geen tekst); het
+// label staat in i18n.js.
 const CONFIDENCE = {
-  hoog: { className: 'is-high', label: 'Hoog' },
-  twijfelachtig: { className: 'is-doubt', label: 'Twijfelachtig' },
-  'niet-gevonden': { className: 'is-missing', label: 'Niet gevonden' },
+  hoog: { className: 'is-high', labelKey: 'screenshotUpload.confidence.high' },
+  twijfelachtig: { className: 'is-doubt', labelKey: 'screenshotUpload.confidence.doubt' },
+  'niet-gevonden': { className: 'is-missing', labelKey: 'screenshotUpload.confidence.missing' },
 };
+
+// De server geeft codes terug, geen zinnen (spec A3). Een onbekende code of een antwoord zonder code
+// (bv. een HTML-foutpagina van de firewall) valt terug op een algemene melding.
+const ERROR_CODES = ['forbidden_origin', 'not_configured', 'no_image', 'image_too_large', 'service_unreachable', 'service_error', 'rate_limited', 'read_failed'];
+const MAX_BASE64_LENGTH = 4 * 1024 * 1024 - 64 * 1024;
+
+function errorText(t, code) {
+  return t(`screenshotUpload.error.${ERROR_CODES.includes(code) ? code : 'generic'}`);
+}
+
+function warningText(t, warning) {
+  if (!warning) return null;
+  if (warning.code === 'partial') return t('screenshotUpload.warning.partial', { count: warning.count });
+  return t('screenshotUpload.warning.not_recognized');
+}
+
+class ScreenshotError extends Error {
+  constructor(code) { super(code); this.code = code; }
+}
 
 function buildSuggestion(recognizedPlayer, playerDatabase) {
   const { matched, confidence } = matchPlayer(recognizedPlayer, playerDatabase);
@@ -40,7 +61,7 @@ function buildSuggestion(recognizedPlayer, playerDatabase) {
   };
 }
 
-function SuggestionRow({ suggestion, index, playerDatabase, onUpdate, onToggleCaptain }) {
+function SuggestionRow({ t, suggestion, index, playerDatabase, onUpdate, onToggleCaptain }) {
   const confidence = CONFIDENCE[suggestion.confidence] ?? CONFIDENCE['niet-gevonden'];
   return (
     <li className="tp-sugg">
@@ -49,16 +70,16 @@ function SuggestionRow({ suggestion, index, playerDatabase, onUpdate, onToggleCa
         className="tp-sugg__check"
         checked={suggestion.included}
         onChange={(e) => onUpdate(index, { included: e.target.checked })}
-        aria-label={`${suggestion.rawName} meenemen`}
+        aria-label={t('screenshotUpload.includeAria', { name: suggestion.rawName })}
       />
       <div className="tp-sugg__raw">
         <span className="tp-sugg__name">
-          Herkend: &ldquo;{suggestion.rawName}&rdquo;
-          {suggestion.isCaptain && <Badge tone="accent" title="Kapitein herkend" aria-label="Kapitein herkend">C</Badge>}
-          {suggestion.isViceCaptain && <Badge title="Vice-kapitein herkend (enkel ter info)" aria-label="Vice-kapitein herkend">VC</Badge>}
+          {t('screenshotUpload.recognized', { name: suggestion.rawName })}
+          {suggestion.isCaptain && <Badge tone="accent" title={t('screenshotUpload.captainRecognized')} aria-label={t('screenshotUpload.captainRecognized')}>C</Badge>}
+          {suggestion.isViceCaptain && <Badge title={t('screenshotUpload.viceRecognized')} aria-label={t('screenshotUpload.viceRecognized')}>VC</Badge>}
         </span>
         <span className="tp-sugg__meta">
-          rij: {suggestion.rowLabel || suggestion.rawPosition || '—'} · <span className={`tp-sugg__conf ${confidence.className}`}>{confidence.label}</span>
+          {t('screenshotUpload.row', { row: suggestion.rowLabel || suggestion.rawPosition || '—' })} · <span className={`tp-sugg__conf ${confidence.className}`}>{t(confidence.labelKey)}</span>
         </span>
       </div>
       <div className="tp-sugg__pick">
@@ -66,7 +87,8 @@ function SuggestionRow({ suggestion, index, playerDatabase, onUpdate, onToggleCa
           value={suggestion.selectedPlayer?.name ?? ''}
           onSelect={(player) => onUpdate(index, { selectedPlayer: player, confidence: 'hoog' })}
           players={playerDatabase}
-          placeholder="Zoek speler..."
+          placeholder={t('screenshotUpload.searchPlaceholder')}
+          noResultsText={t('shared.noPlayersFound')}
         />
       </div>
       <Button
@@ -75,8 +97,8 @@ function SuggestionRow({ suggestion, index, playerDatabase, onUpdate, onToggleCa
         icon={Crown}
         onClick={() => onToggleCaptain(index)}
         aria-pressed={suggestion.isCaptain}
-        aria-label={suggestion.isCaptain ? `Kapitein-markering verwijderen bij ${suggestion.rawName}` : `${suggestion.rawName} kapitein maken`}
-        title={suggestion.isCaptain ? 'Kapitein-markering verwijderen' : 'Maak kapitein'}
+        aria-label={t(suggestion.isCaptain ? 'screenshotUpload.captainRemoveAria' : 'screenshotUpload.captainMakeAria', { name: suggestion.rawName })}
+        title={t(suggestion.isCaptain ? 'screenshotUpload.captainRemove' : 'screenshotUpload.captainMake')}
       />
     </li>
   );
@@ -90,35 +112,44 @@ export function TeamScreenshotUpload({
 }) {
   const [proposal, setProposal] = useState(null); // null | { suggestions: [...], warning }
   const [status, setStatus] = useState('idle'); // 'idle' | 'loading' | 'error'
-  const [errorMessage, setErrorMessage] = useState(null);
+  // { code } bij een fout, { warning } als er niets herkend werd; null = geen melding.
+  const [errorCode, setErrorCode] = useState(null);
   const [persistentNotice, setPersistentNotice] = useState(null);
   const fileInputRef = useRef(null);
 
   const handleFileSelected = async (file) => {
     if (!file) return;
     setStatus('loading');
-    setErrorMessage(null);
+    setErrorCode(null);
     setPersistentNotice(null);
     try {
-      const { base64, mediaType } = await downscaleImageToBase64(file);
+      let image;
+      try {
+        image = await downscaleImageToBase64(file);
+        // De server weigert afbeeldingen boven ~4 MB (spec A5). Een heel grote screenshot schalen we
+        // dan nog één keer kleiner, zodat de import gewoon blijft werken.
+        if (image.base64.length > MAX_BASE64_LENGTH) image = await downscaleImageToBase64(file, 1800);
+      } catch {
+        throw new ScreenshotError('read_failed');
+      }
       const response = await fetch('/api/analyze-screenshot', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ imageBase64: base64, mediaType }),
+        body: JSON.stringify({ imageBase64: image.base64, mediaType: image.mediaType }),
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error ?? 'Analyse mislukt.');
+      if (!response.ok) throw new ScreenshotError(data.code ?? (response.status === 429 ? 'rate_limited' : 'generic'));
       const suggestions = (data.players ?? []).map(p => buildSuggestion(p, playerDatabase));
       if (suggestions.length === 0) {
         setStatus('error');
-        setErrorMessage(data.warning ?? 'Geen spelers herkend op deze screenshot.');
+        setErrorCode({ warning: data.warning ?? { code: 'not_recognized' } });
       } else {
         setProposal({ suggestions, warning: data.warning ?? null });
         setStatus('idle');
       }
     } catch (err) {
       setStatus('error');
-      setErrorMessage(err.message || 'Er ging iets mis bij het herkennen van je team.');
+      setErrorCode({ code: err?.code ?? 'generic' });
     }
   };
 
@@ -178,7 +209,7 @@ export function TeamScreenshotUpload({
   const handleCancel = () => {
     setProposal(null);
     setStatus('idle');
-    setErrorMessage(null);
+    setErrorCode(null);
   };
 
   const hasViceCaptainSuggestion = proposal?.suggestions.some(s => s.isViceCaptain);
@@ -221,28 +252,29 @@ export function TeamScreenshotUpload({
 
       {persistentNotice && !proposal && (
         <Notice action={<Button variant="icon" size="sm" bare icon={X} onClick={() => setPersistentNotice(null)} aria-label={t('screenshotUpload.cancel')} />}>
-          {persistentNotice}
+          {warningText(t, persistentNotice)}
         </Notice>
       )}
 
       {status === 'error' && !proposal && (
-        <ErrorBanner onRetry={openPicker} retryLabel={t('screenshotUpload.retry')}>{errorMessage}</ErrorBanner>
+        <ErrorBanner onRetry={openPicker} retryLabel={t('screenshotUpload.retry')}>
+          {errorCode?.warning ? warningText(t, errorCode.warning) : errorText(t, errorCode?.code)}
+        </ErrorBanner>
       )}
 
       {proposal && (
         <section className="tp-proposal" aria-labelledby="tp-proposal-title">
           <h2 id="tp-proposal-title" className="label tp-proposal__title">{t('screenshotUpload.heading')}</h2>
           <p className="tp-proposal__hint">{t('screenshotUpload.reviewHint')}</p>
-          {proposal.warning && <Notice>{proposal.warning}</Notice>}
+          {proposal.warning && <Notice>{warningText(t, proposal.warning)}</Notice>}
           {teamPlannerGw !== 1 && (
-            <p className="tp-proposal__hint">
-              De herkende kapitein wordt ingesteld voor GW{teamPlannerGw} (de momenteel bekeken speelweek).
-            </p>
+            <p className="tp-proposal__hint">{t('screenshotUpload.captainGwHint', { gw: teamPlannerGw })}</p>
           )}
           <ul className="tp-proposal__list">
             {proposal.suggestions.map((suggestion, index) => (
               <SuggestionRow
                 key={index}
+                t={t}
                 suggestion={suggestion}
                 index={index}
                 playerDatabase={playerDatabase}
@@ -252,9 +284,7 @@ export function TeamScreenshotUpload({
             ))}
           </ul>
           {hasViceCaptainSuggestion && (
-            <p className="tp-proposal__hint">
-              Vice-kapitein herkend maar niet ondersteund door Team Planner — enkel ter info (VC-badge hierboven).
-            </p>
+            <p className="tp-proposal__hint">{t('screenshotUpload.viceHint')}</p>
           )}
           <div className="tp-proposal__actions">
             <Button variant="primary" icon={Check} onClick={handleApply}>{t('screenshotUpload.apply')}</Button>

@@ -190,3 +190,14 @@ span.fdr-team { cursor: default; }
 @media (min-width: 701px) {
   .fdr-tool-btn { width: auto; }
 }
+
+/* Ratings-lade: label "aangepast" en een knop die enkel deze club terugzet (spec A2). */
+.fdr-rating-row__changed { flex-shrink: 0; }
+.fdr-rating-row__reset {
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 28px; height: 28px; padding: 0; border: 1px solid var(--line); border-radius: var(--r-0);
+  background: none; color: var(--text-2); cursor: pointer;
+}
+.fdr-rating-row__reset:hover { color: var(--text-1); border-color: var(--line-strong); }
+.fdr-rating-row__reset svg { width: 14px; height: 14px; }
+.fdr-switch:disabled { cursor: default; opacity: .6; }

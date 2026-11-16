@@ -15,6 +15,7 @@ import ErrorBanner from '../ui/ErrorBanner';
 import EmptyState from '../ui/EmptyState';
 import { PlayerFaceByName } from '../ui/PlayerFace';
 import { ClubLogo } from '../components/SpelersParts';
+import { CURRENT_GW } from '../constants';
 import './SetPiecesTab.css';
 
 const KINDS = [
@@ -119,7 +120,15 @@ export default function SetPiecesTab({
     })),
   ];
 
-  const meta = updatedGw ? <span className="num">{t('setpieces.updatedMeta', { gw: updatedGw })}</span> : null;
+  // Staat de sheet meer dan 2 speeldagen achter op de huidige GW, dan zeggen we dat erbij (spec A7).
+  // De data bijwerken blijft handwerk van de eigenaar.
+  const updatedNumber = Number(String(updatedGw).match(/\d+/)?.[0]);
+  const stale = Number.isFinite(updatedNumber) && CURRENT_GW - updatedNumber > 2;
+  const meta = updatedGw ? (
+    <span className={`num${stale ? ' sp-meta--stale' : ''}`}>
+      {t(stale ? 'setpieces.updatedMetaStale' : 'setpieces.updatedMeta', { gw: updatedGw })}
+    </span>
+  ) : null;
 
   return (
     <div className="sp">

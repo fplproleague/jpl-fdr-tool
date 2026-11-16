@@ -112,3 +112,13 @@
   }
   .ui-bottomnav__item .ui-new-marker { top: 8px; right: calc(50% - 16px); }
 }
+
+/* Deadline voorbij terwijl de pagina openstond (spec A7): "GW12 is begonnen · herlaad voor GW13". */
+.ui-deadline__started { color: var(--text-3); font-weight: 600; }
+.ui-deadline__reload {
+  padding: 0; border: 0; background: none; color: var(--accent); cursor: pointer;
+  font: inherit; text-decoration: underline; text-underline-offset: 2px;
+}
+@media (max-width: 700px) {
+  .ui-deadline__started { display: none; }
+}

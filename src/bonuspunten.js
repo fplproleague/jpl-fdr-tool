@@ -117,6 +117,12 @@ export function perGameLabel(value, games, { showSign = false, unit = '/wedstrij
 // BonuspuntenTab.jsx: "... (> 3)" e.d.) — apart van BONUS_CRITERIA hieronder zodat dezelfde drempel ook
 // op de PER WEDSTRIJD-waarde toegepast kan worden (zie meetsThresholdPerGame), niet enkel op de
 // seizoenstotaal.
+//
+// Keepers kunnen enkel het punt voor duels halen; de andere drie drempels gelden niet voor hen
+// (spelregel bevestigd door de eigenaar). De Google Sheet rekent al zo; /api/players doet dat sinds
+// fase A ook (bonusForMatch in api/_lib/proleague.js). Gecontroleerd na GW11: 60/60 keepers gelijk.
+// De spelerskaart toont de drie andere categorieën voor een keeper als "—".
+
 export const BONUS_THRESHOLD = {
   duels: 0,
   defensiveHeaders: 3,

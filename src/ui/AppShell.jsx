@@ -57,15 +57,29 @@ function NavLink({ route, active, hrefFor, onNavigate, t, compact = false, marke
 
 export default function AppShell({
   t, language, languages, onChangeLanguage, activeTab, onNavigate, hrefFor,
-  deadlineGw, deadlineRemaining, minileagueCode, onCopyMinileague, minileagueCopied,
+  deadlineGw, deadlineRemaining, deadlinePassed = false, nextGw = null, minileagueCode, onCopyMinileague, minileagueCopied,
   newMarkerTab, lastUpdated, children,
 }) {
   const [moreOpen, setMoreOpen] = useState(false);
   const countdown = formatShellCountdown(deadlineRemaining, language);
-  const deadlineText = countdown
-    ? <><span className="ui-deadline__gw">{t('shell.deadline', { gw: deadlineGw })}</span> <span className="num">{countdown}</span></>
-    : <span>{t('shell.live', { gw: deadlineGw })}</span>;
-  const deadlineAria = countdown ? t('shell.deadlineAria', { gw: deadlineGw, time: countdown }) : t('shell.live', { gw: deadlineGw });
+  // Deadline voorbij terwijl de pagina openstond: de site staat nog op de oude GW (CURRENT_GW wordt
+  // enkel bij het laden berekend), dus een kleine link die herlaadt.
+  const deadlineText = deadlinePassed
+    ? (
+      <>
+        <span className="ui-deadline__started">{t('shell.started', { gw: deadlineGw })}{nextGw ? ' · ' : ''}</span>
+        {nextGw && (
+          <button type="button" className="ui-deadline__reload" onClick={() => window.location.reload()}>
+            {t('shell.reloadFor', { gw: nextGw })}
+          </button>
+        )}
+      </>
+    )
+    : countdown
+      ? <><span className="ui-deadline__gw">{t('shell.deadline', { gw: deadlineGw })}</span> <span className="num">{countdown}</span></>
+      : <span>{t('shell.live', { gw: deadlineGw })}</span>;
+  const deadlineAria = deadlinePassed ? undefined
+    : countdown ? t('shell.deadlineAria', { gw: deadlineGw, time: countdown }) : t('shell.live', { gw: deadlineGw });
   const moreActive = SECONDARY_ROUTES.some(r => r.key === activeTab);
   const languageOptions = languages.map(l => ({ value: l, label: l.toUpperCase() }));
 

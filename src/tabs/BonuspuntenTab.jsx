@@ -154,7 +154,7 @@ export default function BonuspuntenTab({
       {isPerMatch && <Notice>{t('bonuspunten.sortPerMatchNote', { minGames })}</Notice>}
 
       {!playerDatabaseLoading && playerDatabaseError && (
-        <ErrorBanner onRetry={fetchPlayerDatabase} retryLabel={t('shared.retry')}>{playerDatabaseError}</ErrorBanner>
+        <ErrorBanner onRetry={fetchPlayerDatabase} retryLabel={t('shared.retry')}>{t(playerDatabaseError)}</ErrorBanner>
       )}
 
       {ready && entries.length === 0 && <EmptyState>{t('bonuspunten.emptyState')}</EmptyState>}

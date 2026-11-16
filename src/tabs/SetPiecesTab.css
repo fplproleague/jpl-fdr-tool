@@ -39,3 +39,6 @@
   .sp-table.is-show-corners .sp-col--penalties, .sp-table.is-show-corners .sp-col--freeKicks,
   .sp-table.is-show-freeKicks .sp-col--penalties, .sp-table.is-show-freeKicks .sp-col--corners { display: none; }
 }
+
+/* Sheet loopt achter op de huidige speeldag (spec A7). */
+.sp-meta--stale { color: var(--warning); }

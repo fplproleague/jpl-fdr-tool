@@ -13,7 +13,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   TEAMS, TEAMS_ALPHA, CURRENT_GW, PREDICTED_LINEUPS_GW, POSTPONED, FIXTURES,
-  buildPostponedTooltipText, getPredictedLineupsRelease,
+  getPredictedLineupsRelease,
 } from '../constants';
 import PitchField from '../predicted-xi/PitchField';
 import { PREDICTED_LINEUPS } from '../predictedLineupsData';
@@ -23,6 +23,7 @@ import Switch from '../ui/Switch';
 import Button from '../ui/Button';
 import EmptyState from '../ui/EmptyState';
 import { formatShellCountdown } from '../ui/AppShell';
+import { postponedText } from '../postponed';
 import '../ui/DataTable.css';
 import './PredictedLineupsTab.css';
 
@@ -198,7 +199,7 @@ function MatchButton({ match, active, onSelect, t }) {
 }
 
 // Eén kant van een wedstrijd: kop (logo, club, formatie) + veld, of een melding.
-function Side({ t, code, oppCode, isHome, onOpenPlayer, onOpenClub, hiddenOnMobile }) {
+function Side({ t, language, code, oppCode, isHome, onOpenPlayer, onOpenClub, hiddenOnMobile }) {
   const club = teamByCode(code);
   const lineup = lineupFor(code);
   const postponed = POSTPONED.has(`${code}-${SHOWN_GW}`);
@@ -208,7 +209,7 @@ function Side({ t, code, oppCode, isHome, onOpenPlayer, onOpenClub, hiddenOnMobi
   if (postponed) {
     const entry = fixtureEntries(code, SHOWN_GW)[0];
     const [opp, venue] = entry ? entry.split('-') : [oppCode, isHome ? 'H' : 'A'];
-    body = <EmptyState>{t('predictedLineups.notPlaying')}. {buildPostponedTooltipText(code, opp, venue)}</EmptyState>;
+    body = <EmptyState>{t('predictedLineups.notPlaying')}. {postponedText(t, language, code, opp, venue)}</EmptyState>;
   } else if (!lineup) {
     body = <EmptyState>{t('predictedLineups.noLineup', { club: club?.name ?? code })}</EmptyState>;
   } else {
@@ -420,9 +421,9 @@ export default function PredictedLineupsTab({ t, language = 'nl', onOpenPlayer, 
                 />
               </div>
               <div className="pxl-pitches" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-                <Side t={t} code={match.home} oppCode={match.away} isHome onOpenPlayer={onOpenPlayer} onOpenClub={onOpenClub} hiddenOnMobile={state.team === match.away} />
+                <Side t={t} language={language} code={match.home} oppCode={match.away} isHome onOpenPlayer={onOpenPlayer} onOpenClub={onOpenClub} hiddenOnMobile={state.team === match.away} />
                 <span className="pxl-vs" aria-hidden="true">{t('predictedLineups.vs')}</span>
-                <Side t={t} code={match.away} oppCode={match.home} isHome={false} onOpenPlayer={onOpenPlayer} onOpenClub={onOpenClub} hiddenOnMobile={state.team !== match.away} />
+                <Side t={t} language={language} code={match.away} oppCode={match.home} isHome={false} onOpenPlayer={onOpenPlayer} onOpenClub={onOpenClub} hiddenOnMobile={state.team !== match.away} />
               </div>
               <div className="pxl-steppers">
                 <Button variant="icon" icon={ChevronLeft} onClick={() => stepMatch(-1)} aria-label={t('predictedLineups.prevMatch')} />

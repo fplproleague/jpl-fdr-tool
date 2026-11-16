@@ -28,7 +28,7 @@ function findMatches(players, query, filterPosition) {
 }
 
 export const PlayerSearchInput = memo(function PlayerSearchInput({
-  value, onSelect, players, filterPosition, placeholder, disabled, maxWidth = '320px',
+  value, onSelect, players, filterPosition, placeholder, disabled, maxWidth = '320px', noResultsText = '—',
 }) {
   // Lokale state (getypte tekst, dropdown open/dicht) is hier bewust wél toegestaan ondanks de regel
   // "alle state blijft in FDRTool.jsx" — dat gaat over domein-state die tab-wissels moet overleven
@@ -152,7 +152,7 @@ export const PlayerSearchInput = memo(function PlayerSearchInput({
               <span className="ui-psearch__price num">{p.price != null ? `€${p.price.toFixed(1)}` : '—'}</span>
             </button>
           )) : (
-            <div className="ui-psearch__none">Geen spelers gevonden.</div>
+            <div className="ui-psearch__none">{noResultsText}</div>
           )}
         </div>,
         document.body
