@@ -10,6 +10,14 @@
 }
 .ui-toast__text { flex: 1; min-width: 0; margin: 0; }
 .ui-toast__text strong { font-weight: 700; }
+/* Variant met een tweede regel (bv. een link om zelf te kopiëren als het klembord geblokkeerd is). */
+.ui-toast--stack { flex-wrap: wrap; }
+.ui-toast__field {
+  order: 3; flex: 1 0 100%; min-width: 0; height: 32px; padding: 0 var(--s-2);
+  border: 1px solid currentColor; border-radius: var(--r-1); background: transparent; color: inherit;
+  font: 400 var(--fs-meta)/1 var(--font-num);
+}
+.ui-toast__field:focus { outline: 2px solid currentColor; outline-offset: 1px; }
 .ui-toast__action {
   border: 0; background: none; padding: 0; color: var(--invert-text); cursor: pointer; flex-shrink: 0;
   font: 700 var(--fs-ui)/var(--lh-ui) var(--font-ui); text-decoration: underline; text-underline-offset: 2px;

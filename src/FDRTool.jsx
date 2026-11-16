@@ -31,6 +31,10 @@ import {
   encodeRatingsParam, decodeRatingsParam, encodeHomeParam, decodeHomeParam,
 } from './fdrRatings';
 import FDRTab from './tabs/FDRTab';
+import {
+  loadFdrPeriod, saveFdrPeriod, normalizePeriod, quickPeriod, activeQuickPeriod,
+  parseClubsParam, isClubFilterActive,
+} from './fdrPeriod';
 import useTeamPlanner from './useTeamPlanner';
 import AppShell from './ui/AppShell';
 import Sheet from './components/Sheet';
@@ -419,24 +423,45 @@ export default function FDRTool() {
   });
   const ratings = sharedRatings?.ratings ?? ownRatings;
   const homeAdvantage = sharedRatings?.homeAdvantage ?? ownHomeAdvantage;
-  // rangeStart start standaard op CURRENT_GW (i.p.v. hardcoded GW1) zodat de default range vanzelf
-  // meeschuift bij het wekelijks bijwerken van CURRENT_GW in constants.js — geen aparte aanpassing
-  // hier nodig. Deze twee sturen de gedeelde analyse-periode van "Beste fixture runs" en "Vergelijk
-  // teams" (zie analysisRange verderop). rangeEnd volgt DEFAULT_GW_HORIZON_END, dat sinds de volledige kalender (GW1-34) zelf
-  // ook afgeleid is: huidige speeldag + acht. Vroeger stond daar het vaste getal 7, omdat iedereen na
-  // GW7 onbeperkte gratis transfers kreeg; die grens ligt intussen achter ons, dus een meeschuivend
-  // venster i.p.v. een vast eindpunt (zie DEFAULT_GW_HORIZON_LENGTH in constants.js).
-  const [rangeStart, setRangeStart] = useState(CURRENT_GW);
-  const [rangeEnd, setRangeEnd] = useState(DEFAULT_GW_HORIZON_END);
-  // GW-horizon van de hoofdtabel (Fixture Difficulty Rating) — los van rangeStart/rangeEnd hierboven,
-  // die samen "Beste fixture runs" én "Vergelijk teams" sturen (zie analysisRange verderop). De
-  // hoofdtabel houdt bewust een eigen horizon: dat is de leesweergave van alle ploegen, geen analyse
-  // van een handvol ploegen, en je wil die twee los van elkaar kunnen instellen. Start standaard op CURRENT_GW-DEFAULT_GW_HORIZON_END (schuift
-  // vanzelf mee met CURRENT_GW, zelfde redenering als rangeStart hierboven); de gebruiker kan dit zelf
-  // nog verruimen tot GW34 via de selector. Bewust NIET opgeslagen (localStorage/deelbare link) —
-  // een tijdelijke weergave-instelling per sessie, geen permanente voorkeur.
-  const [gwHorizonStart, setGwHorizonStart] = useState(CURRENT_GW);
-  const [gwHorizonEnd, setGwHorizonEnd] = useState(DEFAULT_GW_HORIZON_END);
+  // Eén periode voor de hele FDR-pagina: de hoofdtabel, de Σ-kolom en "Beste fixture runs" (spec D2).
+  // Vroeger waren dat twee aparte periodes met drie kiezers. Standaard de huidige speeldag + 7 (schuift
+  // vanzelf mee met CURRENT_GW); een eigen keuze geldt enkel voor dit bezoek (sessionStorage), zodat
+  // de standaard volgende week weer klopt.
+  const [fdrPeriod, setFdrPeriod] = useState(() => loadFdrPeriod(
+    typeof window !== 'undefined' ? window.sessionStorage : null,
+    { start: CURRENT_GW, end: DEFAULT_GW_HORIZON_END },
+    GW_COUNT,
+  ));
+  const changeFdrPeriod = useCallback((start, end) => {
+    const next = normalizePeriod(start, end, GW_COUNT);
+    setFdrPeriod(next);
+    try { saveFdrPeriod(window.sessionStorage, next); } catch { /* geen opslag: enkel dit scherm */ }
+  }, []);
+  const gwHorizonStart = fdrPeriod.start;
+  const gwHorizonEnd = fdrPeriod.end;
+  const setGwHorizonStart = (v) => changeFdrPeriod(v, fdrPeriod.end);
+  const setGwHorizonEnd = (v) => changeFdrPeriod(fdrPeriod.start, v);
+  const fdrQuickPeriod = activeQuickPeriod(fdrPeriod, CURRENT_GW, GW_COUNT);
+  const chooseFdrQuickPeriod = (n) => {
+    const q = quickPeriod(n, CURRENT_GW, GW_COUNT);
+    changeFdrPeriod(q.start, q.end);
+  };
+
+  // Clubfilter (spec D3, vervangt "Vergelijk teams"): met een deel van de clubs aangevinkt toont de
+  // hoofdtabel enkel die clubs. Staat in de URL (?clubs=CLU,AND) zodat je een vergelijking kan delen.
+  const [fdrClubs, setFdrClubs] = useState(() => {
+    try { return parseClubsParam(new URLSearchParams(window.location.search).get('clubs'), TEAM_CODES); } catch { return []; }
+  });
+  const fdrClubFilterActive = isClubFilterActive(fdrClubs, TEAM_CODES.length);
+
+  // Meldingen van de FDR-knoppen (spec D4): afbeelding maken mislukt, of klembord geblokkeerd. In dat
+  // laatste geval tonen we de link zelf, zodat je hem kan kopiëren.
+  const [fdrNotice, setFdrNotice] = useState(null); // null | { kind: 'downloadFailed' } | { kind: 'copyFailed', url }
+  useEffect(() => {
+    if (fdrNotice?.kind !== 'downloadFailed') return undefined;
+    const timer = setTimeout(() => setFdrNotice(null), 8000);
+    return () => clearTimeout(timer);
+  }, [fdrNotice]);
   const [linkCopied, setLinkCopied] = useState(false);
   const [minileagueCodeCopied, setMinileagueCodeCopied] = useState(false);
   const [downloading, setDownloading] = useState(false);
@@ -446,7 +471,6 @@ export default function FDRTool() {
     sliders: false,
     table: true,
     runs: false,
-    compare: false,
     teamPlannerTransfers: true,
   });
   // Sortering van de hoofdtabel. Vroeger een simpele boolean ("op gemiddelde run of niet"); nu kan er
@@ -484,7 +508,6 @@ export default function FDRTool() {
     setHighlightedRatings(prev => (prev.includes(rating) ? prev.filter(r => r !== rating) : [...prev, rating]));
 
   const clearRatingFilter = () => setHighlightedRatings([]);
-  const [compareTeams, setCompareTeams] = useState([]);
   const tableRef = useRef(null);
 
   // --- Watch list, los van de FDR-state hierboven. Sinds de rework (spec §8) geen eigen tab meer: de
@@ -597,17 +620,20 @@ export default function FDRTool() {
   }, [activeTab, sharedRatings]);
 
   const handleCopyLink = async () => {
+    // De link gaat naar het klembord, niet in de eigen adresbalk: anders zou een herlaadbeurt je eigen
+    // ratings als "gedeelde link" tonen. Een gekozen clubselectie (?clubs=) gaat mee.
+    const url = new URL(window.location.href);
+    url.searchParams.set('r', encodeRatingsParam(TEAM_CODES, ratings));
+    url.searchParams.set('ha', encodeHomeParam(TEAM_CODES, homeAdvantage));
+    const text = url.toString().replace(/%2C/g, ',');
     try {
-      // De link gaat naar het klembord, niet in de eigen adresbalk: anders zou een herlaadbeurt je eigen
-      // ratings als "gedeelde link" tonen.
-      const url = new URL(window.location.href);
-      url.searchParams.set('r', encodeRatingsParam(TEAM_CODES, ratings));
-      url.searchParams.set('ha', encodeHomeParam(TEAM_CODES, homeAdvantage));
-      await navigator.clipboard.writeText(url.toString());
+      await navigator.clipboard.writeText(text);
       setLinkCopied(true);
+      setFdrNotice(null);
       setTimeout(() => setLinkCopied(false), 2000);
     } catch {
-      // clipboard unavailable — silently ignore
+      // Klembord geblokkeerd (bv. een ingebouwde browser): toon de link om zelf te kopiëren.
+      setFdrNotice({ kind: 'copyFailed', url: text });
     }
   };
 
@@ -682,7 +708,7 @@ export default function FDRTool() {
       link.href = finalCanvas.toDataURL('image/png');
       link.click();
     } catch {
-      // rendering failed — silently ignore, user can screenshot manually
+      setFdrNotice({ kind: 'downloadFailed' });
     } finally {
       if (scrollEl) {
         scrollEl.style.width = prevWidth;
@@ -700,22 +726,12 @@ export default function FDRTool() {
     setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
   }, []);
 
-  // Genormaliseerde analyse-periode, gedeeld door "Beste fixture runs" en "Vergelijk teams" — zelfde
-  // Math.min/max-patroon als gwHorizonRange hieronder, zodat een omgekeerde keuze (eind vóór start)
-  // nooit een lege of negatieve range oplevert.
-  //
-  // De twee secties stellen dezelfde vraag ("over welke reeks speeldagen beoordeel ik ploegen?"), en
-  // twee aparte periodes naast elkaar leveren stil tegenstrijdige antwoorden op: een team dat bovenaan
-  // "beste runs" staat over GW8-15 kan er in een vergelijking over GW8-12 slechter uitzien. Eén periode
-  // dus, met in beide secties een eigen kiezer op diezelfde state — je kan 'm overal aanpassen, ook als
-  // de andere sectie dichtgeklapt staat.
-  const analysisRange = useMemo(() => ({
-    start: Math.min(rangeStart, rangeEnd),
-    end: Math.max(rangeStart, rangeEnd),
-  }), [rangeStart, rangeEnd]);
+  // Horizon van de hoofdtabel (= de ene periode, al genormaliseerd in changeFdrPeriod).
+  const gwHorizonRange = fdrPeriod;
 
+  // "Beste fixture runs" volgt dezelfde periode als de hoofdtabel (spec D2).
   const bestRuns = useMemo(() => {
-    const { start, end } = analysisRange;
+    const { start, end } = gwHorizonRange;
     const results = TEAMS.map(team => {
       const fixtures = FIXTURES[team.code].slice(start - 1, end);
       const scores = getFixtureScores(team.code, fixtures, ratings, homeAdvantage, start);
@@ -723,23 +739,12 @@ export default function FDRTool() {
     });
     // Alle clubs, makkelijkste eerst; de tab toont er standaard 5 en kan uitklappen naar alle 18.
     return results.sort((a, b) => a.avg - b.avg || a.code.localeCompare(b.code));
-  }, [ratings, homeAdvantage, analysisRange]);
+  }, [ratings, homeAdvantage, gwHorizonRange]);
 
-  // Horizon van de hoofdtabel, genormaliseerd — zelfde Math.min/max-patroon als bestRuns hierboven,
-  // zodat een omgekeerde keuze (bv. eind vóór start) nooit een lege/negatieve range oplevert.
-  const gwHorizonRange = useMemo(() => ({
-    start: Math.min(gwHorizonStart, gwHorizonEnd),
-    end: Math.max(gwHorizonStart, gwHorizonEnd),
-  }), [gwHorizonStart, gwHorizonEnd]);
-
-  // Alle GW-headers voor de huidige taal, één keer per taalwissel opgebouwd; de twee tabellen slicen
-  // hier elk hun eigen bereik uit.
+  // Alle GW-headers voor de huidige taal, één keer per taalwissel opgebouwd. De gewone (niet-klikbare)
+  // set is voor "Beste fixture runs", de sorteerbare voor de hoofdtabel.
   const gwHeaderCells = useMemo(() => buildGwHeaderCells(t), [t]);
 
-  // Enkel de GW-headers binnen de gekozen horizon — gwHeaderCells zelf blijft ongewijzigd (ook
-  // gebruikt door compareGwHeaderCells hieronder, met een eigen, vaste startpunt).
-  // Aparte, sorteerbare set voor de hoofdtabel; gwHeaderCells zelf blijft de gewone, niet-klikbare
-  // versie voor de vergelijk-tabel (die heeft geen eigen sortering).
   const sortableGwHeaderCells = useMemo(
     () => buildGwHeaderCells(t, {
       sortedGw: sortBy.mode === 'gw' ? sortBy.gw : null,
@@ -755,15 +760,9 @@ export default function FDRTool() {
     [sortableGwHeaderCells, gwHorizonRange]
   );
 
-  // "Vergelijk teams" had helemaal geen kiezer: het begon altijd bij CURRENT_GW en liep tot een vast
-  // eindpunt. Nu volgt het de gedeelde analyse-periode hierboven, met een eigen kiezer in de sectie
-  // zelf. Vroeger liep dit bovendien door tot GW_COUNT — met 34 speeldagen zou dat 27 kolommen naast
-  // elkaar zetten in een blok dat bedoeld is om twee ploegen snel te vergelijken.
-  const compareGwStart = analysisRange.start;
-  const compareGwEnd = analysisRange.end;
-  const compareGwHeaderCells = useMemo(
-    () => gwHeaderCells.slice(compareGwStart - 1, compareGwEnd),
-    [gwHeaderCells, compareGwStart, compareGwEnd]
+  const runsGwHeaderCells = useMemo(
+    () => gwHeaderCells.slice(gwHorizonRange.start - 1, gwHorizonRange.end),
+    [gwHeaderCells, gwHorizonRange]
   );
 
   // --fdr-table-slot (84px, zie FDRTab.css) is de breedte van één kolom, met de Team-kolom meegeteld als 1 "slot"
@@ -779,14 +778,6 @@ export default function FDRTool() {
   // tabel mee zonder dat React iets van de schermbreedte hoeft te weten. Hier blijft enkel het AANTAL
   // slots staan, want dat is het enige dat van de app-state afhangt.
   const mainTableSlots = visibleGwHeaderCells.length + 1;
-
-  // Zelfde berekening voor de vergelijk-tabel. Die had een harde minWidth van 600px die niet meeschoof
-  // met het aantal zichtbare GW-kolommen: met twee kolommen werd die 600px verdeeld over een teamkolom
-  // van 220px en twee fixture-kolommen, in een container van 350px. Nu telt hij per kolom, net als de
-  // hoofdtabel, dus bij een gelijk aantal kolommen zijn beide tabellen exact even breed. De teamkolom
-  // blijft een paar pixels verschillen — die cel bevat in de hoofdtabel een knop met eigen padding en
-  // in de vergelijk-tabel een kale span — maar de kolomindeling is dezelfde.
-  const compareTableSlots = compareGwHeaderCells.length + 1;
 
   // Gemiddelde moeilijkheid herberekend op enkel de zichtbare horizon (i.p.v. altijd GW1-GW_COUNT),
   // zodat "Sorteer op makkelijkste run" ook echt naar de getoonde kolommen sorteert.
@@ -818,14 +809,27 @@ export default function FDRTool() {
     return TEAMS;
   }, [sortBy, teamAvgDifficulty, ratings, homeAdvantage]);
 
+  // Met het clubfilter (D3) enkel de gekozen clubs, in dezelfde (gesorteerde) volgorde.
+  const visibleTeams = useMemo(
+    () => (fdrClubFilterActive ? displayedTeams.filter(team => fdrClubs.includes(team.code)) : displayedTeams),
+    [displayedTeams, fdrClubs, fdrClubFilterActive]
+  );
 
-  const toggleCompareTeam = (code) => {
-    setCompareTeams(prev => {
-      if (prev.includes(code)) return prev.filter(c => c !== code);
-      if (prev.length >= 5) return prev;
-      return [...prev, code];
-    });
-  };
+
+  // Clubfilter in de URL zolang je op de FDR-tab staat (andere tabs halen ?clubs= zelf weg, zie
+  // TAB_QUERY_PARAMS in routes.js). Niets of alle clubs gekozen = geen parameter.
+  useEffect(() => {
+    if (activeTab !== 'fdr') return;
+    try {
+      const url = new URL(window.location.href);
+      if (fdrClubFilterActive) url.searchParams.set('clubs', fdrClubs.join(','));
+      else url.searchParams.delete('clubs');
+      const next = url.pathname + url.search.replace(/%2C/g, ',') + url.hash;
+      if (next !== window.location.pathname + window.location.search + window.location.hash) {
+        window.history.replaceState(window.history.state, '', next);
+      }
+    } catch { /* geen URL-ondersteuning: enkel op dit scherm */ }
+  }, [activeTab, fdrClubs, fdrClubFilterActive]);
 
   // De first-time-uitleg over Thuisvoordeel verdwijnt vanzelf na een paar seconden.
   useEffect(() => {
@@ -1203,23 +1207,19 @@ export default function FDRTool() {
             gwHorizonEnd={gwHorizonEnd}
             setGwHorizonEnd={setGwHorizonEnd}
             gwHorizonRange={gwHorizonRange}
+            quickPeriod={fdrQuickPeriod}
+            chooseQuickPeriod={chooseFdrQuickPeriod}
             visibleGwHeaderCells={visibleGwHeaderCells}
-            compareGwHeaderCells={compareGwHeaderCells}
-            compareTableSlots={compareTableSlots}
-            compareGwStart={compareGwStart}
-            compareGwEnd={compareGwEnd}
+            runsGwHeaderCells={runsGwHeaderCells}
             mainTableSlots={mainTableSlots}
-            displayedTeams={displayedTeams}
+            displayedTeams={visibleTeams}
+            clubFilter={fdrClubs}
+            clubFilterActive={fdrClubFilterActive}
+            setClubFilter={setFdrClubs}
             teamAvgDifficulty={teamAvgDifficulty}
             tableRef={tableRef}
-            rangeStart={rangeStart}
-            setRangeStart={setRangeStart}
-            rangeEnd={rangeEnd}
-            setRangeEnd={setRangeEnd}
             bestRuns={bestRuns}
-            compareTeams={compareTeams}
             teamForm={teamForm}
-            toggleCompareTeam={toggleCompareTeam}
             onOpenClub={openClubSheet}
           />
         )}
@@ -1388,7 +1388,29 @@ export default function FDRTool() {
       {/* Melding na een watch-list-wijziging (spec §5.10: omgekeerde toast, boven de onderbalk op gsm).
           Verdwijnt vanzelf na 8 seconden. "Ongedaan maken" hoort enkel bij een verwijdering: een
           toevoeging draai je terug door de ster nog eens aan te tikken. */}
-      {planner.notice && (
+      {fdrNotice && activeTab === 'fdr' && (
+        <div role="status" aria-live="polite" className="ui-toast ui-toast--stack">
+          <p className="ui-toast__text">
+            {t(fdrNotice.kind === 'copyFailed' ? 'fdr.copyFailed' : 'fdr.downloadFailed')}
+          </p>
+          {fdrNotice.kind === 'copyFailed' && (
+            <input
+              className="ui-toast__field"
+              type="text"
+              readOnly
+              value={fdrNotice.url}
+              aria-label={t('fdr.copyFailedAria')}
+              onFocus={(e) => e.target.select()}
+              autoFocus
+            />
+          )}
+          <button type="button" onClick={() => setFdrNotice(null)} aria-label={t('undo.closeAria')} className="ui-toast__close">
+            <X aria-hidden="true" strokeWidth={1.75} />
+          </button>
+        </div>
+      )}
+
+      {planner.notice && !fdrNotice && (
         <div role="status" aria-live="polite" className="ui-toast">
           <p className="ui-toast__text">{t(`teamPlanner.notice.${planner.notice.key}`, planner.notice.vars)}</p>
           {planner.notice.snapshot && (

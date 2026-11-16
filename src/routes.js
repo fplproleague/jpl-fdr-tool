@@ -175,7 +175,7 @@ export function pathForRoute(key, language = DEFAULT_ROUTE_LANGUAGE) {
 // ratings uit een gedeelde FDR-link) horen enkel bij de FDR-tab: wie van tab wisselt, ziet daarna weer
 // zijn eigen ratings (FUNCTIONALITEIT_SPEC A1).
 export const TAB_QUERY_PARAMS = {
-  fdr: ['r', 'ha'],
+  fdr: ['r', 'ha', 'clubs'],
   spelers: ['q', 'pos', 'club', 'pmin', 'pmax', 'mins', 'scope', 'per', 'mode', 'cols', 'sort', 'dir', 'compare', 'speler', 'diff', 'avail'],
   predictedlineups: ['match', 'team', 'view', 'twijfel'],
   klassement: ['team', 'rgw'],
