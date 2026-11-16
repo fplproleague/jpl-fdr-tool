@@ -133,6 +133,8 @@
 .tp-pitch .tp-slot.is-empty .tp-slot__frame { border-color: var(--pitch-line); }
 .tp-slot.is-swappable .tp-slot__shirt { outline: 2px dashed var(--accent); outline-offset: 3px; }
 .tp-slot.is-dimmed { opacity: 0.35; }
+/* Officieel niet in de basis (spec F3): shirt en naam gedimd, het kruisje blijft goed zichtbaar. */
+.tp-slot.is-official-out .tp-slot__shirt img, .tp-slot.is-official-out .tp-slot__name { opacity: 0.45; }
 .tp-slot.is-selected .tp-slot__name { background: var(--accent); color: var(--accent-ink); }
 .tp-slot.is-boosted .tp-slot__name { border-bottom: 2px solid var(--accent); }
 

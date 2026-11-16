@@ -42,6 +42,7 @@ import usePlayerIndex from '../data/usePlayerIndex';
 import { findInDatabase } from '../data/playerDatabase';
 import { AvailabilityMini } from '../ui/AvailabilityMark';
 import { useAvailabilityLookup } from '../availabilityContext';
+import { officialStatus } from '../data/officialLineups';
 import { isEmptySlot } from '../teamPlanner';
 import './TeamPlannerTab.css';
 
@@ -227,6 +228,9 @@ export default function TeamPlannerTab({
   t, onOpenPlayer, ratings, homeAdvantage, openSections, toggleSection,
   planner, playerDatabase, playerDatabaseLoading, playerDatabaseError, fetchPlayerDatabase,
   isPlayerWatched, toggleWatchlistPlayer,
+  // Officiële opstellingen (spec F3, buildOfficialIndex) en de sleutel om spelers te vergelijken. Enkel
+  // gebruikt in de speeldag waar ze bij horen.
+  official = null, officialKeyOf = null,
 }) {
   const index = usePlayerIndex();
   const p = planner.planner;
@@ -271,7 +275,19 @@ export default function TeamPlannerTab({
   const availability = useAvailabilityLookup();
   const databaseReady = !playerDatabaseLoading && playerDatabase.length > 0;
   const isNotFound = (player) => databaseReady && !!player?.name && !findInDatabase(playerDatabase, player.name, player.teamCode);
-  const slotStatus = (player) => (isNotFound(player) ? NOT_FOUND_STATUS : availability(player.name, player.teamCode));
+  // Officieel niet in de basis (spec F3) in de bekeken speeldag: zelfde markering als in de Verwachte XI's.
+  const officialOf = (player) => (official && official.gw === gw && officialKeyOf && player?.name
+    ? officialStatus(official, player.name, player.teamCode, officialKeyOf) : null);
+  const officialOutStatus = (state) => {
+    const label = t(state === 'bench' ? 'teamPlanner.officialBench' : 'teamPlanner.officialOut');
+    return { kind: 'officialOut', tone: 'danger', labelKey: state === 'bench' ? 'teamPlanner.officialBench' : 'teamPlanner.officialOut', titleKey: 'teamPlanner.officialTitle', vars: { gw, status: label.toLowerCase() } };
+  };
+  const slotStatus = (player) => {
+    if (isNotFound(player)) return NOT_FOUND_STATUS;
+    const state = officialOf(player);
+    if (state === 'bench' || state === 'out') return officialOutStatus(state);
+    return availability(player.name, player.teamCode);
+  };
 
   const isBenchBoostActive = p.boosters.benchBoost === gw;
   const isTripleCaptainActive = p.boosters.tripleCaptain === gw;
@@ -445,6 +461,7 @@ export default function TeamPlannerTab({
       isTarget && 'is-swappable',
       swapping && !isTarget && player.index !== swapFrom && 'is-dimmed',
       benched && isBenchBoostActive && 'is-boosted',
+      ['bench', 'out'].includes(officialOf(player)) && 'is-official-out',
     ].filter(Boolean).join(' ');
     const fromName = swapping ? displayTeam[swapFrom]?.name : '';
     return (

@@ -20,6 +20,7 @@ Tabs (8): FDR (Fixture Difficulty Rating), Verwachte XI's, Team Planner, Spelers
   - `api/team-form.js`: de vorm per club, uit API-Football. Gebruikt `API_FOOTBALL_KEY` en optioneel `API_FOOTBALL_SEASON`.
   - `api/shots.js`: schoten, schoten op doel en key passes per speler per speeldag, uit API-Football (Spelers, preset "Aanval"). Gedeelde API-Football-code (sleutel, clubs, spelers koppelen) in `api/_lib/apifootball.js`.
   - `api/team-xg.js`: xG voor en tegen per club per wedstrijd, uit API-Football (clubkaart, "laatste 5").
+  - `api/lineups.js?gw=`: de officiële opstellingen van een speeldag, uit API-Football (Verwachte XI's en Team Planner op de wedstrijddag; browserkant in `src/data/officialLineups.js`).
   - `api/analyze-screenshot.js`: een screenshot van een team inlezen met Claude. Gebruikt `ANTHROPIC_API_KEY`.
   - `api/players.js`, `api/player/[id].js`, `api/rankings.js`: Spelers- en Klassement-tab, uit de publieke Fantasy Pro League-API (geen sleutel nodig). Gedeelde code in `api/_lib/proleague.js`. Zie `README.MD`.
 - **Geen database / geen Supabase.** Spelersdata (naam, club, prijs, stats, kaarten) komt uit `/api/players` (`src/data/playerDatabase.js`). Lukt dat niet, dan valt de site terug op de Google Sheet. Set pieces komen enkel uit de Google Sheet (CSV-links in `src/constants.js`). Gebruikersdata (team, watchlist) blijft in `localStorage` van de browser.

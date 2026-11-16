@@ -155,3 +155,51 @@
   text-decoration: underline 1px var(--line-strong); text-underline-offset: 2px;
 }
 .pxl-mine__name:hover { text-decoration-color: currentColor; }
+
+/* --- Officiële opstellingen (spec F3) -------------------------------------------------------- */
+/* Vinkje: een groen rondje met een witte haak (CSS, zodat het in elke taal en op elk veld gelijk is). */
+.pxl-tick {
+  display: inline-block; position: relative; width: 12px; height: 12px; flex-shrink: 0;
+  border-radius: 50%; background: var(--positive); vertical-align: -1px;
+}
+.pxl-tick::after {
+  content: ''; position: absolute; left: 4px; top: 2px; width: 3px; height: 6px;
+  border: solid var(--accent-ink); border-width: 0 1.5px 1.5px 0; transform: rotate(45deg);
+}
+.pxl-dimmed-mark { color: var(--text-1); opacity: 0.4; font-weight: 700; font-size: var(--fs-label); }
+.pxl-official {
+  display: inline-flex; align-items: center; padding: 2px 6px; border-radius: var(--r-1);
+  background: var(--positive); color: var(--accent-ink); font: 700 var(--fs-label)/1.2 var(--font-ui);
+}
+.pxl-official.is-block { display: table; margin-top: var(--s-1); }
+/* In de wedstrijdstrip: een klein vinkje linksboven (rechtsboven staat het aantal van jouw spelers). */
+.pxl-match__official {
+  position: absolute; top: 3px; left: 3px; width: 10px; height: 10px; border-radius: 50%; background: var(--positive);
+}
+.pxl-match__official::after {
+  content: ''; position: absolute; left: 3.5px; top: 1.5px; width: 2px; height: 5px;
+  border: solid var(--accent-ink); border-width: 0 1.5px 1.5px 0; transform: rotate(45deg);
+}
+.pxl-also { margin: var(--s-2) 0 0; color: var(--text-2); font-size: var(--fs-meta); line-height: var(--lh-meta); }
+.pxl-also .pxl-tick { margin-right: 6px; }
+.pxl-also.is-row { flex-basis: 100%; margin-top: var(--s-1); }
+.pxl-name.is-official-out .pxl-name__text { opacity: 0.45; text-decoration-line: line-through; text-decoration-thickness: 1px; }
+.pxl-name__official { color: var(--text-3); font-size: var(--fs-label); }
+
+/* Op het veld: wie start, krijgt het vinkje in plaats van de startzekerheid; wie niet start, wordt
+   gedimd en krijgt "bank" of "niet in selectie" in plaats van de prijs. */
+.pxi-field--site [data-official="starts"] [data-safety] {
+  width: 12px !important; height: 12px !important; background: var(--positive) !important; border: 0 !important;
+}
+.pxi-field--site [data-official="starts"] [data-safety]::after {
+  content: ''; position: absolute; left: 4px; top: 2px; width: 3px; height: 6px;
+  border: solid var(--accent-ink); border-width: 0 1.5px 1.5px 0; transform: rotate(45deg);
+}
+.pxi-field--site [data-official="bench"], .pxi-field--site [data-official="out"] { opacity: 0.45; }
+.pxi-field--site [data-official="bench"] [data-safety], .pxi-field--site [data-official="out"] [data-safety] { display: none; }
+.pxi-field--site [data-official-label] .pxi-card-price { display: none; }
+.pxi-field--site [data-official-label]::after {
+  content: attr(data-official-label); color: var(--text-1); font: 600 var(--fs-micro)/1.2 var(--font-ui);
+  white-space: nowrap; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+.pxl-side__mine-part.is-officialOut .pxl-side__mine-dot { background: var(--danger); }
