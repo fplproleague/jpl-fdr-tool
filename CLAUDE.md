@@ -2,7 +2,7 @@
 
 Website met tools voor **Fantasy Pro League** (fantasy-spel van de Belgische Jupiler Pro League), gemaakt door @fpl_proleague. Live op https://fplproleague.vercel.app, GitHub: `fplproleague/jpl-fdr-tool` (openbaar).
 
-Tabs (8): FDR (Fixture Difficulty Rating), Verwachte XI's, Team Planner, Spelers, Bonuspunten, Set pieces, Kaarten, Klassement. De watchlist zit sinds de redesign als filter in Spelers; Watchlist en Price Changes bestaan niet meer als tab (oude links sturen door). Plus een speler- en clubpagina per speler/club. De site bestaat in het Nederlands (`/fdr`), het Frans (`/fr/fdr`) en het Engels (`/en/fdr`); elke tekst staat in `src/i18n.js` in alle drie de talen.
+Tabs (6): FDR (Fixture Difficulty Rating), Verwachte XI's, Team Planner, Spelers, Set pieces, Klassement. De watchlist zit sinds de redesign als filter in Spelers; Bonuspunten en Kaarten zijn sinds feedbackronde 2 de kolomkeuzes "Bonus" en "Kaarten" in Spelers. Watchlist, Price Changes, Bonuspunten en Kaarten bestaan niet meer als tab (oude links sturen door). Plus een speler- en clubpagina per speler/club. De site bestaat in het Nederlands (`/fdr`), het Frans (`/fr/fdr`) en het Engels (`/en/fdr`); elke tekst staat in `src/i18n.js` in alle drie de talen.
 
 ## Werken met de eigenaar
 
@@ -30,15 +30,16 @@ Tabs (8): FDR (Fixture Difficulty Rating), Verwachte XI's, Team Planner, Spelers
 ## Belangrijkste bestanden
 
 - `src/FDRTool.jsx`: de hoofdcomponent (tabs, data ophalen, layout).
-- `src/tabs/*.jsx`: één bestand per tab. Bonuspunten en Kaarten zijn `SpelersTab.jsx` met `page="bonuspunten"`/`"kaarten"` (eigen kolommen en sortering via `PAGE_DEFAULTS` in `src/spelers.js`).
+- `src/tabs/*.jsx`: één bestand per tab. De kolomkeuzes van Spelers (Overzicht, Aanval, Verdediging, Bonus, Kaarten) staan in `PRESETS` in `src/spelers.js`.
 - `src/constants.js`: teams, de **volledige kalender (`FIXTURES`)**, uitgestelde wedstrijden (`POSTPONED`), deadlines, huidige GW en de CSV-links. Kalenderwijzigingen (afgelastingen, deadlines) gebeuren hier.
 - `src/predictedLineupsData.js`: de verwachte opstellingen. Die worden **elke speeldag bijgewerkt**.
 - `src/routes.js` + `src/i18n.js`: routes en vertalingen (nl/fr/en). Een nieuwe tab = een entry in `ROUTES` + vertaalsleutels in de drie talen; zie `README.MD`. Geen zichtbare tekst hard in de code.
 - `src/fdrRatings.js`: de FDR-ratings als afwijkingen van de standaard (`DEFAULT_RATINGS`), met de migratie uit de oude opslag. Pas je `DEFAULT_RATINGS` aan, dan krijgt iedereen die die club niet zelf veranderde de nieuwe waarde.
 - Team Planner: `src/teamPlanner.js` (het rekenmodel: opslag `fpl_proleague_teamplanner_v2` met migratie uit v1, budget, gratis transfers, opstelling; puur en getest), `src/lineupScore.js` (score voor "Optimaliseer opstelling") en `src/useTeamPlanner.js` (de React-kant: state, meldingen, ongedaan maken). `src/tabs/TeamPlannerTab.jsx` toont enkel.
 - `src/myRankTeam.js`: "Mijn team volgen" in Klassement (opslag `fpl_proleague_my_rank_team_v1`, enkel team-ID + teamnaam, nooit managernamen).
+- Rondleiding voor nieuwe bezoekers: `src/tour.js` (de stappen per toestel, opslag `fpl_proleague_tour_seen_v1`; puur en getest) en `src/components/Tour.jsx` (welkomstkader met taalkeuze, de stappen over de echte pagina, het "?"-knopje in de topbalk). Een stap licht een onderdeel op via een CSS-selector: verandert de opmaak van een tab, kijk dan of de selector in `src/tour.js` nog klopt. Teksten: `tour.*` in `src/i18n.js`.
 - `src/availability.js`: één beschikbaarheidsstatus per speler (geschorst, twijfel/risico uit de Verwachte XI's, één kaart van een schorsing). Bewust geen blessures (beslissing eigenaar).
-- `scripts/build-routes.mjs`: maakt na de Vite-build een HTML-pagina per route/speler/club per taal, plus `sitemap.xml`.
+- `scripts/build-routes.mjs`: maakt na de Vite-build een HTML-pagina per route/speler/club per taal, plus `sitemap.xml`, en een preview-afbeelding (og-card, 1200×630) per pagina in `dist/og/`. Wat er op een card staat: `src/ogCards.js`; het tekenen: `scripts/og/` (satori + resvg, enkel bij het bouwen; lettertypes en clublogo's als PNG staan daar ook). Een nieuwe club = ook zijn logo als PNG in `scripts/og/club-logos/`.
 - `src/predicted-xi/` + `predicted-xi.html`: aparte, niet-gelinkte privétool om opstellingen samen te stellen.
 
 ## Opstarten (lokaal, Windows)

@@ -219,7 +219,8 @@ function XgSection({ t, xg }) {
                   </span>
                 </td>
                 <td>
-                  <span className="num">{m.gf ?? '?'}–{m.ga ?? '?'}</span>
+                  {/* Uitslag zoals ze echt was: thuisploeg eerst (feedback eigenaar), ook bij een uitmatch. */}
+                  <span className="num">{m.home ? `${m.gf ?? '?'}–${m.ga ?? '?'}` : `${m.ga ?? '?'}–${m.gf ?? '?'}`}</span>
                   {result && <span className={`cs-xgt__res is-${result}`}>{resultLetter[result]}</span>}
                 </td>
                 <td className="is-num num">{fmt(m.xg)}</td>

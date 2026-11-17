@@ -183,23 +183,25 @@ function SafetyDot({ level, t }) {
   return <span className={`pxl-dot is-${level ?? 'green'}`} role="img" aria-label={t(safetyLabelKey(level))} />;
 }
 
-function Legend({ t, hasTeam, hasOfficial }) {
+// In het overzicht (compact) staan enkel de uitzonderingen: twijfel/risico en wie officieel niet start.
+function Legend({ t, hasTeam, hasOfficial, compact = false }) {
   return (
     <ul className="pxl-legend" aria-label={t('predictedLineups.legendAria')}>
-      {SAFETY_LEVELS.map(({ level, labelKey }) => (
+      {SAFETY_LEVELS.filter(({ level }) => !compact || DOUBT_LEVELS.has(level)).map(({ level, labelKey }) => (
         <li key={level}><span className={`pxl-dot is-${level}`} aria-hidden="true" />{t(labelKey)}</li>
       ))}
       {hasTeam && <li><span className="pxl-mine-mark" aria-hidden="true" />{t('predictedLineups.mine.legend')}</li>}
-      {hasOfficial && <li><span className="pxl-tick" aria-hidden="true" />{t('predictedLineups.official.starts')}</li>}
+      {hasOfficial && !compact && <li><span className="pxl-tick" aria-hidden="true" />{t('predictedLineups.official.starts')}</li>}
       {hasOfficial && <li><span className="pxl-dimmed-mark" aria-hidden="true">Aa</span>{t('predictedLineups.official.legendOut')}</li>}
     </ul>
   );
 }
 
 // Officiële status van één speler: vinkje bij een basisplaats, anders "bank" of "niet in selectie".
-function OfficialMark({ status, t }) {
+// withTick=false (overzicht): geen vinkje, het label "Officieel" bij de club zegt dat al.
+function OfficialMark({ status, t, withTick = true }) {
   if (!status) return null;
-  if (status === 'starts') return <span className="pxl-tick" role="img" aria-label={t('predictedLineups.official.starts')} />;
+  if (status === 'starts') return withTick ? <span className="pxl-tick" role="img" aria-label={t('predictedLineups.official.starts')} /> : null;
   return <span className="pxl-name__official">{t(`predictedLineups.official.${status}`)}</span>;
 }
 
@@ -264,7 +266,7 @@ function MyTeamLine({ t, myTeam, playerKeyOf, onOpenPlayer, statusOf }) {
   ].filter(([, list]) => list.length > 0);
   return (
     <p className="pxl-mine">
-      <strong>{t('predictedLineups.mine.title')}</strong>
+      <strong>{t('predictedLineups.mine.title', { gw: SHOWN_GW })}</strong>
       <span aria-hidden="true">: </span>
       <span>{counts.join(' · ')}</span>
       {parts.map(([key, list]) => (
@@ -469,10 +471,12 @@ function Overview({ t, onlyDoubts, onlyMine, isMine, onOpenPlayer, onOpenClub, o
                           return (
                             <li key={`${slot.playerName}-${i}`}>
                               <button type="button" className={`pxl-name${mine ? ' is-mine' : ''}${dimmed ? ' is-official-out' : ''}`} onClick={() => onOpenPlayer?.(slot.playerName, slot.playerTeamCode || team.code)}>
-                                <SafetyDot level={slot.safety} t={t} />
+                                {/* Rustiger overzicht (feedback eigenaar): enkel twijfel en risico krijgen een stip,
+                                    en een officiële basisplaats geen vinkje meer per naam. */}
+                                {DOUBT_LEVELS.has(slot.safety) && !status && <SafetyDot level={slot.safety} t={t} />}
                                 <span className="pxl-name__text">{slot.playerName}</span>
                                 {mine && <span className="ui-sr-only"> ({t('predictedLineups.mine.legend')})</span>}
-                                <OfficialMark status={status} t={t} />
+                                <OfficialMark status={status} t={t} withTick={false} />
                                 <CardStatus name={slot.playerName} clubCode={slot.playerTeamCode || team.code} />
                               </button>
                             </li>
@@ -604,7 +608,7 @@ export default function PredictedLineupsTab({ t, language = 'nl', onOpenPlayer, 
         {state.view === 'overview' && hasTeam && (
           <Switch checked={state.onlyMine} onChange={v => setState(s => ({ ...s, onlyMine: v }))} label={t('predictedLineups.mine.only')} />
         )}
-        <Legend t={t} hasTeam={hasTeam} hasOfficial={Boolean(official)} />
+        <Legend t={t} hasTeam={hasTeam} hasOfficial={Boolean(official)} compact={state.view === 'overview'} />
       </div>
 
       {state.view === 'overview' ? (

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { FORM_GWS, PAGE_DEFAULTS, buildRow, cellValue, formAverage, formatCell, formatForm, searchFromState, sortRows, stateFromSearch } from './spelers';
+import { FORM_GWS, buildRow, cellValue, formAverage, formatCell, formatForm, searchFromState, sortRows, stateFromSearch } from './spelers';
 import { searchForTab } from './routes';
 
 describe('vorm als gemiddelde (spec E4)', () => {
@@ -59,20 +59,15 @@ describe('Bonuspunten en Kaarten op de Spelers-tabel (spec E3)', () => {
     expect(formatCell(cellValue({ dw: 2, dl: 5 }, 'dd', 'total'), 'dd', 'total')).toBe('-3');
   });
 
-  it('een pagina zonder parameters krijgt haar eigen standaard, en die komt niet in de URL', () => {
-    const bonus = stateFromSearch('', PAGE_DEFAULTS.bonuspunten);
-    expect(bonus).toMatchObject({ cols: 'bonus', sort: 'bp', dir: 'desc' });
-    expect(searchFromState(bonus, '', PAGE_DEFAULTS.bonuspunten)).toBe('');
-    const kaarten = stateFromSearch('', PAGE_DEFAULTS.kaarten);
-    expect(kaarten).toMatchObject({ cols: 'cards', sort: 'toSusp', dir: 'asc' });
-    expect(searchFromState(kaarten, '', PAGE_DEFAULTS.kaarten)).toBe('');
-    // Spelers blijft zoals het was.
+  it('zonder parameters: Overzicht, gesorteerd op punten', () => {
     expect(stateFromSearch('')).toMatchObject({ cols: 'overview', sort: 'pts', dir: 'desc' });
+    // De oude Bonuspunten- en Kaarten-links komen hier aan met hun kolomkeuze en sortering.
+    expect(stateFromSearch('?cols=bonus&sort=bp')).toMatchObject({ cols: 'bonus', sort: 'bp', dir: 'desc' });
+    expect(stateFromSearch('?cols=cards&sort=toSusp&dir=asc')).toMatchObject({ cols: 'cards', sort: 'toSusp', dir: 'asc' });
   });
 
-  it('filters van Spelers gaan niet mee naar Bonuspunten of Kaarten', () => {
-    expect(searchForTab('?cols=attack&q=van', 'bonuspunten', 'spelers')).toBe('');
-    expect(searchForTab('?cols=attack&q=van', 'spelers', 'spelers')).toBe('?cols=attack&q=van');
-    expect(searchForTab('?pos=MID&r=abc', 'fdr', 'spelers')).toBe('?r=abc');
+  it('filters van Spelers gaan niet mee naar een andere tab', () => {
+    expect(searchForTab('?cols=attack&q=van', 'spelers')).toBe('?cols=attack&q=van');
+    expect(searchForTab('?pos=MID&r=abc', 'fdr')).toBe('?r=abc');
   });
 });

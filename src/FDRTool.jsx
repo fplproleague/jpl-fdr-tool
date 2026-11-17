@@ -41,6 +41,7 @@ import {
 import useTeamPlanner from './useTeamPlanner';
 import AppShell from './ui/AppShell';
 import Sheet from './components/Sheet';
+import { TourOverlay, TourWelcome, useTour } from './components/Tour';
 import './ui/Toast.css';
 
 // Enkel de FDR-tab (de standaardweergave) zit in de hoofdbundle. De andere tabs worden pas
@@ -69,7 +70,7 @@ const TABS = ROUTES;
 // FDR-tab staat er bewust niet bij: die rendert volledig uit constants.js.
 // De Spelers-tab haalt zijn eigen data uit /api/players, maar heeft de databank nodig om spelers aan de
 // watchlist en "Mijn team" te koppelen (die kennen spelers op hun naam in de sheet).
-const PLAYER_DATABASE_TABS = new Set(['teamplanner', 'bonuspunten', 'kaarten', 'spelers']);
+const PLAYER_DATABASE_TABS = new Set(['teamplanner', 'spelers']);
 
 // Eén plek voor de canonieke oorsprong van de site; stond eerder als letterlijke string in de
 // title/canonical-useEffect en moet nu ook door de hreflang-alternates gebruikt worden.
@@ -321,7 +322,7 @@ export default function FDRTool() {
     setActiveTab(key);
     if (typeof window === 'undefined') return;
     // Parameters die enkel bij een andere tab horen (filters van Spelers/Klassement) vallen weg.
-    const url = urlForRoute(key, searchForTab(window.location.search, key, activeTab), language);
+    const url = urlForRoute(key, searchForTab(window.location.search, key), language);
     if (url !== window.location.pathname + window.location.search) {
       window.history.pushState({ tab: key }, '', url);
     }
@@ -553,6 +554,11 @@ export default function FDRTool() {
     const fromUrl = sheetFromPath(window.location.pathname);
     return fromUrl?.kind === 'player' ? fromUrl.slug : null;
   });
+
+  // Rondleiding (src/components/Tour.jsx): het welkomstkader bij het eerste bezoek wacht tot een
+  // gedeelde spelers- of clubkaart dicht is (en tot de eenmalige watchlist-melding weg is, anders liggen
+  // ze op gsm over elkaar); het "?"-knopje in de topbalk start ze opnieuw.
+  const tour = useTour({ activeTab, navigateToTab, blocked: Boolean(sheet || pendingPlayerSlug || showWatchlistMoved) });
 
   // Aangepast = er is minstens één eigen afwijking. Vroeger vergeleek dit objectreferenties, waardoor
   // wie alles handmatig terugzette toch "eigen (aangepast)" bleef zien.
@@ -1196,6 +1202,7 @@ export default function FDRTool() {
         minileagueCopied={minileagueCodeCopied}
         newMarkerTab={PREDICTED_LINEUPS_GW === CURRENT_GW && deadlineRemaining ? 'predictedlineups' : null}
         lastUpdated={formatLastUpdatedLong(language)}
+        onOpenTour={tour.start}
       >
 
         {activeTab === 'fdr' && (
@@ -1279,30 +1286,6 @@ export default function FDRTool() {
           </Suspense>
         )}
 
-        {activeTab === 'bonuspunten' && (
-          <Suspense fallback={<TabLoading text={t('shared.loading')} />}>
-            {/* Bonuspunten en Kaarten draaien op de tabel van Spelers (spec E3). */}
-            <SpelersTab
-              key={`bonuspunten-${spelersMountKey}`}
-              page="bonuspunten"
-              t={t}
-              ratings={ratings}
-              homeAdvantage={homeAdvantage}
-              playerDatabase={playerDatabase}
-              watchlist={watchlist}
-              onRemoveWatchlistPlayer={handleRemoveWatchlistPlayer}
-              setPiecesEntries={setPiecesData.entries}
-              onGoToTeamPlanner={() => navigateToTab('teamplanner')}
-              teamPlannerActionFor={teamPlannerActionFor}
-              isPlayerWatched={isPlayerWatched}
-              isPlayerInMyTeam={isPlayerInMyTeam}
-              toggleWatchlistPlayer={toggleWatchlistPlayer}
-              hasMyTeam={myTeamPlayerKeys.size > 0}
-              hasWatchlist={watchlist.length > 0}
-              onOpenClub={openClubSheet}
-            />
-          </Suspense>
-        )}
 
         {activeTab === 'setpieces' && (
           <Suspense fallback={<TabLoading text={t('shared.loading')} />}>
@@ -1320,29 +1303,6 @@ export default function FDRTool() {
           </Suspense>
         )}
 
-        {activeTab === 'kaarten' && (
-          <Suspense fallback={<TabLoading text={t('shared.loading')} />}>
-            <SpelersTab
-              key={`kaarten-${spelersMountKey}`}
-              page="kaarten"
-              t={t}
-              ratings={ratings}
-              homeAdvantage={homeAdvantage}
-              playerDatabase={playerDatabase}
-              watchlist={watchlist}
-              onRemoveWatchlistPlayer={handleRemoveWatchlistPlayer}
-              setPiecesEntries={setPiecesData.entries}
-              onGoToTeamPlanner={() => navigateToTab('teamplanner')}
-              teamPlannerActionFor={teamPlannerActionFor}
-              isPlayerWatched={isPlayerWatched}
-              isPlayerInMyTeam={isPlayerInMyTeam}
-              toggleWatchlistPlayer={toggleWatchlistPlayer}
-              hasMyTeam={myTeamPlayerKeys.size > 0}
-              hasWatchlist={watchlist.length > 0}
-              onOpenClub={openClubSheet}
-            />
-          </Suspense>
-        )}
 
         {activeTab === 'spelers' && (
           <Suspense fallback={<TabLoading text={t('shared.loading')} />}>
@@ -1515,6 +1475,28 @@ export default function FDRTool() {
             <X aria-hidden="true" strokeWidth={2} />
           </button>
         </div>
+      )}
+
+      {tour.mode === 'welcome' && (
+        <TourWelcome
+          t={t}
+          language={language}
+          languages={LANGUAGES}
+          onChangeLanguage={changeLanguage}
+          onStart={tour.start}
+          onDismiss={tour.dismiss}
+        />
+      )}
+      {tour.mode === 'tour' && (
+        <TourOverlay
+          t={t}
+          step={tour.step}
+          index={tour.index}
+          count={tour.count}
+          onNext={tour.next}
+          onPrev={tour.prev}
+          onClose={tour.close}
+        />
       )}
     </div>
     </KickoffContext.Provider>

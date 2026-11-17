@@ -213,3 +213,19 @@
 @media (max-width: 899px) {
   .pxl-match { height: auto; min-height: 44px; }
 }
+
+/* --- Feedbackronde 2: twee velden altijd op dezelfde hoogte ------------------------------------- */
+/* Op brede schermen delen beide clubs dezelfde rijen (kop, regel "jouw spelers", veld, "start ook"),
+   zodat een extra regel bij één club (bv. een speler van jou die niet start) het andere veld niet
+   verschuift. */
+@media (min-width: 900px) {
+  .pxl-pitches { grid-template-rows: auto auto auto auto; row-gap: 0; }
+  .pxl-side { display: grid; grid-row: span 4; grid-template-rows: subgrid; align-content: start; }
+  .pxl-side > * { grid-row: 3; min-width: 0; }
+  .pxl-side > .pxl-side__head { grid-row: 1; }
+  .pxl-side > .pxl-side__mine { grid-row: 2; }
+  .pxl-side > .pxl-also { grid-row: 4; }
+  .pxl-pitches > .pxl-side:first-child { grid-column: 1; }
+  .pxl-pitches > .pxl-side:last-child { grid-column: 3; }
+  .pxl-vs { grid-column: 2; grid-row: 1 / span 4; }
+}

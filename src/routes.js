@@ -13,8 +13,9 @@
 
 // Volgorde = populariteit (spec §6.1). group: 'primary' = de 4 hoofdtools (op gsm elk een eigen plek in
 // de onderbalk), 'secondary' = de extra's (op gsm onder "Meer").
-// Watchlist en Price Changes zijn weg (spec §6.3): oude links worden doorgestuurd naar Spelers, zie
-// LEGACY_ROUTES hieronder en de redirects in vercel.json.
+// Watchlist en Price Changes zijn weg (spec §6.3), Bonuspunten en Kaarten sinds feedbackronde 2 (die
+// tonen dezelfde tabel als Spelers met de kolomkeuze "Bonus" of "Kaarten"): oude links worden
+// doorgestuurd naar Spelers, zie LEGACY_ROUTES hieronder en de redirects in vercel.json.
 export const ROUTES = [
   {
     key: 'fdr',
@@ -49,28 +50,12 @@ export const ROUTES = [
     description: 'Alle Fantasy Pro League-spelers: filter, sorteer en vergelijk op punten, vorm, prijs, bonuspunten en ownership.',
   },
   {
-    key: 'bonuspunten',
-    path: '/bonuspunten',
-    group: 'secondary',
-    label: 'Bonuspunten',
-    title: 'Bonuspunten — spelersranking | Fantasy Pro League Tools',
-    description: 'Ranking van Jupiler Pro League-spelers op bonuspunten, met een zoekbalk om een specifieke speler op te zoeken.',
-  },
-  {
     key: 'setpieces',
     path: '/set-pieces',
     group: 'secondary',
     label: 'Set pieces',
     title: 'Set Pieces — strafschop-, corner- en vrijetrapnemers | Fantasy Pro League Tools',
     description: 'Huidige strafschop-, corner- en vrijetrapnemers voor elke Belgische Pro League-club.',
-  },
-  {
-    key: 'kaarten',
-    path: '/kaarten',
-    group: 'secondary',
-    label: 'Kaarten',
-    title: 'Kaarten — schorsingsrisico | Fantasy Pro League Tools',
-    description: 'Gele kaarten per speler en wie het dichtst bij een schorsing zit.',
   },
   {
     key: 'klassement',
@@ -90,6 +75,8 @@ export const SECONDARY_ROUTES = ROUTES.filter(r => r.group === 'secondary');
 export const LEGACY_ROUTES = {
   '/watchlist': { key: 'spelers', params: { scope: 'watchlist' } },
   '/price-changes': { key: 'spelers', params: {} },
+  '/bonuspunten': { key: 'spelers', params: { cols: 'bonus', sort: 'bp' } },
+  '/kaarten': { key: 'spelers', params: { cols: 'cards', sort: 'toSusp', dir: 'asc' } },
 };
 
 // Geeft de nieuwe URL voor een oud pad, of null als het pad gewoon bestaat.
@@ -98,7 +85,8 @@ export function legacyRedirectUrl(pathname, search = '') {
   const legacy = LEGACY_ROUTES[path];
   if (!legacy) return null;
   const params = new URLSearchParams(search || '');
-  Object.entries(legacy.params).forEach(([k, v]) => params.set(k, v));
+  // Wat al in de oude link stond (bv. een zoekterm of eigen sortering), gaat voor.
+  Object.entries(legacy.params).forEach(([k, v]) => { if (!params.has(k)) params.set(k, v); });
   const qs = params.toString();
   return `${pathForRoute(legacy.key, language)}${qs ? `?${qs}` : ''}`;
 }
@@ -175,24 +163,16 @@ export function pathForRoute(key, language = DEFAULT_ROUTE_LANGUAGE) {
 // ratings uit een gedeelde FDR-link) horen enkel bij de FDR-tab: wie van tab wisselt, ziet daarna weer
 // zijn eigen ratings (FUNCTIONALITEIT_SPEC A1).
 const TABLE_PARAMS = ['q', 'pos', 'club', 'pmin', 'pmax', 'mins', 'scope', 'per', 'mode', 'cols', 'sort', 'dir', 'compare', 'speler', 'diff', 'avail'];
-// Spelers, Bonuspunten en Kaarten gebruiken dezelfde tabel en dus dezelfde parameters (spec E3).
-const TABLE_TABS = ['spelers', 'bonuspunten', 'kaarten'];
 export const TAB_QUERY_PARAMS = {
   fdr: ['r', 'ha', 'clubs'],
   spelers: TABLE_PARAMS,
-  bonuspunten: TABLE_PARAMS,
-  kaarten: TABLE_PARAMS,
   predictedlineups: ['match', 'team', 'view', 'twijfel', 'mijn'],
   klassement: ['team', 'rgw'],
 };
 
-// fromKey = de tab waar je vandaan komt. Tussen Spelers, Bonuspunten en Kaarten vallen de filters
-// wel weg (zelfde namen, maar een sortering of kolomkeuze van de ene pagina hoort niet bij de andere).
-export function searchForTab(search, key, fromKey = null) {
+// De query-string voor tab `key`: parameters van andere tabs vallen weg.
+export function searchForTab(search, key) {
   const params = new URLSearchParams(search || '');
-  if (fromKey && fromKey !== key && TABLE_TABS.includes(fromKey) && TABLE_TABS.includes(key)) {
-    TABLE_PARAMS.forEach(k => params.delete(k));
-  }
   // Een parameter die ook bij de doel-tab hoort (bv. 'team' bij Verwachte XI's én Klassement) blijft staan.
   const own = new Set(TAB_QUERY_PARAMS[key] ?? []);
   for (const [tab, keys] of Object.entries(TAB_QUERY_PARAMS)) {

@@ -308,10 +308,10 @@ export default function FDRTab({
 
   const meta = (
     <>
-      {/* Het ratings-label is ook de weg naar de ratings-lade. */}
-      <button type="button" className={`fdr-meta-link${isCustom || isViewingShared ? ' is-custom' : ''}`} onClick={() => setRatingsOpen(true)} aria-haspopup="dialog">
+      {/* Gewone tekst (feedback eigenaar): de link "Pas de ratings aan" in de intro opent de lade al. */}
+      <span className={`fdr-meta-source${isCustom || isViewingShared ? ' is-custom' : ''}`}>
         {t(isViewingShared ? 'fdr.metaShared' : isCustom ? 'fdr.metaCustom' : 'fdr.metaDefault')}
-      </button>
+      </span>
       <span aria-hidden="true"> · </span>
       <span className="num">{t('fdr.metaRange', { from: gwHorizonRange.start, to: gwHorizonRange.end })}</span>
     </>
@@ -335,7 +335,7 @@ export default function FDRTab({
 
   return (
     <>
-      <PageHeader title={t('fdr.pageTitle')} meta={meta} intro={intro} />
+      <PageHeader title={t('fdr.pageTitle')} meta={meta} intro={intro} className="fdr-page-header" />
 
       <div className="fdr-toolbar">
         <GwRange
@@ -346,11 +346,11 @@ export default function FDRTab({
         />
         <RatingLegend {...legendProps} className="fdr-legend--top" />
         <div className="fdr-toolbar__actions">
-          <Button icon={ListFilter} className="fdr-tool-btn" onClick={() => setClubsOpen(true)} aria-haspopup="dialog" aria-pressed={clubFilterActive} aria-label={t('fdr.clubs.button')}>
-            <span className="fdr-tool-btn__text">{t('fdr.clubs.button')}</span>
+          <Button icon={ListFilter} className="fdr-tool-btn" onClick={() => setClubsOpen(true)} aria-haspopup="dialog" aria-pressed={clubFilterActive} aria-label={t('fdr.clubs.button')} title={t('fdr.clubs.button')}>
+            <span className="fdr-tool-btn__text">{t('fdr.clubs.buttonShort')}</span>
           </Button>
-          <Button icon={SlidersHorizontal} className="fdr-tool-btn" onClick={() => setRatingsOpen(true)} aria-haspopup="dialog" aria-label={t('fdr.editRatings')}>
-            <span className="fdr-tool-btn__text">{t('fdr.editRatings')}</span>
+          <Button icon={SlidersHorizontal} className="fdr-tool-btn" onClick={() => setRatingsOpen(true)} aria-haspopup="dialog" aria-label={t('fdr.editRatings')} title={t('fdr.editRatings')}>
+            <span className="fdr-tool-btn__text">{t('fdr.editRatingsShort')}</span>
           </Button>
           <Button icon={linkCopied ? Check : Link2} className="fdr-tool-btn" onClick={handleCopyLink} aria-label={linkLabel}>
             <span className="fdr-tool-btn__text">{linkLabel}</span>

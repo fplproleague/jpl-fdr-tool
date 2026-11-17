@@ -2,8 +2,7 @@
 // 3/5/8 speeldagen), per-90-waarden, filteren, sorteren en de URL-staat. Bevat geen JSX en geen
 // netwerkverkeer, zodat alles hier los te testen valt. De data zelf komt uit /api/players.
 //
-// Sinds spec E3 draaien ook Bonuspunten en Kaarten op deze tabel (met hun eigen kolommen en
-// standaardsortering, zie PAGE_DEFAULTS).
+// Bonuspunten en Kaarten zijn hier de kolomkeuzes "Bonus" en "Kaarten" (vroeger aparte tabs).
 import { cardsUntilSuspension } from './kaarten';
 
 export const POSITION_KEYS = ['GK', 'DEF', 'MID', 'FWD'];
@@ -82,39 +81,19 @@ export const PRESETS = {
   defence: ['price', 'pts', 'cs', 'hc', 'dw', 'dl', 'br'],
   bonus: ['pts', 'bp', 'bpDuels', 'bpHeaders', 'bpRecoveries', 'bpBigChances'],
   cards: ['toSusp', 'yc', 'rc', 'mp', 'min'],
+  // Geen knop meer (feedbackronde 2: ownership staat al in Overzicht), maar een oude link werkt nog.
   ownership: ['price', 'sel', 'pts', 'ppm', 'form'],
-  // Enkel op de Bonuspunten-pagina (de knoppen per voorwaarde): het bonuspunt van die voorwaarde en
-  // de statistiek erachter.
-  bonusDuels: ['bp', 'bpDuels', 'dd', 'dw', 'dl', 'mp'],
-  bonusHeaders: ['bp', 'bpHeaders', 'hc', 'mp'],
-  bonusRecoveries: ['bp', 'bpRecoveries', 'br', 'mp'],
-  bonusBigChances: ['bp', 'bpBigChances', 'bc', 'mp'],
 };
 // Alle geldige presets (ook in een link); SPELERS_PRESET_KEYS = de knoppen op de Spelers-pagina.
 export const PRESET_KEYS = Object.keys(PRESETS);
-export const SPELERS_PRESET_KEYS = ['overview', 'attack', 'defence', 'bonus', 'cards', 'ownership'];
-// De knoppen op de Bonuspunten-pagina: "Totaal" en de vier voorwaarden voor een bonuspunt.
-export const BONUS_PRESETS = [
-  { cols: 'bonus', label: 'bonuspunten.tab.total' },
-  { cols: 'bonusDuels', label: 'bonuspunten.tab.duels' },
-  { cols: 'bonusHeaders', label: 'bonuspunten.tab.headers' },
-  { cols: 'bonusRecoveries', label: 'bonuspunten.tab.recoveries' },
-  { cols: 'bonusBigChances', label: 'bonuspunten.tab.bigChances' },
-];
+export const SPELERS_PRESET_KEYS = ['overview', 'attack', 'defence', 'bonus', 'cards'];
 
 // Standaardsortering wanneer je een preset kiest (enkel waar die afwijkt van punten).
 export const PRESET_SORT = {
   ownership: { sort: 'sel', dir: 'desc' },
   bonus: { sort: 'bp', dir: 'desc' },
   cards: { sort: 'toSusp', dir: 'asc' },
-  bonusDuels: { sort: 'bpDuels', dir: 'desc' },
-  bonusHeaders: { sort: 'bpHeaders', dir: 'desc' },
-  bonusRecoveries: { sort: 'bpRecoveries', dir: 'desc' },
-  bonusBigChances: { sort: 'bpBigChances', dir: 'desc' },
 };
-
-// "Differentials": spelers met een ownership onder deze grens (in %).
-export const DIFFERENTIAL_MAX_SEL = 5;
 
 // Rijen in Vergelijken.
 export const COMPARE_ROWS = ['price', 'pts', 'ppm', 'ppg', 'form', 'mp', 'min', 'g', 'a', 'sh', 'sot', 'kp', 'bp', 'cs', 'bc', 'br', 'sel'];
@@ -154,6 +133,8 @@ export function formAverage(weekPts, gw, n = FORM_GWS) {
 // Vorm met één decimaal voor de weergave ("6.2"), of null.
 export const formatForm = (value) => (Number.isFinite(value) ? value.toFixed(1) : null);
 
+const GK_ZERO = Object.freeze({ hc: 0, br: 0, bc: 0, bpHeaders: 0, bpRecoveries: 0, bpBigChances: 0 });
+
 // Speler uit /api/players + gekozen periode -> één tabelrij met alle afgeleide waarden.
 // `gw` = laatst gespeelde speeldag (lengte van de weekreeksen).
 export function buildRow(player, period, gw) {
@@ -178,6 +159,10 @@ export function buildRow(player, period, gw) {
   return {
     ...player,
     ...base,
+    // Een keeper kan met kopballen, recoveries of grote kansen geen bonuspunt halen (enkel het duelpunt).
+    // Daarom staan die bij keepers standaard op 0 (feedback eigenaar), zodat ze die rangschikkingen niet
+    // vertekenen. Zo deed de Google Sheet het vroeger ook.
+    ...(player.pos === 'GK' ? GK_ZERO : null),
     seasonMin: player.min,
     ppm: player.price > 0 ? base.pts / player.price : null,
     ppg: ratio(base.pts, base.mp),
@@ -254,7 +239,6 @@ export function filterRows(rows, f, { matchesScope } = {}) {
     if (f.pmin != null && r.price < f.pmin) return false;
     if (f.pmax != null && r.price > f.pmax) return false;
     if (f.mins > 0 && r.min < f.mins) return false;
-    if (f.diff && (r.sel ?? 0) >= DIFFERENTIAL_MAX_SEL) return false;
     if (query && !normalizeName(r.name).includes(query)) return false;
     if (matchesScope && !matchesScope(r)) return false;
     return true;
@@ -298,23 +282,17 @@ export function bestIndexes(values, { lowerIsBetter = false } = {}) {
 // Alles wat je instelt (filters, sortering, kolommen, vergelijking) staat in de URL, zodat je een
 // gefilterde lijst of een vergelijking kan delen (bv. /spelers?compare=107,99). Enkel waarden die
 // afwijken van de standaard komen in de URL, zodat een gewone link kort blijft.
-export const SPELERS_QUERY_PARAMS = ['q', 'pos', 'club', 'pmin', 'pmax', 'mins', 'scope', 'per', 'mode', 'cols', 'sort', 'dir', 'compare', 'speler', 'diff',
-  // 'avail' bestaat niet meer als filter, maar blijft hier zodat een oude link de parameter opruimt.
-  'avail'];
+export const SPELERS_QUERY_PARAMS = ['q', 'pos', 'club', 'pmin', 'pmax', 'mins', 'scope', 'per', 'mode', 'cols', 'sort', 'dir', 'compare', 'speler',
+  // 'avail' en 'diff' bestaan niet meer als filter, maar blijven hier zodat een oude link de parameter opruimt.
+  'avail', 'diff'];
 
 export const DEFAULT_STATE = {
   q: '', pos: [], club: '', pmin: null, pmax: null, mins: 0, scope: 'all', per: 'season',
-  mode: 'total', cols: 'overview', sort: 'pts', dir: 'desc', compare: [], speler: null, diff: false,
+  mode: 'total', cols: 'overview', sort: 'pts', dir: 'desc', compare: [], speler: null,
 };
 
 // Standaardstaat per pagina op deze tabel (spec E3). Wat gelijk is aan de standaard van de pagina,
 // komt niet in de URL: /bonuspunten blijft dus gewoon /bonuspunten.
-export const PAGE_DEFAULTS = {
-  spelers: DEFAULT_STATE,
-  bonuspunten: { ...DEFAULT_STATE, cols: 'bonus', ...PRESET_SORT.bonus },
-  kaarten: { ...DEFAULT_STATE, cols: 'cards', ...PRESET_SORT.cards },
-};
-
 const toNumberOrNull = (v) => {
   if (v == null || v === '') return null;
   const n = Number(v);
@@ -341,7 +319,6 @@ export function stateFromSearch(search, defaults = DEFAULT_STATE) {
     dir: ['asc', 'desc'].includes(p.get('dir')) ? p.get('dir') : defaults.dir,
     compare: (p.get('compare') ?? '').split(',').map(Number).filter(n => Number.isInteger(n) && n > 0).slice(0, MAX_COMPARE),
     speler: toNumberOrNull(p.get('speler')),
-    diff: p.get('diff') === '1',
   };
 }
 
@@ -365,7 +342,6 @@ export function searchFromState(state, currentSearch = '', defaults = DEFAULT_ST
   if (state.dir !== defaults.dir) set('dir', state.dir);
   if (state.compare.length) set('compare', state.compare.join(','));
   if (state.speler) set('speler', state.speler);
-  if (state.diff) set('diff', 1);
   const s = p.toString().replace(/%2C/g, ',');
   return s ? `?${s}` : '';
 }
