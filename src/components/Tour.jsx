@@ -234,25 +234,28 @@ export function TourOverlay({ t, step, index, count, onNext, onPrev, onClose }) 
     return () => cancelAnimationFrame(frame);
   }, [step]);
 
-  // Volg het onderdeel bij scrollen, draaien van de gsm of een tab die verder laadt.
+  // Volg het onderdeel bij scrollen, draaien van de gsm of een tab die verder laadt. Elk beeldje
+  // opnieuw meten: ook als er erboven nog iets verschijnt (bv. "Mijn team" of de officiële
+  // opstellingen in de Verwachte XI's) en het onderdeel daardoor opschuift zonder zelf te veranderen.
+  // Enkel bij een echte verandering wordt opnieuw getekend.
   useEffect(() => {
     if (!ready) return undefined;
-    const update = () => {
+    let frame = 0;
+    let last = '';
+    const follow = () => {
       const el = targetRef.current;
-      if (el && document.contains(el)) setRect(rectOf(el, step?.maxHeight));
+      if (el && document.contains(el)) {
+        const next = rectOf(el, step?.maxHeight);
+        const key = `${Math.round(next.top)}|${Math.round(next.left)}|${Math.round(next.width)}|${Math.round(next.height)}`;
+        if (key !== last) {
+          last = key;
+          setRect(next);
+        }
+      }
+      frame = requestAnimationFrame(follow);
     };
-    window.addEventListener('resize', update);
-    window.addEventListener('scroll', update, { passive: true });
-    let ro = null;
-    if (typeof ResizeObserver !== 'undefined' && targetRef.current) {
-      ro = new ResizeObserver(update);
-      ro.observe(targetRef.current);
-    }
-    return () => {
-      window.removeEventListener('resize', update);
-      window.removeEventListener('scroll', update);
-      ro?.disconnect();
-    };
+    frame = requestAnimationFrame(follow);
+    return () => cancelAnimationFrame(frame);
   }, [ready, step]);
 
   // Plaats het kaartje pas als het gemeten is (voor die tijd is het onzichtbaar).
