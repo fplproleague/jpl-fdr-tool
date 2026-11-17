@@ -34,7 +34,7 @@ import { formatShellCountdown } from '../ui/AppShell';
 import { postponedText } from '../postponed';
 import { AvailabilityBadge } from '../ui/AvailabilityMark';
 import { useAvailability } from '../availabilityContext';
-import { officialStatus, unexpectedStarters } from '../data/officialLineups';
+import { officialStatus, shirtNumberOf, unexpectedStarters } from '../data/officialLineups';
 import { formatKickoff, sortByKickoff, useKickoffLookup } from '../data/kickoffs';
 import '../ui/DataTable.css';
 import './PredictedLineupsTab.css';
@@ -329,7 +329,7 @@ function SideMine({ t, code, myTeam, playerKeyOf, onOpenPlayer, statusOf }) {
   );
 }
 
-function Side({ t, language, code, oppCode, isHome, onOpenPlayer, onOpenClub, hiddenOnMobile, highlightPlayer, myTeam, playerKeyOf, official, statusOf }) {
+function Side({ t, language, code, oppCode, isHome, onOpenPlayer, onOpenClub, hiddenOnMobile, highlightPlayer, myTeam, playerKeyOf, official, statusOf, numberOf }) {
   const club = teamByCode(code);
   const lineup = lineupFor(code);
   const postponed = POSTPONED.has(`${code}-${SHOWN_GW}`);
@@ -365,6 +365,7 @@ function Side({ t, language, code, oppCode, isHome, onOpenPlayer, onOpenClub, hi
         viewPlayerLabel={name => t('playerSheet.openAria', { name })}
         highlightPlayer={highlightPlayer}
         officialStatus={clubOfficial ? pitchStatus : null}
+        shirtNumber={numberOf}
         slots={lineup.slots}
         activeSlotIndex={null}
         onSlotClick={noop}
@@ -508,8 +509,9 @@ function CardStatus({ name, clubCode }) {
 const EMPTY_TEAM = [];
 
 // official: de officiële opstellingen (buildOfficialIndex in src/data/officialLineups.js) of null. Enkel
-// gebruikt als ze bij de getoonde speeldag horen.
-export default function PredictedLineupsTab({ t, language = 'nl', onOpenPlayer, onOpenClub, myTeam = EMPTY_TEAM, playerKeyOf, official: officialIndex = null }) {
+// gebruikt als ze bij de getoonde speeldag horen. lastNumbers: de laatst gekende rugnummers
+// (buildNumberIndex) of null.
+export default function PredictedLineupsTab({ t, language = 'nl', onOpenPlayer, onOpenClub, myTeam = EMPTY_TEAM, playerKeyOf, official: officialIndex = null, lastNumbers = null }) {
   const baseMatches = useMemo(() => buildMatches(SHOWN_GW), []);
   const [state, setState] = useState(() => readUrlState(baseMatches));
   // Aftraptijden (spec F4): de strip chronologisch, met dag en uur onder elke wedstrijd.
@@ -522,6 +524,12 @@ export default function PredictedLineupsTab({ t, language = 'nl', onOpenPlayer, 
   const statusOf = useCallback(
     (name, club) => (official ? officialStatus(official, name, club, playerKeyOf) : null),
     [official, playerKeyOf],
+  );
+  // Rugnummers: de officiële opstelling eerst (ook die van de vorige speeldag is het meest recente
+  // nummer), anders het laatst gekende nummer.
+  const numberOf = useCallback(
+    (name, club) => shirtNumberOf({ official: officialIndex, lastNumbers }, name, club, playerKeyOf),
+    [officialIndex, lastNumbers, playerKeyOf],
   );
 
   const hasTeam = myTeam.length > 0 && typeof playerKeyOf === 'function';
@@ -638,9 +646,9 @@ export default function PredictedLineupsTab({ t, language = 'nl', onOpenPlayer, 
                 />
               </div>
               <div className="pxl-pitches" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-                <Side t={t} language={language} code={match.home} oppCode={match.away} isHome onOpenPlayer={onOpenPlayer} onOpenClub={onOpenClub} hiddenOnMobile={state.team === match.away} highlightPlayer={hasTeam ? isMine : undefined} myTeam={hasTeam ? myTeam : EMPTY_TEAM} playerKeyOf={playerKeyOf} official={official} statusOf={official ? statusOf : null} />
+                <Side t={t} language={language} code={match.home} oppCode={match.away} isHome onOpenPlayer={onOpenPlayer} onOpenClub={onOpenClub} hiddenOnMobile={state.team === match.away} highlightPlayer={hasTeam ? isMine : undefined} myTeam={hasTeam ? myTeam : EMPTY_TEAM} playerKeyOf={playerKeyOf} official={official} statusOf={official ? statusOf : null} numberOf={numberOf} />
                 <span className="pxl-vs" aria-hidden="true">{t('predictedLineups.vs')}</span>
-                <Side t={t} language={language} code={match.away} oppCode={match.home} isHome={false} onOpenPlayer={onOpenPlayer} onOpenClub={onOpenClub} hiddenOnMobile={state.team !== match.away} highlightPlayer={hasTeam ? isMine : undefined} myTeam={hasTeam ? myTeam : EMPTY_TEAM} playerKeyOf={playerKeyOf} official={official} statusOf={official ? statusOf : null} />
+                <Side t={t} language={language} code={match.away} oppCode={match.home} isHome={false} onOpenPlayer={onOpenPlayer} onOpenClub={onOpenClub} hiddenOnMobile={state.team !== match.away} highlightPlayer={hasTeam ? isMine : undefined} myTeam={hasTeam ? myTeam : EMPTY_TEAM} playerKeyOf={playerKeyOf} official={official} statusOf={official ? statusOf : null} numberOf={numberOf} />
               </div>
               <div className="pxl-steppers">
                 <Button variant="icon" icon={ChevronLeft} onClick={() => stepMatch(-1)} aria-label={t('predictedLineups.prevMatch')} />

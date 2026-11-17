@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { convertLineup, gwSchedule } from './lineups.js';
+import { buildLastNumbers, convertLineup, gwSchedule, shirtNumber } from './lineups.js';
 import { buildPlayerMatcher } from './_lib/apifootball.js';
-import { buildOfficialIndex, officialStatus, unexpectedStarters } from '../src/data/officialLineups.js';
+import { buildNumberIndex, buildOfficialIndex, officialStatus, shirtNumberOf, unexpectedStarters } from '../src/data/officialLineups.js';
 
 describe('officiële opstellingen: server (spec F3)', () => {
   it('neemt de wedstrijden van één speeldag, met het venster rond de aftraptijden', () => {
@@ -25,10 +25,58 @@ describe('officiële opstellingen: server (spec F3)', () => {
     const shortOf = new Map(fpl.map(p => [p.id, p.short]));
     const lineup = convertLineup({
       formation: '4-3-3',
-      startXI: [{ player: { name: 'H. Vanaken' } }, { player: { name: 'S. Mignolet' } }, { player: { name: 'J. Jeugdspeler' } }],
-      substitutes: [{ player: { name: 'J. Ordonez' } }],
+      startXI: [{ player: { name: 'H. Vanaken', number: 20 } }, { player: { name: 'S. Mignolet', number: null } }, { player: { name: 'J. Jeugdspeler', number: 70 } }],
+      substitutes: [{ player: { name: 'J. Ordonez', number: 4 } }],
     }, 'CLU', buildPlayerMatcher(fpl), shortOf);
-    expect(lineup).toEqual({ formation: '4-3-3', starters: ['Vanaken', 'Mignolet'], bench: ['Ordonez'], unmatched: ['J. Jeugdspeler'] });
+    expect(lineup).toEqual({
+      formation: '4-3-3', starters: ['Vanaken', 'Mignolet'], bench: ['Ordonez'],
+      numbers: { Vanaken: 20, Ordonez: 4 }, unmatched: ['J. Jeugdspeler'],
+    });
+  });
+});
+
+describe('rugnummers op de Verwachte XI\'s', () => {
+  const fpl = [
+    { id: 1, name: 'Hans Vanaken', short: 'Vanaken', club: 'CLU' },
+    { id: 2, name: 'Tolu Arokodare', short: 'Arokodare', club: 'GNK' }, // speelde vorige week nog bij Anderlecht
+    { id: 3, name: 'Brandon Mechele', short: 'Mechele', club: 'CLU' },
+  ];
+  const maps = {
+    matchPlayer: buildPlayerMatcher(fpl),
+    shortOf: new Map(fpl.map(p => [p.id, p.short])),
+    clubOf: new Map(fpl.map(p => [p.id, p.club])),
+  };
+  const fixture = (date, team, startXI, substitutes = []) => ({ fixture: { date }, lineups: [{ team: { name: team }, startXI, substitutes }] });
+
+  it('neemt het nummer uit de laatste wedstrijd waarin de speler op het wedstrijdblad stond', () => {
+    const details = [
+      fixture('2026-11-08T12:30:00Z', 'Club Brugge', [{ player: { name: 'H. Vanaken', number: 20 } }], [{ player: { name: 'B. Mechele', number: 44 } }]),
+      // Een week later: Vanaken met een ander nummer, Mechele niet op het wedstrijdblad.
+      fixture('2026-11-15T12:30:00Z', 'Club Brugge', [{ player: { name: 'H. Vanaken', number: 10 } }]),
+      // Volgorde in de lijst doet er niet toe: de datum telt.
+      fixture('2026-11-01T12:30:00Z', 'Club Brugge', [{ player: { name: 'H. Vanaken', number: 8 } }]),
+      // Transfer binnen de competitie: nummer bij de vorige club, getoond bij de huidige club.
+      fixture('2026-11-15T12:30:00Z', 'Anderlecht', [{ player: { name: 'Tolu Arokodare', number: 9 } }]),
+    ];
+    expect(buildLastNumbers(details, maps)).toEqual({ CLU: { Vanaken: 10, Mechele: 44 }, GNK: { Arokodare: 9 } });
+  });
+
+  it('negeert ongeldige nummers', () => {
+    expect(shirtNumber(0)).toBeNull();
+    expect(shirtNumber(100)).toBeNull();
+    expect(shirtNumber('7')).toBe(7);
+    expect(shirtNumber(null)).toBeNull();
+  });
+
+  it('in de browser: de officiële opstelling gaat voor, anders het laatst gekende nummer', () => {
+    const keyOf = (name, club) => `${name.toLowerCase()}|${club}`;
+    const official = buildOfficialIndex({ gw: 12, matches: [{ home: 'CLU', away: 'AND', lineups: { CLU: { starters: ['Vanaken'], bench: [], numbers: { Vanaken: 10 } } } }] }, keyOf);
+    const lastNumbers = buildNumberIndex({ numbers: { CLU: { Vanaken: 20, Mechele: 44 } } }, keyOf);
+    expect(shirtNumberOf({ official, lastNumbers }, 'Vanaken', 'CLU', keyOf)).toBe(10);
+    expect(shirtNumberOf({ official, lastNumbers }, 'Mechele', 'CLU', keyOf)).toBe(44);
+    expect(shirtNumberOf({ official: null, lastNumbers }, 'Vanaken', 'CLU', keyOf)).toBe(20);
+    expect(shirtNumberOf({ official: null, lastNumbers: null }, 'Vanaken', 'CLU', keyOf)).toBeNull();
+    expect(buildNumberIndex(null, keyOf)).toBeNull();
   });
 });
 

@@ -48,6 +48,45 @@ export function useOfficialLineups(gw = LIVE_GW, enabled = true) {
   return data;
 }
 
+// { "Vanaken": 20 } -> Map(spelerssleutel -> rugnummer).
+function numberMap(numbers, club, keyOf) {
+  const map = new Map();
+  for (const [name, n] of Object.entries(numbers ?? {})) if (Number.isInteger(n)) map.set(keyOf(name, club), n);
+  return map;
+}
+
+// Laatst gekende rugnummers (uit /api/lineups?numbers=1): één keer per bezoek, enkel als `enabled`.
+// Lukt het niet, dan null en toont het veld gewoon geen nummers.
+export function useShirtNumbers(enabled = true) {
+  const [data, setData] = useState(null);
+  useEffect(() => {
+    if (!enabled || data) return undefined;
+    let alive = true;
+    fetch('/api/lineups?numbers=1')
+      .then(r => (r.ok ? r.json() : null))
+      .then(body => { if (alive && body?.numbers) setData(body); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [enabled, data]);
+  return data;
+}
+
+// Antwoord van /api/lineups?numbers=1 -> { <club>: Map(sleutel -> rugnummer) } of null.
+export function buildNumberIndex(data, keyOf) {
+  if (!data?.numbers || typeof keyOf !== 'function') return null;
+  const byClub = {};
+  for (const [club, numbers] of Object.entries(data.numbers)) byClub[club] = numberMap(numbers, club, keyOf);
+  return byClub;
+}
+
+// Het rugnummer voor het veld: uit de officiële opstelling als die er is, anders het laatst gekende
+// nummer (de vorige wedstrijd waarin de speler op het wedstrijdblad stond). null = onbekend.
+export function shirtNumberOf({ official, lastNumbers }, name, club, keyOf) {
+  if (!name || !club || typeof keyOf !== 'function') return null;
+  const key = keyOf(name, club);
+  return official?.byClub?.[club]?.numbers?.get(key) ?? lastNumbers?.[club]?.get(key) ?? null;
+}
+
 // Antwoord van /api/lineups -> opzoekbare vorm. keyOf(naam, club) is dezelfde sleutel als die van de
 // Verwachte XI's (FDRTool.jsx: lineupPlayerKey), zodat "Vanaken" in beide bronnen dezelfde speler is.
 // Geeft null als er nog geen enkele officiële opstelling is.
@@ -66,6 +105,7 @@ export function buildOfficialIndex(data, keyOf) {
         starters: new Set(lineup.starters.map(n => keyOf(n, club))),
         bench: new Set((lineup.bench ?? []).map(n => keyOf(n, club))),
         starterNames: lineup.starters,
+        numbers: numberMap(lineup.numbers, club, keyOf),
       };
     }
     if (any) matches.add(`${m.home}-${m.away}`);

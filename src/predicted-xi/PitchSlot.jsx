@@ -89,6 +89,8 @@ export default function PitchSlot({
   // volgen). Terugval op SHIRT_WIDTH_PX_IDEAL enkel voor het zeldzame geval dat deze prop ontbreekt (bv.
   // vóór de eerste layout-meting in PitchField.jsx).
   shirtWidthPx = SHIRT_WIDTH_PX_IDEAL,
+  // Enkel de publieke tab: het rugnummer, op het shirt getekend. null (de builder en de export) = niets.
+  shirtNumber = null,
 }) {
   const isEmpty = !slot.playerName;
   // Bekijken mag enkel op de publieke, read-only weergave: in de builder is een klik al een
@@ -247,6 +249,11 @@ export default function PitchSlot({
                   }}
                   onError={(e) => { e.target.style.display = 'none'; }}
                 />
+                {shirtNumber != null && (
+                  <span className="pxi-card-number num" aria-hidden="true" style={{ fontSize: `${Math.round(shirtWidthPx * 0.36)}px` }}>
+                    {shirtNumber}
+                  </span>
+                )}
               </div>
             )}
             {/* Kaal (geen achtergrond/rand/padding meer, zie bestandscommentaar hierboven) — enkel de

@@ -27,7 +27,7 @@ import { KickoffContext, useKickoffs } from './data/kickoffs';
 import { buildAvailabilityLookup } from './availability';
 import { loadPlayers } from './data/playersApi';
 import { playerDatabaseFromApi, findInDatabase } from './data/playerDatabase';
-import { LIVE_GW, buildOfficialIndex, useOfficialLineups } from './data/officialLineups';
+import { LIVE_GW, buildNumberIndex, buildOfficialIndex, useOfficialLineups, useShirtNumbers } from './data/officialLineups';
 import { normalizePlayerName } from './data/usePlayerIndex';
 import {
   applyOverrides, diffFromDefaults, setOverride, removeOverride, loadOverrides, saveOverrides,
@@ -1088,6 +1088,10 @@ export default function FDRTool() {
   // Uit de gratis kalender van Fantasy Pro League; één keer per bezoek.
   const kickoffs = useKickoffs();
   const officialLineups = useMemo(() => buildOfficialIndex(officialData, lineupPlayerKey), [officialData, lineupPlayerKey]);
+  // Rugnummers op de velden van de Verwachte XI's: het laatst gekende nummer per speler, zolang er nog
+  // geen officiële opstelling is (die heeft voorrang, zie shirtNumberOf).
+  const shirtNumberData = useShirtNumbers(activeTab === 'predictedlineups');
+  const lastShirtNumbers = useMemo(() => buildNumberIndex(shirtNumberData, lineupPlayerKey), [shirtNumberData, lineupPlayerKey]);
 
   // De knop onderaan de spelerskaart (spec E2): met een volledig team "Transfer naar mijn team", zit de
   // speler er al in "In je team" (uitgeschakeld), anders "Naar Team Planner" zoals vroeger.
@@ -1275,6 +1279,7 @@ export default function FDRTool() {
             <PredictedLineupsTab
               t={t} language={language} onOpenPlayer={openPlayerSheet} onOpenClub={openClubSheet}
               myTeam={lineupMyTeam} playerKeyOf={lineupPlayerKey} official={officialLineups}
+              lastNumbers={lastShirtNumbers}
             />
           </Suspense>
         )}

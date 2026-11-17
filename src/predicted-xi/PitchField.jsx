@@ -116,6 +116,8 @@ const PitchField = forwardRef(function PitchField({
   // Optioneel, enkel de publieke tab (spec F3): (naam, clubcode) -> { state: 'starts'|'bench'|'out',
   // label } of null, uit de officiële opstelling. Zonder deze prop verandert er niets.
   officialStatus = null,
+  // Enkel de publieke tab: (naam, club) -> rugnummer | null. Zonder deze prop geen nummers (builder, export).
+  shirtNumber = null,
 }, ref) {
   const site = variant === 'site' && siteTheme;
   const pitchSlots = slots.filter(s => s.positionId !== '_unassigned');
@@ -320,6 +322,7 @@ const PitchField = forwardRef(function PitchField({
                 highlighted={highlightPlayer && slot.playerName ? highlightPlayer(slot.playerName, slot.playerTeamCode || club?.code) : undefined}
                 official={officialStatus && slot.playerName ? officialStatus(slot.playerName, slot.playerTeamCode || club?.code) : undefined}
                 teamCode={club?.code}
+                shirtNumber={shirtNumber && slot.playerName ? shirtNumber(slot.playerName, slot.playerTeamCode || club?.code) : null}
                 shirtWidthPx={shirtWidthPx}
               />
             );

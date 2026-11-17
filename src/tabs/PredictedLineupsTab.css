@@ -53,6 +53,14 @@
 /* Het veld in de sitestijl (PitchField variant="site"). De inline stijlen van de builder blijven
    staan voor de builder zelf; hier worden ze enkel binnen .pxi-field--site overschreven. */
 .pxi-field--site .pxi-card-shirt { filter: none !important; }
+/* Rugnummer op het shirt: wit met een donkere rand, leesbaar op elke clubkleur en over de sponsor. */
+.pxi-field--site .pxi-card-number {
+  position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-46%);
+  text-align: center; pointer-events: none;
+  color: #fff; font-family: var(--font-num); font-weight: 800; line-height: 1; letter-spacing: -0.02em;
+  -webkit-text-stroke: 0.15em rgba(12, 13, 12, 0.92); paint-order: stroke fill;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
 /* Het naamlabel mag iets breder zijn dan het shirt (8px per kant): de kaartbreedte is berekend voor
    de builder zonder achtergrondvlak, en anders werden namen als "Sabbe" net afgekapt. */
 .pxi-field--site .pxi-card-label { gap: 1px !important; max-width: calc(100% + 16px); }
