@@ -210,3 +210,7 @@ span.fdr-team { cursor: default; }
 .fdr-rating-row__reset:hover { color: var(--text-1); border-color: var(--line-strong); }
 .fdr-rating-row__reset svg { width: 14px; height: 14px; }
 .fdr-switch:disabled { cursor: default; opacity: .6; }
+
+/* De intro mag hier breder dan de gewone 72 tekens (feedback eigenaar): in het Nederlands en Frans
+   paste "… Pas de ratings aan … · Uitleg" daardoor net niet op één regel, in het Engels wel. */
+.fdr-page-header .ui-page-header__intro { max-width: none; }

@@ -528,6 +528,7 @@ export default function SpelersTab({
             ]}
           />
           <Segmented
+            className="spl-presets"
             ariaLabel={t('spelers.presets.label')}
             value={ui.cols}
             onChange={choosePreset}
