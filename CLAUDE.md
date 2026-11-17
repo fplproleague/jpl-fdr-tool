@@ -39,7 +39,7 @@ Tabs (6): FDR (Fixture Difficulty Rating), Verwachte XI's, Team Planner, Spelers
 - `src/myRankTeam.js`: "Mijn team volgen" in Klassement (opslag `fpl_proleague_my_rank_team_v1`, enkel team-ID + teamnaam, nooit managernamen).
 - Rondleiding voor nieuwe bezoekers: `src/tour.js` (de stappen per toestel, opslag `fpl_proleague_tour_seen_v1`; puur en getest) en `src/components/Tour.jsx` (welkomstkader met taalkeuze, de stappen over de echte pagina, het "?"-knopje in de topbalk). Een stap licht een onderdeel op via een CSS-selector: verandert de opmaak van een tab, kijk dan of de selector in `src/tour.js` nog klopt. Teksten: `tour.*` in `src/i18n.js`.
 - `src/availability.js`: één beschikbaarheidsstatus per speler (geschorst, twijfel/risico uit de Verwachte XI's, één kaart van een schorsing). Bewust geen blessures (beslissing eigenaar).
-- `scripts/build-routes.mjs`: maakt na de Vite-build een HTML-pagina per route/speler/club per taal, plus `sitemap.xml`.
+- `scripts/build-routes.mjs`: maakt na de Vite-build een HTML-pagina per route/speler/club per taal, plus `sitemap.xml`, en een preview-afbeelding (og-card, 1200×630) per pagina in `dist/og/`. Wat er op een card staat: `src/ogCards.js`; het tekenen: `scripts/og/` (satori + resvg, enkel bij het bouwen; lettertypes en clublogo's als PNG staan daar ook). Een nieuwe club = ook zijn logo als PNG in `scripts/og/club-logos/`.
 - `src/predicted-xi/` + `predicted-xi.html`: aparte, niet-gelinkte privétool om opstellingen samen te stellen.
 
 ## Opstarten (lokaal, Windows)

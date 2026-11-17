@@ -19,15 +19,45 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  ROUTES, SUPPORTED_LANGUAGES, DEFAULT_ROUTE_LANGUAGE, pathForRoute, pathForSheet,
+  ROUTES, SUPPORTED_LANGUAGES, DEFAULT_ROUTE_LANGUAGE, pathForRoute, pathForSheet, prefixForLanguage,
 } from '../src/routes.js';
 import { t } from '../src/i18n.js';
 import { TEAMS } from '../src/constants.js';
 import { PREDICTED_LINEUPS } from '../src/predictedLineupsData.js';
+import { contentHash, formatOgPrice, ogImagePath, upcomingFixtures } from '../src/ogCards.js';
+import { renderCards } from './og/generate.mjs';
 
 const DIST_DIR = fileURLToPath(new URL('../dist', import.meta.url));
 const TEMPLATE_PATH = `${DIST_DIR}/index.html`;
 const SITE_URL = 'https://fplproleague.vercel.app';
+const SITE_HOST = 'fplproleague.vercel.app';
+
+// --- Preview-afbeeldingen (og-cards) ---
+//
+// Elke pagina krijgt haar eigen afbeelding voor social previews: de startpagina, elke tab, elke club en
+// elke speler, per taal. Wat erop staat: src/ogCards.js; hoe ze getekend worden: scripts/og/.
+//
+// Verhoog OG_DESIGN_VERSION als je het ontwerp van de cards verandert: dan krijgen alle afbeeldingen
+// een nieuw adres en tonen X, WhatsApp, ... meteen de nieuwe versie in plaats van hun bewaarde kopie.
+const OG_DESIGN_VERSION = 1;
+
+// Op een preview-deploy (een PR) wijzen de afbeeldingen naar die preview zelf: daar bestaan ze al, op
+// de live site pas na het mergen. De pagina-adressen (canonical, og:url) blijven altijd de live site.
+function imageBase() {
+  const host = process.env.VERCEL_ENV === 'preview' && (process.env.VERCEL_BRANCH_URL || process.env.VERCEL_URL);
+  return host ? `https://${host}` : SITE_URL;
+}
+const IMAGE_BASE = imageBase();
+
+const ogJobs = [];
+// Zet een card op de tekenlijst en geeft het volledige adres terug dat in de meta-tags komt. De "?v="
+// verandert zodra de inhoud verandert (zie contentHash in src/ogCards.js).
+function addCard(imagePath, kind, props) {
+  ogJobs.push({ file: `${DIST_DIR}${imagePath}`, kind, props });
+  return `${IMAGE_BASE}${imagePath}?v=${contentHash({ v: OG_DESIGN_VERSION, kind, props })}`;
+}
+
+const fixtureLabels = language => ({ heading: t(language, 'og.nextFixtures'), gwLabel: t(language, 'fdr.gwLabel') });
 
 // Minimale HTML-attribuut-escaping — de route-titels/-omschrijvingen bevatten vandaag geen speciale
 // tekens, maar dit voorkomt dat een toekomstige route (bv. met een "&" of aanhalingsteken) de
@@ -51,6 +81,14 @@ function replaceTagValue(html, pattern, value, label) {
   return html.replace(pattern, `$1${escapeAttr(value)}$2`);
 }
 
+// De afbeelding en haar omschrijving (voor wie de afbeelding niet ziet, bv. met een schermlezer).
+function setImageTags(html, image, alt) {
+  let out = replaceTagValue(html, /(<meta property="og:image" content=")[^"]*(")/, image, 'og:image');
+  out = replaceTagValue(out, /(<meta name="twitter:image" content=")[^"]*(")/, image, 'twitter:image');
+  out = replaceTagValue(out, /(<meta property="og:image:alt" content=")[^"]*(")/, alt, 'og:image:alt');
+  return replaceTagValue(out, /(<meta name="twitter:image:alt" content=")[^"]*(")/, alt, 'twitter:image:alt');
+}
+
 // hreflang-blok voor één route: elke taalversie verwijst naar zichzelf én naar de andere, plus een
 // x-default. Zonder deze tags weet Google niet dat /fdr en /fr/fdr dezelfde pagina in twee talen zijn en
 // behandelt het ze als concurrerende, bijna-identieke URL's.
@@ -68,7 +106,10 @@ function buildAlternateLinks(pathFor) {
 // Eén generieke paginabouwer voor zowel de acht tabs als de speler- en clubpagina's: alle drie hebben
 // exact dezelfde meta-behandeling nodig, alleen hun pad en teksten verschillen. `pathFor` is een functie
 // van taal naar pad, zodat het hreflang-blok elke taalvariant van dezelfde pagina kan opsommen.
-async function buildPage({ pathFor, title, description, language, quiet = false }) {
+// `image` = het adres van de preview-afbeelding van deze pagina. `social` (optioneel) geeft de
+// startpagina in het Frans en Engels een eigen titel en tekst voor de preview, los van de <title>.
+// `outPath` (optioneel) schrijft naar een ander bestand dan het standaardpad van de pagina.
+async function buildPage({ pathFor, title, description, language, image, social, outPath: outFile, quiet = false }) {
   let html = await readFile(TEMPLATE_PATH, 'utf8');
   const routePath = pathFor(language);
   const canonicalUrl = `${SITE_URL}${routePath}`;
@@ -78,12 +119,15 @@ async function buildPage({ pathFor, title, description, language, quiet = false 
   html = replaceTagValue(html, /(<title>)[^<]*(<\/title>)/, title, '<title>');
   html = replaceTagValue(html, /(<meta name="description" content=")[^"]*(")/, description, 'meta description');
   html = replaceTagValue(html, /(<link rel="canonical" href=")[^"]*(")/, canonicalUrl, 'canonical');
-  html = replaceTagValue(html, /(<meta property="og:title" content=")[^"]*(")/, title, 'og:title');
-  html = replaceTagValue(html, /(<meta property="og:description" content=")[^"]*(")/, description, 'og:description');
+  const socialTitle = social?.title ?? title;
+  const socialDescription = social?.description ?? description;
+  html = replaceTagValue(html, /(<meta property="og:title" content=")[^"]*(")/, socialTitle, 'og:title');
+  html = replaceTagValue(html, /(<meta property="og:description" content=")[^"]*(")/, socialDescription, 'og:description');
   html = replaceTagValue(html, /(<meta property="og:url" content=")[^"]*(")/, canonicalUrl, 'og:url');
   html = replaceTagValue(html, /(<meta property="og:locale" content=")[^"]*(")/, ogLocale, 'og:locale');
-  html = replaceTagValue(html, /(<meta name="twitter:title" content=")[^"]*(")/, title, 'twitter:title');
-  html = replaceTagValue(html, /(<meta name="twitter:description" content=")[^"]*(")/, description, 'twitter:description');
+  html = replaceTagValue(html, /(<meta name="twitter:title" content=")[^"]*(")/, socialTitle, 'twitter:title');
+  html = replaceTagValue(html, /(<meta name="twitter:description" content=")[^"]*(")/, socialDescription, 'twitter:description');
+  html = setImageTags(html, image, socialTitle);
 
   // De hreflang-tags staan niet in index.html (ze verschillen per pagina), dus hier ingevoegd vlak vóór
   // </head> i.p.v. vervangen.
@@ -91,7 +135,7 @@ async function buildPage({ pathFor, title, description, language, quiet = false 
 
   // dist/fdr.html, dist/fr/fdr.html, dist/speler/and-x.html, ... — routePath begint al met "/", dus
   // enkel ".html" erbij.
-  const outPath = `${DIST_DIR}${routePath}.html`;
+  const outPath = outFile ?? `${DIST_DIR}${routePath}.html`;
   await mkdir(dirname(outPath), { recursive: true });
   await writeFile(outPath, html, 'utf8');
   // De honderden speler-/clubpagina's worden niet één voor één gelogd; dat maakt de build-uitvoer
@@ -110,7 +154,8 @@ function staticPlayers() {
       if (!slot.playerName) continue;
       const teamCode = slot.playerTeamCode || lineup.clubCode;
       const key = `${teamCode}|${slot.playerName}`;
-      if (!seen.has(key)) seen.set(key, { name: slot.playerName, teamCode });
+      // Positie en prijs gaan mee voor de preview-afbeelding van de speler.
+      if (!seen.has(key)) seen.set(key, { name: slot.playerName, teamCode, position: slot.playerPosition, price: slot.playerPrice });
     }
   }
   return [...seen.values()];
@@ -123,11 +168,20 @@ const sheetPages = () => [
     pathFor: language => pathForSheet({ kind: 'club', code: team.code }, language),
     vars: { club: team.name },
     key: 'club',
+    card: language => ({ kind: 'club', props: {
+      clubCode: team.code, clubName: team.name, tagline: t(language, 'og.club.tagline'),
+      fixtures: upcomingFixtures(team.code), labels: fixtureLabels(language),
+    } }),
   })),
   ...staticPlayers().map(player => ({
-    pathFor: language => pathForSheet({ kind: 'player', ...player }, language),
+    pathFor: language => pathForSheet({ kind: 'player', name: player.name, teamCode: player.teamCode }, language),
     vars: { name: player.name, club: clubNameFor(player.teamCode) },
     key: 'player',
+    card: language => ({ kind: 'player', props: {
+      name: player.name, clubCode: player.teamCode, clubName: clubNameFor(player.teamCode),
+      position: player.position ?? null, price: formatOgPrice(player.price),
+      fixtures: upcomingFixtures(player.teamCode), labels: fixtureLabels(language),
+    } }),
   })),
 ];
 
@@ -166,7 +220,14 @@ ${urls}
 console.log(`Route-specifieke social preview-pagina's bouwen (${ROUTES.length} routes x ${SUPPORTED_LANGUAGES.length} talen)...`);
 for (const language of SUPPORTED_LANGUAGES) {
   for (const route of ROUTES) {
+    const routePath = pathForRoute(route.key, language);
     await buildPage({
+      image: addCard(ogImagePath(routePath), 'route', {
+        title: t(language, `nav.${route.key}`),
+        tagline: t(language, `og.${route.key}.tagline`),
+        url: `${SITE_HOST}${routePath}`,
+        showScale: route.key === 'fdr',
+      }),
       // Titels/omschrijvingen komen uit src/i18n.js i.p.v. uit routes.js: die staan daar al in beide
       // talen, en zo is er één bron voor zowel de statische HTML hier als de client-side useEffect in
       // FDRTool.jsx.
@@ -182,7 +243,9 @@ const pages = sheetPages();
 console.log(`Speler- en clubpagina's bouwen (${pages.length} x ${SUPPORTED_LANGUAGES.length} talen)...`);
 for (const language of SUPPORTED_LANGUAGES) {
   for (const page of pages) {
+    const { kind, props } = page.card(language);
     await buildPage({
+      image: addCard(ogImagePath(page.pathFor(language)), kind, props),
       pathFor: page.pathFor,
       title: t(language, `route.${page.key}.title`, page.vars),
       description: t(language, `route.${page.key}.description`, page.vars),
@@ -192,6 +255,41 @@ for (const language of SUPPORTED_LANGUAGES) {
   }
 }
 console.log(`  ${pages.length * SUPPORTED_LANGUAGES.length} pagina's geschreven`);
+
+// De startpagina's: "/" (index.html, Nederlands), "/fr" en "/en". Die tonen de FDR, maar hun preview
+// stelt de hele site voor. "/fr" en "/en" krijgen daarvoor een eigen bestand (fr.html, en.html; zie de
+// rewrites in vercel.json) met dezelfde inhoud als /fr/fdr en /en/fdr, enkel met een andere preview.
+console.log("Startpagina's bouwen...");
+for (const language of SUPPORTED_LANGUAGES) {
+  const prefix = prefixForLanguage(language);
+  const social = { title: 'Fantasy Pro League Tools', description: t(language, 'og.home.tagline') };
+  const image = addCard(ogImagePath(`${prefix}/home`), 'route', {
+    title: social.title, tagline: social.description, url: `${SITE_HOST}${prefix}`, showScale: true,
+  });
+  if (language === DEFAULT_ROUTE_LANGUAGE) {
+    // index.html is ook het sjabloon voor alle pagina's hierboven, dus pas als laatste aangepast.
+    let html = await readFile(TEMPLATE_PATH, 'utf8');
+    html = replaceTagValue(html, /(<meta property="og:description" content=")[^"]*(")/, social.description, 'og:description');
+    html = replaceTagValue(html, /(<meta name="twitter:description" content=")[^"]*(")/, social.description, 'twitter:description');
+    await writeFile(TEMPLATE_PATH, setImageTags(html, image, social.title), 'utf8');
+    console.log('  index.html');
+  } else {
+    await buildPage({
+      pathFor: lang => pathForRoute('fdr', lang),
+      title: t(language, 'route.fdr.title'),
+      description: t(language, 'route.fdr.description'),
+      language, image, social,
+      outPath: `${DIST_DIR}${prefix}.html`,
+      quiet: true,
+    });
+    console.log(`  ${prefix}.html`);
+  }
+}
+
+const started = Date.now();
+console.log(`Preview-afbeeldingen tekenen (${ogJobs.length})...`);
+const drawn = await renderCards(ogJobs);
+console.log(`  ${drawn} afbeeldingen in ${((Date.now() - started) / 1000).toFixed(1)} s`);
 
 await buildSitemap();
 console.log('Klaar.');

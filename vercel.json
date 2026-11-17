@@ -108,7 +108,7 @@
     },
     {
       "source": "/fr",
-      "destination": "/fr/fdr.html"
+      "destination": "/fr.html"
     },
     {
       "source": "/fr/:tool",
@@ -124,7 +124,7 @@
     },
     {
       "source": "/en",
-      "destination": "/en/fdr.html"
+      "destination": "/en.html"
     },
     {
       "source": "/en/:tool",
