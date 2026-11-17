@@ -41,6 +41,7 @@ import {
 import useTeamPlanner from './useTeamPlanner';
 import AppShell from './ui/AppShell';
 import Sheet from './components/Sheet';
+import { TourOverlay, TourWelcome, useTour } from './components/Tour';
 import './ui/Toast.css';
 
 // Enkel de FDR-tab (de standaardweergave) zit in de hoofdbundle. De andere tabs worden pas
@@ -553,6 +554,11 @@ export default function FDRTool() {
     const fromUrl = sheetFromPath(window.location.pathname);
     return fromUrl?.kind === 'player' ? fromUrl.slug : null;
   });
+
+  // Rondleiding (src/components/Tour.jsx): het welkomstkader bij het eerste bezoek wacht tot een
+  // gedeelde spelers- of clubkaart dicht is (en tot de eenmalige watchlist-melding weg is, anders liggen
+  // ze op gsm over elkaar); het "?"-knopje in de topbalk start ze opnieuw.
+  const tour = useTour({ activeTab, navigateToTab, blocked: Boolean(sheet || pendingPlayerSlug || showWatchlistMoved) });
 
   // Aangepast = er is minstens één eigen afwijking. Vroeger vergeleek dit objectreferenties, waardoor
   // wie alles handmatig terugzette toch "eigen (aangepast)" bleef zien.
@@ -1196,6 +1202,7 @@ export default function FDRTool() {
         minileagueCopied={minileagueCodeCopied}
         newMarkerTab={PREDICTED_LINEUPS_GW === CURRENT_GW && deadlineRemaining ? 'predictedlineups' : null}
         lastUpdated={formatLastUpdatedLong(language)}
+        onOpenTour={tour.start}
       >
 
         {activeTab === 'fdr' && (
@@ -1468,6 +1475,28 @@ export default function FDRTool() {
             <X aria-hidden="true" strokeWidth={2} />
           </button>
         </div>
+      )}
+
+      {tour.mode === 'welcome' && (
+        <TourWelcome
+          t={t}
+          language={language}
+          languages={LANGUAGES}
+          onChangeLanguage={changeLanguage}
+          onStart={tour.start}
+          onDismiss={tour.dismiss}
+        />
+      )}
+      {tour.mode === 'tour' && (
+        <TourOverlay
+          t={t}
+          step={tour.step}
+          index={tour.index}
+          count={tour.count}
+          onNext={tour.next}
+          onPrev={tour.prev}
+          onClose={tour.close}
+        />
       )}
     </div>
     </KickoffContext.Provider>

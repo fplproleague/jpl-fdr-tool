@@ -6,7 +6,7 @@
 // deadline en taal. Gsm (<900px): topbalk van 48px (wordmark + deadline) en een vaste onderbalk met 5
 // kolommen (FDR, XI's, Planner, Spelers, Meer). "Meer" opent een bottom sheet.
 import { useState } from 'react';
-import { Grid2x2, Shirt, Users, UserSearch, Menu, Copy, Check } from 'lucide-react';
+import { Grid2x2, Shirt, Users, UserSearch, Menu, Copy, Check, CircleHelp } from 'lucide-react';
 import { PRIMARY_ROUTES, SECONDARY_ROUTES } from '../routes';
 import Segmented from './Segmented';
 import BottomSheetMenu from './BottomSheetMenu';
@@ -76,7 +76,7 @@ function NavLink({ route, active, hrefFor, onNavigate, t, compact = false, marke
 export default function AppShell({
   t, language, languages, onChangeLanguage, activeTab, onNavigate, hrefFor,
   deadlineGw, deadlineRemaining, deadlinePassed = false, nextGw = null, minileagueCode, onCopyMinileague, minileagueCopied,
-  newMarkerTab, lastUpdated, children,
+  newMarkerTab, lastUpdated, onOpenTour, children,
 }) {
   const [moreOpen, setMoreOpen] = useState(false);
   const countdown = formatShellCountdown(deadlineRemaining, language);
@@ -161,6 +161,19 @@ export default function AppShell({
                 ariaLabel={t('header.languageToggleAria', { lang: language.toUpperCase() })}
               />
             </div>
+            {/* Rondleiding opnieuw bekijken (src/components/Tour.jsx): bewust klein en grijs. */}
+            {onOpenTour && (
+              <button
+                type="button"
+                className="ui-help"
+                data-tour="help"
+                onClick={onOpenTour}
+                aria-label={t('tour.helpAria')}
+                title={t('tour.helpAria')}
+              >
+                <CircleHelp aria-hidden="true" strokeWidth={1.75} />
+              </button>
+            )}
           </div>
         </div>
       </header>
