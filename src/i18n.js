@@ -233,6 +233,17 @@ const STRINGS = {
     'route.player.description': 'Bonuspunten, gele kaarten, standaardsituaties, startkans en de komende wedstrijden van {{name}} ({{club}}) in de Jupiler Pro League.',
     'route.club.title': '{{club}} — fixtures, opstelling en set pieces | Fantasy Pro League Tools',
     'route.club.description': 'De komende wedstrijden van {{club}} met hun moeilijkheidsgraad, de recente vorm, de verwachte basiself, de standaardsituatienemers en de spelers met de meeste bonuspunten.',
+    // Preview-afbeeldingen bij gedeelde links (scripts/og/cards.mjs). Kort houden: ze moeten op een
+    // gsm in een klein voorbeeld leesbaar blijven.
+    'og.home.tagline': 'FDR, verwachte opstellingen, Team Planner en alle spelersstats van de Jupiler Pro League.',
+    'og.fdr.tagline': 'Hoe moeilijk zijn de volgende wedstrijden van elke club? Pas de ratings aan naar jouw inschatting.',
+    'og.predictedlineups.tagline': 'De verwachte basiself van alle 18 clubs, met de startkans van elke speler.',
+    'og.teamplanner.tagline': 'Stel je selectie samen en plan je transfers per speeldag.',
+    'og.spelers.tagline': 'Alle spelers: filter en vergelijk op punten, vorm, prijs en bonuspunten.',
+    'og.setpieces.tagline': 'Wie neemt de strafschoppen, corners en vrije trappen bij elke club?',
+    'og.klassement.tagline': 'Zoek je team op in het algemene of het speeldagklassement.',
+    'og.club.tagline': 'Wedstrijden, verwachte basiself en set pieces',
+    'og.nextFixtures': 'Volgende wedstrijden',
 
     // --- Club-sheet (components/ClubSheet.jsx) — opent vanuit een clublogo. ---
     'clubSheet.closeAria': 'Clubkaart sluiten',
@@ -1137,6 +1148,16 @@ const STRINGS = {
     'route.player.description': "Points bonus, cartons jaunes, coups de pied arrêtés, chance de titularisation et prochains matchs de {{name}} ({{club}}) en Jupiler Pro League.",
     'route.club.title': '{{club}} — matchs, composition et coups de pied arrêtés | Fantasy Pro League Tools',
     'route.club.description': "Les prochains matchs de {{club}} avec leur difficulté, la forme récente, la composition probable, les tireurs de coups de pied arrêtés et les joueurs avec le plus de points bonus.",
+    //   = espace insécable : le « ? » reste sur la même ligne que le mot précédent.
+    'og.home.tagline': "Difficulté des matchs, compositions probables, Team Planner et les stats de tous les joueurs.",
+    'og.fdr.tagline': "Quelle est la difficulté des prochains matchs de chaque club ? Adaptez les évaluations à votre avis.",
+    'og.predictedlineups.tagline': "Le onze probable des 18 clubs, avec la chance de titularisation de chaque joueur.",
+    'og.teamplanner.tagline': "Composez votre équipe et planifiez vos transferts journée par journée.",
+    'og.spelers.tagline': "Tous les joueurs : filtrez et comparez par points, forme, prix et points bonus.",
+    'og.setpieces.tagline': "Qui tire les penaltys, les corners et les coups francs dans chaque club ?",
+    'og.klassement.tagline': "Retrouvez votre équipe dans le classement général ou de la journée.",
+    'og.club.tagline': "Matchs, onze probable et coups de pied arrêtés",
+    'og.nextFixtures': "Prochains matchs",
 
     // --- Fiche club (components/ClubSheet.jsx) ---
     'clubSheet.closeAria': 'Fermer la fiche du club',
@@ -2025,6 +2046,15 @@ const STRINGS = {
     'route.player.description': "Bonus points, yellow cards, set pieces, chance of starting and upcoming fixtures of {{name}} ({{club}}) in the Jupiler Pro League.",
     'route.club.title': "{{club}} — fixtures, lineup and set pieces | Fantasy Pro League Tools",
     'route.club.description': "{{club}}'s upcoming fixtures with their difficulty, recent form, predicted XI, set-piece takers and the players with the most bonus points.",
+    'og.home.tagline': "FDR, predicted lineups, Team Planner and every player stat of the Jupiler Pro League.",
+    'og.fdr.tagline': "How hard are each club's next fixtures? Adjust the ratings to your own view.",
+    'og.predictedlineups.tagline': "The predicted XI of all 18 clubs, with each player's chance of starting.",
+    'og.teamplanner.tagline': "Build your squad and plan your transfers gameweek by gameweek.",
+    'og.spelers.tagline': "Every player: filter and compare by points, form, price and bonus points.",
+    'og.setpieces.tagline': "Who takes the penalties, corners and free kicks at each club?",
+    'og.klassement.tagline': "Find your team in the overall or gameweek ranking.",
+    'og.club.tagline': "Fixtures, predicted XI and set pieces",
+    'og.nextFixtures': "Next fixtures",
     'clubSheet.closeAria': "Close club card",
     'clubSheet.openAria': "View the club card of {{club}}",
     'clubSheet.fixturesHeading': "Next 8 gameweeks",
