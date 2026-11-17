@@ -174,21 +174,25 @@ function findTarget(selectors) {
 }
 
 // Haalt het onderdeel in beeld, tenzij het in de vaste topbalk of onderbalk zit (die staan er altijd).
-function bringIntoView(el) {
+function bringIntoView(el, maxHeight = null) {
   if (el.closest('.ui-topbar, .ui-bottomnav')) return;
   const r = el.getBoundingClientRect();
   const topbar = document.querySelector('.ui-topbar')?.getBoundingClientRect().height ?? 0;
   const roomTop = topbar + 16;
-  if (r.top >= roomTop && r.bottom <= window.innerHeight - 16) return;
+  // Bij een groot onderdeel (maxHeight) telt enkel het stuk dat oplicht: staat dat al in beeld, dan
+  // blijft de pagina staan (zo blijven bv. de knoppen boven de FDR-tabel zichtbaar).
+  const bottom = maxHeight ? Math.min(r.bottom, r.top + maxHeight) : r.bottom;
+  if (r.top >= roomTop && bottom <= window.innerHeight - 16) return;
   window.scrollTo({ top: Math.max(0, window.scrollY + r.top - roomTop), behavior: 'auto' });
 }
 
-function rectOf(el) {
+function rectOf(el, maxHeight = null) {
   const r = el.getBoundingClientRect();
   const pad = 6;
   const top = Math.max(0, r.top - pad);
   const left = Math.max(0, r.left - pad);
-  const bottom = Math.min(window.innerHeight, r.bottom + pad);
+  const fullBottom = maxHeight ? Math.min(r.bottom, r.top + maxHeight) : r.bottom;
+  const bottom = Math.min(window.innerHeight, fullBottom + pad);
   const right = Math.min(window.innerWidth, r.right + pad);
   return { top, left, width: Math.max(0, right - left), height: Math.max(0, bottom - top), bottom, right };
 }
@@ -213,9 +217,9 @@ export function TourOverlay({ t, step, index, count, onNext, onPrev, onClose }) 
     const look = () => {
       const el = step.target.length ? findTarget(step.target) : null;
       if (el) {
-        bringIntoView(el);
+        bringIntoView(el, step.maxHeight);
         targetRef.current = el;
-        setRect(rectOf(el));
+        setRect(rectOf(el, step.maxHeight));
         setReady(true);
         return;
       }
@@ -235,7 +239,7 @@ export function TourOverlay({ t, step, index, count, onNext, onPrev, onClose }) 
     if (!ready) return undefined;
     const update = () => {
       const el = targetRef.current;
-      if (el && document.contains(el)) setRect(rectOf(el));
+      if (el && document.contains(el)) setRect(rectOf(el, step?.maxHeight));
     };
     window.addEventListener('resize', update);
     window.addEventListener('scroll', update, { passive: true });
@@ -249,7 +253,7 @@ export function TourOverlay({ t, step, index, count, onNext, onPrev, onClose }) 
       window.removeEventListener('scroll', update);
       ro?.disconnect();
     };
-  }, [ready]);
+  }, [ready, step]);
 
   // Plaats het kaartje pas als het gemeten is (voor die tijd is het onzichtbaar).
   useLayoutEffect(() => {

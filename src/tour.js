@@ -17,6 +17,8 @@ export const MOBILE_QUERY = '(max-width: 899px)';
 // onderdelen die oplichten. `target` is een lijst CSS-selectors: de eerste die op de pagina staat, telt.
 // Staat er geen enkele (bv. de veldweergave is niet open), dan staat het kaartje gewoon in het midden.
 // Een object { desktop, mobile } kiest per toestel; `mobileBody` = een eigen tekst voor gsm.
+// `maxHeight` = enkel het bovenste stuk van een groot onderdeel licht op (bv. de kop en de eerste rijen
+// van de FDR-tabel), zodat het kaartje er nog onder past.
 const STEPS = [
   {
     id: 'nav',
@@ -26,7 +28,9 @@ const STEPS = [
   {
     id: 'fdr',
     tab: 'fdr',
-    target: ['.fdr-toolbar', '.fdr-grid'],
+    // De kleuren in de tabel zelf (feedback eigenaar: de knoppenbalk zegt op gsm bijna niets).
+    target: ['.fdr-table-scroll', '.fdr-grid'],
+    maxHeight: 230,
     // Op gsm zijn de knoppen enkel icoontjes: de tekst noemt ze daar zo.
     mobileBody: true,
   },
@@ -62,7 +66,7 @@ const STEPS = [
     target: ['.kl-toolbar'],
   },
   {
-    // Op het startscherm zetten: tekst per toestel (iPhone, Android, computer), zie installPlatform.
+    // Op het startscherm zetten: tekst voor iPhone/iPad of Android, zie installPlatform.
     id: 'install',
     install: true,
   },
@@ -72,23 +76,26 @@ const STEPS = [
   },
 ];
 
-// Toestellen die de startschermstap krijgen. Op een computer valt ze weg (feedback eigenaar).
 export const INSTALL_PLATFORMS = ['ios', 'android'];
 
-// De stappen voor dit toestel. platform = 'ios' | 'android' | 'desktop' (zie installPlatform). De
-// startschermstap staat er enkel op een gsm of tablet, en niet als de site al als app openstaat.
+// De stappen voor dit toestel. platform = 'ios' | 'android' | 'desktop' (zie installPlatform).
+// De startschermstap (feedback eigenaar): op elke gsm of tablet, dus bij een gsm-weergave (smal scherm)
+// of een iPhone/iPad/Android-toestel, maar niet op een computer met een breed venster. Ze valt ook weg
+// als de site al als app op het startscherm staat en van daaruit geopend is.
 export function tourSteps({ mobile = false, standalone = false, platform = 'desktop' } = {}) {
   const device = mobile ? 'mobile' : 'desktop';
+  const onPhone = mobile || INSTALL_PLATFORMS.includes(platform);
   return STEPS
-    .filter(step => !(step.install && (standalone || !INSTALL_PLATFORMS.includes(platform))))
+    .filter(step => !(step.install && (standalone || !onPhone)))
     .map(step => {
       const target = Array.isArray(step.target) ? step.target : (step.target?.[device] ?? []);
       let body = mobile && step.mobileBody ? 'bodyMobile' : 'body';
-      if (step.install) body = platform;
+      if (step.install) body = platform === 'ios' ? 'ios' : 'android';
       return {
         id: step.id,
         tab: step.tab ?? null,
         target,
+        maxHeight: step.maxHeight ?? null,
         install: Boolean(step.install),
         titleKey: `tour.step.${step.id}.title`,
         bodyKey: `tour.step.${step.id}.${body}`,

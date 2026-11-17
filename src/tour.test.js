@@ -31,6 +31,9 @@ describe('rondleiding: stappen', () => {
     expect(mobile.find(s => s.id === 'nav').target).toEqual(['.ui-bottomnav']);
     // Op gsm het vegen over het veld, op desktop de wedstrijdkeuze.
     expect(mobile.find(s => s.id === 'xi').target[0]).toBe('.pxl-pitches');
+    // FDR: de tabel zelf, enkel de kop en de eerste rijen.
+    expect(desktop.find(s => s.id === 'fdr').target[0]).toBe('.fdr-table-scroll');
+    expect(desktop.find(s => s.id === 'fdr').maxHeight).toBeGreaterThan(0);
     expect(mobile.find(s => s.id === 'xi').bodyKey).toBe('tour.step.xi.bodyMobile');
     expect(desktop.find(s => s.id === 'xi').bodyKey).toBe('tour.step.xi.body');
     // Stappen zonder eigen gsm-tekst gebruiken gewoon de gewone.
@@ -43,6 +46,8 @@ describe('rondleiding: stappen', () => {
     expect(tourSteps({ platform: 'android' }).find(s => s.id === 'install').bodyKey).toBe('tour.step.install.android');
     expect(tourSteps({ platform: 'desktop' }).some(s => s.id === 'install')).toBe(false);
     expect(tourSteps({ platform: 'iets' }).some(s => s.id === 'install')).toBe(false);
+    // Gsm-weergave (smal scherm) telt ook als gsm: dan de Android-uitleg (menu met de drie puntjes).
+    expect(tourSteps({ mobile: true, platform: 'desktop' }).find(s => s.id === 'install').bodyKey).toBe('tour.step.install.android');
     expect(tourSteps({ platform: 'ios', standalone: true }).some(s => s.id === 'install')).toBe(false);
   });
 
