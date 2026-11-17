@@ -56,6 +56,14 @@ const STEPS = [
     target: ['.spl-presets', '.spl-toolbar'],
   },
   {
+    // Spelers- en clubkaarten openen (feedback eigenaar). De eerste rij van de spelerstabel licht op;
+    // laadt die nog, dan het kaartje in het midden.
+    id: 'cards',
+    tab: 'spelers',
+    target: ['.spl tbody tr'],
+    mobileBody: true,
+  },
+  {
     id: 'setpieces',
     tab: 'setpieces',
     target: ['.sp-legend'],

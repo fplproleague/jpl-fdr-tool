@@ -18,7 +18,7 @@ function memoryStorage(initial = {}) {
 describe('rondleiding: stappen', () => {
   it('toont alle zes de tabs, plus menu, startscherm en einde', () => {
     const steps = tourSteps();
-    expect(steps.map(s => s.id)).toEqual(['nav', 'fdr', 'xi', 'planner', 'budget', 'spelers', 'setpieces', 'klassement', 'done']);
+    expect(steps.map(s => s.id)).toEqual(['nav', 'fdr', 'xi', 'planner', 'budget', 'spelers', 'cards', 'setpieces', 'klassement', 'done']);
     expect(tourSteps({ platform: 'android' }).map(s => s.id)).toContain('install');
     const tabs = new Set(steps.map(s => s.tab).filter(Boolean));
     expect([...tabs].sort()).toEqual(ROUTES.map(r => r.key).sort());
