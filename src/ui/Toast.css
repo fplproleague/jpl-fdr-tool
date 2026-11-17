@@ -1,0 +1,36 @@
+/* Toast (spec §5.10): onderaan, boven de onderbalk op gsm, omgekeerd (licht op donker). */
+.ui-toast {
+  position: fixed; left: 50%; bottom: var(--s-5); transform: translateX(-50%);
+  z-index: var(--z-toast); width: calc(100% - 2 * var(--gutter)); max-width: 400px;
+  display: flex; align-items: center; gap: var(--s-3);
+  padding: var(--s-3) var(--s-3) var(--s-3) var(--s-4);
+  background: var(--invert-bg); color: var(--invert-text);
+  border-radius: var(--r-1); box-shadow: var(--shadow-overlay);
+  font: 400 var(--fs-ui)/var(--lh-ui) var(--font-ui);
+}
+.ui-toast__text { flex: 1; min-width: 0; margin: 0; }
+.ui-toast__text strong { font-weight: 700; }
+/* Variant met een tweede regel (bv. een link om zelf te kopiëren als het klembord geblokkeerd is). */
+.ui-toast--stack { flex-wrap: wrap; }
+.ui-toast__field {
+  order: 3; flex: 1 0 100%; min-width: 0; height: 32px; padding: 0 var(--s-2);
+  border: 1px solid currentColor; border-radius: var(--r-1); background: transparent; color: inherit;
+  font: 400 var(--fs-meta)/1 var(--font-num);
+}
+.ui-toast__field:focus { outline: 2px solid currentColor; outline-offset: 1px; }
+.ui-toast__action {
+  border: 0; background: none; padding: 0; color: var(--invert-text); cursor: pointer; flex-shrink: 0;
+  font: 700 var(--fs-ui)/var(--lh-ui) var(--font-ui); text-decoration: underline; text-underline-offset: 2px;
+}
+.ui-toast__close {
+  display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; flex-shrink: 0;
+  border: 0; background: none; color: var(--invert-text); cursor: pointer; border-radius: var(--r-1);
+}
+.ui-toast__close svg { width: 14px; height: 14px; }
+@media (max-width: 899px) {
+  .ui-toast { bottom: calc(var(--bottomnav-h) + env(safe-area-inset-bottom, 0px) + var(--s-3)); }
+}
+@media (pointer: coarse) {
+  .ui-toast__close { width: 44px; height: 44px; margin: -8px -8px -8px 0; }
+  .ui-toast__action { min-height: 44px; }
+}

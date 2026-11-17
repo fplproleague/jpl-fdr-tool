@@ -4,7 +4,8 @@
 //
 // Response:
 //   { season: '2026-27', gw: 11, deadlineGw: 12, updatedAt, stale: false, players: [ ... ] }
-//   gw = laatst gespeelde speeldag (deadlineInfo.displayWeek). Per speler:
+//   gw = laatst gespeelde speeldag (deadlineInfo.displayWeek, of lager als die nog niet gespeeld is;
+//   zie trimToPlayed). Per speler:
 //   - id, name, short, club (sitecode), pos (GK/DEF/MID/FWD), price, photo (of null)
 //   - pts (officieel totaal), mp (wedstrijden), min, g, a, cs, yc, rc, sv (saves), ps (gestopte
 //     penalty's), gc (tegengoals), og (eigen goals), pm (gemiste penalty's)
@@ -12,8 +13,9 @@
 //   - dw/dl (duels gewonnen/verloren), hc (verdedigende kopballen), br (recoveries),
 //     bc (grote kansen gecreëerd), int (interceptions)
 //   - sel (% managers), cap (% kapitein)
-//   - w: { pts, min, g, a, bp } — arrays met één waarde per speeldag (index 0 = GW1), null = niet
-//     gespeeld. Ontbreekt (null) voor spelers die nog geen minuut speelden.
+//   - w: { pts, min, g, a, bp, yc, rc } — arrays met één waarde per speeldag (index 0 = GW1), null = niet
+//     gespeeld. Ontbreekt (null) voor spelers die nog geen minuut speelden. yc/rc (kaarten per speeldag)
+//     tonen in welke GW een schorsing viel (spec B2, zie suspensionFromWeekly in src/kaarten.js).
 //
 // Caching: speeldagen die de bron als definitief bevestigt (points-confirmation) veranderen niet meer
 // en blijven per serverinstantie in het geheugen. Het hele antwoord staat een uur vers op Vercels CDN
@@ -52,7 +54,8 @@ async function fetchWeeks(weekIds, confirmedSet) {
 }
 
 function emptyWeekly(gw) {
-  return { pts: Array(gw).fill(null), min: Array(gw).fill(null), g: Array(gw).fill(null), a: Array(gw).fill(null), bp: Array(gw).fill(null) };
+  const empty = () => Array(gw).fill(null);
+  return { pts: empty(), min: empty(), g: empty(), a: empty(), bp: empty(), yc: empty(), rc: empty() };
 }
 
 const add = (arr, idx, value) => { arr[idx] = (arr[idx] ?? 0) + value; };
@@ -60,6 +63,14 @@ const add = (arr, idx, value) => { arr[idx] = (arr[idx] ?? 0) + value; };
 export function buildPlayers({ players, clubs, seasonStats, weeks, gw }) {
   // Per speler: speeldag-reeksen + bonuspunten, opgeteld per wedstrijd (een dubbele speeldag telt dus
   // twee wedstrijden in dezelfde GW-cel).
+  // Positie per speler, nodig voor de bonusregel van keepers (zie bonusForMatch).
+  const positionById = new Map();
+  for (const row of seasonStats) {
+    if (row?.playerId != null && row.positionId != null) positionById.set(num(row.playerId), num(row.positionId));
+  }
+  for (const p of players) {
+    if (p?.id != null && p.positionId != null) positionById.set(num(p.id), num(p.positionId));
+  }
   const weekly = new Map();
   for (const [weekId, rows] of weeks) {
     const idx = weekId - 1;
@@ -75,12 +86,14 @@ export function buildPlayers({ players, clubs, seasonStats, weeks, gw }) {
       const bonus = bonusForMatch({
         duelWon: row.statDuelWon, duelLost: row.statDuelLost, headClearance: row.statHeadClearance,
         ballRecovery: row.statBallRecovery, bigChanceCreated: row.statBigChanceCreated,
-      });
+      }, row.positionId ?? positionById.get(id));
       add(entry.w.pts, idx, num(row.total));
       add(entry.w.min, idx, num(row.statTimePlayed));
       add(entry.w.g, idx, num(row.statGoals));
       add(entry.w.a, idx, num(row.statAssists));
       add(entry.w.bp, idx, bonus.total);
+      add(entry.w.yc, idx, num(row.statYellow));
+      add(entry.w.rc, idx, num(row.statRed));
       entry.bp += bonus.total;
       entry.bpDuels += bonus.duels;
       entry.bpHeaders += bonus.headers;
@@ -140,16 +153,31 @@ export function buildPlayers({ players, clubs, seasonStats, weeks, gw }) {
     });
 }
 
+// De bron zet displayWeek soms al op de volgende speeldag voor die gespeeld is (bv. maandag na GW11
+// al op 12). Dan telt de laatste speeldag met minstens één gespeelde minuut als "laatst gespeeld", en
+// worden de weekreeksen daarop ingekort. Anders zou de schorsingscontrole (src/kaarten.js) in een lege
+// speeldag naar kaarten zoeken en niemand als geschorst tonen (feedback eigenaar, 16-11-2026).
+export function trimToPlayed(players, gw) {
+  let played = 0;
+  for (const p of players) {
+    const min = p.w?.min ?? [];
+    for (let i = min.length - 1; i >= played; i--) if (min[i] != null) { played = i + 1; break; }
+  }
+  if (played === 0 || played >= gw) return { gw, players };
+  const cut = (w) => (w ? Object.fromEntries(Object.entries(w).map(([k, v]) => [k, Array.isArray(v) ? v.slice(0, played) : v])) : w);
+  return { gw: played, players: players.map(p => (p.w ? { ...p, w: cut(p.w) } : p)) };
+}
+
 export default async function handler(req, res) {
   try {
     const [deadline, confirmations] = await Promise.all([
       fetchJson('matches/deadline-info'),
       fetchJson('points-confirmation').catch(() => []),
     ]);
-    const gw = num(deadline?.deadlineInfo?.displayWeek);
-    if (gw < 0 || gw > 40) throw new Error(`onverwachte speeldag in deadline-info: ${gw}`);
+    const displayGw = num(deadline?.deadlineInfo?.displayWeek);
+    if (displayGw < 0 || displayGw > 40) throw new Error(`onverwachte speeldag in deadline-info: ${displayGw}`);
     const confirmedSet = new Set(list(confirmations).filter(c => num(c?.confirmed) === 1).map(c => num(c.weekId)));
-    const weekIds = Array.from({ length: gw }, (_, i) => i + 1);
+    const weekIds = Array.from({ length: displayGw }, (_, i) => i + 1);
 
     const [playersBody, clubs, seasonStats, weeks] = await Promise.all([
       fetchJson('players'),
@@ -157,8 +185,9 @@ export default async function handler(req, res) {
       fetchAllStats(),
       fetchWeeks(weekIds, confirmedSet),
     ]);
-    const players = buildPlayers({ players: list(playersBody?.players), clubs, seasonStats, weeks, gw });
-    if (players.length === 0) throw new Error('de bron gaf geen spelers terug');
+    const built = buildPlayers({ players: list(playersBody?.players), clubs, seasonStats, weeks, gw: displayGw });
+    if (built.length === 0) throw new Error('de bron gaf geen spelers terug');
+    const { gw, players } = trimToPlayed(built, displayGw);
 
     const body = {
       season: seasonLabel(SEASON_ID),

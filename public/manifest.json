@@ -1,11 +1,11 @@
 {
-  "name": "FPL Pro League FDR Tool",
-  "short_name": "FDR Tool",
+  "name": "FPL Pro League Tools",
+  "short_name": "FPL Tools",
   "icons": [
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
   ],
-  "theme_color": "#2A1440",
-  "background_color": "#2A1440",
+  "theme_color": "#09282A",
+  "background_color": "#061B1C",
   "display": "standalone"
 }

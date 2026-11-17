@@ -3,40 +3,17 @@
 import { memo } from 'react';
 import { FIXTURES, GW_COUNT } from '../constants';
 import { MiniFixtureBadge } from './MiniFixtureBadge';
+import { PlayerFace } from '../ui/PlayerFace';
 
-export const PlayerPhoto = memo(function PlayerPhoto({ player, size = 28 }) {
-  const initials = (player.short || player.name || '?')
-    .split(/\s+/).map(s => s[0]).join('').slice(0, 2).toUpperCase();
-  const box = {
-    width: `${size}px`, height: `${size}px`, borderRadius: '50%', flexShrink: 0,
-    background: 'rgba(255,255,255,0.08)', overflow: 'hidden',
-    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-  };
-  if (!player.photo) {
-    return (
-      <span aria-hidden="true" style={{ ...box, color: '#C9B8E0', fontSize: `${Math.round(size * 0.38)}px`, fontWeight: 800 }}>
-        {initials}
-      </span>
-    );
-  }
-  return (
-    <span aria-hidden="true" style={box}>
-      <img
-        src={player.photo}
-        alt=""
-        loading="lazy"
-        decoding="async"
-        width={size}
-        height={size}
-        style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top' }}
-        onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
-      />
-    </span>
-  );
+// Oude naam, blijft bestaan als alias: de foto komt sinds de rework uit ui/PlayerFace (vierkant, spec §5.7).
+export const PlayerPhoto = memo(function PlayerPhoto({ player, size = 24 }) {
+  return <PlayerFace player={player} size={size} />;
 });
 
 // Punten per speeldag als mini-staafjes. Niet gespeeld = een klein grijs streepje (geen staaf van 0,
 // want "0 punten gespeeld" en "niet gespeeld" zijn voor een manager twee heel verschillende dingen).
+// Spec §7.4: hoekige staafjes en geen accentkleur. Vorm is neutraal; enkel uitschieters springen eruit
+// (8+ punten helder, 4-7 middel, 0-3 gedempt, negatief rood).
 export const Sparkline = memo(function Sparkline({ spark, width = 64, height = 20, label }) {
   if (!spark?.length) return null;
   const max = Math.max(10, ...spark.map(s => s.pts ?? 0));
@@ -47,11 +24,11 @@ export const Sparkline = memo(function Sparkline({ spark, width = 64, height = 2
       {spark.map((s, i) => {
         const x = i * (barW + gap);
         if (s.pts == null) {
-          return <rect key={s.gw} x={x} y={height - 2} width={barW} height={2} rx={1} fill="rgba(255,255,255,0.18)" />;
+          return <rect key={s.gw} x={x} y={height - 2} width={barW} height={2} fill="var(--text-4)" />;
         }
         const h = Math.max(2, (Math.max(0, s.pts) / max) * (height - 1));
-        const color = s.pts >= 8 ? '#4ECDC4' : s.pts >= 4 ? '#8FD9D3' : s.pts < 0 ? '#C2402C' : '#A794C2';
-        return <rect key={s.gw} x={x} y={height - h} width={barW} height={h} rx={1} fill={color} />;
+        const color = s.pts >= 8 ? 'var(--text-1)' : s.pts >= 4 ? 'var(--text-2)' : s.pts < 0 ? 'var(--danger)' : 'var(--text-3)';
+        return <rect key={s.gw} x={x} y={height - h} width={barW} height={h} fill={color} />;
       })}
     </svg>
   );

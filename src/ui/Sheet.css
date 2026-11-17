@@ -1,0 +1,70 @@
+/* Sheet (spec §5.10): lade rechts op desktop, bottom sheet op gsm. Enige plek (samen met menu en
+   toast) waar --shadow-overlay en backdrop-filter mogen. */
+
+.ui-sheet-overlay {
+  position: fixed; inset: 0; z-index: var(--z-sheet);
+  background: var(--scrim);
+  display: flex; justify-content: flex-end; align-items: stretch;
+}
+.ui-sheet {
+  --sheet-w: 480px;
+  position: relative; display: flex; flex-direction: column;
+  width: min(var(--sheet-w), 100%); height: 100%;
+  background: var(--ink-1); border-left: 1px solid var(--line-strong);
+  box-shadow: var(--shadow-overlay); outline: none;
+  animation: ui-sheet-in-right var(--dur-base) var(--ease);
+}
+.ui-sheet__grip { display: none; }
+.ui-sheet__head {
+  display: flex; align-items: flex-start; gap: var(--s-3);
+  padding: var(--s-4) var(--s-4) var(--s-3); border-bottom: 1px solid var(--line);
+}
+.ui-sheet__head > :first-child { flex: 1; min-width: 0; }
+.ui-sheet__title { margin: 0; font: 700 var(--fs-title)/var(--lh-title) var(--font-ui); color: var(--text-1); }
+.ui-sheet__close { flex-shrink: 0; margin: -4px -8px 0 0; }
+.ui-sheet__body { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 0 var(--s-4) var(--s-5); }
+.ui-sheet__footer {
+  display: flex; gap: var(--s-2); flex-wrap: wrap;
+  padding: var(--s-3) var(--s-4); border-top: 1px solid var(--line); background: var(--ink-1);
+}
+
+.ui-sheet-section { padding-top: var(--s-4); }
+.ui-sheet-section__head { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); margin-bottom: var(--s-2); }
+.ui-sheet-section__title { margin: 0; }
+
+@keyframes ui-sheet-in-right { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes ui-sheet-in-up { from { transform: translateY(32px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+@media (max-width: 899px) {
+  .ui-sheet-overlay { align-items: flex-end; justify-content: stretch; }
+  .ui-sheet {
+    width: 100%; height: auto; max-height: 88vh;
+    border-left: 0; border-top: 1px solid var(--line-strong);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    animation-name: ui-sheet-in-up;
+    transition: transform var(--dur-fast) var(--ease);
+  }
+  .ui-sheet__grip {
+    display: block; width: 32px; height: 3px; margin: var(--s-2) auto 0;
+    background: var(--line-strong); border-radius: 0; flex-shrink: 0;
+  }
+  .ui-sheet__head { padding-top: var(--s-2); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-sheet { animation: none; }
+}
+
+/* "Meer"-menu (BottomSheetMenu): rijen van 48px. */
+.ui-menu-list { list-style: none; margin: 0; padding: 0; }
+.ui-menu-row {
+  display: flex; align-items: center; gap: var(--s-3); width: 100%; min-height: 48px;
+  padding: 0 var(--s-4); border: 0; border-bottom: 1px solid var(--line); background: none;
+  color: var(--text-1); font: 600 var(--fs-body)/var(--lh-body) var(--font-ui); text-align: left;
+  text-decoration: none; cursor: pointer;
+}
+.ui-menu-row[aria-current="page"] { color: var(--accent); }
+.ui-menu-row svg { width: 18px; height: 18px; color: var(--text-3); }
+.ui-menu-row__meta { margin-left: auto; color: var(--text-3); font-weight: 400; font-size: var(--fs-ui); }
+.ui-menu-sep { height: 0; border-top: 1px solid var(--line-strong); margin: var(--s-2) 0 0; }
+.ui-menu-row--static { cursor: default; justify-content: space-between; }

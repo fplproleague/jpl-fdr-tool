@@ -1,0 +1,55 @@
+/* Invoer (spec §5.5): SearchField, Select en FilterChip delen deze stijl. */
+.ui-search { position: relative; display: flex; align-items: center; width: 100%; }
+.ui-search__icon { position: absolute; left: 10px; width: 16px; height: 16px; color: var(--text-3); pointer-events: none; }
+.ui-input, .ui-select {
+  width: 100%; height: 36px;
+  background-color: var(--ink-1); color: var(--text-1);
+  border: 1px solid var(--line-strong); border-radius: var(--r-1);
+  font: 400 var(--fs-ui)/var(--lh-ui) var(--font-ui);
+  transition: border-color var(--dur-fast) var(--ease);
+}
+.ui-input { padding: 0 34px 0 34px; }
+.ui-input--plain { padding: 0 10px; }
+.ui-input::placeholder { color: var(--text-3); opacity: 1; }
+.ui-input:focus, .ui-select:focus { outline: none; border-color: var(--accent); }
+.ui-input:focus-visible, .ui-select:focus-visible { outline: none; border-color: var(--accent); }
+.ui-input::-webkit-search-cancel-button { -webkit-appearance: none; display: none; }
+.ui-search__clear {
+  position: absolute; right: 4px; display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border: 0; border-radius: var(--r-1); background: transparent;
+  color: var(--text-3); cursor: pointer;
+}
+.ui-search__clear:hover { color: var(--text-1); }
+.ui-search__clear svg { width: 14px; height: 14px; }
+
+.ui-select {
+  -webkit-appearance: none; appearance: none;
+  padding: 0 30px 0 10px; width: auto; min-width: 64px; cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238AA5A0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 10px center;
+}
+.ui-select--sm { height: 28px; font-size: var(--fs-meta); padding-left: 8px; padding-right: 26px; background-position: right 8px center; }
+.ui-select option { background: var(--ink-1); color: var(--text-1); }
+
+.ui-field-label { display: block; margin-bottom: var(--s-1); }
+
+.ui-chips { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); }
+.ui-chip {
+  display: inline-flex; align-items: center; gap: var(--s-1);
+  height: 24px; padding: 0 0 0 var(--s-2);
+  background: var(--ink-2); color: var(--text-1); border-radius: var(--r-1);
+  font: 400 var(--fs-meta)/var(--lh-meta) var(--font-ui); white-space: nowrap;
+}
+.ui-chip__x {
+  display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px;
+  border: 0; background: transparent; color: var(--text-3); cursor: pointer; border-radius: var(--r-1);
+}
+.ui-chip__x:hover { color: var(--text-1); }
+.ui-chip__x svg { width: 12px; height: 12px; }
+
+@media (pointer: coarse) {
+  .ui-input, .ui-select { height: 44px; font-size: 16px; } /* 16px: geen auto-zoom op iOS */
+  .ui-select--sm { height: 36px; }
+  .ui-search__clear { width: 40px; height: 40px; }
+  .ui-chip__x { width: 32px; height: 32px; }
+}

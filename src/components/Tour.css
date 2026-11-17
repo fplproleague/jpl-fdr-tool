@@ -1,0 +1,68 @@
+/* Rondleiding (src/components/Tour.jsx). Boven alles, ook boven toasts en sheets. */
+
+/* --- Gedeeld: kaartje ------------------------------------------------------------------------- */
+.tour-card, .tour-welcome {
+  position: fixed; z-index: calc(var(--z-toast) + 10);
+  width: min(360px, calc(100vw - 24px));
+  padding: var(--s-4);
+  background: var(--ink-1); color: var(--text-1);
+  border: 1px solid var(--line-strong); border-top: 2px solid var(--accent); border-radius: var(--r-1);
+  box-shadow: var(--shadow-overlay);
+  font: 400 var(--fs-ui)/var(--lh-ui) var(--font-ui);
+}
+.tour-card:focus { outline: none; }
+.tour-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tour-card__count { margin: 0 0 var(--s-1); color: var(--accent); font-size: var(--fs-label); line-height: var(--lh-label); }
+.tour-card__title { margin: 0 0 var(--s-2); font: 700 var(--fs-title)/var(--lh-title) var(--font-ui); }
+.tour-card__body { color: var(--text-2); font-size: var(--fs-body); line-height: var(--lh-body); }
+.tour-card__body p { margin: 0 0 var(--s-2); }
+.tour-card__body p:last-child { margin-bottom: 0; }
+p.tour-card__body { margin: 0; }
+.tour-card__install { margin-top: var(--s-3); }
+.tour-card__actions {
+  display: flex; justify-content: flex-end; align-items: center; gap: var(--s-2);
+  margin-top: var(--s-4);
+}
+.tour-close {
+  position: absolute; top: 6px; right: 6px;
+  display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px;
+  border: 0; border-radius: var(--r-1); background: none; color: var(--text-3); cursor: pointer;
+}
+.tour-close svg { width: 16px; height: 16px; }
+.tour-close:hover { color: var(--text-1); background: var(--ink-2); }
+
+/* --- Welkomstkader: in het midden op desktop (feedback eigenaar), boven de onderbalk op gsm ------- */
+.tour-welcome { left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(400px, calc(100vw - 24px)); }
+.tour-welcome__lang { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s-2); margin-bottom: var(--s-3); }
+.tour-welcome__langlabel { color: var(--text-3); font-size: var(--fs-meta); }
+.tour-welcome__hint { margin: var(--s-3) 0 0; color: var(--text-3); font-size: var(--fs-meta); line-height: var(--lh-meta); }
+@media (max-width: 899px) {
+  .tour-welcome {
+    top: auto; transform: translateX(-50%); width: min(360px, calc(100vw - 24px));
+    bottom: calc(var(--bottomnav-h) + env(safe-area-inset-bottom, 0px) + var(--s-3));
+  }
+}
+.tour-card__link { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.tour-card__link:hover { text-decoration-thickness: 2px; }
+
+/* --- Rondleiding --------------------------------------------------------------------------------- */
+.tour-layer { position: fixed; inset: 0; z-index: calc(var(--z-toast) + 5); }
+.tour-catcher { position: absolute; inset: 0; background: transparent; }
+.tour-catcher.is-dim { background: var(--scrim); }
+/* Het oplichtende onderdeel: een gat in de verduistering, met een aqua rand. */
+.tour-spot {
+  position: fixed; border-radius: var(--r-1); pointer-events: none;
+  box-shadow: 0 0 0 2px var(--accent), 0 0 0 9999px var(--scrim);
+  transition: top var(--dur-base) var(--ease), left var(--dur-base) var(--ease),
+    width var(--dur-base) var(--ease), height var(--dur-base) var(--ease);
+}
+.tour-card.is-measuring { visibility: hidden; top: 0; left: 0; }
+
+/* Ruimte voor het sluitkruisje rechtsboven. */
+.tour-card__count, .tour-card__title, .tour-welcome__lang { padding-right: 24px; }
+
+@media (pointer: coarse) {
+  .tour-close { width: 40px; height: 40px; top: 2px; right: 2px; }
+  .tour-card__actions .ui-btn { height: 40px; }
+  .tour-card__count, .tour-card__title, .tour-welcome__lang { padding-right: 36px; }
+}

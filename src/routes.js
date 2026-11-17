@@ -11,78 +11,85 @@
 // Elke tab heeft nu een echt pad (/fdr, /team-planner, ...). Vercel serveert index.html voor die
 // paden via de rewrites in vercel.json; de client leest het pad hieronder terug uit.
 
+// Volgorde = populariteit (spec §6.1). group: 'primary' = de 4 hoofdtools (op gsm elk een eigen plek in
+// de onderbalk), 'secondary' = de extra's (op gsm onder "Meer").
+// Watchlist en Price Changes zijn weg (spec §6.3), Bonuspunten en Kaarten sinds feedbackronde 2 (die
+// tonen dezelfde tabel als Spelers met de kolomkeuze "Bonus" of "Kaarten"): oude links worden
+// doorgestuurd naar Spelers, zie LEGACY_ROUTES hieronder en de redirects in vercel.json.
 export const ROUTES = [
   {
     key: 'fdr',
     path: '/fdr',
+    group: 'primary',
     label: 'FDR',
     title: 'FDR — Fixture Difficulty Rating | Fantasy Pro League Tools',
     description: 'Interactieve Fixture Difficulty Rating voor alle 18 clubs van de Jupiler Pro League. Pas de ratings aan naar jouw eigen inschatting.',
   },
   {
-    key: 'teamplanner',
-    path: '/team-planner',
-    label: 'Team Planner',
-    title: 'Team Planner — plan je transfers | Fantasy Pro League Tools',
-    description: 'Stel je 15-koppige selectie samen, plan transfers per gameweek en beheer bank, kapitein en boosters.',
-  },
-  {
     key: 'predictedlineups',
     path: '/predicted-lineups',
+    group: 'primary',
     label: "Verwachte XI's",
     title: 'Predicted Lineups — verwachte opstellingen | Fantasy Pro League Tools',
     description: 'Verwachte basiselftallen voor alle 18 clubs van de Jupiler Pro League, met een duidelijke inschatting van de startkans per speler.',
   },
   {
-    key: 'spelers',
-    path: '/spelers',
-    label: 'Spelers',
-    title: 'Spelers — database met alle spelers | Fantasy Pro League Tools',
-    description: 'Alle Fantasy Pro League-spelers: filter, sorteer en vergelijk op punten, vorm, prijs, bonuspunten en eigendom.',
+    key: 'teamplanner',
+    path: '/team-planner',
+    group: 'primary',
+    label: 'Team Planner',
+    title: 'Team Planner — plan je transfers | Fantasy Pro League Tools',
+    description: 'Stel je 15-koppige selectie samen, plan transfers per gameweek en beheer bank, kapitein en boosters.',
   },
   {
-    key: 'bonuspunten',
-    path: '/bonuspunten',
-    label: 'Bonuspunten',
-    title: 'Bonuspunten — spelersranking | Fantasy Pro League Tools',
-    description: 'Ranking van Jupiler Pro League-spelers op bonuspunten, met een zoekbalk om een specifieke speler op te zoeken.',
+    key: 'spelers',
+    path: '/spelers',
+    group: 'primary',
+    label: 'Spelers',
+    title: 'Spelers — database met alle spelers | Fantasy Pro League Tools',
+    description: 'Alle Fantasy Pro League-spelers: filter, sorteer en vergelijk op punten, vorm, prijs, bonuspunten en ownership.',
   },
   {
     key: 'setpieces',
     path: '/set-pieces',
-    label: 'Set Pieces',
+    group: 'secondary',
+    label: 'Set pieces',
     title: 'Set Pieces — strafschop-, corner- en vrijetrapnemers | Fantasy Pro League Tools',
     description: 'Huidige strafschop-, corner- en vrijetrapnemers voor elke Belgische Pro League-club.',
   },
   {
-    key: 'watchlist',
-    path: '/watchlist',
-    label: 'Watchlist',
-    title: 'Watchlist — volg je spelers | Fantasy Pro League Tools',
-    description: 'Houd je favoriete Fantasy Pro League-spelers in de gaten, met hun eerstvolgende fixtures en moeilijkheidsgraad.',
-  },
-  {
-    key: 'kaarten',
-    path: '/kaarten',
-    label: 'Kaarten',
-    title: 'Kaarten — schorsingsrisico | Fantasy Pro League Tools',
-    description: 'Gele kaarten per speler en wie het dichtst bij een schorsing zit.',
-  },
-  {
     key: 'klassement',
     path: '/klassement',
+    group: 'secondary',
     label: 'Klassement',
-    title: 'Klassement — zoek je team en minileague | Fantasy Pro League Tools',
-    description: 'Zoek je Fantasy Pro League-team op naam in het algemene of speeldagklassement en bekijk het klassement van je minileague.',
-  },
-  {
-    key: 'pricechanges',
-    path: '/price-changes',
-    label: 'Price Changes',
-    title: 'Price Changes — prijswijzigingen | Fantasy Pro League Tools',
-    description: 'Prijswijzigingen in Fantasy Pro League. In het spel veranderen prijzen pas vanaf gameweek 7.',
+    title: 'Klassement: zoek je team | Fantasy Pro League Tools',
+    description: 'Zoek je Fantasy Pro League-team op naam in het algemene of speeldagklassement.',
   },
 ];
+
+export const PRIMARY_ROUTES = ROUTES.filter(r => r.group === 'primary');
+export const SECONDARY_ROUTES = ROUTES.filter(r => r.group === 'secondary');
+
+// Verwijderde tabs (spec §6.3). vercel.json stuurt deze paden al door, maar een geïnstalleerde app of
+// een oude cache kan ze nog openen: dan vangt de client ze hier op.
+export const LEGACY_ROUTES = {
+  '/watchlist': { key: 'spelers', params: { scope: 'watchlist' } },
+  '/price-changes': { key: 'spelers', params: {} },
+  '/bonuspunten': { key: 'spelers', params: { cols: 'bonus', sort: 'bp' } },
+  '/kaarten': { key: 'spelers', params: { cols: 'cards', sort: 'toSusp', dir: 'asc' } },
+};
+
+// Geeft de nieuwe URL voor een oud pad, of null als het pad gewoon bestaat.
+export function legacyRedirectUrl(pathname, search = '') {
+  const { language, path } = splitLanguageFromPath(pathname);
+  const legacy = LEGACY_ROUTES[path];
+  if (!legacy) return null;
+  const params = new URLSearchParams(search || '');
+  // Wat al in de oude link stond (bv. een zoekterm of eigen sortering), gaat voor.
+  Object.entries(legacy.params).forEach(([k, v]) => { if (!params.has(k)) params.set(k, v); });
+  const qs = params.toString();
+  return `${pathForRoute(legacy.key, language)}${qs ? `?${qs}` : ''}`;
+}
 
 export const DEFAULT_ROUTE_KEY = 'fdr';
 
@@ -95,10 +102,11 @@ export const DEFAULT_ROUTE_KEY = 'fdr';
 // het grootste stuk publiek dat deze site onbenut laat.
 //
 // Nederlands blijft op de kale paden (/fdr, /team-planner, ...) — geen enkele bestaande link verandert.
-// Frans krijgt hetzelfde pad met een /fr-voorvoegsel (/fr/fdr, /fr/team-planner, ...).
-export const SUPPORTED_LANGUAGES = ['nl', 'fr'];
+// Frans krijgt hetzelfde pad met een /fr-voorvoegsel (/fr/fdr, /fr/team-planner, ...), Engels een
+// /en-voorvoegsel (/en/fdr, ...).
+export const SUPPORTED_LANGUAGES = ['nl', 'fr', 'en'];
 export const DEFAULT_ROUTE_LANGUAGE = 'nl';
-const LANGUAGE_PREFIX = { nl: '', fr: '/fr' };
+const LANGUAGE_PREFIX = { nl: '', fr: '/fr', en: '/en' };
 
 export function prefixForLanguage(language) {
   return LANGUAGE_PREFIX[language] ?? '';
@@ -112,8 +120,11 @@ function normalizePath(pathname) {
 // vallen dus door naar de bestaande Nederlandse afhandeling.
 export function splitLanguageFromPath(pathname) {
   const normalized = normalizePath(pathname);
-  if (normalized === '/fr' || normalized.startsWith('/fr/')) {
-    return { language: 'fr', path: normalized.slice(3) || '/' };
+  for (const language of SUPPORTED_LANGUAGES) {
+    const prefix = LANGUAGE_PREFIX[language];
+    if (prefix && (normalized === prefix || normalized.startsWith(`${prefix}/`))) {
+      return { language, path: normalized.slice(prefix.length) || '/' };
+    }
   }
   return { language: DEFAULT_ROUTE_LANGUAGE, path: normalized };
 }
@@ -121,7 +132,8 @@ export function splitLanguageFromPath(pathname) {
 // De taal die bij een URL hoort. Geeft null terug als de URL er niets over zegt (alle Nederlandse
 // paden) — de aanroeper mag dan zelf beslissen, bv. op basis van een eerder opgeslagen voorkeur.
 export function languageFromPath(pathname) {
-  return splitLanguageFromPath(pathname).language === 'fr' ? 'fr' : null;
+  const { language } = splitLanguageFromPath(pathname);
+  return language === DEFAULT_ROUTE_LANGUAGE ? null : language;
 }
 
 // Pad -> tabsleutel. "/" (en "/fr") vallen terug op de FDR-tab, zodat de bestaande homepage-URL (en
@@ -130,7 +142,9 @@ export function routeKeyFromPath(pathname) {
   const { path } = splitLanguageFromPath(pathname);
   if (path === '/') return DEFAULT_ROUTE_KEY;
   const match = ROUTES.find(r => r.path === path);
-  return match ? match.key : DEFAULT_ROUTE_KEY;
+  if (match) return match.key;
+  if (LEGACY_ROUTES[path]) return LEGACY_ROUTES[path].key;
+  return DEFAULT_ROUTE_KEY;
 }
 
 export function routeByKey(key) {
@@ -145,25 +159,30 @@ export function pathForRoute(key, language = DEFAULT_ROUTE_LANGUAGE) {
 }
 
 // Query-parameters die bij één tab horen. Die worden bij het wisselen naar een ándere tab weggelaten,
-// zodat bv. de filters van de Spelers-tab niet blijven plakken aan de FDR-URL. Parameters die hier
-// niet staan (zoals ?r= en ?ha= van de FDR-ratings) gaan gewoon mee, zoals voorheen.
+// zodat bv. de filters van de Spelers-tab niet blijven plakken aan de FDR-URL. Ook ?r= en ?ha= (de
+// ratings uit een gedeelde FDR-link) horen enkel bij de FDR-tab: wie van tab wisselt, ziet daarna weer
+// zijn eigen ratings (FUNCTIONALITEIT_SPEC A1).
+const TABLE_PARAMS = ['q', 'pos', 'club', 'pmin', 'pmax', 'mins', 'scope', 'per', 'mode', 'cols', 'sort', 'dir', 'compare', 'speler', 'diff', 'avail'];
 export const TAB_QUERY_PARAMS = {
-  spelers: ['q', 'pos', 'club', 'pmin', 'pmax', 'mins', 'scope', 'per', 'mode', 'cols', 'sort', 'dir', 'compare', 'speler'],
-  klassement: ['team', 'rgw', 'league', 'lgw'],
+  fdr: ['r', 'ha', 'clubs'],
+  spelers: TABLE_PARAMS,
+  predictedlineups: ['match', 'team', 'view', 'twijfel', 'mijn'],
+  klassement: ['team', 'rgw'],
 };
 
+// De query-string voor tab `key`: parameters van andere tabs vallen weg.
 export function searchForTab(search, key) {
   const params = new URLSearchParams(search || '');
+  // Een parameter die ook bij de doel-tab hoort (bv. 'team' bij Verwachte XI's én Klassement) blijft staan.
+  const own = new Set(TAB_QUERY_PARAMS[key] ?? []);
   for (const [tab, keys] of Object.entries(TAB_QUERY_PARAMS)) {
-    if (tab !== key) keys.forEach(k => params.delete(k));
+    if (tab !== key) keys.forEach(k => { if (!own.has(k)) params.delete(k); });
   }
   const s = params.toString().replace(/%2C/g, ',');
   return s ? `?${s}` : '';
 }
 
-// Bouwt de volledige URL voor een tab, mét behoud van de bestaande query-parameters. Dat laatste is
-// essentieel: de FDR-tab codeert aangepaste ratings in ?r= en thuisvoordeel in ?ha=, en die mogen
-// niet verloren gaan wanneer iemand van tab wisselt.
+// Bouwt de volledige URL voor een tab. De query-string komt al gefilterd binnen (zie searchForTab).
 export function urlForRoute(key, search = '', language = DEFAULT_ROUTE_LANGUAGE) {
   return `${pathForRoute(key, language)}${search || ''}`;
 }

@@ -1,0 +1,21 @@
+/* PlayerSearchInput in de SearchField-stijl (spec §5.5, §7.3). De keuzelijst is een overlay. */
+.ui-psearch .ui-psearch__input { padding-right: 10px; }
+.ui-psearch .ui-psearch__input:disabled { color: var(--text-4); cursor: default; }
+.ui-psearch__list {
+  position: fixed; z-index: var(--z-overlay); max-height: 240px; overflow-y: auto;
+  background: var(--ink-1); border: 1px solid var(--line-strong); border-radius: var(--r-1);
+  box-shadow: var(--shadow-overlay);
+}
+.ui-psearch__item {
+  display: flex; align-items: center; gap: var(--s-2); width: 100%; height: 36px; padding: 0 var(--s-3);
+  border: 0; border-bottom: 1px solid var(--line); background: none; color: var(--text-1);
+  text-align: left; cursor: pointer; font: 500 var(--fs-ui)/var(--lh-ui) var(--font-ui);
+}
+.ui-psearch__item:last-child { border-bottom: 0; }
+.ui-psearch__item:hover, .ui-psearch__item:focus-visible { background: var(--ink-2); outline: none; }
+.ui-psearch__item img { width: 16px; height: 16px; object-fit: contain; flex-shrink: 0; }
+.ui-psearch__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.ui-psearch__meta { flex-shrink: 0; color: var(--text-3); font-size: var(--fs-meta); }
+.ui-psearch__price { flex-shrink: 0; color: var(--text-2); font-size: var(--fs-meta); }
+.ui-psearch__none { padding: var(--s-3); color: var(--text-3); font-size: var(--fs-meta); }
+@media (pointer: coarse) { .ui-psearch__item { height: 44px; } .ui-psearch .ui-input { height: 44px; } }

@@ -70,6 +70,14 @@ export default function PitchSlot({
   // het label per kaartje verschilt; zo hoeft deze module (die ook de privé-tool bedient) zelf geen
   // i18n te kennen.
   viewPlayerLabel,
+  // Enkel voor de publieke tab (spec E1): true = deze speler zit in het team van de bezoeker. Zet
+  // enkel een data-mine-haakje op het naamlabel; de stijl staat in PredictedLineupsTab.css. Zonder
+  // deze prop (de privé-builder en de PNG-export) komt er geen attribuut bij: pixel-identiek.
+  highlighted,
+  // Enkel voor de publieke tab (spec F3): { state: 'starts'|'bench'|'out', label } uit de officiële
+  // opstelling. Zet enkel data-official-haakjes (stijl in PredictedLineupsTab.css) en vult de aria-tekst
+  // aan. Zonder deze prop (de privé-builder en de PNG-export) komt er niets bij.
+  official,
   // Fallback-teamcode voor het shirt-icoon (zie effectiveTeamCode hieronder) — de club waarvan dit veld
   // de opstelling toont, doorgegeven vanuit PitchField.jsx. Enkel nodig als slot.playerTeamCode leeg is
   // (bv. een handmatig ingevoerde speler die niet uit de spelersdatabank kwam, zie handleManualAdd in
@@ -86,7 +94,7 @@ export default function PitchSlot({
   // Bekijken mag enkel op de publieke, read-only weergave: in de builder is een klik al een
   // bewerk-actie (positie kiezen), en die mag niet gekaapt worden.
   const canView = Boolean(readOnly && onViewPlayer && !isEmpty);
-  const viewLabel = canView ? viewPlayerLabel?.(slot.playerName) : undefined;
+  const viewLabel = canView ? [viewPlayerLabel?.(slot.playerName), official?.label].filter(Boolean).join(', ') : undefined;
   const safety = SAFETY_STYLE[slot.safety] ?? SAFETY_STYLE.green;
   const effectiveTeamCode = slot.playerTeamCode || teamCode || '';
   const hasComputedPosition = !isEmpty && leftPx != null;
@@ -132,6 +140,7 @@ export default function PitchSlot({
           }
           : undefined}
         data-player-name={isEmpty ? undefined : slot.playerName}
+        data-official={!isEmpty && official ? official.state : undefined}
         // pxi-card--empty/--filled: mobiele padding-overrides staan in PitchField.jsx's MOBILE_STYLE
         // (@media max-width: 640px, dezelfde conventie als elders in de codebase) i.p.v. hier een JS-
         // berekende drempel — de basisstijl (desktop) hieronder blijft ongewijzigd.
@@ -185,6 +194,9 @@ export default function PitchSlot({
                 <button
                   onClick={readOnly ? undefined : (e) => { e.stopPropagation(); onCycleSafety(index); }}
                   title={safety.label}
+                  // data-safety: enkel een haakje voor de stijl op de publieke site (variant="site"
+                  // in PitchField.jsx); verandert niets aan hoe de builder eruitziet.
+                  data-safety={slot.safety ?? 'green'}
                   disabled={readOnly}
                   style={{
                     position: 'absolute', top: `${badgeOffsetPx}px`, right: `${badgeOffsetPx}px`, zIndex: 1,
@@ -240,10 +252,10 @@ export default function PitchSlot({
             {/* Kaal (geen achtergrond/rand/padding meer, zie bestandscommentaar hierboven) — enkel de
                 flex-kolom zelf, puur voor de layout-groepering van naam+prijs. De text-shadow op de
                 spans hieronder draagt nu alleen de leesbaarheid, i.p.v. een achtergrondvlak. */}
-            <div className="pxi-card-label" style={{
+            <div className="pxi-card-label" data-official-label={official && official.state !== 'starts' ? official.label : undefined} style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px',
             }}>
-              <span className="pxi-card-name" style={{
+              <span className="pxi-card-name" data-mine={highlighted ? '' : undefined} style={{
                 color: '#FFF', fontSize: '13px', fontWeight: 800,
                 textAlign: 'center', lineHeight: 1.15, whiteSpace: 'nowrap',
                 textShadow: TEXT_SHADOW,

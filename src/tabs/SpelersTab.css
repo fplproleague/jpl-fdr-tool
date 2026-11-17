@@ -1,0 +1,149 @@
+/* Spelers-tab (spec §7.4 + §8). */
+
+/* Toolbar: rij 1 zoeken, rij 2 positie + preset + knoppen. */
+.spl-toolbar { display: flex; flex-direction: column; gap: var(--s-3); margin-bottom: var(--s-3); }
+.spl-search { max-width: 320px; }
+.spl-toolbar__row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3); }
+.spl-toolbar__actions { display: flex; gap: var(--s-2); margin-left: auto; }
+
+.spl-chipsline {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-2) var(--s-4);
+  margin-bottom: var(--s-3);
+}
+.spl-chipsline__count { color: var(--text-3); font-size: var(--fs-meta); margin-left: auto; }
+
+.spl .ui-notice { margin-bottom: var(--s-3); }
+.spl .ui-error { margin-bottom: var(--s-3); }
+
+/* Tabel. De eerste (sticky) kolom bevat [vinkje] [ster] [speler]. */
+.spl-ident { display: inline-flex; align-items: center; gap: var(--s-1); min-width: 0; max-width: 100%; vertical-align: middle; }
+.spl-ident .ui-star { margin-left: calc(var(--s-2) * -1); }
+.spl-check { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 32px; flex-shrink: 0; }
+.spl-check input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); cursor: pointer; }
+.spl-table .ui-table thead th.spl-col-player .ui-th-sort { margin-left: 24px; }
+.spl.is-compare .spl-table .ui-table thead th.spl-col-player .ui-th-sort { margin-left: 52px; }
+.spl-table .ui-table tbody tr.is-compared > td,
+.spl-table .ui-table tbody tr.is-compared > th { background: var(--ink-2); }
+
+.spl-club { display: inline-flex; align-items: center; gap: var(--s-1); color: var(--text-2); font-size: var(--fs-meta); }
+.spl-col-pos { color: var(--text-2); font-size: var(--fs-meta); }
+.spl-col-spark svg { display: inline-block; vertical-align: middle; }
+
+.spl-note { color: var(--text-3); font-size: var(--fs-meta); line-height: var(--lh-meta); margin: var(--s-2) 0 0; max-width: 72ch; }
+.spl-footnote { margin-top: var(--s-5); font-size: var(--fs-label); line-height: var(--lh-label); }
+
+/* Watchlist-spelers die niet in de spelersdata staan. */
+.spl-nf { margin-top: var(--s-6); }
+.spl-nf__title { color: var(--text-2); margin: 0; }
+.spl-nf .spl-note { margin-bottom: var(--s-3); }
+.spl-nf__name { font-weight: 600; }
+.spl-nf__actions { text-align: right; width: 1%; }
+
+/* Vergelijkbalk: plakt onderaan, boven de onderbalk op gsm. */
+.spl-comparebar {
+  position: sticky; bottom: 0; z-index: var(--z-sticky);
+  display: flex; align-items: center; gap: var(--s-2);
+  margin: var(--s-4) calc(var(--gutter) * -1) 0; padding: var(--s-3) var(--gutter);
+  background: var(--ink-1); border-top: 1px solid var(--line-strong);
+}
+.spl-comparebar__text { flex: 1; min-width: 0; font-weight: 600; }
+
+/* Filterlade. */
+.spl-filters { display: flex; flex-direction: column; gap: var(--s-5); }
+.spl-field { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s-2); }
+.spl-field__label { color: var(--text-3); }
+.spl-field__value { color: var(--text-1); text-transform: none; letter-spacing: 0; margin-left: var(--s-2); }
+.spl-field__control { width: 100%; }
+.spl-field__note { color: var(--text-3); font-size: var(--fs-meta); line-height: var(--lh-meta); margin: 0; }
+.spl-range { position: relative; width: 100%; height: 32px; }
+.spl-range__track {
+  position: absolute; left: 10px; right: 10px; top: 50%; height: 4px; margin-top: -2px; background: var(--line-strong);
+}
+.spl-range__fill { position: absolute; top: 0; bottom: 0; background: var(--accent); }
+.spl-range input[type="range"] {
+  position: absolute; inset: 0; width: 100%; height: 32px; margin: 0;
+  -webkit-appearance: none; appearance: none; background: none; pointer-events: none;
+}
+.spl-range input[type="range"]::-webkit-slider-runnable-track { background: none; border: 0; }
+.spl-range input[type="range"]::-moz-range-track { background: none; border: 0; }
+.spl-range input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; pointer-events: auto; cursor: grab;
+  width: 20px; height: 20px; border: 2px solid var(--ink-0); border-radius: var(--r-1); background: var(--accent);
+}
+.spl-range input[type="range"]::-moz-range-thumb {
+  pointer-events: auto; cursor: grab;
+  width: 16px; height: 16px; border: 2px solid var(--ink-0); border-radius: var(--r-1); background: var(--accent);
+}
+.spl-range input[type="range"]:focus-visible { outline: none; }
+.spl-range input[type="range"]:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--text-1); outline-offset: 2px; }
+.spl-range input[type="range"]:focus-visible::-moz-range-thumb { outline: 2px solid var(--text-1); outline-offset: 2px; }
+@media (pointer: coarse) {
+  .spl-range input[type="range"]::-webkit-slider-thumb { width: 28px; height: 28px; }
+}
+.spl-sheet-actions { display: flex; justify-content: flex-end; gap: var(--s-2); flex-wrap: wrap; }
+
+/* Vergelijken (in een Sheet). */
+.spl-compare { margin-top: var(--s-2); }
+.spl-compare__table { width: 100%; table-layout: fixed; }
+.spl-compare__table thead th, .spl-compare__table thead td { height: auto; vertical-align: bottom; border-bottom: 0; }
+.spl-compare__table thead .spl-compare__stat { width: 220px; }
+.spl-compare__faces td { padding-top: var(--s-2); padding-bottom: 0; }
+/* De naamregel plakt bovenaan het venster (feedback eigenaar). */
+.spl-compare__table .spl-compare__names th {
+  position: sticky; top: 0; z-index: 2; background: var(--ink-1);
+  padding-top: var(--s-2); padding-bottom: var(--s-2); border-bottom: 1px solid var(--line-strong);
+}
+.spl-compare__names .spl-compare__player { text-align: center; }
+.spl-compare__names .spl-compare__meta { display: block; }
+/* Volgende 3 wedstrijden: op smalle schermen onder elkaar in plaats van over elkaar. */
+.spl-compare__next > span { justify-content: center; }
+@media (max-width: 700px) {
+  .spl-compare__next > span { flex-direction: column; }
+}
+.spl-compare__stat {
+  text-align: left; color: var(--text-3); font-size: var(--fs-meta); font-weight: 600;
+  white-space: normal !important; line-height: var(--lh-meta);
+}
+.spl-compare__table tbody th.spl-compare__stat { font-weight: 600; }
+.spl-compare__labelrow { display: none; }
+.spl-compare__player { text-transform: none; letter-spacing: 0; white-space: normal !important; }
+.spl-compare__head { display: flex; flex-direction: column; align-items: center; gap: var(--s-1); min-width: 0; }
+.spl-compare__remove { align-self: flex-end; }
+.spl-compare__name {
+  max-width: 100%; border: 0; padding: 0; background: none; cursor: pointer; text-align: center;
+  font: 600 var(--fs-ui)/var(--lh-ui) var(--font-ui); color: var(--text-1); overflow-wrap: anywhere;
+}
+.spl-compare__table td { overflow: hidden; text-overflow: ellipsis; }
+/* Gsm: geen statkolom links; de naam van de stat staat als eigen regel boven de waarden. */
+@media (max-width: 700px) {
+  /* De statkolom verdwijnt helemaal; de labelregel (die op desktop verborgen is) neemt haar rol over. */
+  .spl-compare__table .spl-compare__stat { display: none; }
+  .spl-compare__labelrow { display: table-row; }
+  .spl-compare__labelrow td {
+    padding: var(--s-2) var(--s-1) 0 !important; height: auto !important; border-bottom: 0 !important;
+    color: var(--text-3); font-size: var(--fs-label); font-weight: 600; text-align: left !important;
+  }
+  .spl-compare__table td { padding-left: 2px; padding-right: 2px; }
+  .spl-compare__name { font-size: var(--fs-meta); }
+  .spl-compare__meta { font-size: var(--fs-label); }
+}
+.spl-compare__name:hover { text-decoration: underline; text-underline-offset: 2px; }
+.spl-compare__meta { color: var(--text-3); font-size: var(--fs-meta); font-weight: 400; }
+.spl-compare__spark { display: inline-block; }
+
+@media (max-width: 899px) {
+  .spl-comparebar { bottom: calc(var(--bottomnav-h) + env(safe-area-inset-bottom, 0px)); }
+}
+@media (max-width: 700px) {
+  .spl-search { max-width: none; }
+  .spl-toolbar__row { gap: var(--s-2); }
+  .spl-toolbar__row > .ui-seg-wrap { width: 100%; }
+  .spl-toolbar__actions { margin-left: 0; width: 100%; }
+  .spl-toolbar__actions > .ui-btn { flex: 1; }
+  .spl-table .ui-table .is-sticky { max-width: 200px; }
+  .spl-col-club, .spl-col-pos { display: none; }
+}
+/* Heel smalle gsm met 4 spelers: iets kleinere namen, zodat ze niet midden in een woord afbreken. */
+@media (max-width: 400px) {
+  .spl-compare__names .spl-compare__name { font-size: var(--fs-label); letter-spacing: -0.01em; hyphens: auto; }
+}

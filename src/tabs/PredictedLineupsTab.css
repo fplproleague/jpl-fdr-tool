@@ -1,0 +1,231 @@
+/* Verwachte XI's (spec §7.2, §3.3, §5.13). */
+.pxl-credit { color: var(--text-2); text-decoration: underline; text-underline-offset: 2px; }
+.pxl-credit:hover { color: var(--text-1); }
+.pxl-muted { color: var(--text-3); }
+
+.pxl-status { margin: 0 0 var(--s-4); color: var(--text-2); font-size: var(--fs-ui); line-height: var(--lh-ui); }
+.pxl-status strong { color: var(--text-1); font-weight: 700; }
+.pxl-status__in { color: var(--text-3); white-space: nowrap; }
+.pxl-status__in .num { color: var(--accent); }
+
+.pxl-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3) var(--s-5); margin-bottom: var(--s-4); }
+
+/* Startzekerheid: de enige plek met ronde statusstippen (spec §3.3), altijd met deze legende. */
+.pxl-legend { display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-4); margin: 0 0 0 auto; padding: 0; list-style: none; color: var(--text-2); font-size: var(--fs-meta); }
+.pxl-legend li { display: inline-flex; align-items: center; gap: 6px; }
+.pxl-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--positive); }
+.pxl-dot.is-green { background: transparent; box-sizing: border-box; border: 2px solid var(--positive); }
+.pxl-dot.is-orange { background: var(--warning); }
+.pxl-dot.is-red { background: var(--danger); }
+
+/* --- Wedstrijdkiezer ------------------------------------------------------------------------- */
+.pxl-matches {
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr);
+  border: 1px solid var(--line-strong); border-radius: var(--r-1); margin-bottom: var(--s-4);
+}
+.pxl-match {
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 0;
+  height: 40px; padding: 0 var(--s-2); border: 0; border-left: 1px solid var(--line-strong);
+  background: none; color: var(--text-2); font: 600 var(--fs-meta)/1 var(--font-ui); cursor: pointer; white-space: nowrap;
+}
+.pxl-match:first-child { border-left: 0; }
+.pxl-match__sep { color: var(--text-4); }
+.pxl-match.is-active { background: var(--invert-bg); color: var(--invert-text); }
+.pxl-match.is-active .pxl-match__sep { color: inherit; }
+.pxl-match.is-postponed:not(.is-active) { color: var(--text-4); }
+.pxl-match.is-postponed:not(.is-active) img { opacity: 0.5; }
+@media (hover: hover) and (pointer: fine) {
+  .pxl-match:not(.is-active):hover { background: var(--ink-2); color: var(--text-1); }
+}
+
+/* --- Velden ---------------------------------------------------------------------------------- */
+.pxl-teamswitch { display: none; }
+.pxl-pitches { display: grid; grid-template-columns: minmax(0, 520px) auto minmax(0, 520px); justify-content: center; gap: var(--s-5); align-items: start; }
+.pxl-vs { align-self: center; color: var(--text-3); font: 700 var(--fs-label)/1 var(--font-ui); text-transform: uppercase; letter-spacing: 0.06em; }
+.pxl-side { min-width: 0; }
+.pxl-side__head { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s-2); min-height: 40px; margin-bottom: var(--s-2); }
+.pxl-side__club { border: 0; padding: 0; background: none; color: var(--text-1); font: 700 var(--fs-title)/var(--lh-title) var(--font-ui); cursor: pointer; text-align: left; }
+.pxl-side__club:hover { text-decoration: underline; text-underline-offset: 3px; }
+.pxl-side__formation { color: var(--text-3); font-size: var(--fs-meta); }
+.pxl-side__updated { flex-basis: 100%; color: var(--text-3); font-size: var(--fs-label); }
+.pxl-steppers { display: none; }
+
+/* Het veld in de sitestijl (PitchField variant="site"). De inline stijlen van de builder blijven
+   staan voor de builder zelf; hier worden ze enkel binnen .pxi-field--site overschreven. */
+.pxi-field--site .pxi-card-shirt { filter: none !important; }
+/* Het naamlabel mag iets breder zijn dan het shirt (8px per kant): de kaartbreedte is berekend voor
+   de builder zonder achtergrondvlak, en anders werden namen als "Sabbe" net afgekapt. */
+.pxi-field--site .pxi-card-label { gap: 1px !important; max-width: calc(100% + 16px); }
+.pxi-field--site .pxi-card-name {
+  display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; padding: 1px 3px;
+  background: rgba(12, 13, 12, 0.88); color: var(--text-1) !important; text-shadow: none !important;
+  font: 600 11px/1.3 var(--font-ui) !important;
+}
+.pxi-field--site .pxi-card-price {
+  color: var(--text-2) !important; text-shadow: none !important;
+  font: 600 var(--fs-micro)/1.2 var(--font-num) !important;
+}
+.pxi-field--site [data-safety] {
+  width: 10px !important; height: 10px !important; top: -2px !important; right: -6px !important;
+  border: 0 !important; box-sizing: border-box; background: var(--positive) !important;
+}
+.pxi-field--site [data-safety="green"] { background: var(--pitch) !important; border: 2px solid var(--positive) !important; }
+.pxi-field--site [data-safety="orange"] { background: var(--warning) !important; }
+.pxi-field--site [data-safety="red"] { background: var(--danger) !important; }
+/* Opstellingen van de vorige speeldag: labels iets gedimd. */
+.pxl--previous .pxi-field--site .pxi-card-label { opacity: 0.7; }
+
+/* --- Overzicht ------------------------------------------------------------------------------- */
+.pxl-overview td, .pxl-overview th { vertical-align: top; padding-top: var(--s-3); padding-bottom: var(--s-3); }
+.pxl-overview tbody td, .pxl-overview tbody th { height: auto; }
+.pxl-overview__club button {
+  display: inline-flex; align-items: center; gap: var(--s-2); border: 0; padding: 0; background: none;
+  color: var(--text-1); font: 700 var(--fs-ui)/var(--lh-ui) var(--font-ui); cursor: pointer;
+}
+.pxl-overview__opp { display: block; color: var(--text-2); white-space: nowrap; }
+.pxl-overview__formation { color: var(--text-2); font-size: var(--fs-meta); }
+.pxl-overview__players { white-space: normal !important; width: 100%; }
+.pxl-lines { display: flex; flex-wrap: wrap; gap: var(--s-1) 0; }
+.pxl-names { display: flex; flex-wrap: wrap; gap: 2px var(--s-3); margin: 0; padding: 0 var(--s-3); list-style: none; border-left: 1px solid var(--line-strong); }
+.pxl-names:first-child { padding-left: 0; border-left: 0; }
+.pxl-name {
+  display: inline-flex; align-items: center; gap: 5px; border: 0; padding: 0; background: none;
+  color: var(--text-1); font: 500 var(--fs-ui)/var(--lh-ui) var(--font-ui); cursor: pointer; white-space: nowrap;
+}
+.pxl-name:hover { text-decoration: underline; text-underline-offset: 2px; }
+
+/* --- Gsm ------------------------------------------------------------------------------------- */
+@media (max-width: 1099px) {
+  .pxl-pitches { gap: var(--s-3); }
+}
+@media (max-width: 899px) {
+  .pxl-legend { margin-left: 0; }
+  .pxl-matches {
+    display: flex; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none;
+    margin-left: calc(var(--gutter) * -1); margin-right: calc(var(--gutter) * -1);
+    border-left: 0; border-right: 0; border-radius: 0;
+  }
+  .pxl-matches::-webkit-scrollbar { display: none; }
+  .pxl-match { flex: 0 0 auto; height: 44px; padding: 0 var(--s-3); }
+  .pxl-teamswitch { display: flex; justify-content: center; margin-bottom: var(--s-3); }
+  .pxl-pitches { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+  .pxl-side { width: 100%; max-width: 520px; }
+  .pxl-side.is-hidden-mobile, .pxl-vs { display: none; }
+  .pxl-steppers { display: flex; align-items: center; justify-content: center; gap: var(--s-4); margin-top: var(--s-3); }
+  .pxl-steppers__pos { color: var(--text-3); font-size: var(--fs-meta); }
+  .pxi-field--site .pxi-card-name { font-size: 10px !important; padding: 1px 2px; letter-spacing: -0.01em; }
+
+  .pxl-overview thead { display: none; }
+  .pxl-overview, .pxl-overview tbody { display: block; }
+  .pxl-overview tr {
+    display: grid; grid-template-columns: auto minmax(0, 1fr) auto; column-gap: var(--s-3);
+    padding: var(--s-2) 0; border-bottom: 1px solid var(--line);
+  }
+  .pxl-overview tbody td, .pxl-overview tbody th { display: block; border-bottom: 0; padding: 0; }
+  .pxl-overview__players { grid-column: 1 / -1; padding-top: var(--s-2) !important; }
+  .pxl-lines { flex-direction: column; gap: var(--s-1); }
+  .pxl-names { padding: 0; border-left: 0; }
+}
+
+/* --- Mijn spelers (spec E1) ------------------------------------------------------------------ */
+/* Een dunne accentlijn onder de naam, niet de hele rij: zo botst het niet met de statusstip. */
+.pxl-name.is-mine .pxl-name__text { text-decoration: underline 2px var(--accent); text-underline-offset: 3px; }
+.pxi-field--site .pxi-card-name[data-mine] { box-shadow: inset 0 -2px 0 var(--accent); }
+.pxl-mine-mark { display: inline-block; width: 12px; height: 2px; background: var(--accent); flex-shrink: 0; }
+/* Aantal van jouw spelers in een wedstrijd: een klein badge in de rechterbovenhoek van de knop, zodat
+   het de clubcodes niet opzijduwt. */
+.pxl-match { position: relative; }
+.pxl-match__mine {
+  position: absolute; top: 3px; right: 3px;
+  display: inline-flex; align-items: center; justify-content: center; min-width: 13px; height: 13px; padding: 0 3px;
+  border-radius: 7px; background: var(--accent); color: var(--accent-ink);
+  font: 700 9px/1 var(--font-num);
+}
+/* Per veld: wie van jouw spelers ontbreekt of twijfelt. */
+.pxl-side__mine { margin: 0 0 var(--s-2); color: var(--text-2); font-size: var(--fs-meta); line-height: var(--lh-meta); }
+.pxl-side__mine-part { display: inline; }
+.pxl-side__mine-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: 0; }
+.pxl-side__mine-part.is-notInXi .pxl-side__mine-dot { background: var(--danger); }
+.pxl-side__mine-part.is-doubts .pxl-side__mine-dot { background: var(--warning); }
+.pxl-mine { margin: 0 0 var(--s-4); color: var(--text-2); font-size: var(--fs-ui); line-height: var(--lh-ui); }
+.pxl-mine strong { color: var(--text-1); font-weight: 700; }
+.pxl-mine__sep { color: var(--text-4); }
+.pxl-mine__name {
+  border: 0; padding: 0; background: none; color: var(--text-1); font: inherit; cursor: pointer;
+  text-decoration: underline 1px var(--line-strong); text-underline-offset: 2px;
+}
+.pxl-mine__name:hover { text-decoration-color: currentColor; }
+
+/* --- Officiële opstellingen (spec F3) -------------------------------------------------------- */
+/* Vinkje: een groen rondje met een witte haak (CSS, zodat het in elke taal en op elk veld gelijk is). */
+.pxl-tick {
+  display: inline-block; position: relative; width: 12px; height: 12px; flex-shrink: 0;
+  border-radius: 50%; background: var(--positive); vertical-align: -1px;
+}
+.pxl-tick::after {
+  content: ''; position: absolute; left: 4px; top: 2px; width: 3px; height: 6px;
+  border: solid var(--accent-ink); border-width: 0 1.5px 1.5px 0; transform: rotate(45deg);
+}
+.pxl-dimmed-mark { color: var(--text-1); opacity: 0.4; font-weight: 700; font-size: var(--fs-label); }
+.pxl-official {
+  display: inline-flex; align-items: center; padding: 2px 6px; border-radius: var(--r-1);
+  background: var(--positive); color: var(--accent-ink); font: 700 var(--fs-label)/1.2 var(--font-ui);
+}
+.pxl-official.is-block { display: table; margin-top: var(--s-1); }
+/* In de wedstrijdstrip: een klein vinkje linksboven (rechtsboven staat het aantal van jouw spelers). */
+.pxl-match__official {
+  position: absolute; top: 3px; left: 3px; width: 10px; height: 10px; border-radius: 50%; background: var(--positive);
+}
+.pxl-match__official::after {
+  content: ''; position: absolute; left: 3.5px; top: 1.5px; width: 2px; height: 5px;
+  border: solid var(--accent-ink); border-width: 0 1.5px 1.5px 0; transform: rotate(45deg);
+}
+.pxl-also { margin: var(--s-2) 0 0; color: var(--text-2); font-size: var(--fs-meta); line-height: var(--lh-meta); }
+.pxl-also .pxl-tick { margin-right: 6px; }
+.pxl-also.is-row { flex-basis: 100%; margin-top: var(--s-1); }
+.pxl-name.is-official-out .pxl-name__text { opacity: 0.45; text-decoration-line: line-through; text-decoration-thickness: 1px; }
+.pxl-name__official { color: var(--text-3); font-size: var(--fs-label); }
+
+/* Op het veld: wie start, krijgt het vinkje in plaats van de startzekerheid; wie niet start, wordt
+   gedimd en krijgt "bank" of "niet in selectie" in plaats van de prijs. */
+.pxi-field--site [data-official="starts"] [data-safety] {
+  width: 12px !important; height: 12px !important; background: var(--positive) !important; border: 0 !important;
+}
+.pxi-field--site [data-official="starts"] [data-safety]::after {
+  content: ''; position: absolute; left: 4px; top: 2px; width: 3px; height: 6px;
+  border: solid var(--accent-ink); border-width: 0 1.5px 1.5px 0; transform: rotate(45deg);
+}
+.pxi-field--site [data-official="bench"], .pxi-field--site [data-official="out"] { opacity: 0.45; }
+.pxi-field--site [data-official="bench"] [data-safety], .pxi-field--site [data-official="out"] [data-safety] { display: none; }
+.pxi-field--site [data-official-label] .pxi-card-price { display: none; }
+.pxi-field--site [data-official-label]::after {
+  content: attr(data-official-label); color: var(--text-1); font: 600 var(--fs-micro)/1.2 var(--font-ui);
+  white-space: nowrap; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+.pxl-side__mine-part.is-officialOut .pxl-side__mine-dot { background: var(--danger); }
+
+/* --- Aftraptijden (spec F4) ------------------------------------------------------------------ */
+/* De wedstrijdknop krijgt een tweede regel met dag en uur ("za 18:15"). */
+.pxl-match { flex-direction: column; gap: 2px; height: auto; min-height: 40px; padding-top: 4px; padding-bottom: 4px; }
+.pxl-match__teams { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 0; }
+.pxl-match__time { color: var(--text-3); font: 500 var(--fs-micro)/1 var(--font-ui); }
+.pxl-match.is-active .pxl-match__time { color: inherit; opacity: 0.75; }
+@media (max-width: 899px) {
+  .pxl-match { height: auto; min-height: 44px; }
+}
+
+/* --- Feedbackronde 2: twee velden altijd op dezelfde hoogte ------------------------------------- */
+/* Op brede schermen delen beide clubs dezelfde rijen (kop, regel "jouw spelers", veld, "start ook"),
+   zodat een extra regel bij één club (bv. een speler van jou die niet start) het andere veld niet
+   verschuift. */
+@media (min-width: 900px) {
+  .pxl-pitches { grid-template-rows: auto auto auto auto; row-gap: 0; }
+  .pxl-side { display: grid; grid-row: span 4; grid-template-rows: subgrid; align-content: start; }
+  .pxl-side > * { grid-row: 3; min-width: 0; }
+  .pxl-side > .pxl-side__head { grid-row: 1; }
+  .pxl-side > .pxl-side__mine { grid-row: 2; }
+  .pxl-side > .pxl-also { grid-row: 4; }
+  .pxl-pitches > .pxl-side:first-child { grid-column: 1; }
+  .pxl-pitches > .pxl-side:last-child { grid-column: 3; }
+  .pxl-vs { grid-column: 2; grid-row: 1 / span 4; }
+}

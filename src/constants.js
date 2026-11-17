@@ -1,6 +1,6 @@
 // Gedeelde referentiedata en helper-functies voor de FDR-tool: teams, fixtures, uitgestelde
 // wedstrijden, rating-kleuren, en de fixture-rekenlogica die zowel de hoofdtabel (FDRTab) als de
-// mini-fixture-badges (MiniFixtureBadge, gebruikt door FDRTab én WatchlistTab) nodig hebben.
+// mini-fixture-badges (MiniFixtureBadge: Spelers, Team Planner, de spelers- en clubkaart) nodig hebben.
 // Bevat bewust GEEN JSX (zie gwHeaderCells/gwOptionElements in FDRTool.jsx/FDRTab.jsx) — dit is een
 // plain .js-bestand en Vite/esbuild parsen JSX-syntax enkel in .jsx-bestanden.
 
@@ -197,19 +197,22 @@ export const POSTPONED = new Set([
   'KOR-9', // Kortrijk vs KV Mechelen, GW9 — afgelast, verplaatst naar 4 november (GW10)
   'KVM-9', // KV Mechelen vs Kortrijk, GW9 — zelfde wedstrijd, andere kant
 ]);
-// Datum waarnaar uitgestelde wedstrijden verplaatst zijn, per teamcode-onafhankelijke (gesorteerde)
-// paar-key — niet elke POSTPONED-wedstrijd valt op dezelfde datum.
+// Datum waarnaar uitgestelde wedstrijden verplaatst zijn (JJJJ-MM-DD), per teamcode-onafhankelijke
+// (gesorteerde) paar-key — niet elke POSTPONED-wedstrijd valt op dezelfde datum. De zin in de tooltip
+// wordt per taal opgebouwd in src/postponed.js.
 export const POSTPONED_DATES = {
-  'STV-USG': '2 september',
-  'AND-KOR': '3 september',
-  'GNT-OHL': '3 september',
-  'KOR-KVM': '4 november',
+  'STV-USG': '2026-09-02',
+  'AND-KOR': '2026-09-03',
+  'GNT-OHL': '2026-09-03',
+  'KOR-KVM': '2026-11-04',
 };
-// Reden van het uitstel, zelfde paar-key. Ontbreekt een paar, dan vermeldt de tooltip enkel de nieuwe datum.
+// Reden van het uitstel als sleutel (vertaald via 'fixture.reason.<sleutel>' in src/i18n.js), zelfde
+// paar-key. Ontbreekt een paar, dan vermeldt de tooltip enkel de nieuwe datum. Bestaande sleutels:
+// 'europe' (wegens de Europese voorrondes).
 export const POSTPONED_REASONS = {
-  'STV-USG': 'wegens de Europese voorrondes',
-  'AND-KOR': 'wegens de Europese voorrondes',
-  'GNT-OHL': 'wegens de Europese voorrondes',
+  'STV-USG': 'europe',
+  'AND-KOR': 'europe',
+  'GNT-OHL': 'europe',
 };
 
 // Nog niet zeker uitgesteld — kan verschuiven afhankelijk van Europese kwalificatie. Zelfde key-structuur als POSTPONED.
@@ -222,16 +225,28 @@ export const POSSIBLY_POSTPONED = new Set([
 ]);
 
 // Eén reden per wedstrijd, opgezocht via een teamcode-onafhankelijke (gesorteerde) paar-key.
+// reason: 'europeClub' (door de Europese wedstrijd van `club`) of 'europe' (door het Europese
+// programma, ook de standaard als een paar hier ontbreekt). De zin staat in src/i18n.js.
 export const POSSIBLY_POSTPONED_REASONS = {
-  'GNT-STV': 'mogelijk uitgesteld door de Europese wedstrijd van Gent',
+  'GNT-STV': { reason: 'europeClub', club: 'GNT' },
 };
 
 export const DEFAULT_RATINGS = {
   LOM: 2, KOR: 1, BEV: 1,
-  ZWA: 3, OHL: 2, CER: 2, LLV: 1,
-  STA: 3, KVM: 2, WES: 3, CHA: 3, ANT: 2, STV: 3,
+  ZWA: 2, OHL: 2, CER: 2, LLV: 1,
+  STA: 3, KVM: 2, WES: 3, CHA: 4, ANT: 2, STV: 3,
   GNK: 4, AND: 4, GNT: 4,
   USG: 5, CLU: 5,
+};
+
+// De standaard die live stond vóór de laatste aanpassing (vóór november 2026: ZWA 3, CHA 3). Enkel
+// gebruikt bij de eenmalige migratie van de oude ratings-opslag (src/fdrRatings.js): wie een club
+// bewaarde met de toen geldende standaard, paste die club niet zelf aan en krijgt nu de nieuwe waarde.
+// Pas je DEFAULT_RATINGS later opnieuw aan, dan hoeft hier niets te veranderen: de nieuwe opslag
+// bewaart enkel nog echte afwijkingen.
+export const PREVIOUS_DEFAULT_RATINGS = {
+  ...DEFAULT_RATINGS,
+  ZWA: 3, CHA: 3,
 };
 
 // Thuisvoordeel staat standaard overal uit — per team aan/uit-schakelbaar, los van de sterkte-rating zelf.
@@ -258,33 +273,11 @@ export const GW_COUNT = 34;
 // speeldagen in FIXTURES. Alle 27 resterende kolommen tegelijk tonen maakt de tabel onleesbaar breed
 // (ze scrollt horizontaal, dus je ziet er nooit meer dan een handvol tegelijk) en is ook planmatig
 // weinig waard — zo ver vooruit veranderen blessures, vorm en ratings alles nog. Acht kolommen is
-// precies de breedte waarop de tabel vandaag al staat (zie TABLE_SLOT_MIN_WIDTH) en ongeveer twee
+// precies de breedte waarop de tabel vandaag al staat (zie --fdr-table-slot in src/tabs/FDRTab.css) en ongeveer twee
 // maanden vooruit: ver genoeg voor transferplanning, kort genoeg om te lezen. Wie verder wil kijken,
 // zet de selector gewoon op GW34.
 export const DEFAULT_GW_HORIZON_LENGTH = 8;
 
-// Min-width per tabelkolom (de Team-kolom meegeteld als één "slot"). Was vroeger één totaalbreedte
-// voor alle GW_COUNT kolommen samen; dat werkte enkel zolang GW_COUNT acht was. Met 34 speeldagen is
-// een totaal betekenisloos — de tabel toont er nooit 34 tegelijk — dus staat hier nu de breedte per
-// kolom. 84px is exact de oude kalibratie (760px gedeeld over de Team-kolom + 8 GW-kolommen), zodat de
-// tabel er op een ruim scherm op de pixel hetzelfde uitziet als voordien.
-export const TABLE_SLOT_MIN_WIDTH = 84;
-
-// Op een telefoon is diezelfde 84px zonde van de ruimte: de kolommen krijgen dan meer breedte dan hun
-// inhoud nodig heeft, terwijl er maar een deel van de tabel op het scherm past. Gemeten op 390px zag
-// je zo 3,2 fixtures naast de teamkolom — net te weinig om in één oogopslag drie speeldagen vooruit te
-// kijken, precies het soort "net niet" dat je elke keer opnieuw laat vegen.
-//
-// 64px ligt bewust ONDER de natuurlijke minimumbreedte van een cel ("CER (A)" plus het cijfertje, in de
-// praktijk zo'n 58px). De browser neemt dan het echte minimum, en dat is precies de bedoeling: deze
-// waarde zegt "knijp tot het niet meer kan" zonder dat we hier een getal moeten bijhouden dat afhangt
-// van lettertype, taal of de langste clubcode. Resultaat op 390px: 4,6 zichtbare fixtures i.p.v. 3,2,
-// en een tabel van 588px i.p.v. 756px — de horizontale scrollafstand valt daarmee bijna weg.
-export const TABLE_SLOT_MIN_WIDTH_MOBILE = 64;
-
-// Breedte waaronder de mobiele varianten gelden. Eén constante, zodat de CSS-media-queries en de
-// JS-kant niet apart uit elkaar kunnen lopen.
-export const MOBILE_TABLE_BREAKPOINT = 700;
 export const MINILEAGUE_CODE = '19WN75';
 
 // --- Gameweek-deadlines (enige handmatig bij te werken bron van waarheid voor "waar staan we") ---
@@ -375,6 +368,7 @@ export function formatGwDeadline(gw) {
 const LAST_UPDATED_FORMATTERS = {
   nl: new Intl.DateTimeFormat('nl-BE', { timeZone: BELGIAN_TIME_ZONE, day: 'numeric', month: 'long', year: 'numeric' }),
   fr: new Intl.DateTimeFormat('fr-BE', { timeZone: BELGIAN_TIME_ZONE, day: 'numeric', month: 'long', year: 'numeric' }),
+  en: new Intl.DateTimeFormat('en-GB', { timeZone: BELGIAN_TIME_ZONE, day: 'numeric', month: 'long', year: 'numeric' }),
 };
 
 // Losse functie i.p.v. een module-constante, zodat een ongeldige/ontbrekende __BUILD_DATE__ nooit een
@@ -488,6 +482,51 @@ export const GW_DEADLINES = Object.fromEntries(
 // verouderde team-info nooit meer stilzwijgend als actueel gepresenteerd worden.
 export const PREDICTED_LINEUPS_GW = 11;
 
+// Wanneer de Verwachte XI's voor een speeldag normaal online komen: de vrijdag vóór de deadline om
+// 16:00 Belgische tijd. Valt de deadline zelf vóór vrijdag 16:00 (bv. een speeldag die al op
+// donderdag begint), dan 3 uur vóór de deadline. Een afwijkend tijdstip zet je hieronder per GW, bv.
+// { 14: '2026-12-04T12:00:00+01:00' }.
+export const PREDICTED_LINEUPS_RELEASE_OVERRIDES = {};
+
+// Belgische kloktijd (jaar, maand, dag, uur, minuut, weekdag) van een Date.
+function brusselsWallClock(date) {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-GB', {
+      timeZone: BELGIAN_TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', weekday: 'short', hourCycle: 'h23',
+    }).formatToParts(date).filter(p => p.type !== 'literal').map(p => [p.type, p.value])
+  );
+  return {
+    year: Number(parts.year), month: Number(parts.month), day: Number(parts.day),
+    hour: Number(parts.hour), minute: Number(parts.minute),
+    weekday: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(parts.weekday),
+  };
+}
+
+// Een Belgische kloktijd omzetten naar een echte Date (houdt rekening met zomer- en wintertijd).
+function dateFromBrusselsWallClock(year, month, day, hour, minute) {
+  const guess = Date.UTC(year, month - 1, day, hour, minute);
+  const wall = brusselsWallClock(new Date(guess));
+  const offset = Date.UTC(wall.year, wall.month - 1, wall.day, wall.hour, wall.minute) - guess;
+  return new Date(guess - offset);
+}
+
+export function getPredictedLineupsRelease(gw) {
+  const override = PREDICTED_LINEUPS_RELEASE_OVERRIDES[gw];
+  if (override) {
+    const date = new Date(override);
+    if (!Number.isNaN(date.getTime())) return date;
+  }
+  const deadline = getGwDeadlineDate(gw);
+  if (!deadline) return null;
+  const wall = brusselsWallClock(deadline);
+  const daysBack = (wall.weekday - 5 + 7) % 7; // 5 = vrijdag
+  const friday = new Date(Date.UTC(wall.year, wall.month - 1, wall.day - daysBack, 12));
+  const release = dateFromBrusselsWallClock(friday.getUTCFullYear(), friday.getUTCMonth() + 1, friday.getUTCDate(), 16, 0);
+  if (release.getTime() >= deadline.getTime()) return new Date(deadline.getTime() - 3 * 60 * 60 * 1000);
+  return release;
+}
+
 // TEAMS is al alfabetisch op code — eenmalig gesorteerde kopie voor UI-lijsten die dat expliciet willen.
 export const TEAMS_ALPHA = [...TEAMS].sort((a, b) => a.code.localeCompare(b.code));
 export const GW_INDEXES = Array.from({ length: GW_COUNT }, (_, i) => i);
@@ -528,20 +567,9 @@ export function splitHomeAway(teamCode, opp, venue) {
   return venue === 'H' ? [team, oppTeam] : [oppTeam, team];
 }
 
-export function buildPostponedTooltipText(teamCode, opp, venue) {
-  const [home, away] = splitHomeAway(teamCode, opp, venue);
-  const pairKey = [teamCode, opp].sort().join('-');
-  const date = POSTPONED_DATES[pairKey];
-  const reason = POSTPONED_REASONS[pairKey];
-  return `${home} - ${away} is uitgesteld naar ${date}${reason ? ` ${reason}` : ''}.`;
-}
-
-export function buildPossiblyPostponedTooltipText(teamCode, opp, venue) {
-  const [home, away] = splitHomeAway(teamCode, opp, venue);
-  const pairKey = [teamCode, opp].sort().join('-');
-  const reason = POSSIBLY_POSTPONED_REASONS[pairKey] ?? 'mogelijk uitgesteld door het Europese programma';
-  return `${home} - ${away} wordt ${reason}.`;
-}
+// De tooltipteksten voor (mogelijk) uitgestelde wedstrijden staan sinds de functionaliteitsrework in
+// src/postponed.js: ze zijn per taal, en dus geen vaste Nederlandse zin meer. getFixtureInfo geeft
+// daarom enkel de gegevens mee (teamCode, opp, venue, isPostponed, ...).
 
 export function getFixtureInfo(teamCode, fixture, gwNumber, ratings, homeAdvantage) {
   const key = `${teamCode}-${gwNumber}`;
@@ -564,9 +592,8 @@ export function getFixtureInfo(teamCode, fixture, gwNumber, ratings, homeAdvanta
       return { opp, venue, rating, style: RATING_STYLE[rating] };
     });
     return {
-      isDoubleGameweek: true, legs,
+      isDoubleGameweek: true, legs, teamCode, gw: gwNumber,
       isPostponed: false, isPossiblyPostponed,
-      postponedText: null, possiblyPostponedText: null,
     };
   }
 
@@ -575,28 +602,9 @@ export function getFixtureInfo(teamCode, fixture, gwNumber, ratings, homeAdvanta
   const [opp, venue] = getFixtureLegs(fixture)[0].split('-');
   const rating = isPostponed ? null : getEffectiveRating(opp, venue, ratings, homeAdvantage);
   const style = rating === null ? null : RATING_STYLE[rating];
-  const postponedText = isPostponed ? buildPostponedTooltipText(teamCode, opp, venue) : null;
-  const possiblyPostponedText = isPossiblyPostponed ? buildPossiblyPostponedTooltipText(teamCode, opp, venue) : null;
-  return { isDoubleGameweek: false, opp, venue, rating, isPostponed, isPossiblyPostponed, style, postponedText, possiblyPostponedText };
+  // gw: voor de aftraptijd in de tooltip (spec F4, zie FdrCell).
+  return { isDoubleGameweek: false, teamCode, gw: gwNumber, opp, venue, rating, isPostponed, isPossiblyPostponed, style };
 }
-
-// Gedeeld tussen components/SectionHeader.jsx en tabs/WatchlistTab.jsx (dat laatste spreadt het
-// rechtstreeks op zijn eigen h2's), vandaar hier i.p.v. lokaal bij SectionHeader.
-// minWidth: 0 (i.p.v. het vroegere whiteSpace: 'nowrap' zonder shrink-mogelijkheid) laat de titel
-// binnen een flex-rij naast een sibling-knop (bv. "Wis team"/"Wis alle transfers" in TeamPlannerTab.jsx)
-// altijd echt krimpen i.p.v. eroverheen te overlappen op smalle schermen — de eigenlijke afkapping
-// (ellipsis) gebeurt op de tekst zelf via sectionTitleTextStyle hieronder, niet op dit hele blok, zodat
-// het icoon nooit mee afgekapt wordt.
-export const sectionTitleStyle = {
-  color: '#FFFFFF', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.03em', margin: 0,
-  display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0,
-};
-
-// Enkel voor de tekst ván de titel (niet het icoon ervoor) — one-line met ellipsis zodra de titel niet
-// meer past, i.p.v. te overlappen met een eventuele sibling-knop of de pagina breder te maken.
-export const sectionTitleTextStyle = {
-  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0,
-};
 
 // --- Team Planner: spelregels voor de 15-koppige selectie (Fase 1, handmatige invoer) ---
 
@@ -665,7 +673,16 @@ export function isRechargeActiveForGw(boosters, gw) {
 //   het gratis-saldo waarmee je de Recharge-GW inging blijft ONGEWIJZIGD staan voor de GW erna — die
 //   Recharge-GW telt simpelweg niet mee in de opbouw-rekening, alsof hij was overgeslagen (net zoals
 //   een wildcard/free hit-chip in echte FPL geen extra vrije transfer oplevert of kost).
-export function computeTeamPlannerTransferBudget(transferHistory, boosters) {
+//
+// Startpunt en ijkpunten (FUNCTIONALITEIT_SPEC C1), via `options`:
+// - startGw 1 (standaard): de regel hierboven, GW2 begint met 1 gratis transfer.
+// - startGw > 1 (wie zijn team pas later invult): de startspeeldag zelf begint met startFreeTransfers.
+// - checkpoints[gw].freeTransfers: de echte waarde aan het begin van die speeldag, door de bezoeker
+//   ingevuld. Die vervangt het berekende saldo vanaf die speeldag; alles ervoor blijft hetzelfde.
+// Zonder options geeft de functie exact hetzelfde resultaat als vóór fase C (zie de test).
+export function computeTeamPlannerTransferBudget(transferHistory, boosters, options = {}) {
+  const { startGw = 1, startFreeTransfers = 1, checkpoints = {} } = options;
+  const clampFree = (v) => Math.min(TEAM_PLANNER_FREE_TRANSFER_CAP, Math.max(0, v));
   // Aantal effectief geplande transfers per GW — geteld uit de bestaande, platte transfer-tijdlijn
   // (teamPlannerTransferHistory in FDRTool.jsx, één entry per transfer met een .gw-veld), NIET los
   // herteld, om nooit uit sync te kunnen raken met wat de Transfers-sectie zelf toont.
@@ -675,8 +692,11 @@ export function computeTeamPlannerTransferBudget(transferHistory, boosters) {
   });
 
   const budgetByGw = {};
-  let freeAvailable = 1; // startsaldo waarmee GW2 begint
-  for (let gw = 2; gw <= GW_COUNT; gw++) {
+  const firstGw = startGw <= 1 ? 2 : startGw;
+  let freeAvailable = startGw <= 1 ? 1 : clampFree(startFreeTransfers); // startsaldo van de eerste GW
+  for (let gw = firstGw; gw <= GW_COUNT; gw++) {
+    const checkpointFree = checkpoints[gw]?.freeTransfers;
+    if (Number.isInteger(checkpointFree)) freeAvailable = clampFree(checkpointFree);
     const isRecharge = isRechargeActiveForGw(boosters, gw);
     const used = transfersUsedByGw[gw] ?? 0;
     const pointsCost = isRecharge ? 0 : Math.max(0, used - freeAvailable) * TEAM_PLANNER_TRANSFER_PENALTY;
@@ -691,6 +711,17 @@ export function computeTeamPlannerTransferBudget(transferHistory, boosters) {
     }
   }
   return budgetByGw;
+}
+
+// Bank, kapitein en vice per GW nemen over (FUNCTIONALITEIT_SPEC C2): een GW zonder eigen keuze krijgt
+// die van de dichtstbijzijnde vorige GW, startGw inbegrepen. `byGw` = { [gw]: waarde }; een waarde null
+// telt als keuze ("bewust leeg vanaf hier"). undefined = nergens een keuze.
+export function resolveForGw(byGw, gw, startGw = 1) {
+  if (!byGw) return undefined;
+  for (let g = gw; g >= startGw; g--) {
+    if (Object.prototype.hasOwnProperty.call(byGw, g)) return byGw[g];
+  }
+  return undefined;
 }
 
 // --- Team Planner: transfers zijn tijdgebonden ---

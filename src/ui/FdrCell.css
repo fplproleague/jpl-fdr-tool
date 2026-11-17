@@ -1,0 +1,48 @@
+/* FDR-cellen (spec §5.9): een vol gekleurd vlak, radius 0, zodat de tabel leest als één heatmap.
+   De kleuren komen per cel uit RATING_STYLE (inline, want dynamisch); de vorm staat hier. */
+.ui-fdr {
+  position: relative; height: 32px; padding: 0 2px; border-radius: 0;
+  text-align: center; vertical-align: middle; white-space: nowrap;
+  font: 700 var(--fs-meta)/1 var(--font-ui); letter-spacing: 0.01em;
+}
+.ui-fdr__venue { font-weight: 500; font-size: var(--fs-label); opacity: 0.8; margin-left: 2px; }
+.ui-fdr__rating {
+  position: absolute; top: 2px; right: 3px; pointer-events: none;
+  font: 600 var(--fs-micro)/1 var(--font-num); font-stretch: 87.5%; opacity: 0.7;
+}
+.ui-fdr__maybe { position: relative; }
+.ui-fdr__maybe::after { content: '*'; position: absolute; top: -0.35em; right: -0.55em; font-weight: 800; }
+.ui-fdr.is-blank { background: var(--ink-1); color: var(--text-4); font-weight: 500; }
+.ui-fdr.is-postponed {
+  background-color: var(--ink-1); color: var(--text-2); cursor: pointer;
+  background-image: repeating-linear-gradient(45deg, var(--line-strong) 0 1px, transparent 1px 6px);
+}
+.ui-fdr.is-tip { cursor: pointer; }
+.ui-fdr.is-dimmed { opacity: 0.25; }
+.ui-fdr.is-dgw { padding: 0; }
+.ui-fdr__legs { display: flex; flex-direction: column; height: 100%; }
+.ui-fdr__leg {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 2px;
+  font: 700 var(--fs-micro)/1 var(--font-ui);
+}
+.ui-fdr__leg + .ui-fdr__leg { border-top: 1px solid var(--ink-0); }
+
+/* MiniFixture: blokje van 36x18, zelfde kleuren, caps-code + kleine H/A. */
+.ui-mini {
+  display: inline-flex; align-items: center; justify-content: center; gap: 1px;
+  min-width: 36px; height: 18px; padding: 0 3px; border-radius: 0;
+  font: 700 var(--fs-micro)/1 var(--font-ui); text-transform: uppercase; white-space: nowrap;
+  vertical-align: middle;
+}
+.ui-mini__venue { font-weight: 500; opacity: 0.75; margin-left: 1px; }
+.ui-mini.is-postponed {
+  background-color: var(--ink-1); color: var(--text-2); cursor: pointer;
+  background-image: repeating-linear-gradient(45deg, var(--line-strong) 0 1px, transparent 1px 5px);
+}
+.ui-mini.is-blank { background: var(--ink-1); color: var(--text-4); }
+.ui-mini.is-tip { cursor: pointer; }
+.ui-mini.is-dgw { flex-direction: column; height: 24px; padding: 0; gap: 0; align-items: stretch; }
+.ui-mini__leg { flex: 1; display: flex; align-items: center; justify-content: center; font-size: var(--fs-micro); line-height: 1; padding: 0 3px; }
+.ui-mini__leg + .ui-mini__leg { border-top: 1px solid var(--ink-0); }
+.ui-mini-row { display: inline-flex; gap: 2px; align-items: center; flex-wrap: nowrap; }
+.ui-mini-row.is-wrap { flex-wrap: wrap; }

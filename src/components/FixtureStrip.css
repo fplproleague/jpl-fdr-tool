@@ -1,0 +1,10 @@
+/* Fixture-rij (spec §5.9): MiniFixtures met de speeldag erboven. */
+.ui-fstrip { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 2px; }
+.ui-fstrip.is-scroll { flex-wrap: nowrap; width: max-content; }
+.ui-fstrip__item { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; }
+.ui-fstrip__gw { color: var(--text-3); font: 600 var(--fs-micro)/1 var(--font-num); }
+
+.ui-fstrip-scroll {
+  overflow-x: auto; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent;
+}

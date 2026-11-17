@@ -1,24 +1,53 @@
-// "Upload screenshot"-feature bovenaan Team Planner: laat een screenshot van een bestaand FPL-team
-// analyseren via de nieuwe api/analyze-screenshot.js-serverless-function (Anthropic vision), en toont
-// het resultaat als een VOORSTEL dat de gebruiker expliciet moet nakijken/corrigeren en bevestigen
+// "Upload screenshot"-feature van de Team Planner: laat een screenshot van een bestaand FPL-team
+// analyseren via de api/analyze-screenshot.js-serverless-function (Anthropic vision), en toont het
+// resultaat als een VOORSTEL dat de gebruiker expliciet moet nakijken/corrigeren en bevestigen
 // ("Toepassen") voor er iets echt in de 15 slots terechtkomt — herkenning is nooit 100% betrouwbaar,
 // dus dit vult nooit stilzwijgend/definitief in. Alle state hier is lokale, niet-bevestigde
-// draftstate (net als rechargeDraft/isTransferPanelOpen in TeamPlannerTab.jsx) — pas "Toepassen"
-// schrijft naar de echte domein-state via de meegegeven updateTeamPlannerPlayer/setTeamPlannerCaptain.
+// draftstate — pas "Toepassen" geeft het resultaat door aan de planner (onApply, zie importTeam in
+// useTeamPlanner.js): de spelers per slot, kapitein en vice, en budget en gratis transfers (spec C8).
+// Die twee staan meestal op dezelfde screenshot; de server probeert ze af te lezen.
+//
+// Sinds de rework (spec §7.3) is dit geen losse kaart meer: bij een lege planner één zin + de
+// primary-knop "Upload screenshot", daarna een kleine secondary-knop in de actierij bovenaan.
+// `extraActions` (bv. "Wis team") komt in diezelfde rij naast de knop.
 
 import { useState, useRef } from 'react';
-import { Upload, Loader2, AlertCircle, RotateCcw, Check, X, Crown } from 'lucide-react';
-import { POSITIONS, TEAM_PLANNER_SLOT_POSITIONS } from '../constants';
-import { COLORS, retryButtonStyle, primaryButtonStyle, secondaryButtonStyle } from '../theme';
+import { Upload, Loader2, Check, X, Crown } from 'lucide-react';
+import { POSITIONS, TEAM_PLANNER_SLOT_POSITIONS, TEAM_PLANNER_FREE_TRANSFER_CAP } from '../constants';
 import { PlayerSearchInput } from '../components/PlayerSearchInput';
 import { downscaleImageToBase64 } from '../utils/imageDownscale';
 import { matchPlayer } from '../utils/playerFuzzyMatch';
+import Button from '../ui/Button';
+import Badge from '../ui/Badge';
+import Select from '../ui/Select';
+import ErrorBanner, { Notice } from '../ui/ErrorBanner';
 
-const CONFIDENCE_STYLE = {
-  hoog: { bg: 'rgba(78,205,196,0.15)', color: '#4ECDC4', label: 'Hoog' },
-  twijfelachtig: { bg: 'rgba(232,197,71,0.15)', color: '#E8C547', label: 'Twijfelachtig' },
-  'niet-gevonden': { bg: 'rgba(194,64,44,0.15)', color: '#FF9E90', label: 'Niet gevonden' },
+// Zekerheid van de herkenning. De sleutels komen uit utils/playerFuzzyMatch (data, geen tekst); het
+// label staat in i18n.js.
+const CONFIDENCE = {
+  hoog: { className: 'is-high', labelKey: 'screenshotUpload.confidence.high' },
+  twijfelachtig: { className: 'is-doubt', labelKey: 'screenshotUpload.confidence.doubt' },
+  'niet-gevonden': { className: 'is-missing', labelKey: 'screenshotUpload.confidence.missing' },
 };
+
+// De server geeft codes terug, geen zinnen (spec A3). Een onbekende code of een antwoord zonder code
+// (bv. een HTML-foutpagina van de firewall) valt terug op een algemene melding.
+const ERROR_CODES = ['forbidden_origin', 'not_configured', 'no_image', 'image_too_large', 'service_unreachable', 'service_error', 'rate_limited', 'read_failed'];
+const MAX_BASE64_LENGTH = 4 * 1024 * 1024 - 64 * 1024;
+
+function errorText(t, code) {
+  return t(`screenshotUpload.error.${ERROR_CODES.includes(code) ? code : 'generic'}`);
+}
+
+function warningText(t, warning) {
+  if (!warning) return null;
+  if (warning.code === 'partial') return t('screenshotUpload.warning.partial', { count: warning.count });
+  return t('screenshotUpload.warning.not_recognized');
+}
+
+class ScreenshotError extends Error {
+  constructor(code) { super(code); this.code = code; }
+}
 
 function buildSuggestion(recognizedPlayer, playerDatabase) {
   const { matched, confidence } = matchPlayer(recognizedPlayer, playerDatabase);
@@ -34,100 +63,111 @@ function buildSuggestion(recognizedPlayer, playerDatabase) {
   };
 }
 
-function SuggestionRow({ suggestion, index, playerDatabase, onUpdate, onToggleCaptain }) {
-  const confidenceStyle = CONFIDENCE_STYLE[suggestion.confidence];
+function SuggestionRow({ t, suggestion, index, playerDatabase, onUpdate, onToggleRole }) {
+  const confidence = CONFIDENCE[suggestion.confidence] ?? CONFIDENCE['niet-gevonden'];
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
-      padding: '10px 4px', borderBottom: '1px solid rgba(255,255,255,0.08)',
-    }}>
+    <li className="tp-sugg">
       <input
         type="checkbox"
+        className="tp-sugg__check"
         checked={suggestion.included}
         onChange={(e) => onUpdate(index, { included: e.target.checked })}
-        style={{ flexShrink: 0 }}
+        aria-label={t('screenshotUpload.includeAria', { name: suggestion.rawName })}
       />
-      <div style={{ minWidth: '150px', flexShrink: 0 }}>
-        <div style={{ color: '#FFF', fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
-          Herkend: &ldquo;{suggestion.rawName}&rdquo;
-          {suggestion.isCaptain && (
-            <span title="Kapitein herkend" aria-label="Kapitein herkend" role="img" style={{ background: '#4ECDC4', color: '#0B2E1B', borderRadius: '999px', width: '16px', height: '16px', fontSize: '9px', fontWeight: 900, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>C</span>
-          )}
-          {suggestion.isViceCaptain && (
-            <span title="Vice-kapitein herkend (enkel ter info)" aria-label="Vice-kapitein herkend" role="img" style={{ background: 'rgba(255,255,255,0.15)', color: COLORS.textBody, borderRadius: '999px', width: '16px', height: '16px', fontSize: '9px', fontWeight: 900, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>V</span>
-          )}
-        </div>
-        <div style={{ color: COLORS.textMuted, fontSize: '11px' }}>rij: {suggestion.rowLabel || suggestion.rawPosition || '—'}</div>
+      <div className="tp-sugg__raw">
+        <span className="tp-sugg__name">
+          {t('screenshotUpload.recognized', { name: suggestion.rawName })}
+          {suggestion.isCaptain && <Badge tone="accent" title={t('screenshotUpload.captainRecognized')} aria-label={t('screenshotUpload.captainRecognized')}>C</Badge>}
+          {suggestion.isViceCaptain && <Badge tone="vice" title={t('screenshotUpload.viceRecognized')} aria-label={t('screenshotUpload.viceRecognized')}>V</Badge>}
+        </span>
+        <span className="tp-sugg__meta">
+          {t('screenshotUpload.row', { row: suggestion.rowLabel || suggestion.rawPosition || '—' })} · <span className={`tp-sugg__conf ${confidence.className}`}>{t(confidence.labelKey)}</span>
+        </span>
       </div>
-      <span style={{
-        background: confidenceStyle.bg, color: confidenceStyle.color, fontSize: '11px', fontWeight: 700,
-        padding: '2px 8px', borderRadius: '999px', flexShrink: 0,
-      }}>
-        {confidenceStyle.label}
-      </span>
-      <div style={{ flex: 1, minWidth: '160px' }}>
+      <div className="tp-sugg__pick">
         <PlayerSearchInput
           value={suggestion.selectedPlayer?.name ?? ''}
           onSelect={(player) => onUpdate(index, { selectedPlayer: player, confidence: 'hoog' })}
           players={playerDatabase}
-          placeholder="Zoek speler..."
+          placeholder={t('screenshotUpload.searchPlaceholder')}
+          noResultsText={t('shared.noPlayersFound')}
         />
       </div>
-      <button
-        onClick={() => onToggleCaptain(index)}
+      <Button
+        variant="icon"
+        size="sm"
+        icon={Crown}
+        onClick={() => onToggleRole(index, 'isCaptain')}
         aria-pressed={suggestion.isCaptain}
-        aria-label={suggestion.isCaptain ? `Kapitein-markering verwijderen bij ${suggestion.rawName}` : `${suggestion.rawName} kapitein maken`}
-        title={suggestion.isCaptain ? 'Kapitein-markering verwijderen' : 'Maak kapitein'}
-        className="fdr-icon-btn"
-        style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px',
-          borderRadius: '8px', flexShrink: 0, background: suggestion.isCaptain ? 'rgba(78,205,196,0.2)' : 'transparent',
-          color: suggestion.isCaptain ? '#4ECDC4' : COLORS.textMuted, border: `1px solid ${suggestion.isCaptain ? '#4ECDC4' : 'rgba(255,255,255,0.2)'}`,
-          cursor: 'pointer',
-        }}
+        aria-label={t(suggestion.isCaptain ? 'screenshotUpload.captainRemoveAria' : 'screenshotUpload.captainMakeAria', { name: suggestion.rawName })}
+        title={t(suggestion.isCaptain ? 'screenshotUpload.captainRemove' : 'screenshotUpload.captainMake')}
+      />
+      <Button
+        variant="secondary"
+        size="sm"
+        className="tp-sugg__vice"
+        onClick={() => onToggleRole(index, 'isViceCaptain')}
+        aria-pressed={suggestion.isViceCaptain}
+        aria-label={t(suggestion.isViceCaptain ? 'screenshotUpload.viceRemoveAria' : 'screenshotUpload.viceMakeAria', { name: suggestion.rawName })}
+        title={t(suggestion.isViceCaptain ? 'screenshotUpload.viceRemove' : 'screenshotUpload.viceMake')}
       >
-        <Crown size={13} />
-      </button>
-    </div>
+        V
+      </Button>
+    </li>
   );
 }
 
 export function TeamScreenshotUpload({
   t,
   playerDatabase, playerDatabaseLoading, playerDatabaseError,
-  updateTeamPlannerPlayer, setTeamPlannerCaptain, teamPlannerGw, isRosterEmpty = false,
+  onApply, startGw, isRosterEmpty = false,
+  extraActions = null,
 }) {
-  const [proposal, setProposal] = useState(null); // null | { suggestions: [...], warning }
+  const [proposal, setProposal] = useState(null); // null | { suggestions: [...], warning, bank, freeTransfers }
   const [status, setStatus] = useState('idle'); // 'idle' | 'loading' | 'error'
-  const [errorMessage, setErrorMessage] = useState(null);
+  // { code } bij een fout, { warning } als er niets herkend werd; null = geen melding.
+  const [errorCode, setErrorCode] = useState(null);
   const [persistentNotice, setPersistentNotice] = useState(null);
   const fileInputRef = useRef(null);
 
   const handleFileSelected = async (file) => {
     if (!file) return;
     setStatus('loading');
-    setErrorMessage(null);
+    setErrorCode(null);
     setPersistentNotice(null);
     try {
-      const { base64, mediaType } = await downscaleImageToBase64(file);
+      let image;
+      try {
+        image = await downscaleImageToBase64(file);
+        // De server weigert afbeeldingen boven ~4 MB (spec A5). Een heel grote screenshot schalen we
+        // dan nog één keer kleiner, zodat de import gewoon blijft werken.
+        if (image.base64.length > MAX_BASE64_LENGTH) image = await downscaleImageToBase64(file, 1800);
+      } catch {
+        throw new ScreenshotError('read_failed');
+      }
       const response = await fetch('/api/analyze-screenshot', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ imageBase64: base64, mediaType }),
+        body: JSON.stringify({ imageBase64: image.base64, mediaType: image.mediaType }),
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error ?? 'Analyse mislukt.');
+      if (!response.ok) throw new ScreenshotError(data.code ?? (response.status === 429 ? 'rate_limited' : 'generic'));
       const suggestions = (data.players ?? []).map(p => buildSuggestion(p, playerDatabase));
       if (suggestions.length === 0) {
         setStatus('error');
-        setErrorMessage(data.warning ?? 'Geen spelers herkend op deze screenshot.');
+        setErrorCode({ warning: data.warning ?? { code: 'not_recognized' } });
       } else {
-        setProposal({ suggestions, warning: data.warning ?? null });
+        setProposal({
+          suggestions,
+          warning: data.warning ?? null,
+          bank: Number.isFinite(data.bank) ? data.bank.toFixed(1) : '',
+          freeTransfers: Number.isInteger(data.freeTransfers) ? String(data.freeTransfers) : '',
+        });
         setStatus('idle');
       }
     } catch (err) {
       setStatus('error');
-      setErrorMessage(err.message || 'Er ging iets mis bij het herkennen van je team.');
+      setErrorCode({ code: err?.code ?? 'generic' });
     }
   };
 
@@ -138,46 +178,55 @@ export function TeamScreenshotUpload({
     });
   };
 
-  // Kapitein-markering is mutueel exclusief: deze rij aan-/uitzetten wist 'm meteen op elke andere rij.
-  const handleToggleCaptain = (index) => {
+  // Kapitein en vice zijn elk maar één speler, en nooit dezelfde: een rij aanzetten wist die rol op
+  // elke andere rij, en de andere rol op deze rij.
+  const handleToggleRole = (index, role) => {
+    const other = role === 'isCaptain' ? 'isViceCaptain' : 'isCaptain';
     setProposal(prev => {
       if (!prev) return prev;
-      const wasCaptain = prev.suggestions[index].isCaptain;
+      const wasOn = prev.suggestions[index][role];
       return {
         ...prev,
-        suggestions: prev.suggestions.map((s, i) => ({ ...s, isCaptain: i === index ? !wasCaptain : false })),
+        suggestions: prev.suggestions.map((s, i) => ({
+          ...s,
+          [role]: i === index ? !wasOn : false,
+          [other]: i === index && !wasOn ? false : s[other],
+        })),
       };
     });
   };
 
+  const bankNumber = Number(String(proposal?.bank ?? '').replace(',', '.'));
+  const bankValid = !proposal || proposal.bank === '' || (Number.isFinite(bankNumber) && bankNumber >= 0 && bankNumber <= 100);
+
   const handleApply = () => {
+    if (!bankValid) return;
     const included = proposal.suggestions.filter(s => s.included && s.selectedPlayer);
     const byPosition = { GK: [], DEF: [], MID: [], FWD: [] };
     included.forEach(s => { byPosition[s.selectedPlayer.position]?.push(s); });
 
+    // Elke positie vult haar vaste slots van links naar rechts.
+    const slots = [];
+    const slotOf = new Map();
     POSITIONS.forEach(pos => {
       const slotIndices = TEAM_PLANNER_SLOT_POSITIONS
         .map((p, i) => (p === pos ? i : null))
         .filter(i => i !== null);
       byPosition[pos].slice(0, slotIndices.length).forEach((suggestion, i) => {
-        const slotIndex = slotIndices[i];
-        updateTeamPlannerPlayer(slotIndex, 'name', suggestion.selectedPlayer.name);
-        updateTeamPlannerPlayer(slotIndex, 'teamCode', suggestion.selectedPlayer.teamCode);
-        updateTeamPlannerPlayer(slotIndex, 'price', suggestion.selectedPlayer.price ?? '');
+        slots.push({ slot: slotIndices[i], player: suggestion.selectedPlayer });
+        slotOf.set(suggestion, slotIndices[i]);
       });
     });
 
-    const captainSuggestion = included.find(s => s.isCaptain);
-    if (captainSuggestion) {
-      const pos = captainSuggestion.selectedPlayer.position;
-      const slotIndices = TEAM_PLANNER_SLOT_POSITIONS
-        .map((p, i) => (p === pos ? i : null))
-        .filter(i => i !== null);
-      const idxInGroup = byPosition[pos].indexOf(captainSuggestion);
-      if (idxInGroup !== -1 && idxInGroup < slotIndices.length) {
-        setTeamPlannerCaptain(slotIndices[idxInGroup]);
-      }
-    }
+    const captain = included.find(s => s.isCaptain);
+    const vice = included.find(s => s.isViceCaptain);
+    onApply({
+      slots,
+      captainSlot: captain ? slotOf.get(captain) ?? null : null,
+      viceSlot: vice ? slotOf.get(vice) ?? null : null,
+      bank: proposal.bank === '' ? null : Math.round(bankNumber * 10) / 10,
+      freeTransfers: proposal.freeTransfers === '' ? null : Number(proposal.freeTransfers),
+    });
 
     if (proposal.warning) setPersistentNotice(proposal.warning);
     setProposal(null);
@@ -187,46 +236,19 @@ export function TeamScreenshotUpload({
   const handleCancel = () => {
     setProposal(null);
     setStatus('idle');
-    setErrorMessage(null);
+    setErrorCode(null);
   };
 
-  const hasViceCaptainSuggestion = proposal?.suggestions.some(s => s.isViceCaptain);
+  const pickDisabled = playerDatabaseLoading || !!playerDatabaseError;
+  const openPicker = () => fileInputRef.current?.click();
 
   return (
-    // Visueel naar voren gehaald (accentrand + accentachtergrond) i.p.v. het neutrale grijze kaartje
-    // van vroeger. Dit is de snelste weg van "lege planner" naar "volledig team": één screenshot
-    // vervangt vijftien keer handmatig zoeken en typen. Als dat eruitziet als zomaar weer een blok,
-    // scrollen mensen er straal voorbij en beginnen ze aan het trage pad.
-    <div style={{
-      background: isRosterEmpty ? 'rgba(78,205,196,0.08)' : 'rgba(255,255,255,0.04)',
-      border: `1px solid ${isRosterEmpty ? 'rgba(78,205,196,0.45)' : 'rgba(255,255,255,0.08)'}`,
-      borderRadius: '10px', padding: '16px', marginBottom: '20px',
-    }}>
-      <h3 className="fdr-title" style={{
-        color: isRosterEmpty ? '#4ECDC4' : COLORS.textBody, fontSize: '13px',
-        textTransform: 'uppercase', letterSpacing: '0.03em', margin: '0 0 8px',
-        display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap',
-      }}>
-        <Upload size={15} aria-hidden="true" />
-        {t('screenshotUpload.heading')}
-        {isRosterEmpty && (
-          <span style={{
-            background: '#4ECDC4', color: '#0B2E1B', fontSize: '10px', fontWeight: 900,
-            padding: '2px 8px', borderRadius: '999px', letterSpacing: '0.03em',
-          }}>
-            {t('screenshotUpload.recommended')}
-          </span>
-        )}
-      </h3>
-      <p style={{ color: COLORS.textMuted, fontSize: '12px', margin: '0 0 12px', lineHeight: 1.55 }}>
-        {t('screenshotUpload.intro')}
-      </p>
-
+    <div className={`tp-import${isRosterEmpty ? ' is-empty' : ''}`}>
       <input
         ref={fileInputRef}
         type="file"
         accept="image/*"
-        style={{ display: 'none' }}
+        hidden
         onChange={(e) => {
           const file = e.target.files?.[0];
           e.target.value = '';
@@ -234,100 +256,90 @@ export function TeamScreenshotUpload({
         }}
       />
 
+      <div className="tp-import__bar">
+        {isRosterEmpty && !proposal && <p className="tp-import__lead">{t('teamPlanner.emptyLead')}</p>}
+        {status === 'loading' ? (
+          <span className="tp-import__busy" role="status">
+            <Loader2 className="fdr-spin" aria-hidden="true" /> {t('screenshotUpload.processing')}
+          </span>
+        ) : !proposal && (
+          <Button
+            variant={isRosterEmpty ? 'primary' : 'secondary'}
+            size={isRosterEmpty ? undefined : 'sm'}
+            icon={Upload}
+            onClick={openPicker}
+            disabled={pickDisabled}
+          >
+            {isRosterEmpty ? t('screenshotUpload.uploadButton') : t('screenshotUpload.importButton')}
+          </Button>
+        )}
+        {extraActions}
+      </div>
+
       {persistentNotice && !proposal && (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
-          background: 'rgba(232,197,71,0.12)', border: '1px solid rgba(232,197,71,0.4)',
-          borderRadius: '10px', padding: '10px 14px', marginBottom: '12px',
-        }}>
-          <AlertCircle size={16} color="#E8C547" style={{ flexShrink: 0 }} />
-          <span style={{ color: '#E8C547', fontSize: '12px', flex: 1 }}>{persistentNotice}</span>
-          <button onClick={() => setPersistentNotice(null)} style={{ background: 'transparent', border: 'none', color: '#E8C547', cursor: 'pointer', padding: 0 }}>
-            <X size={14} />
-          </button>
-        </div>
+        <Notice action={<Button variant="icon" size="sm" bare icon={X} onClick={() => setPersistentNotice(null)} aria-label={t('screenshotUpload.cancel')} />}>
+          {warningText(t, persistentNotice)}
+        </Notice>
       )}
 
-      {proposal ? (
-        <div>
-          {proposal.warning && (
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap',
-              background: 'rgba(232,197,71,0.12)', border: '1px solid rgba(232,197,71,0.4)',
-              borderRadius: '10px', padding: '10px 14px', marginBottom: '12px', color: '#E8C547', fontSize: '12px',
-            }}>
-              <AlertCircle size={16} style={{ flexShrink: 0 }} /> {proposal.warning}
-            </div>
-          )}
-          {teamPlannerGw !== 1 && (
-            <p style={{ color: COLORS.textMuted, fontSize: '11px', margin: '0 0 10px' }}>
-              De herkende kapitein wordt ingesteld voor GW{teamPlannerGw} (de momenteel bekeken speelweek).
-            </p>
-          )}
-          <div>
+      {status === 'error' && !proposal && (
+        <ErrorBanner onRetry={openPicker} retryLabel={t('screenshotUpload.retry')}>
+          {errorCode?.warning ? warningText(t, errorCode.warning) : errorText(t, errorCode?.code)}
+        </ErrorBanner>
+      )}
+
+      {proposal && (
+        <section className="tp-proposal" aria-labelledby="tp-proposal-title">
+          <h2 id="tp-proposal-title" className="label tp-proposal__title">{t('screenshotUpload.heading')}</h2>
+          <p className="tp-proposal__hint">{t('screenshotUpload.reviewHint')}</p>
+          {proposal.warning && <Notice>{warningText(t, proposal.warning)}</Notice>}
+          {!isRosterEmpty && <Notice>{t('screenshotUpload.replaceWarning')}</Notice>}
+          <p className="tp-proposal__hint">{t('screenshotUpload.captainGwHint', { gw: startGw })}</p>
+          <ul className="tp-proposal__list">
             {proposal.suggestions.map((suggestion, index) => (
               <SuggestionRow
                 key={index}
+                t={t}
                 suggestion={suggestion}
                 index={index}
                 playerDatabase={playerDatabase}
                 onUpdate={updateSuggestion}
-                onToggleCaptain={handleToggleCaptain}
+                onToggleRole={handleToggleRole}
               />
             ))}
+          </ul>
+          <div className="tp-proposal__extras">
+            <label className="tp-field">
+              <span className="label">{t('screenshotUpload.bank')}</span>
+              <input
+                className="ui-input ui-input--plain num"
+                type="text"
+                inputMode="decimal"
+                value={proposal.bank}
+                placeholder={t('screenshotUpload.bankPlaceholder')}
+                onChange={(e) => setProposal(prev => ({ ...prev, bank: e.target.value }))}
+                aria-invalid={!bankValid}
+              />
+            </label>
+            <label className="tp-field">
+              <span className="label">{t('screenshotUpload.freeTransfers', { gw: startGw })}</span>
+              <Select
+                value={proposal.freeTransfers}
+                onChange={(v) => setProposal(prev => ({ ...prev, freeTransfers: v }))}
+                options={[
+                  { value: '', label: t('screenshotUpload.freeTransfersUnknown') },
+                  ...Array.from({ length: TEAM_PLANNER_FREE_TRANSFER_CAP + 1 }, (_, n) => ({ value: String(n), label: String(n) })),
+                ]}
+              />
+            </label>
           </div>
-          {hasViceCaptainSuggestion && (
-            <p style={{ color: COLORS.textMuted, fontSize: '11px', margin: '10px 0 0' }}>
-              Vice-kapitein herkend maar niet ondersteund door Team Planner — enkel ter info (V-badge hierboven).
-            </p>
-          )}
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '14px' }}>
-            <button onClick={handleApply} style={{
-              display: 'inline-flex', alignItems: 'center', gap: '6px',
-              background: '#4ECDC4', color: '#0B2E1B', border: '1px solid #4ECDC4',
-              borderRadius: '8px', padding: '8px 16px', fontWeight: 700, fontSize: '13px', cursor: 'pointer',
-            }}>
-              <Check size={15} /> {t('screenshotUpload.apply')}
-            </button>
-            <button onClick={handleCancel} style={{
-              display: 'inline-flex', alignItems: 'center', gap: '6px',
-              background: 'transparent', color: COLORS.textBody, border: '1px solid rgba(255,255,255,0.2)',
-              borderRadius: '8px', padding: '8px 16px', fontWeight: 700, fontSize: '13px', cursor: 'pointer',
-            }}>
-              <X size={15} /> {t('screenshotUpload.cancel')}
-            </button>
+          <p className="tp-proposal__hint">{t('screenshotUpload.extrasHint')}</p>
+          {!bankValid && <p className="tp-warn">{t('teamPlanner.calib.invalid', { max: 100 })}</p>}
+          <div className="tp-proposal__actions">
+            <Button variant="primary" icon={Check} onClick={handleApply} disabled={!bankValid}>{t('screenshotUpload.apply')}</Button>
+            <Button variant="ghost" icon={X} onClick={handleCancel}>{t('screenshotUpload.cancel')}</Button>
           </div>
-        </div>
-      ) : status === 'loading' ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: COLORS.textBody, fontSize: '13px' }}>
-          <Loader2 size={16} className="fdr-spin" /> {t('screenshotUpload.processing')}
-        </div>
-      ) : status === 'error' ? (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
-          background: 'rgba(194,64,44,0.12)', border: '1px solid rgba(194,64,44,0.4)',
-          borderRadius: '10px', padding: '12px 14px',
-        }}>
-          <AlertCircle size={16} color="#C2402C" style={{ flexShrink: 0 }} />
-          <span style={{ color: '#FBEAE7', fontSize: '13px', flex: 1 }}>{errorMessage}</span>
-          <button onClick={() => fileInputRef.current?.click()} style={retryButtonStyle}>
-            <RotateCcw size={14} /> {t('screenshotUpload.retry')}
-          </button>
-        </div>
-      ) : (
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          disabled={playerDatabaseLoading || !!playerDatabaseError}
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: '6px',
-            background: 'transparent', color: playerDatabaseLoading || playerDatabaseError ? COLORS.textDisabled : '#4ECDC4',
-            border: `1px solid ${playerDatabaseLoading || playerDatabaseError ? 'rgba(255,255,255,0.15)' : '#4ECDC4'}`,
-            borderRadius: '8px', padding: '8px 14px', fontWeight: 700, fontSize: '13px',
-            cursor: playerDatabaseLoading || playerDatabaseError ? 'not-allowed' : 'pointer',
-          }}
-        >
-          <Upload size={15} /> {t('screenshotUpload.uploadButton')}
-        </button>
+        </section>
       )}
     </div>
   );

@@ -1,24 +1,134 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "regions": ["fra1"],
+  "regions": [
+    "fra1"
+  ],
+  "redirects": [
+    {
+      "source": "/price-changes",
+      "destination": "/spelers",
+      "permanent": true
+    },
+    {
+      "source": "/fr/price-changes",
+      "destination": "/fr/spelers",
+      "permanent": true
+    },
+    {
+      "source": "/watchlist",
+      "destination": "/spelers?scope=watchlist",
+      "permanent": true
+    },
+    {
+      "source": "/fr/watchlist",
+      "destination": "/fr/spelers?scope=watchlist",
+      "permanent": true
+    },
+    {
+      "source": "/en/price-changes",
+      "destination": "/en/spelers",
+      "permanent": true
+    },
+    {
+      "source": "/en/watchlist",
+      "destination": "/en/spelers?scope=watchlist",
+      "permanent": true
+    },
+    {
+      "source": "/bonuspunten",
+      "destination": "/spelers?cols=bonus&sort=bp",
+      "permanent": true
+    },
+    {
+      "source": "/kaarten",
+      "destination": "/spelers?cols=cards&sort=toSusp&dir=asc",
+      "permanent": true
+    },
+    {
+      "source": "/fr/bonuspunten",
+      "destination": "/fr/spelers?cols=bonus&sort=bp",
+      "permanent": true
+    },
+    {
+      "source": "/fr/kaarten",
+      "destination": "/fr/spelers?cols=cards&sort=toSusp&dir=asc",
+      "permanent": true
+    },
+    {
+      "source": "/en/bonuspunten",
+      "destination": "/en/spelers?cols=bonus&sort=bp",
+      "permanent": true
+    },
+    {
+      "source": "/en/kaarten",
+      "destination": "/en/spelers?cols=cards&sort=toSusp&dir=asc",
+      "permanent": true
+    }
+  ],
   "rewrites": [
-    { "source": "/fdr", "destination": "/fdr.html" },
-    { "source": "/team-planner", "destination": "/team-planner.html" },
-    { "source": "/predicted-lineups", "destination": "/predicted-lineups.html" },
-    { "source": "/bonuspunten", "destination": "/bonuspunten.html" },
-    { "source": "/set-pieces", "destination": "/set-pieces.html" },
-    { "source": "/watchlist", "destination": "/watchlist.html" },
-    { "source": "/kaarten", "destination": "/kaarten.html" },
-    { "source": "/price-changes", "destination": "/price-changes.html" },
-    { "source": "/spelers", "destination": "/spelers.html" },
-    { "source": "/klassement", "destination": "/klassement.html" },
-
-    { "source": "/speler/:slug", "destination": "/speler/:slug.html" },
-    { "source": "/club/:code", "destination": "/club/:code.html" },
-    { "source": "/fr/speler/:slug", "destination": "/fr/speler/:slug.html" },
-    { "source": "/fr/club/:code", "destination": "/fr/club/:code.html" },
-
-    { "source": "/fr", "destination": "/fr/fdr.html" },
-    { "source": "/fr/:tool", "destination": "/fr/:tool.html" }
+    {
+      "source": "/fdr",
+      "destination": "/fdr.html"
+    },
+    {
+      "source": "/team-planner",
+      "destination": "/team-planner.html"
+    },
+    {
+      "source": "/predicted-lineups",
+      "destination": "/predicted-lineups.html"
+    },
+    {
+      "source": "/set-pieces",
+      "destination": "/set-pieces.html"
+    },
+    {
+      "source": "/spelers",
+      "destination": "/spelers.html"
+    },
+    {
+      "source": "/klassement",
+      "destination": "/klassement.html"
+    },
+    {
+      "source": "/speler/:slug",
+      "destination": "/speler/:slug.html"
+    },
+    {
+      "source": "/club/:code",
+      "destination": "/club/:code.html"
+    },
+    {
+      "source": "/fr/speler/:slug",
+      "destination": "/fr/speler/:slug.html"
+    },
+    {
+      "source": "/fr/club/:code",
+      "destination": "/fr/club/:code.html"
+    },
+    {
+      "source": "/fr",
+      "destination": "/fr.html"
+    },
+    {
+      "source": "/fr/:tool",
+      "destination": "/fr/:tool.html"
+    },
+    {
+      "source": "/en/speler/:slug",
+      "destination": "/en/speler/:slug.html"
+    },
+    {
+      "source": "/en/club/:code",
+      "destination": "/en/club/:code.html"
+    },
+    {
+      "source": "/en",
+      "destination": "/en.html"
+    },
+    {
+      "source": "/en/:tool",
+      "destination": "/en/:tool.html"
+    }
   ]
 }

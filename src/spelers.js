@@ -1,6 +1,9 @@
 // Rekenlogica voor de Spelers-tab (src/tabs/SpelersTab.jsx): kolommen, periodes (seizoen of laatste
 // 3/5/8 speeldagen), per-90-waarden, filteren, sorteren en de URL-staat. Bevat geen JSX en geen
 // netwerkverkeer, zodat alles hier los te testen valt. De data zelf komt uit /api/players.
+//
+// Bonuspunten en Kaarten zijn hier de kolomkeuzes "Bonus" en "Kaarten" (vroeger aparte tabs).
+import { cardsUntilSuspension } from './kaarten';
 
 export const POSITION_KEYS = ['GK', 'DEF', 'MID', 'FWD'];
 
@@ -15,7 +18,7 @@ export const MIN_MINUTES_OPTIONS = [0, 90, 180, 450, 900];
 
 // Hoeveel speeldagen de vorm-sparkline en de "vorm"-kolom bestrijken.
 export const FORM_GWS = 5;
-export const SPARK_GWS = 8;
+export const SPARK_GWS = 5;
 
 // --- Kolommen ------------------------------------------------------------------------------------
 //
@@ -23,31 +26,44 @@ export const SPARK_GWS = 8;
 //   period: true  -> herberekend voor de gekozen periode (punten, minuten, goals, assists, bonus)
 //   per90:  true  -> kan per 90 minuten getoond worden
 //   decimals: aantal decimalen bij weergave
+//   title: i18n-sleutel voor de tooltip in de kolomkop (anders het label zelf)
 //   lowerIsBetter: voor de "beste waarde"-markering in Vergelijken
+//   tiebreak(a, b): volgorde bij een gelijke waarde (anders: meeste punten eerst)
+const signed = (v) => `${v > 0 ? '+' : ''}${v}`;
 export const COLUMNS = {
   price: { label: 'spelers.col.price', get: r => r.price, decimals: 1, format: v => `€${v.toFixed(1)}`, lowerIsBetter: true, noBest: true },
   pts: { label: 'spelers.col.pts', get: r => r.pts, period: true, per90: true },
   ppm: { label: 'spelers.col.ppm', get: r => r.ppm, decimals: 1 },
   ppg: { label: 'spelers.col.ppg', get: r => r.ppg, decimals: 1 },
-  form: { label: 'spelers.col.form', get: r => r.form },
+  form: { label: 'spelers.col.form', title: 'spelers.col.formTitle', get: r => r.form, decimals: 1 },
   sel: { label: 'spelers.col.sel', get: r => r.sel, format: v => `${v}%` },
-  cap: { label: 'spelers.col.cap', get: r => r.cap, format: v => `${v}%` },
   min: { label: 'spelers.col.min', get: r => r.min, period: true },
   mp: { label: 'spelers.col.mp', get: r => r.mp, period: true },
   g: { label: 'spelers.col.g', get: r => r.g, period: true, per90: true },
   a: { label: 'spelers.col.a', get: r => r.a, period: true, per90: true },
   bc: { label: 'spelers.col.bc', get: r => r.bc, per90: true },
+  // Uit API-Football (spec F1); enkel getoond als /api/shots werkte (data.shotsAvailable).
+  sh: { label: 'spelers.col.sh', title: 'spelers.col.shTitle', get: r => r.sh, period: true, per90: true, source: 'apiFootball' },
+  sot: { label: 'spelers.col.sot', title: 'spelers.col.sotTitle', get: r => r.sot, period: true, per90: true, source: 'apiFootball' },
+  kp: { label: 'spelers.col.kp', title: 'spelers.col.kpTitle', get: r => r.kp, period: true, per90: true, source: 'apiFootball' },
   cs: { label: 'spelers.col.cs', get: r => r.cs, per90: true },
   hc: { label: 'spelers.col.hc', get: r => r.hc, per90: true },
   dw: { label: 'spelers.col.dw', get: r => r.dw, per90: true },
   dl: { label: 'spelers.col.dl', get: r => r.dl, per90: true, lowerIsBetter: true },
+  // Duelsaldo (gewonnen min verloren): de voorwaarde voor het duelbonuspunt.
+  dd: { label: 'spelers.col.dd', get: r => (r.dw == null || r.dl == null ? null : r.dw - r.dl), per90: true, format: signed },
   br: { label: 'spelers.col.br', get: r => r.br, per90: true },
   int: { label: 'spelers.col.int', get: r => r.int, per90: true },
-  gc: { label: 'spelers.col.gc', get: r => r.gc, per90: true, lowerIsBetter: true },
   sv: { label: 'spelers.col.sv', get: r => r.sv, per90: true },
   ps: { label: 'spelers.col.ps', get: r => r.ps },
   yc: { label: 'spelers.col.yc', get: r => r.yc, lowerIsBetter: true },
   rc: { label: 'spelers.col.rc', get: r => r.rc, lowerIsBetter: true },
+  // Gele kaarten tot de volgende schorsing (5, 10, 15, ...). Bij gelijke afstand eerst wie de meeste
+  // kaarten heeft.
+  toSusp: {
+    label: 'spelers.col.toSusp', get: r => cardsUntilSuspension(r.yc ?? 0), lowerIsBetter: true, noBest: true,
+    tiebreak: (a, b) => (b.yc ?? 0) - (a.yc ?? 0),
+  },
   bp: { label: 'spelers.col.bp', get: r => r.bp, period: true, per90: true },
   bpDuels: { label: 'spelers.col.bpDuels', get: r => r.bpDuels },
   bpHeaders: { label: 'spelers.col.bpHeaders', get: r => r.bpHeaders },
@@ -55,20 +71,35 @@ export const COLUMNS = {
   bpBigChances: { label: 'spelers.col.bpBigChances', get: r => r.bpBigChances },
 };
 
-// Kolompresets (knoppen boven de tabel). Foto, naam, club en positie staan er altijd bij.
-// "Eigendom" heeft geen trendkolom: de bron geeft het selectiepercentage enkel als huidig getal (in
-// elke speeldag hetzelfde), dus een trend zou verzonnen zijn.
+// Kolompresets (keuze boven de tabel). Foto, naam, club en positie staan er altijd bij.
+// "Ownership" heeft geen trendkolom: de bron geeft het selectiepercentage enkel als huidig getal (in
+// elke speeldag hetzelfde), dus een trend zou verzonnen zijn. "% kapitein" en "tegengoals" zijn sinds
+// de rework (spec §7.4) geen kolommen meer; een oude link met sort=cap of sort=gc valt terug op punten.
 export const PRESETS = {
   overview: ['price', 'pts', 'ppm', 'form', 'sel', 'min'],
-  attack: ['price', 'pts', 'g', 'a', 'bc', 'min'],
-  defence: ['price', 'pts', 'cs', 'hc', 'dw', 'dl', 'br', 'gc'],
+  attack: ['price', 'pts', 'g', 'a', 'sh', 'sot', 'kp', 'bc', 'min'],
+  defence: ['price', 'pts', 'cs', 'hc', 'dw', 'dl', 'br'],
   bonus: ['pts', 'bp', 'bpDuels', 'bpHeaders', 'bpRecoveries', 'bpBigChances'],
-  ownership: ['price', 'pts', 'sel', 'cap', 'form'],
+  cards: ['toSusp', 'yc', 'rc', 'mp', 'min'],
+  // Geen knop meer (feedbackronde 2: ownership staat al in Overzicht), maar een oude link werkt nog.
+  ownership: ['price', 'sel', 'pts', 'ppm', 'form'],
 };
+// Alle geldige presets (ook in een link); SPELERS_PRESET_KEYS = de knoppen op de Spelers-pagina.
 export const PRESET_KEYS = Object.keys(PRESETS);
+export const SPELERS_PRESET_KEYS = ['overview', 'attack', 'defence', 'bonus', 'cards'];
+
+// Standaardsortering wanneer je een preset kiest (enkel waar die afwijkt van punten).
+export const PRESET_SORT = {
+  ownership: { sort: 'sel', dir: 'desc' },
+  bonus: { sort: 'bp', dir: 'desc' },
+  cards: { sort: 'toSusp', dir: 'asc' },
+};
 
 // Rijen in Vergelijken.
-export const COMPARE_ROWS = ['price', 'pts', 'ppm', 'ppg', 'form', 'mp', 'min', 'g', 'a', 'bp', 'cs', 'bc', 'br', 'sel', 'cap'];
+export const COMPARE_ROWS = ['price', 'pts', 'ppm', 'ppg', 'form', 'mp', 'min', 'g', 'a', 'sh', 'sot', 'kp', 'bp', 'cs', 'bc', 'br', 'sel'];
+
+// Kolommen uit API-Football vallen weg als die bron niet beschikbaar is.
+export const availableColumns = (keys, shotsAvailable) => keys.filter(k => shotsAvailable || COLUMNS[k]?.source !== 'apiFootball');
 export const MAX_COMPARE = 4;
 
 // --- Rijen berekenen -----------------------------------------------------------------------------
@@ -89,6 +120,21 @@ function countPlayed(minArr, from, to) {
 
 const ratio = (a, b) => (b > 0 ? a / b : null);
 
+// Vorm (spec E4): het gemiddelde aantal punten per speeldag over de laatste FORM_GWS speeldagen (of
+// minder, vroeg in het seizoen). Een speeldag zonder minuten telt mee als 0: zo lees je "vorm" zoals in
+// FPL. Eén functie voor de Spelers-tabel, de spelerskiezer, de Team Planner en de spelerskaart.
+// weekPts = de weekreeks (player.w.pts), gw = laatst gespeelde speeldag. null als er nog niets gespeeld is.
+export function formAverage(weekPts, gw, n = FORM_GWS) {
+  if (!Array.isArray(weekPts) || !(gw > 0)) return null;
+  const from = Math.max(0, gw - n);
+  return sumRange(weekPts, from, gw) / (gw - from);
+}
+
+// Vorm met één decimaal voor de weergave ("6.2"), of null.
+export const formatForm = (value) => (Number.isFinite(value) ? value.toFixed(1) : null);
+
+const GK_ZERO = Object.freeze({ hc: 0, br: 0, bc: 0, bpHeaders: 0, bpRecoveries: 0, bpBigChances: 0 });
+
 // Speler uit /api/players + gekozen periode -> één tabelrij met alle afgeleide waarden.
 // `gw` = laatst gespeelde speeldag (lengte van de weekreeksen).
 export function buildRow(player, period, gw) {
@@ -96,8 +142,12 @@ export function buildRow(player, period, gw) {
   const isSeason = period === 'season';
   const from = isSeason ? 0 : Math.max(0, gw - period);
   const base = isSeason
-    ? { pts: player.pts, min: player.min, g: player.g, a: player.a, bp: player.bp, mp: player.mp }
+    ? { pts: player.pts, min: player.min, g: player.g, a: player.a, bp: player.bp, mp: player.mp, sh: player.sh, sot: player.sot, kp: player.kp }
     : {
+      // Niet gekoppeld aan API-Football: blijft null ("—"), ook in een periode.
+      sh: player.sh == null ? player.sh : sumRange(w?.sh, from, gw),
+      sot: player.sot == null ? player.sot : sumRange(w?.sot, from, gw),
+      kp: player.kp == null ? player.kp : sumRange(w?.kp, from, gw),
       pts: sumRange(w?.pts, from, gw),
       min: sumRange(w?.min, from, gw),
       g: sumRange(w?.g, from, gw),
@@ -109,13 +159,16 @@ export function buildRow(player, period, gw) {
   return {
     ...player,
     ...base,
+    // Een keeper kan met kopballen, recoveries of grote kansen geen bonuspunt halen (enkel het duelpunt).
+    // Daarom staan die bij keepers standaard op 0 (feedback eigenaar), zodat ze die rangschikkingen niet
+    // vertekenen. Zo deed de Google Sheet het vroeger ook.
+    ...(player.pos === 'GK' ? GK_ZERO : null),
     seasonMin: player.min,
     ppm: player.price > 0 ? base.pts / player.price : null,
     ppg: ratio(base.pts, base.mp),
     p90: base.min >= MIN_MINUTES_PER90 ? (base.pts / base.min) * 90 : null,
     minPerMatch: ratio(base.min, base.mp),
-    form: sumRange(w?.pts, Math.max(0, gw - FORM_GWS), gw),
-    form3: sumRange(w?.pts, Math.max(0, gw - 3), gw),
+    form: formAverage(w?.pts, gw),
     spark: Array.from({ length: gw - sparkFrom }, (_, i) => ({ gw: sparkFrom + i + 1, pts: w?.pts?.[sparkFrom + i] ?? null })),
   };
 }
@@ -210,7 +263,7 @@ export function sortRows(rows, sortKey, dir, mode) {
     if (va == null && vb == null) return b.pts - a.pts;
     if (va == null) return 1;
     if (vb == null) return -1;
-    return sign * (va - vb) || b.pts - a.pts || a.name.localeCompare(b.name);
+    return sign * (va - vb) || (COLUMNS[sortKey]?.tiebreak?.(a, b) ?? 0) || b.pts - a.pts || a.name.localeCompare(b.name);
   });
 }
 
@@ -229,20 +282,24 @@ export function bestIndexes(values, { lowerIsBetter = false } = {}) {
 // Alles wat je instelt (filters, sortering, kolommen, vergelijking) staat in de URL, zodat je een
 // gefilterde lijst of een vergelijking kan delen (bv. /spelers?compare=107,99). Enkel waarden die
 // afwijken van de standaard komen in de URL, zodat een gewone link kort blijft.
-export const SPELERS_QUERY_PARAMS = ['q', 'pos', 'club', 'pmin', 'pmax', 'mins', 'scope', 'per', 'mode', 'cols', 'sort', 'dir', 'compare', 'speler'];
+export const SPELERS_QUERY_PARAMS = ['q', 'pos', 'club', 'pmin', 'pmax', 'mins', 'scope', 'per', 'mode', 'cols', 'sort', 'dir', 'compare', 'speler',
+  // 'avail' en 'diff' bestaan niet meer als filter, maar blijven hier zodat een oude link de parameter opruimt.
+  'avail', 'diff'];
 
 export const DEFAULT_STATE = {
   q: '', pos: [], club: '', pmin: null, pmax: null, mins: 0, scope: 'all', per: 'season',
   mode: 'total', cols: 'overview', sort: 'pts', dir: 'desc', compare: [], speler: null,
 };
 
+// Standaardstaat per pagina op deze tabel (spec E3). Wat gelijk is aan de standaard van de pagina,
+// komt niet in de URL: /bonuspunten blijft dus gewoon /bonuspunten.
 const toNumberOrNull = (v) => {
   if (v == null || v === '') return null;
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
 };
 
-export function stateFromSearch(search) {
+export function stateFromSearch(search, defaults = DEFAULT_STATE) {
   const p = new URLSearchParams(search);
   const per = p.get('per');
   const perValue = PERIODS.find(x => String(x) === per) ?? 'season';
@@ -257,9 +314,9 @@ export function stateFromSearch(search) {
     scope: ['all', 'myTeam', 'watchlist'].includes(p.get('scope')) ? p.get('scope') : 'all',
     per: perValue,
     mode: p.get('mode') === 'p90' ? 'p90' : 'total',
-    cols: PRESET_KEYS.includes(p.get('cols')) ? p.get('cols') : 'overview',
-    sort: sort && (COLUMNS[sort] || ['name', 'club', 'pos'].includes(sort)) ? sort : 'pts',
-    dir: p.get('dir') === 'asc' ? 'asc' : 'desc',
+    cols: PRESET_KEYS.includes(p.get('cols')) ? p.get('cols') : defaults.cols,
+    sort: sort && (COLUMNS[sort] || ['name', 'club', 'pos'].includes(sort)) ? sort : defaults.sort,
+    dir: ['asc', 'desc'].includes(p.get('dir')) ? p.get('dir') : defaults.dir,
     compare: (p.get('compare') ?? '').split(',').map(Number).filter(n => Number.isInteger(n) && n > 0).slice(0, MAX_COMPARE),
     speler: toNumberOrNull(p.get('speler')),
   };
@@ -267,7 +324,7 @@ export function stateFromSearch(search) {
 
 // Bouwt de nieuwe query-string: parameters van andere tabs (bv. ?r= en ?ha= van de FDR-ratings)
 // blijven staan, de Spelers-parameters worden herschreven.
-export function searchFromState(state, currentSearch = '') {
+export function searchFromState(state, currentSearch = '', defaults = DEFAULT_STATE) {
   const p = new URLSearchParams(currentSearch);
   SPELERS_QUERY_PARAMS.forEach(k => p.delete(k));
   const set = (k, v) => { if (v !== '' && v != null) p.set(k, String(v)); };
@@ -280,9 +337,9 @@ export function searchFromState(state, currentSearch = '') {
   if (state.scope !== 'all') set('scope', state.scope);
   if (state.per !== 'season') set('per', state.per);
   if (state.mode !== 'total') set('mode', state.mode);
-  if (state.cols !== 'overview') set('cols', state.cols);
-  if (state.sort !== 'pts') set('sort', state.sort);
-  if (state.dir !== 'desc') set('dir', state.dir);
+  if (state.cols !== defaults.cols) set('cols', state.cols);
+  if (state.sort !== defaults.sort) set('sort', state.sort);
+  if (state.dir !== defaults.dir) set('dir', state.dir);
   if (state.compare.length) set('compare', state.compare.join(','));
   if (state.speler) set('speler', state.speler);
   const s = p.toString().replace(/%2C/g, ',');

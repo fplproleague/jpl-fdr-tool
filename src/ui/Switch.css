@@ -1,0 +1,18 @@
+.ui-switch {
+  display: inline-flex; align-items: center; gap: var(--s-2); height: 32px; padding: 0;
+  border: 0; background: none; color: var(--text-2); font: 500 var(--fs-ui)/1 var(--font-ui); cursor: pointer;
+  white-space: nowrap;
+}
+.ui-switch__track {
+  position: relative; display: inline-block; width: 28px; height: 16px; flex-shrink: 0;
+  border: 1px solid var(--line-strong); border-radius: var(--r-1); background: var(--ink-1);
+  transition: background-color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+.ui-switch__knob {
+  position: absolute; top: 2px; left: 2px; width: 10px; height: 10px; background: var(--text-3);
+  transition: transform var(--dur-fast) var(--ease), background-color var(--dur-fast) var(--ease);
+}
+.ui-switch[aria-checked="true"] { color: var(--text-1); }
+.ui-switch[aria-checked="true"] .ui-switch__track { background: var(--accent); border-color: var(--accent); }
+.ui-switch[aria-checked="true"] .ui-switch__knob { transform: translateX(12px); background: var(--accent-ink); }
+@media (pointer: coarse) { .ui-switch { height: 44px; } }

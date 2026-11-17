@@ -1,9 +1,10 @@
 // Gedeelde tooltip-infrastructuur voor fixture-cellen: hover op desktop, tap-toggle + tap-buiten-sluit
-// op mobiel. Gebruikt door zowel FDRTab (FixtureCell) als WatchlistTab (via MiniFixtureBadge) voor de
-// grijze "/"-postponed-indicator en de "*"-mogelijk-uitgesteld-tooltip.
+// op mobiel. Gebruikt door de FDR-cellen (ui/FdrCell) en de kleine fixture-blokjes (ui/MiniFixture) voor
+// de grijze "/"-postponed-indicator en de "*"-mogelijk-uitgesteld-tooltip.
 
 import { useState, useRef, useId, useCallback, useEffect, memo } from 'react';
 import { createPortal } from 'react-dom';
+import '../ui/Tooltip.css';
 
 // Gedeelde interactielogica voor fixture-tooltips: hover op desktop, tap-toggle + tap-buiten-sluit op mobiel.
 // Positie wordt in viewport-coördinaten bijgehouden zodat de bubble (via een portal) nooit wordt

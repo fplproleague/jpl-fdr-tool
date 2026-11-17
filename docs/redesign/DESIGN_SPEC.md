@@ -721,7 +721,7 @@ Elke fase: nieuwe branch `redesign/fase-N-…` → PR naar `main` → preview-li
 ### Fase 4: opruimen en controleren
 - De `<style>`-string in `FDRTool.jsx` verhuizen naar `src/styles/base.css` / component-CSS, voor zover die nog gebruikt wordt; verwijder dode `.fdr-*`-regels.
 - `theme.js`: de knopstijl-exports verwijderen zodra niets ze nog importeert.
-- `og-card.png` (social preview) is nog paars: zie §12.5. **Melden aan de eigenaar**, niet zelf genereren.
+- `og-card.png` (social preview): opgelost, zie §12.5.
 - Draai de **grep-checks** (excl. `src/predicted-xi/`); de verwachte uitkomst is 0 treffers, behalve de toegestane bestanden:
   ```bash
   # oude kleuren
@@ -759,4 +759,4 @@ Elke fase: nieuwe branch `redesign/fase-N-…` → PR naar `main` → preview-li
 **Nog open (vraag dit vóór de betreffende fase):**
 3. **Minileague-code in de desktop-topbalk** of enkel in de footer en het Meer-menu? Aanbevolen: topbalk vanaf 1200px + footer.
 4. **Bonuspunten en Kaarten** later samenvoegen met Spelers (als presets "Bonus" / "Kaarten")? Voorlopig **niet**: ze blijven aparte pagina's (SEO, bestaande links), maar met dezelfde DataTable. Beslis na een paar weken met nieuwe analytics.
-5. **`og-card.png`** (social preview bij gedeelde links) is paars met een turquoise vlak en een stippenraster. De eigenaar maakt een nieuwe in het logopalet (Canva, 1200×630). Claude Code genereert die niet zelf.
+5. **`og-card.png`** (social preview bij gedeelde links) was paars met een turquoise vlak en een stippenraster. Eerst zou de eigenaar een nieuwe maken in Canva; **herzien op 17 november 2026**: op vraag van de eigenaar maakt de build nu zelf een card per pagina (startpagina, elke tab, elke club en elke speler, in drie talen), in het logopalet. Zie `src/ogCards.js` en `scripts/og/`.
