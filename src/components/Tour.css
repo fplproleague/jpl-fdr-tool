@@ -31,17 +31,19 @@ p.tour-card__body { margin: 0; }
 .tour-close svg { width: 16px; height: 16px; }
 .tour-close:hover { color: var(--text-1); background: var(--ink-2); }
 
-/* --- Welkomstkader: rechtsonder op desktop, boven de onderbalk op gsm ---------------------------- */
-.tour-welcome { right: var(--gutter); bottom: var(--s-5); }
+/* --- Welkomstkader: in het midden op desktop (feedback eigenaar), boven de onderbalk op gsm ------- */
+.tour-welcome { left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(400px, calc(100vw - 24px)); }
 .tour-welcome__lang { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s-2); margin-bottom: var(--s-3); }
 .tour-welcome__langlabel { color: var(--text-3); font-size: var(--fs-meta); }
 .tour-welcome__hint { margin: var(--s-3) 0 0; color: var(--text-3); font-size: var(--fs-meta); line-height: var(--lh-meta); }
 @media (max-width: 899px) {
   .tour-welcome {
-    left: 50%; right: auto; transform: translateX(-50%);
+    top: auto; transform: translateX(-50%); width: min(360px, calc(100vw - 24px));
     bottom: calc(var(--bottomnav-h) + env(safe-area-inset-bottom, 0px) + var(--s-3));
   }
 }
+.tour-card__link { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.tour-card__link:hover { text-decoration-thickness: 2px; }
 
 /* --- Rondleiding --------------------------------------------------------------------------------- */
 .tour-layer { position: fixed; inset: 0; z-index: calc(var(--z-toast) + 5); }

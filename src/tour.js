@@ -72,18 +72,19 @@ const STEPS = [
   },
 ];
 
-export const INSTALL_PLATFORMS = ['ios', 'android', 'desktop'];
+// Toestellen die de startschermstap krijgen. Op een computer valt ze weg (feedback eigenaar).
+export const INSTALL_PLATFORMS = ['ios', 'android'];
 
-// De stappen voor dit toestel. Wie de site al als app op het startscherm heeft, krijgt de
-// installatiestap niet te zien. platform = 'ios' | 'android' | 'desktop' (zie installPlatform).
+// De stappen voor dit toestel. platform = 'ios' | 'android' | 'desktop' (zie installPlatform). De
+// startschermstap staat er enkel op een gsm of tablet, en niet als de site al als app openstaat.
 export function tourSteps({ mobile = false, standalone = false, platform = 'desktop' } = {}) {
   const device = mobile ? 'mobile' : 'desktop';
   return STEPS
-    .filter(step => !(step.install && standalone))
+    .filter(step => !(step.install && (standalone || !INSTALL_PLATFORMS.includes(platform))))
     .map(step => {
       const target = Array.isArray(step.target) ? step.target : (step.target?.[device] ?? []);
       let body = mobile && step.mobileBody ? 'bodyMobile' : 'body';
-      if (step.install) body = INSTALL_PLATFORMS.includes(platform) ? platform : 'desktop';
+      if (step.install) body = platform;
       return {
         id: step.id,
         tab: step.tab ?? null,

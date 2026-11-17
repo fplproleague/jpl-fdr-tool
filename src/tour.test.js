@@ -18,7 +18,8 @@ function memoryStorage(initial = {}) {
 describe('rondleiding: stappen', () => {
   it('toont alle zes de tabs, plus menu, startscherm en einde', () => {
     const steps = tourSteps();
-    expect(steps.map(s => s.id)).toEqual(['nav', 'fdr', 'xi', 'planner', 'budget', 'spelers', 'setpieces', 'klassement', 'install', 'done']);
+    expect(steps.map(s => s.id)).toEqual(['nav', 'fdr', 'xi', 'planner', 'budget', 'spelers', 'setpieces', 'klassement', 'done']);
+    expect(tourSteps({ platform: 'android' }).map(s => s.id)).toContain('install');
     const tabs = new Set(steps.map(s => s.tab).filter(Boolean));
     expect([...tabs].sort()).toEqual(ROUTES.map(r => r.key).sort());
   });
@@ -37,11 +38,12 @@ describe('rondleiding: stappen', () => {
     expect(mobile.find(s => s.id === 'fdr').bodyKey).toBe('tour.step.fdr.bodyMobile');
   });
 
-  it('legt het op-het-startscherm-zetten uit per toestel, en slaat het over in de app', () => {
+  it('legt het op-het-startscherm-zetten enkel op gsm uit, per toestel, en niet in de app', () => {
     expect(tourSteps({ platform: 'ios' }).find(s => s.id === 'install').bodyKey).toBe('tour.step.install.ios');
     expect(tourSteps({ platform: 'android' }).find(s => s.id === 'install').bodyKey).toBe('tour.step.install.android');
-    expect(tourSteps({ platform: 'iets' }).find(s => s.id === 'install').bodyKey).toBe('tour.step.install.desktop');
-    expect(tourSteps({ standalone: true }).some(s => s.id === 'install')).toBe(false);
+    expect(tourSteps({ platform: 'desktop' }).some(s => s.id === 'install')).toBe(false);
+    expect(tourSteps({ platform: 'iets' }).some(s => s.id === 'install')).toBe(false);
+    expect(tourSteps({ platform: 'ios', standalone: true }).some(s => s.id === 'install')).toBe(false);
   });
 
   it('herkent iPhone, iPad, Android en computer', () => {

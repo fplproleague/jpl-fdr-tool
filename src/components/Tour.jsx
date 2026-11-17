@@ -150,6 +150,19 @@ export function TourWelcome({ t, language, languages, onChangeLanguage, onStart,
 }
 
 // --- De stappen -------------------------------------------------------------------------------------
+// "@fpl_proleague" in een tekst wordt een link naar het X-account (feedback eigenaar). De teksten zelf
+// blijven gewone tekst in src/i18n.js.
+const X_HANDLE = '@fpl_proleague';
+const X_URL = 'https://x.com/fpl_proleague';
+function withXLink(text) {
+  const parts = text.split(X_HANDLE);
+  if (parts.length === 1) return text;
+  return parts.flatMap((part, i) => (i === 0 ? [part] : [
+    <a key={i} href={X_URL} target="_blank" rel="noopener noreferrer" className="tour-card__link">{X_HANDLE}</a>,
+    part,
+  ]));
+}
+
 function findTarget(selectors) {
   for (const selector of selectors) {
     const el = document.querySelector(selector);
@@ -288,7 +301,7 @@ export function TourOverlay({ t, step, index, count, onNext, onPrev, onClose }) 
         <p className="tour-card__count num">{t('tour.count', { n: index + 1, total: count })}</p>
         <h2 id="tour-step-title" className="tour-card__title">{t(step.titleKey)}</h2>
         <div id="tour-step-body" className="tour-card__body" aria-live="polite">
-          {paragraphs.map((text, i) => <p key={i}>{text}</p>)}
+          {paragraphs.map((text, i) => <p key={i}>{withXLink(text)}</p>)}
         </div>
         {step.install && installAvailable && (
           <Button variant="secondary" icon={Download} className="tour-card__install" onClick={install}>
