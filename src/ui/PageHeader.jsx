@@ -4,11 +4,11 @@ import { useId, useState } from 'react';
 import { Info } from 'lucide-react';
 import './PageHeader.css';
 
-export default function PageHeader({ title, meta, intro, more, moreLabel = 'Uitleg', children }) {
+export default function PageHeader({ title, meta, intro, more, moreLabel = 'Uitleg', className = '', children }) {
   const [open, setOpen] = useState(false);
   const moreId = useId();
   return (
-    <header className="ui-page-header">
+    <header className={`ui-page-header ${className}`.trim()}>
       <h1 className="display ui-page-header__title">{title}</h1>
       {meta && <div className="ui-page-header__meta">{meta}</div>}
       {(intro || more) && (
