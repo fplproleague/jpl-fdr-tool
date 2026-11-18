@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build && node scripts/build-routes.mjs",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "lineups": "node scripts/lineups/build-predicted-lineups.mjs"
   },
   "dependencies": {
     "@vercel/analytics": "^1.3.1",
