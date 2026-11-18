@@ -9,7 +9,7 @@ Siebe post per club een LINEUP11-afbeelding in Discord. Die mogen we overnemen, 
 het afgesproken moment: normaal **de vrijdag vóór de deadline om 16:00** (zie `--info`). De repo is
 openbaar, dus **niets pushen vóór dat moment**: alles blijft lokaal tot dan.
 
-Werk in eenvoudig Nederlands met de eigenaar (geen programmeur). Hou hem kort op de hoogte per stap.
+Werk in eenvoudig Nederlands met de eigenaar (geen programmeur). Hou de eigenaar per stap kort op de hoogte.
 
 ## 0. Voorbereiden
 
@@ -84,6 +84,9 @@ Schrijf `<scratchpad>/xi-gw<gw>/invoer.json`:
      Pro League nog niet heeft), een verkeerd aantal spelers, een ontbrekende club, een verkeerde
      tegenstander. Voor een speler die niet in het spel zit: stel de eigenaar een keuze voor
      (de alternatieve speler van de afbeelding als die wel in het spel zit, of een andere) en vraag het.
+     Blijkt het dezelfde speler onder een andere naam (Siebe's "Ayensa" = Dennis Eckert), voeg die
+     koppeling toe aan `scripts/lineups/nameAliases.js` en commit ze mee, zodat het script ze
+     voortaan zelf kent.
    - `[nakijken]`: het script koppelde een naam aan een speler die niet exact zo heet
      ("Nunes" → Erick). Kijk of dat klopt; meestal wel.
 2. Alles in orde: `npm run lineups -- <invoer.json>`. Dat herschrijft `src/predictedLineupsData.js`
@@ -97,19 +100,72 @@ Schrijf `<scratchpad>/xi-gw<gw>/invoer.json`:
 5. Commit lokaal (niet pushen!): `git add src/predictedLineupsData.js src/constants.js` en een
    Nederlandse commit "Voorspelde opstellingen bijgewerkt naar GW<gw>" met de controles in de tekst.
 
-## 4. Online zetten op `onlineVanaf` (normaal vrijdag 16:00)
+## 4. Automatisch online zetten op `onlineVanaf` (normaal vrijdag 16:00)
 
-Vraag de eigenaar hoe:
+Standaard (keuze van de eigenaar): **automatisch mergen om `onlineVanaf`**, niet vroeger. Maak meteen
+na de lokale commit een eenmalige geplande taak met `create_scheduled_task`:
 
-- **Hij is erbij**: op het moment zelf (niet vroeger) `git push -u origin xi/gw<gw>`,
-  `gh pr create --base main` (Nederlandse titel/tekst), `gh pr merge --merge --delete-branch`.
-- **Automatisch**: maak een eenmalige geplande taak (`create_scheduled_task` met `fireAt` =
-  `onlineVanaf`) met een volledig zelfstandige prompt: in deze projectmap nagaan dat branch
-  `xi/gw<gw>` bestaat en de opstellingscommit bevat, dan pushen, PR naar `main`, mergen, en daarna
-  nakijken dat de live site de nieuwe speeldag toont. De pc en de Claude-app moeten dan aan staan.
+- `taskId`: `verwachte-xi-gw<gw>-online`, `title`: "Verwachte XI's GW<gw> online", `fireAt`: `onlineVanaf`
+  met Belgische offset (bv. `2026-11-20T16:00:00+01:00`).
+- `prompt` (volledig zelfstandig, vul de waarden in):
 
-Vercel zet `main` binnen een paar minuten live. Controleer daarna
-`https://fplproleague.vercel.app/predicted-lineups` (speeldag in de kop) en meld het de eigenaar.
+  > Zet de Verwachte XI's van GW<gw> online. Werkmap: `<absoluut pad van deze repo>`.
+  > 1. Controleer dat lokale branch `xi/gw<gw>` bestaat en een commit "Voorspelde opstellingen
+  >    bijgewerkt naar GW<gw>" bevat die nog niet in `origin/main` zit (`git fetch` eerst). Is die al
+  >    gemerged: stop en meld dat. Ontbreekt die: stop en meld dat, niets anders doen.
+  > 2. `git push -u origin xi/gw<gw>`, dan `gh pr create --base main --head xi/gw<gw>` met titel
+  >    "Verwachte XI's GW<gw>" en een korte Nederlandse tekst, dan `gh pr merge --merge --delete-branch`.
+  > 3. Wacht tot Vercel klaar is en controleer dat `https://fplproleague.vercel.app/predicted-lineups`
+  >    "GW<gw>" toont en niet meer de aankondiging "verschijnen vrijdag". Meld het resultaat kort in
+  >    eenvoudig Nederlands. Pas geen andere bestanden aan.
+
+- Lees het antwoord van de tool: als de taak niet in een modus zonder toestemmingsvragen is
+  opgeslagen, zeg de eigenaar dat er om 16u misschien een vraag om toestemming verschijnt.
+- Zeg de eigenaar: de pc en de Claude-app moeten om 16u aan staan (anders loopt de taak pas bij het
+  volgende opstarten, dus te laat).
+- Komen er na de commit nog correcties: verwerk ze in een extra commit op dezelfde branch; de taak
+  pusht dan gewoon alles.
+
+Wil de eigenaar het toch zelf doen: op het moment zelf (niet vroeger) dezelfde stappen 2-3.
+
+## 5. Tekst voor de X-post
+
+Om 16u post de eigenaar een vaste tekst op X. Lever die mee na stap 3, in een codeblok om te kopiëren:
+
+```
+🚨 De 18 voorspelde lineups van @5YSiebee staan op de website!
+
+Link hieronder en in bio 📎
+
+Belangrijkste updates:
+
+❌ Spelers die out of geschorst zijn
+❌ <speler> (<club>) – <reden, als Siebe die geeft>
+
+❓ Spelers die twijfelachtig zijn
+❓ <speler> (<club>) – <reden, als Siebe die geeft>
+
+✅ Spelers die terug beschikbaar zijn na twijfel of blessure.
+✅ <speler> (<club>) – <reden, als Siebe die geeft>
+
+#FantasyProLeague #JPL
+```
+
+- Pas "18" aan als er minder clubs zijn (bv. een uitgestelde wedstrijd).
+- **Bron**: het overzicht "Voor de X-post" dat `npm run lineups` toont (wie viel weg, wie twijfelt,
+  wie is terug, met prijs en eigendom) samen met Siebe's tekst in `berichten.txt` (de blokken
+  Injured, Suspended, Doubtful en de uitleg). Een reden vermeld je enkel als Siebe ze geeft;
+  verzin nooit een blessure of schorsing. Wie gewoon naar de bank gaat (rotatie) is geen ❌.
+- **Enkel relevante spelers**: bekende spelers (rond 8M of meer) of eigendom hoger dan 5%.
+  Hoogstens 3-4 per categorie, de belangrijkste eerst. Een lege categorie laat je weg.
+- ❓: fitheidstwijfels uit Siebe's "Doubtful" en veelgekozen spelers (rond 10% eigendom of meer)
+  die nu op risico (40% of meer) staan, met "startplaats onzeker".
+- Clubnamen kort zoals de eigenaar ze schrijft (Club Brugge, Anderlecht, Genk, Union, STVV, ...).
+  Spelling nakijken (zie ook de skill fpl-content-style). Vermeld hoeveel tekens het is: meer dan
+  280 lukt enkel met X Premium.
+
+Vercel zet `main` binnen een paar minuten live. Na de geplande taak krijg je een melding: controleer
+dan `https://fplproleague.vercel.app/predicted-lineups` (speeldag in de kop) en meld het de eigenaar.
 
 ## Opruimen
 

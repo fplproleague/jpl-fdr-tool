@@ -8,8 +8,8 @@
 // Schrijft src/predictedLineupsData.js volledig opnieuw en zet PREDICTED_LINEUPS_GW in
 // src/constants.js op de speeldag uit de invoer. Pusht niets: dat gebeurt pas om 16u.
 import { readFile, writeFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
-import { buildLineups } from './lineupBuilder.js';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { buildLineups, postCandidates } from './lineupBuilder.js';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const DATA_FILE = `${ROOT}src/predictedLineupsData.js`;
@@ -70,6 +70,19 @@ if (problems.length) {
   console.log('\nOpmerkingen:');
   for (const p of problems) console.log(`  [${p.level}] ${p.club}: ${p.msg}`);
 }
+// --- Kandidaten voor de X-post (t.o.v. wat nu in src/predictedLineupsData.js staat) ---
+const { PREDICTED_LINEUPS: previous } = await import(`${pathToFileURL(DATA_FILE).href}?t=${Date.now()}`);
+const { PREDICTED_LINEUPS_GW: previousGw } = await import('../../src/constants.js');
+if (previousGw !== gw) {
+  const c = postCandidates(previous, lineups, body.players);
+  const label = { darkgreen: 'zeker', green: 'starter', orange: 'twijfel', red: 'risico' };
+  const line = p => `${p.name} (${p.club}, ${p.price ?? '?'}M, ${p.sel ?? '?'}%)${p.before ? ` was ${label[p.before]}` : ''}${p.now ? ` nu ${label[p.now]}` : ''}`;
+  console.log(`\nVoor de X-post, t.o.v. GW${previousGw} (eigendom >= 5% of prijs >= 8M):`);
+  console.log(`  Niet meer in de XI: ${c.out.map(line).join('; ') || '-'}`);
+  console.log(`  Twijfel/risico:     ${c.doubtful.map(line).join('; ') || '-'}`);
+  console.log(`  Terug/zeker:        ${c.back.map(line).join('; ') || '-'}`);
+}
+
 const errors = problems.filter(p => p.level === 'fout').length;
 console.log(`\n${errors} fout(en), ${problems.filter(p => p.level === 'nakijken').length} om na te kijken.`);
 

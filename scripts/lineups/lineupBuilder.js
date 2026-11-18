@@ -10,6 +10,7 @@
 // Geen bestanden, geen netwerk: dat doet build-predicted-lineups.mjs. Zo is alles hier testbaar.
 import { FORMATIONS, POSITION_PRESETS } from '../../src/predicted-xi/formations.js';
 import { FIXTURES, POSTPONED, TEAMS, getFixtureLegs } from '../../src/constants.js';
+import { NAME_ALIASES } from './nameAliases.js';
 
 export const SAFETY_LEVELS = ['darkgreen', 'green', 'orange', 'red'];
 
@@ -37,7 +38,7 @@ function levenshtein(a, b) {
 
 // Zoekt bij een gelezen naam de echte speler, eerst binnen de club. `how` zegt hoe zeker dat is:
 // 'exact' (de korte naam van de site), 'full' (volledige naam), 'part' (één deel van de volledige
-// naam, uniek binnen de club), 'fuzzy' (bijna gelijk: tikfout of leesfout), 'other-club' (enkel bij
+// naam, uniek binnen de club), 'alias' (vaste koppeling uit nameAliases.js), 'fuzzy' (bijna gelijk: tikfout of leesfout), 'other-club' (enkel bij
 // een andere club gevonden, bv. een recente transfer) of null (niets gevonden).
 export function buildNameMatcher(apiPlayers) {
   const players = (apiPlayers ?? [])
@@ -77,6 +78,11 @@ export function buildNameMatcher(apiPlayers) {
   }
 
   return function match(rawName, club) {
+    const aliasKey = Object.keys(NAME_ALIASES[club] ?? {}).find(k => normalizeName(k) === normalizeName(rawName));
+    if (aliasKey) {
+      const target = players.find(p => p.club === club && p.name === NAME_ALIASES[club][aliasKey]);
+      if (target) return { player: target, how: 'alias' };
+    }
     const own = matchIn(players.filter(p => p.club === club), rawName);
     if (own?.player) return own;
     const other = matchIn(players, rawName);
@@ -227,4 +233,50 @@ export function buildLineups(input, apiPlayers, { now = Date.now(), makeId = () 
   }
 
   return { gw, lineups, problems };
+}
+
+// Kandidaten voor de X-post bij de publicatie: wat veranderde t.o.v. de vorige verwachte XI's,
+// beperkt tot spelers die managers kennen of hebben (eigendom `sel` >= minOwnership % of prijs >=
+// minPrice). De reden (blessure, schorsing) staat niet in de data: die komt uit Siebe's berichten.
+//   out:      stond vorige keer in de XI, nu niet
+//   doubtful: staat nu in de XI met twijfel (orange) of risico (red)
+//   back:     staat nu zeker/starter in de XI, en stond er vorige keer niet in of met twijfel/risico
+export function postCandidates(oldLineups, newLineups, apiPlayers, { minOwnership = 5, minPrice = 8 } = {}) {
+  const info = new Map((apiPlayers ?? []).map(p => [`${p.short || p.name}|${String(p.club).toUpperCase()}`, p]));
+  const starters = (lineups) => {
+    const map = new Map();
+    for (const l of lineups ?? []) {
+      for (const s of l.slots ?? []) {
+        if (!s.playerName || s.positionId === '_unassigned') continue;
+        map.set(`${s.playerName}|${s.playerTeamCode || l.clubCode}`, s.safety);
+      }
+    }
+    return map;
+  };
+  const before = starters(oldLineups);
+  const after = starters(newLineups);
+  const clubsNow = new Set((newLineups ?? []).map(l => l.clubCode));
+  const doubt = (s) => s === 'orange' || s === 'red';
+
+  const describe = (key, extra) => {
+    const [name, club] = key.split('|');
+    const p = info.get(key);
+    return { name, club, price: p?.price ?? null, sel: p?.sel ?? null, ...extra };
+  };
+  const relevant = (x) => (x.sel ?? 0) >= minOwnership || (x.price ?? 0) >= minPrice;
+  const bySel = (a, b) => (b.sel ?? 0) - (a.sel ?? 0) || (b.price ?? 0) - (a.price ?? 0);
+
+  const out = [...before.keys()]
+    .filter(k => clubsNow.has(k.split('|')[1]) && !after.has(k))
+    .map(k => describe(k, { before: before.get(k) }));
+  const doubtful = [...after.entries()].filter(([, s]) => doubt(s)).map(([k, s]) => describe(k, { now: s, before: before.get(k) ?? null }));
+  const back = [...after.entries()]
+    .filter(([k, s]) => !doubt(s) && (!before.has(k) || doubt(before.get(k))))
+    .map(([k, s]) => describe(k, { now: s, before: before.get(k) ?? null }));
+
+  return {
+    out: out.filter(relevant).sort(bySel),
+    doubtful: doubtful.filter(relevant).sort(bySel),
+    back: back.filter(relevant).sort(bySel),
+  };
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildLineups, buildNameMatcher, opponentFor, safetyFromPercent, sameClub } from './lineupBuilder.js';
+import { buildLineups, buildNameMatcher, opponentFor, safetyFromPercent, sameClub, postCandidates } from './lineupBuilder.js';
 import { FIXTURES, TEAMS } from '../../src/constants.js';
 
 const players = [
@@ -90,5 +90,32 @@ describe('buildLineups', () => {
     const res = buildLineups({ gw, lineups: { CLU: { formation: '4-6-0', players: [] } } }, players);
     expect(res.problems.some(p => p.club === 'CLU' && p.msg.includes('onbekende formatie'))).toBe(true);
     expect(res.lineups.find(l => l.clubCode === 'CLU')).toBeUndefined();
+  });
+});
+
+describe('postCandidates', () => {
+  const api = [
+    { short: 'Vanaken', club: 'CLU', price: 11.5, sel: 33 },
+    { short: 'Seys', club: 'CLU', price: 7, sel: 12 },
+    { short: 'Sabbe', club: 'CLU', price: 6.5, sel: 2 },
+    { short: 'Forbs', club: 'CLU', price: 8, sel: 1 },
+    { short: 'Diakhon', club: 'CLU', price: 6, sel: 9 },
+  ];
+  const slot = (playerName, safety) => ({ playerName, playerTeamCode: 'CLU', positionId: 'X', safety });
+  const before = [{ clubCode: 'CLU', slots: [slot('Vanaken', 'darkgreen'), slot('Seys', 'red'), slot('Sabbe', 'darkgreen'), slot('Diakhon', 'green')] }];
+  const after = [{ clubCode: 'CLU', slots: [slot('Seys', 'green'), slot('Forbs', 'darkgreen'), slot('Diakhon', 'orange')] }];
+  const res = postCandidates(before, after, api);
+
+  it('vindt wie eruit viel, wie twijfelt en wie terug is, enkel relevante spelers', () => {
+    expect(res.out.map(p => p.name)).toEqual(['Vanaken']); // Sabbe: te weinig eigendom en te goedkoop
+    expect(res.doubtful.map(p => p.name)).toEqual(['Diakhon']);
+    expect(res.back.map(p => p.name)).toEqual(['Seys', 'Forbs']); // Forbs: 8M = bekende speler
+  });
+});
+
+describe('naam-aliassen', () => {
+  it('koppelt Ayensa aan Eckert bij Standard', () => {
+    const match = buildNameMatcher([{ name: 'Dennis Eckert', short: 'Eckert', club: 'STA', pos: 'FWD', price: 7.5 }]);
+    expect(match('Ayensa', 'STA')).toMatchObject({ how: 'alias', player: { name: 'Eckert' } });
   });
 });
