@@ -15,7 +15,7 @@
 // aangeleverd 20 november 2026 (GW12).
 export const PREDICTED_LINEUPS = [
   {
-    "id": "00e9355d-83b7-4255-b4bc-7122c9d7a603",
+    "id": "fea4befb-c98e-47b5-b978-8e73da8cef06",
     "clubCode": "AND",
     "opponentCode": "OHL",
     "formationKey": "4-3-3",
@@ -155,11 +155,11 @@ export const PREDICTED_LINEUPS = [
     ],
     "notes": "",
     "label": "",
-    "createdAt": 1795186696351,
-    "updatedAt": 1795186696351
+    "createdAt": 1795186868612,
+    "updatedAt": 1795186868612
   },
   {
-    "id": "b9af14ea-bb7d-4439-8ac4-3ae93ee0438f",
+    "id": "464ea8be-cea2-44c3-ae70-cb7cb028510c",
     "clubCode": "ANT",
     "opponentCode": "ZWA",
     "formationKey": "4-3-3",
@@ -299,11 +299,11 @@ export const PREDICTED_LINEUPS = [
     ],
     "notes": "",
     "label": "",
-    "createdAt": 1795186696351,
-    "updatedAt": 1795186696351
+    "createdAt": 1795186868612,
+    "updatedAt": 1795186868612
   },
   {
-    "id": "1d449448-54d5-4a1c-be19-33751bc78c68",
+    "id": "9dc58e0a-8b6a-494e-b3f6-e458d9132283",
     "clubCode": "BEV",
     "opponentCode": "GNT",
     "formationKey": "4-3-3",
@@ -443,11 +443,11 @@ export const PREDICTED_LINEUPS = [
     ],
     "notes": "",
     "label": "",
-    "createdAt": 1795186696351,
-    "updatedAt": 1795186696351
+    "createdAt": 1795186868612,
+    "updatedAt": 1795186868612
   },
   {
-    "id": "21d7b17f-93e1-45cb-ac1b-6c2d3212dc00",
+    "id": "640c0f93-45c3-41b8-9e0d-bb6a4554e6bd",
     "clubCode": "CER",
     "opponentCode": "WES",
     "formationKey": "3-4-3",
@@ -587,11 +587,11 @@ export const PREDICTED_LINEUPS = [
     ],
     "notes": "",
     "label": "",
-    "createdAt": 1795186696351,
-    "updatedAt": 1795186696351
+    "createdAt": 1795186868612,
+    "updatedAt": 1795186868612
   },
   {
-    "id": "85e00651-8d17-4cf8-b9ac-5a6d12cc8bc0",
+    "id": "823efdaa-4200-4b86-a7d3-363f76dfc7f4",
     "clubCode": "CHA",
     "opponentCode": "STV",
     "formationKey": "4-3-3",
@@ -666,7 +666,7 @@ export const PREDICTED_LINEUPS = [
         "playerTeamCode": "CHA",
         "playerPosition": "DEF",
         "playerPrice": 4.5,
-        "safety": "red"
+        "safety": "orange"
       },
       {
         "positionId": "CM",
@@ -731,11 +731,11 @@ export const PREDICTED_LINEUPS = [
     ],
     "notes": "",
     "label": "",
-    "createdAt": 1795186696351,
-    "updatedAt": 1795186696351
+    "createdAt": 1795186868612,
+    "updatedAt": 1795186868612
   },
   {
-    "id": "eb61041d-7936-4d36-a985-421dde184101",
+    "id": "7e397f46-5b33-4963-8a4a-7c41abb64557",
     "clubCode": "CLU",
     "opponentCode": "KVM",
     "formationKey": "4-3-3",
@@ -875,11 +875,11 @@ export const PREDICTED_LINEUPS = [
     ],
     "notes": "",
     "label": "",
-    "createdAt": 1795186696351,
-    "updatedAt": 1795186696351
+    "createdAt": 1795186868612,
+    "updatedAt": 1795186868612
   },
   {
-    "id": "6d72a8b9-7cea-48bf-be86-6dff45b79a41",
+    "id": "4576d0f3-d95a-4a91-a356-04a151d38da0",
     "clubCode": "GNK",
     "opponentCode": "LLV",
     "formationKey": "4-3-3",
@@ -1019,11 +1019,11 @@ export const PREDICTED_LINEUPS = [
     ],
     "notes": "",
     "label": "",
-    "createdAt": 1795186696351,
-    "updatedAt": 1795186696351
+    "createdAt": 1795186868612,
+    "updatedAt": 1795186868612
   },
   {
-    "id": "dbd7a024-1949-4d9f-aa37-cab07240bac0",
+    "id": "abe7727e-b231-42df-afed-b15472d6509a",
     "clubCode": "GNT",
     "opponentCode": "BEV",
     "formationKey": "3-4-3",
@@ -1163,11 +1163,11 @@ export const PREDICTED_LINEUPS = [
     ],
     "notes": "",
     "label": "",
-    "createdAt": 1795186696351,
-    "updatedAt": 1795186696351
+    "createdAt": 1795186868612,
+    "updatedAt": 1795186868612
   },
   {
-    "id": "809421d2-0c1e-4178-af60-11f8d40c66ec",
+    "id": "1f3348b0-16a3-4bfc-97c7-3cdc2a5f870d",
     "clubCode": "KOR",
     "opponentCode": "USG",
     "formationKey": "4-3-3",
@@ -1307,11 +1307,11 @@ export const PREDICTED_LINEUPS = [
     ],
     "notes": "",
     "label": "",
-    "createdAt": 1795186696351,
-    "updatedAt": 1795186696351
+    "createdAt": 1795186868612,
+    "updatedAt": 1795186868612
   },
   {
-    "id": "a27ee2a6-8c6d-4e84-8f62-b53438199ad1",
+    "id": "44a94f11-b2d2-4918-ab98-f55d28b37a27",
     "clubCode": "KVM",
     "opponentCode": "CLU",
     "formationKey": "5-3-2",
@@ -1451,11 +1451,11 @@ export const PREDICTED_LINEUPS = [
     ],
     "notes": "",
     "label": "",
-    "createdAt": 1795186696351,
-    "updatedAt": 1795186696351
+    "createdAt": 1795186868612,
+    "updatedAt": 1795186868612
   },
   {
-    "id": "d6f1d049-4ae5-4ae7-a931-16b9e2bc3884",
+    "id": "90b21bf5-184e-4832-a8f9-ac4d550c9d54",
     "clubCode": "LLV",
     "opponentCode": "GNK",
     "formationKey": "5-3-2",
@@ -1595,11 +1595,11 @@ export const PREDICTED_LINEUPS = [
     ],
     "notes": "",
     "label": "",
-    "createdAt": 1795186696351,
-    "updatedAt": 1795186696351
+    "createdAt": 1795186868612,
+    "updatedAt": 1795186868612
   },
   {
-    "id": "5a6ad9b9-d27d-48bb-bbf1-361e620634eb",
+    "id": "28981e9e-a97f-43e7-9091-b7d70c478bce",
     "clubCode": "LOM",
     "opponentCode": "STA",
     "formationKey": "4-2-3-1",
@@ -1739,11 +1739,11 @@ export const PREDICTED_LINEUPS = [
     ],
     "notes": "",
     "label": "",
-    "createdAt": 1795186696351,
-    "updatedAt": 1795186696351
+    "createdAt": 1795186868612,
+    "updatedAt": 1795186868612
   },
   {
-    "id": "59807d1b-a010-4201-aa5b-f28c8e6ad2d5",
+    "id": "340e60f7-8ee5-4604-912e-0cc48bb0c39f",
     "clubCode": "OHL",
     "opponentCode": "AND",
     "formationKey": "5-3-2",
@@ -1883,11 +1883,11 @@ export const PREDICTED_LINEUPS = [
     ],
     "notes": "",
     "label": "",
-    "createdAt": 1795186696351,
-    "updatedAt": 1795186696351
+    "createdAt": 1795186868612,
+    "updatedAt": 1795186868612
   },
   {
-    "id": "8c9fe07e-7dd8-4a63-914b-cd1620325ff6",
+    "id": "0e69964d-52b4-4ae8-a993-bb2802956ad5",
     "clubCode": "STA",
     "opponentCode": "LOM",
     "formationKey": "4-3-3",
@@ -2027,11 +2027,11 @@ export const PREDICTED_LINEUPS = [
     ],
     "notes": "",
     "label": "",
-    "createdAt": 1795186696351,
-    "updatedAt": 1795186696351
+    "createdAt": 1795186868612,
+    "updatedAt": 1795186868612
   },
   {
-    "id": "40d16877-3438-4728-9146-c14304f6c184",
+    "id": "b09dd20d-4ee0-49d3-aa29-b74359cfc100",
     "clubCode": "STV",
     "opponentCode": "CHA",
     "formationKey": "4-3-3",
@@ -2171,11 +2171,11 @@ export const PREDICTED_LINEUPS = [
     ],
     "notes": "",
     "label": "",
-    "createdAt": 1795186696351,
-    "updatedAt": 1795186696351
+    "createdAt": 1795186868612,
+    "updatedAt": 1795186868612
   },
   {
-    "id": "ad27dafc-5ad1-4b16-95a3-ddcf5f45961e",
+    "id": "3b27b706-0d8d-4812-806a-b2ab823702d7",
     "clubCode": "USG",
     "opponentCode": "KOR",
     "formationKey": "5-3-2",
@@ -2315,11 +2315,11 @@ export const PREDICTED_LINEUPS = [
     ],
     "notes": "",
     "label": "",
-    "createdAt": 1795186696351,
-    "updatedAt": 1795186696351
+    "createdAt": 1795186868612,
+    "updatedAt": 1795186868612
   },
   {
-    "id": "c1a9a36b-42ee-45a3-8b54-32bbfe3361b4",
+    "id": "38e35f1f-5017-424c-bb17-d908754b09ff",
     "clubCode": "WES",
     "opponentCode": "CER",
     "formationKey": "4-2-3-1",
@@ -2459,11 +2459,11 @@ export const PREDICTED_LINEUPS = [
     ],
     "notes": "",
     "label": "",
-    "createdAt": 1795186696351,
-    "updatedAt": 1795186696351
+    "createdAt": 1795186868612,
+    "updatedAt": 1795186868612
   },
   {
-    "id": "bf2db5d5-2a0a-42a3-a8ad-a3f7a75bb03f",
+    "id": "ee24f529-172c-46d1-920d-1f4ac98ac2ce",
     "clubCode": "ZWA",
     "opponentCode": "ANT",
     "formationKey": "4-3-3",
@@ -2603,7 +2603,7 @@ export const PREDICTED_LINEUPS = [
     ],
     "notes": "",
     "label": "",
-    "createdAt": 1795186696351,
-    "updatedAt": 1795186696351
+    "createdAt": 1795186868612,
+    "updatedAt": 1795186868612
   }
 ];
