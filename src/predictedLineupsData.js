@@ -2210,11 +2210,11 @@ export const PREDICTED_LINEUPS = [
         "broadPosition": "DEF",
         "xPercent": 36,
         "yPercent": 74,
-        "playerName": "Havenaar",
+        "playerName": "Kricfalusi",
         "playerTeamCode": "USG",
-        "playerPosition": "DEF",
+        "playerPosition": "MID",
         "playerPrice": 5.5,
-        "safety": "green"
+        "safety": "red"
       },
       {
         "positionId": "CCB",
