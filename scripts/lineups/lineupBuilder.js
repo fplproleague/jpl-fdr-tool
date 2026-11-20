@@ -117,9 +117,10 @@ export function opponentFor(club, gw) {
 }
 
 // Op Siebe's afbeeldingen staat onder een twijfelachtige basisspeler de kans dat een ander start
-// ("Storm / 40% Congreve"). Die kans wordt de zekerheidskleur op de site, zoals de eigenaar ze tot nu
-// toe zelf invulde: geen percentage = zeker (darkgreen), tot 20% = basisspeler (green), tot 35% =
-// twijfel (orange), meer = risico (red).
+// ("Storm / 40% Congreve"). Die kans wordt de zekerheidskleur op de site. Schaal van de eigenaar, uitgedrukt
+// in de kans dat de speler zelf start: 95-100% = zeker (darkgreen, geen percentage), 80% = basisspeler (green),
+// 70% = twijfel (orange), 60% of minder = risico (red). In de invoer schrijf je de kans van de ANDERE speler:
+// 20% = green, 30% = orange, 40% of meer = red.
 export function safetyFromPercent(pct) {
   if (pct == null || !Number.isFinite(pct) || pct <= 0) return 'darkgreen';
   if (pct <= 20) return 'green';
