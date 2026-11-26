@@ -113,6 +113,7 @@ export const STRINGS = {
     'fdr.filterLabel': 'Filter',
     'fdr.filterClearAll': 'Toon alles',
     'fdr.sortByGwAria': 'Sorteer op moeilijkheid van GW{{gw}}',
+    'fdr.rechargeGw': 'Gratis wildcard',
     // --- Toegankelijkheid van de hoofdtabel ---
     // De moeilijkheidsgraad van een fixture zat tot nu toe enkel in de achtergrondkleur van de cel.
     // Kleur alleen is geen bruikbare drager: rood-groen-kleurenblindheid komt bij ~8% van de mannen
@@ -1093,6 +1094,7 @@ export const STRINGS = {
     'fdr.filterLabel': 'Filtre',
     'fdr.filterClearAll': 'Tout afficher',
     'fdr.sortByGwAria': 'Trier par difficulté de la J{{gw}}',
+    'fdr.rechargeGw': 'Wildcard gratuite',
     'fdr.venue.home': 'à domicile',
     'fdr.venue.away': 'à l’extérieur',
     'fdr.cellAria': '{{opp}} {{venue}} — difficulté {{rating}} sur 5',
@@ -2050,6 +2052,7 @@ export const STRINGS = {
     'fdr.filterLabel': "Filter",
     'fdr.filterClearAll': "Show all",
     'fdr.sortByGwAria': "Sort by difficulty of GW{{gw}}",
+    'fdr.rechargeGw': "Free wildcard",
     'fdr.venue.home': "home",
     'fdr.venue.away': "away",
     'fdr.cellAria': "{{opp}} {{venue}} — difficulty {{rating}} out of 5",

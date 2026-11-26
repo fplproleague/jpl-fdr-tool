@@ -95,6 +95,18 @@
   color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit; cursor: pointer;
 }
 .fdr-grid__sort:hover { color: var(--text-1); }
+/* Gratis wildcard (Recharge): lijntje in de ruimte links van de GW-kop, alleen in de kop, met een klein
+   bliksem-badge. Het badge is de tooltip-trigger (hover op desktop, tik op gsm). */
+.fdr-grid thead th.fdr-grid__gw--wc { box-shadow: -3px 0 0 -0.5px color-mix(in srgb, var(--accent) 70%, transparent); }
+.fdr-grid__wc-badge {
+  position: absolute; left: -10px; top: 50%; transform: translateY(-50%);
+  display: flex; align-items: center; justify-content: center; box-sizing: content-box;
+  width: 10px; height: 10px; padding: 2px; border-radius: 50%; cursor: default;
+  background: var(--ink-0); color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 70%, transparent);
+}
+.fdr-grid__wc-badge svg { width: 10px; height: 10px; }
+/* Op touch is het doel klein: een onzichtbaar grotere tikzone. */
+.fdr-grid__wc-badge::after { content: ''; position: absolute; inset: -9px; }
 .fdr-grid__sort.is-sorted { color: var(--accent); border-bottom-color: var(--accent); }
 /* Sorteerpijltje in elke kop (spec D4): zo zie je dat een klik sorteert, ook op touch. */
 .fdr-grid__sort::after { content: '↕'; font-family: var(--font-num); font-size: var(--fs-micro); color: var(--text-4); }
