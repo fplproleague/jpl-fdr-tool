@@ -5,12 +5,13 @@
 // gemount/unmount bij het wisselen van tab.
 
 import { useState, useMemo, useRef, useCallback, useEffect, lazy, Suspense } from 'react';
-import { Info, X, Loader2 } from 'lucide-react';
+import { Info, X, Loader2, Zap } from 'lucide-react';
+import { TooltipTrigger } from './components/Tooltip';
 import {
   TEAMS, FIXTURES, GW_COUNT, CURRENT_GW, DEFAULT_GW_HORIZON_END,
   MINILEAGUE_CODE, formatLastUpdatedLong, GW_INDEXES, DEFAULT_RATINGS, DEFAULT_HOME_ADVANTAGE, PREVIOUS_DEFAULT_RATINGS,
   PLAYER_DATABASE_CSV_URL, parsePlayerDatabaseCsv, getFixtureScores, average,
-  getGwDeadlineDate, PREDICTED_LINEUPS_GW,
+  getGwDeadlineDate, PREDICTED_LINEUPS_GW, AUTO_RECHARGE_GWS,
 } from './constants';
 import { SET_PIECES_CSV_URL } from './constants';
 import { parseSetPiecesCsv } from './setPieces';
@@ -163,15 +164,24 @@ function buildGwHeaderCells(t, { sortedGw = null, onSortGw = null } = {}) {
   return GW_INDEXES.map(i => {
     const gw = i + 1;
     const isSorted = sortedGw === gw;
+    // Speeldagen waarop de gratis Recharge (wildcard) valt: een lijntje links van de kop (tussen de
+    // vorige speeldag en deze) met een klein bliksem-badge. Hover of tik toont de korte uitleg.
+    const recharge = AUTO_RECHARGE_GWS.has(gw) && gw >= CURRENT_GW;
+    const badge = recharge ? (
+      <TooltipTrigger as="span" className="fdr-grid__wc-badge" text={t('fdr.rechargeGw')}>
+        <Zap aria-hidden="true" strokeWidth={2.25} />
+      </TooltipTrigger>
+    ) : null;
+    const thClass = `fdr-grid__gw${recharge ? ' fdr-grid__gw--wc' : ''}`;
     if (!onSortGw) {
       return (
-        <th key={i} scope="col" className="fdr-grid__gw" aria-label={t('fdr.gwColumnAria', { gw })}>
-          {prefix}{gw}
+        <th key={i} scope="col" className={thClass} aria-label={t('fdr.gwColumnAria', { gw })}>
+          {prefix}{gw}{badge}
         </th>
       );
     }
     return (
-      <th key={i} scope="col" className="fdr-grid__gw" aria-sort={isSorted ? 'ascending' : 'none'}>
+      <th key={i} scope="col" className={thClass} aria-sort={isSorted ? 'ascending' : 'none'}>
         <button
           type="button"
           onClick={() => onSortGw(gw)}
@@ -181,6 +191,7 @@ function buildGwHeaderCells(t, { sortedGw = null, onSortGw = null } = {}) {
         >
           {prefix}{gw}
         </button>
+        {badge}
       </th>
     );
   });
