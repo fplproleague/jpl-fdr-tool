@@ -7,7 +7,7 @@
 // nieuw object, zodat ongedaan maken gewoon de vorige versie terugzet.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  CURRENT_GW, GW_COUNT, PREDICTED_LINEUPS_GW, AUTO_RECHARGE_GWS, usedBoosterGwFor, TEAM_PLANNER_MAX_PER_CLUB,
+  CURRENT_GW, GW_COUNT, PREDICTED_LINEUPS_GW, AUTO_RECHARGE_GWS, usedBoosterGwFor, BOOSTER_RESET_GW, TEAM_PLANNER_MAX_PER_CLUB,
   TEAM_PLANNER_SLOT_POSITIONS, computeTeamPlannerTransferBudget, resolveForGw,
 } from './constants';
 import { PREDICTED_LINEUPS } from './predictedLineupsData';
@@ -313,6 +313,7 @@ export default function useTeamPlanner({ playerDatabase, ratings, homeAdvantage,
   // Recharge-speeldag. Ongewijzigd ten opzichte van vroeger.
   const toggleBooster = (key) => {
     if (key === 'recharge' && AUTO_RECHARGE_GWS.has(gw)) return;
+    if (planner.boostersUsedBefore?.[key]) return;
     const boosters = { ...planner.boosters };
     if (boosters[key] === gw) boosters[key] = null;
     else if (usedBoosterGwFor(boosters, key, gw) != null) return;
@@ -321,6 +322,15 @@ export default function useTeamPlanner({ playerDatabase, ratings, homeAdvantage,
       Object.keys(boosters).forEach(k => { if (k !== key && boosters[k] === gw) boosters[k] = null; });
     }
     commit({ ...planner, boosters });
+  };
+
+  // "Al gebruikt sinds GW8": een booster die je al inzette voor het planner-venster. Aanvinken haalt een
+  // geplande inzet van dezelfde booster weg, want die kan dan niet meer.
+  const toggleBoosterUsedBefore = (key) => {
+    const on = !planner.boostersUsedBefore?.[key];
+    const boosters = { ...planner.boosters };
+    if (on && boosters[key] != null && boosters[key] >= BOOSTER_RESET_GW) boosters[key] = null;
+    commit({ ...planner, boosters, boostersUsedBefore: { ...planner.boostersUsedBefore, [key]: on } });
   };
 
   // --- Budget en gratis transfers "Klopt niet? Pas aan" (C1) -------------------------------------
@@ -344,7 +354,7 @@ export default function useTeamPlanner({ playerDatabase, ratings, homeAdvantage,
     transferRules, transferBlocker, transfer, removeTransfer, clearTransfers,
     isSamePlayer: (a, b) => keyOf(a) === keyOf(b),
     teamAt, incoming, startIncoming, cancelIncoming, transferIncoming,
-    swapTargets, swap, setCaptain, setVice, optimize, toggleBooster,
+    swapTargets, swap, setCaptain, setVice, optimize, toggleBooster, toggleBoosterUsedBefore,
     calibrationAt, calibrate, resetCalibration, confirmCheck,
     notice, undoNotice, dismissNotice,
   };

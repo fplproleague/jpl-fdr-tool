@@ -611,6 +611,8 @@ export const STRINGS = {
     'teamPlanner.transferCol.diffTitle': "Prijsverschil in miljoen (in − uit)",
 
     'teamPlanner.booster.usedIn': "gebruikt in GW{{gw}}",
+    'teamPlanner.booster.usedBefore': "al gebruikt",
+    'teamPlanner.booster.usedBeforeLabel': "Al gebruikt sinds GW8:",
 
     'screenshotUpload.importButton': "Screenshot importeren",
 
@@ -1574,6 +1576,8 @@ export const STRINGS = {
     'teamPlanner.transferCol.diffTitle': "Écart de prix en millions (entrant − sortant)",
 
     'teamPlanner.booster.usedIn': "utilisé à la J{{gw}}",
+    'teamPlanner.booster.usedBefore': "déjà utilisé",
+    'teamPlanner.booster.usedBeforeLabel': "Déjà utilisés depuis la J8 :",
 
     'screenshotUpload.importButton': "Importer une capture",
 
@@ -2407,6 +2411,8 @@ export const STRINGS = {
     'teamPlanner.transferCol.diff': "Diff.",
     'teamPlanner.transferCol.diffTitle': "Price difference in millions (in − out)",
     'teamPlanner.booster.usedIn': "used in GW{{gw}}",
+    'teamPlanner.booster.usedBefore': "already used",
+    'teamPlanner.booster.usedBeforeLabel': "Already used since GW8:",
     'screenshotUpload.importButton': "Import screenshot",
     'screenshotUpload.reviewHint': "Check the suggestion and adjust where needed. Nothing changes until you click Apply.",
     'picker.title.GK': "Pick a goalkeeper",

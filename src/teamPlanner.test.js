@@ -376,3 +376,17 @@ describe('boosters resetten bij GW8', () => {
     expect(usedBoosterGwFor(b, 'recharge', 13)).toBeNull();
   });
 });
+
+describe('boosters al gebruikt sinds GW8', () => {
+  it('een nieuwe planner heeft er geen aangevinkt', () => {
+    expect(createEmptyPlanner(13).boostersUsedBefore).toEqual({ benchBoost: false, tripleCaptain: false, recharge: false });
+  });
+  it('wordt bewaard en gelezen, en rommel valt terug op "niet gebruikt"', () => {
+    const p = { ...createEmptyPlanner(13), boostersUsedBefore: { benchBoost: true, tripleCaptain: 'ja', recharge: false } };
+    expect(sanitizeV2(p, 13).boostersUsedBefore).toEqual({ benchBoost: true, tripleCaptain: false, recharge: false });
+  });
+  it('een oude opslag zonder het veld krijgt niets aangevinkt', () => {
+    const { boostersUsedBefore, ...oud } = createEmptyPlanner(13);
+    expect(sanitizeV2(oud, 13).boostersUsedBefore).toEqual({ benchBoost: false, tripleCaptain: false, recharge: false });
+  });
+});

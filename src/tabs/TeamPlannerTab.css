@@ -83,6 +83,13 @@
 .tp-gwbar__meta { margin-left: var(--s-2); color: var(--text-3); font-size: var(--fs-meta); }
 .tp-gwbar__past { color: var(--warning); font-size: var(--fs-meta); font-weight: 600; }
 .tp-boosters { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-bottom: var(--s-3); }
+.tp-used { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1) var(--s-2); margin: calc(-1 * var(--s-1)) 0 var(--s-3); font-size: var(--fs-meta); color: var(--text-3); }
+.tp-used__btn {
+  padding: 2px var(--s-2); border: 1px solid var(--line-strong); border-radius: 999px; background: none;
+  color: var(--text-2); font: inherit; cursor: pointer;
+}
+.tp-used__btn:hover { color: var(--text-1); }
+.tp-used__btn[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
 .tp-booster__state { color: inherit; font-weight: 500; font-size: var(--fs-meta); opacity: 0.85; }
 .tp-booster.is-auto:disabled { color: var(--invert-text); }
 

@@ -27,6 +27,9 @@ export const TEAM_PLANNER_V1_KEY = 'fpl_proleague_teamplanner_v1';
 export const TEAM_PLANNER_V2_KEY = 'fpl_proleague_teamplanner_v2';
 
 export const EMPTY_BOOSTERS = Object.freeze({ benchBoost: null, tripleCaptain: null, recharge: null });
+// Boosters die de bezoeker al gebruikte vóór het planner-venster (tussen GW8 en de startspeeldag). Die
+// speeldagen toont de planner niet, dus dit is een eenvoudig aan/uit per booster.
+export const EMPTY_BOOSTERS_USED = Object.freeze({ benchBoost: false, tripleCaptain: false, recharge: false });
 
 export function createUniqueId() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
@@ -53,6 +56,7 @@ export function createEmptyPlanner(currentGw) {
     captainByGw: {},
     viceByGw: {},
     boosters: { ...EMPTY_BOOSTERS },
+    boostersUsedBefore: { ...EMPTY_BOOSTERS_USED },
     checkConfirmed: false,
   };
 }
@@ -126,6 +130,11 @@ function sanitizeBoosters(raw) {
   };
 }
 
+function sanitizeBoostersUsed(raw) {
+  const b = isObject(raw) ? raw : {};
+  return { benchBoost: b.benchBoost === true, tripleCaptain: b.tripleCaptain === true, recharge: b.recharge === true };
+}
+
 function sanitizePlayers(raw) {
   if (!Array.isArray(raw) || raw.length !== TEAM_PLANNER_SQUAD_SIZE) return null;
   return raw.map((p, index) => ({
@@ -188,6 +197,7 @@ export function migrateTeamPlannerV1(v1, currentGw) {
     captainByGw: old.captainByGw,
     viceByGw: {},
     boosters: old.boosters,
+    boostersUsedBefore: { ...EMPTY_BOOSTERS_USED },
     checkConfirmed: false,
   };
 }
@@ -229,6 +239,7 @@ export function sanitizeV2(raw, currentGw) {
     captainByGw: sanitizeByGw(raw.captainByGw, isSlotOrNull),
     viceByGw: sanitizeByGw(raw.viceByGw, isSlotOrNull),
     boosters: sanitizeBoosters(raw.boosters),
+    boostersUsedBefore: sanitizeBoostersUsed(raw.boostersUsedBefore),
     checkConfirmed: raw.checkConfirmed === true,
   };
 }
