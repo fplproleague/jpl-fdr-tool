@@ -480,7 +480,7 @@ export const GW_DEADLINES = Object.fromEntries(
 // werken samen met die data. Zolang deze waarde ACHTERLOOPT op CURRENT_GW toont de Predicted
 // Lineups-tab een expliciete waarschuwing dat de opstellingen van een vorige speeldag zijn — zo kan
 // verouderde team-info nooit meer stilzwijgend als actueel gepresenteerd worden.
-export const PREDICTED_LINEUPS_GW = 12;
+export const PREDICTED_LINEUPS_GW = 13;
 
 // Wanneer de Verwachte XI's voor een speeldag normaal online komen: de vrijdag vóór de deadline om
 // 16:00 Belgische tijd. Valt de deadline zelf vóór vrijdag 16:00 (bv. een speeldag die al op
