@@ -69,23 +69,25 @@ function teamNameFor(teamCode) {
 function BoosterButton({ t, label, description, state, usedGw, gw, onClick }) {
   const isAutomatic = state === 'automatic';
   const isActive = state === 'active' || isAutomatic;
+  const isUsedBefore = state === 'used-before';
   const isUsedElsewhere = state === 'used-elsewhere';
   const statusText = isAutomatic
     ? t('teamPlanner.booster.automatic')
     : isActive ? t('teamPlanner.booster.active', { gw })
+    : isUsedBefore ? t('teamPlanner.booster.usedBefore')
     : isUsedElsewhere ? t('teamPlanner.booster.usedIn', { gw: usedGw }) : t('teamPlanner.booster.available');
   return (
     <Button
       variant="secondary"
       className={`tp-booster${isAutomatic ? ' is-auto' : ''}`}
       onClick={isAutomatic ? undefined : onClick}
-      disabled={isUsedElsewhere || isAutomatic}
+      disabled={isUsedElsewhere || isUsedBefore || isAutomatic}
       aria-pressed={isActive}
       aria-label={`${label} — ${statusText}. ${description}`}
       title={description}
     >
       {label}
-      {(isUsedElsewhere || isAutomatic) && <span className="tp-booster__state">{statusText}</span>}
+      {(isUsedElsewhere || isUsedBefore || isAutomatic) && <span className="tp-booster__state">{statusText}</span>}
     </Button>
   );
 }
@@ -294,6 +296,7 @@ export default function TeamPlannerTab({
   const isRecharge = isRechargeActiveForGw(p.boosters, gw);
   const boosterState = (key) => {
     if (key === 'recharge' && AUTO_RECHARGE_GWS.has(gw)) return 'automatic';
+    if (p.boostersUsedBefore?.[key]) return 'used-before';
     const usedGw = usedBoosterGwFor(p.boosters, key, gw);
     if (usedGw === gw) return 'active';
     if (usedGw != null) return 'used-elsewhere';
@@ -775,6 +778,22 @@ export default function TeamPlannerTab({
                     gw={gw}
                     onClick={() => planner.toggleBooster(key)}
                   />
+                ))}
+              </div>
+
+              {/* Boosters die je al gebruikte sinds GW8 (de reset), vóór het venster van de planner. */}
+              <div className="tp-used" role="group" aria-label={t('teamPlanner.booster.usedBeforeLabel')}>
+                <span className="tp-used__label">{t('teamPlanner.booster.usedBeforeLabel')}</span>
+                {['benchBoost', 'tripleCaptain', 'recharge'].map(key => (
+                  <button
+                    key={key}
+                    type="button"
+                    className="tp-used__btn"
+                    aria-pressed={!!p.boostersUsedBefore?.[key]}
+                    onClick={() => planner.toggleBoosterUsedBefore(key)}
+                  >
+                    {t(`teamPlanner.booster.${key}.label`)}
+                  </button>
                 ))}
               </div>
 
