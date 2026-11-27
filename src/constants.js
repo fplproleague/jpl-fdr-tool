@@ -654,6 +654,17 @@ export function isRechargeActiveForGw(boosters, gw) {
   return boosters.recharge === gw || AUTO_RECHARGE_GWS.has(gw);
 }
 
+// Na de zomerstop kreeg iedereen vanaf GW8 al zijn boosters opnieuw: elk 1× in GW1-7 en elk 1× vanaf GW8.
+// Een booster die in de eerste periode (vóór GW8) is opgeslagen, telt dus niet als verbruikt voor een
+// speeldag vanaf GW8. De opslag houdt per booster één speeldag bij; dit is de enige plek die bepaalt
+// of die speeldag in dezelfde periode valt als `gw`.
+export const BOOSTER_RESET_GW = 8;
+export function usedBoosterGwFor(boosters, key, gw) {
+  const used = boosters[key];
+  if (used == null) return null;
+  return (used >= BOOSTER_RESET_GW) === (gw >= BOOSTER_RESET_GW) ? used : null;
+}
+
 // Berekent, voor elke GW2..GW_COUNT, hoeveel gratis transfers de gebruiker had opgebouwd VOOR die GW
 // begon (freeAvailable), hoeveel transfers hij er effectief in gebruikte (used), en welke puntenkost
 // dat opleverde (pointsCost). Puur afgeleid van reeds bestaande state (transferHistory + boosters,

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   GW_COUNT, TEAM_PLANNER_FREE_TRANSFER_CAP, TEAM_PLANNER_TRANSFER_PENALTY, TEAM_PLANNER_SLOT_POSITIONS,
-  computeTeamPlannerTransferBudget, isRechargeActiveForGw, resolveForGw,
+  computeTeamPlannerTransferBudget, isRechargeActiveForGw, resolveForGw, usedBoosterGwFor,
 } from './constants';
 import {
   TEAM_PLANNER_V1_KEY, TEAM_PLANNER_V2_KEY, migrateTeamPlannerV1, loadTeamPlanner, sanitizeV2,
@@ -358,5 +358,21 @@ describe('wijzigingen in de planner', () => {
 
   it('suggestCaptains stelt geen keeper voor zolang er een veldspeler is', () => {
     expect(suggestCaptains([1, 6, 11, 14], (s) => (s === 0 ? 20 : s === 12 ? 8 : s === 3 ? 6 : 1))).toEqual({ captain: 12, vice: 3 });
+  });
+});
+
+describe('boosters resetten bij GW8', () => {
+  const b = { benchBoost: 4, tripleCaptain: 15, recharge: null };
+  it('een booster van vóór GW8 telt niet als verbruikt vanaf GW8', () => {
+    expect(usedBoosterGwFor(b, 'benchBoost', 13)).toBeNull();
+    expect(usedBoosterGwFor(b, 'benchBoost', 8)).toBeNull();
+  });
+  it('een booster van vanaf GW8 blijft verbruikt voor latere speeldagen', () => {
+    expect(usedBoosterGwFor(b, 'tripleCaptain', 20)).toBe(15);
+  });
+  it('binnen dezelfde periode blijft hij verbruikt, en een ongebruikte booster is vrij', () => {
+    expect(usedBoosterGwFor(b, 'benchBoost', 6)).toBe(4);
+    expect(usedBoosterGwFor(b, 'tripleCaptain', 7)).toBeNull();
+    expect(usedBoosterGwFor(b, 'recharge', 13)).toBeNull();
   });
 });

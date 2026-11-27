@@ -7,7 +7,7 @@
 // nieuw object, zodat ongedaan maken gewoon de vorige versie terugzet.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  CURRENT_GW, GW_COUNT, PREDICTED_LINEUPS_GW, AUTO_RECHARGE_GWS, TEAM_PLANNER_MAX_PER_CLUB,
+  CURRENT_GW, GW_COUNT, PREDICTED_LINEUPS_GW, AUTO_RECHARGE_GWS, usedBoosterGwFor, TEAM_PLANNER_MAX_PER_CLUB,
   TEAM_PLANNER_SLOT_POSITIONS, computeTeamPlannerTransferBudget, resolveForGw,
 } from './constants';
 import { PREDICTED_LINEUPS } from './predictedLineupsData';
@@ -309,13 +309,13 @@ export default function useTeamPlanner({ playerDatabase, ratings, homeAdvantage,
       : { key: 'lineupOptimizedSmall', vars: { gw } });
   };
 
-  // --- Boosters (C7): 1× per seizoen, max. 1 per speeldag, geen eigen Recharge op een automatische
+  // --- Boosters (C7): 1× per periode (GW1-7 en vanaf GW8, zie usedBoosterGwFor), max. 1 per speeldag, geen eigen Recharge op een automatische
   // Recharge-speeldag. Ongewijzigd ten opzichte van vroeger.
   const toggleBooster = (key) => {
     if (key === 'recharge' && AUTO_RECHARGE_GWS.has(gw)) return;
     const boosters = { ...planner.boosters };
     if (boosters[key] === gw) boosters[key] = null;
-    else if (boosters[key] != null) return;
+    else if (usedBoosterGwFor(boosters, key, gw) != null) return;
     else {
       boosters[key] = gw;
       Object.keys(boosters).forEach(k => { if (k !== key && boosters[k] === gw) boosters[k] = null; });

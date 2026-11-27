@@ -17,7 +17,7 @@ import { ChevronLeft, ChevronRight, Loader2, X, Wand2, Trash2, MoreHorizontal, P
 import {
   TEAMS, FIXTURES, GW_COUNT, GW_DEADLINES, CURRENT_GW,
   TEAM_PLANNER_BUDGET, TEAM_PLANNER_MAX_PER_CLUB, TEAM_PLANNER_SQUAD_SIZE, TEAM_PLANNER_SLOT_POSITIONS,
-  TEAM_PLANNER_FREE_TRANSFER_CAP, isRechargeActiveForGw, AUTO_RECHARGE_GWS,
+  TEAM_PLANNER_FREE_TRANSFER_CAP, isRechargeActiveForGw, AUTO_RECHARGE_GWS, usedBoosterGwFor,
 } from '../constants';
 import { MiniFixtureBadge } from '../components/MiniFixtureBadge';
 import { TooltipTrigger } from '../components/Tooltip';
@@ -294,7 +294,7 @@ export default function TeamPlannerTab({
   const isRecharge = isRechargeActiveForGw(p.boosters, gw);
   const boosterState = (key) => {
     if (key === 'recharge' && AUTO_RECHARGE_GWS.has(gw)) return 'automatic';
-    const usedGw = p.boosters[key];
+    const usedGw = usedBoosterGwFor(p.boosters, key, gw);
     if (usedGw === gw) return 'active';
     if (usedGw != null) return 'used-elsewhere';
     return 'available';
@@ -771,7 +771,7 @@ export default function TeamPlannerTab({
                       ? t('teamPlanner.booster.recharge.autoDescription', { gw })
                       : t(`teamPlanner.booster.${key}.description`)}
                     state={boosterState(key)}
-                    usedGw={p.boosters[key]}
+                    usedGw={usedBoosterGwFor(p.boosters, key, gw)}
                     gw={gw}
                     onClick={() => planner.toggleBooster(key)}
                   />
