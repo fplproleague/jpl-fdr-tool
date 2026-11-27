@@ -333,6 +333,10 @@ export default function useTeamPlanner({ playerDatabase, ratings, homeAdvantage,
     commit({ ...planner, boosters, boostersUsedBefore: { ...planner.boostersUsedBefore, [key]: on } });
   };
 
+  // Het kruisje: de rij "Al gebruikt sinds GW8" blijft weg voor alle speeldagen. Wat je aanvinkte, blijft
+  // gelden; een aangevinkte booster tik je in de rij boosters zelf weer uit.
+  const hideBoostersUsedRow = () => commit({ ...planner, boostersUsedHidden: true });
+
   // --- Budget en gratis transfers "Klopt niet? Pas aan" (C1) -------------------------------------
   const calibrationAt = (g) => ({
     bank: bankByGw[g]?.start ?? null,
@@ -354,7 +358,7 @@ export default function useTeamPlanner({ playerDatabase, ratings, homeAdvantage,
     transferRules, transferBlocker, transfer, removeTransfer, clearTransfers,
     isSamePlayer: (a, b) => keyOf(a) === keyOf(b),
     teamAt, incoming, startIncoming, cancelIncoming, transferIncoming,
-    swapTargets, swap, setCaptain, setVice, optimize, toggleBooster, toggleBoosterUsedBefore,
+    swapTargets, swap, setCaptain, setVice, optimize, toggleBooster, toggleBoosterUsedBefore, hideBoostersUsedRow,
     calibrationAt, calibrate, resetCalibration, confirmCheck,
     notice, undoNotice, dismissNotice,
   };

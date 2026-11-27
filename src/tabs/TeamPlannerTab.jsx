@@ -81,10 +81,10 @@ function BoosterButton({ t, label, description, state, usedGw, gw, onClick }) {
       variant="secondary"
       className={`tp-booster${isAutomatic ? ' is-auto' : ''}`}
       onClick={isAutomatic ? undefined : onClick}
-      disabled={isUsedElsewhere || isUsedBefore || isAutomatic}
+      disabled={isUsedElsewhere || isAutomatic}
       aria-pressed={isActive}
-      aria-label={`${label} — ${statusText}. ${description}`}
-      title={description}
+      aria-label={`${label} — ${statusText}. ${isUsedBefore ? t('teamPlanner.booster.usedBeforeUndo') : description}`}
+      title={isUsedBefore ? t('teamPlanner.booster.usedBeforeUndo') : description}
     >
       {label}
       {(isUsedElsewhere || isUsedBefore || isAutomatic) && <span className="tp-booster__state">{statusText}</span>}
@@ -776,12 +776,14 @@ export default function TeamPlannerTab({
                     state={boosterState(key)}
                     usedGw={usedBoosterGwFor(p.boosters, key, gw)}
                     gw={gw}
-                    onClick={() => planner.toggleBooster(key)}
+                    onClick={() => (p.boostersUsedBefore?.[key] && !(key === 'recharge' && AUTO_RECHARGE_GWS.has(gw))
+                      ? planner.toggleBoosterUsedBefore(key) : planner.toggleBooster(key))}
                   />
                 ))}
               </div>
 
               {/* Boosters die je al gebruikte sinds GW8 (de reset), vóór het venster van de planner. */}
+              {!p.boostersUsedHidden && (
               <div className="tp-used" role="group" aria-label={t('teamPlanner.booster.usedBeforeLabel')}>
                 <span className="tp-used__label">{t('teamPlanner.booster.usedBeforeLabel')}</span>
                 {['benchBoost', 'tripleCaptain', 'recharge'].map(key => (
@@ -795,7 +797,11 @@ export default function TeamPlannerTab({
                     {t(`teamPlanner.booster.${key}.label`)}
                   </button>
                 ))}
+                <button type="button" className="tp-used__close" onClick={planner.hideBoostersUsedRow} aria-label={t('teamPlanner.booster.usedHide')} title={t('teamPlanner.booster.usedHide')}>
+                  <X aria-hidden="true" strokeWidth={1.75} />
+                </button>
               </div>
+              )}
 
               {AUTO_RECHARGE_GWS.has(gw) && <p className="tp-note">{t('teamPlanner.autoRechargeNote', { gw })}</p>}
               {isTripleCaptainActive && <p className="tp-note is-accent">{t('teamPlanner.tripleCaptainActive', { gw })}</p>}

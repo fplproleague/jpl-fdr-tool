@@ -57,6 +57,7 @@ export function createEmptyPlanner(currentGw) {
     viceByGw: {},
     boosters: { ...EMPTY_BOOSTERS },
     boostersUsedBefore: { ...EMPTY_BOOSTERS_USED },
+    boostersUsedHidden: false,
     checkConfirmed: false,
   };
 }
@@ -198,6 +199,7 @@ export function migrateTeamPlannerV1(v1, currentGw) {
     viceByGw: {},
     boosters: old.boosters,
     boostersUsedBefore: { ...EMPTY_BOOSTERS_USED },
+    boostersUsedHidden: false,
     checkConfirmed: false,
   };
 }
@@ -240,6 +242,7 @@ export function sanitizeV2(raw, currentGw) {
     viceByGw: sanitizeByGw(raw.viceByGw, isSlotOrNull),
     boosters: sanitizeBoosters(raw.boosters),
     boostersUsedBefore: sanitizeBoostersUsed(raw.boostersUsedBefore),
+    boostersUsedHidden: raw.boostersUsedHidden === true,
     checkConfirmed: raw.checkConfirmed === true,
   };
 }
