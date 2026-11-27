@@ -390,3 +390,11 @@ describe('boosters al gebruikt sinds GW8', () => {
     expect(sanitizeV2(oud, 13).boostersUsedBefore).toEqual({ benchBoost: false, tripleCaptain: false, recharge: false });
   });
 });
+
+describe('rij "al gebruikt" verbergen', () => {
+  it('staat standaard zichtbaar, en een verborgen rij blijft bewaard', () => {
+    expect(createEmptyPlanner(13).boostersUsedHidden).toBe(false);
+    expect(sanitizeV2({ ...createEmptyPlanner(13), boostersUsedHidden: true }, 13).boostersUsedHidden).toBe(true);
+    expect(sanitizeV2({ ...createEmptyPlanner(13), boostersUsedHidden: 'ja' }, 13).boostersUsedHidden).toBe(false);
+  });
+});

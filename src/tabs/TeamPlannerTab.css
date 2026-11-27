@@ -88,6 +88,9 @@
   padding: 2px var(--s-2); border: 1px solid var(--line-strong); border-radius: 999px; background: none;
   color: var(--text-2); font: inherit; cursor: pointer;
 }
+.tp-used__close { display: inline-flex; margin-left: auto; padding: 2px; border: 0; background: none; color: var(--text-3); cursor: pointer; }
+.tp-used__close:hover { color: var(--text-1); }
+.tp-used__close svg { width: 14px; height: 14px; }
 .tp-used__btn:hover { color: var(--text-1); }
 .tp-used__btn[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
 .tp-booster__state { color: inherit; font-weight: 500; font-size: var(--fs-meta); opacity: 0.85; }

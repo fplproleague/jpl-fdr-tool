@@ -613,6 +613,8 @@ export const STRINGS = {
     'teamPlanner.booster.usedIn': "gebruikt in GW{{gw}}",
     'teamPlanner.booster.usedBefore': "al gebruikt",
     'teamPlanner.booster.usedBeforeLabel': "Al gebruikt sinds GW8:",
+    'teamPlanner.booster.usedBeforeUndo': "Tik om weer beschikbaar te maken",
+    'teamPlanner.booster.usedHide': "Deze rij verbergen",
 
     'screenshotUpload.importButton': "Screenshot importeren",
 
@@ -1578,6 +1580,8 @@ export const STRINGS = {
     'teamPlanner.booster.usedIn': "utilisé à la J{{gw}}",
     'teamPlanner.booster.usedBefore': "déjà utilisé",
     'teamPlanner.booster.usedBeforeLabel': "Déjà utilisés depuis la J8 :",
+    'teamPlanner.booster.usedBeforeUndo': "Touchez pour la remettre disponible",
+    'teamPlanner.booster.usedHide': "Masquer cette ligne",
 
     'screenshotUpload.importButton': "Importer une capture",
 
@@ -2413,6 +2417,8 @@ export const STRINGS = {
     'teamPlanner.booster.usedIn': "used in GW{{gw}}",
     'teamPlanner.booster.usedBefore': "already used",
     'teamPlanner.booster.usedBeforeLabel': "Already used since GW8:",
+    'teamPlanner.booster.usedBeforeUndo': "Tap to make it available again",
+    'teamPlanner.booster.usedHide': "Hide this row",
     'screenshotUpload.importButton': "Import screenshot",
     'screenshotUpload.reviewHint': "Check the suggestion and adjust where needed. Nothing changes until you click Apply.",
     'picker.title.GK': "Pick a goalkeeper",
